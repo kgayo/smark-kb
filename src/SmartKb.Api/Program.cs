@@ -7,6 +7,7 @@ using SmartKb.Api.Secrets;
 using SmartKb.Api.Tenant;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
+using SmartKb.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,10 +31,18 @@ builder.Services.AddAuthorizationBuilder()
 
 builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
 builder.Services.AddScoped<ITenantContextAccessor, TenantContextAccessor>();
-builder.Services.AddSingleton<InMemoryAuditEventWriter>();
-builder.Services.AddSingleton<IAuditEventWriter>(sp => sp.GetRequiredService<InMemoryAuditEventWriter>());
-
 builder.Services.AddSecretArchitecture(builder.Configuration);
+
+var connectionString = builder.Configuration.GetConnectionString("SmartKbDb");
+if (!string.IsNullOrEmpty(connectionString))
+{
+    builder.Services.AddSmartKbData(connectionString);
+}
+else
+{
+    builder.Services.AddSingleton<InMemoryAuditEventWriter>();
+    builder.Services.AddSingleton<IAuditEventWriter>(sp => sp.GetRequiredService<InMemoryAuditEventWriter>());
+}
 
 var app = builder.Build();
 

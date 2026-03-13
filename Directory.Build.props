@@ -4,5 +4,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- NU1903: transitive from EF Core Design (design-time only, not deployed) -->
+    <NoWarn>$(NoWarn);NU1903</NoWarn>
+    <BaseOutputPath>bin/</BaseOutputPath>
+    <BaseIntermediateOutputPath>obj/</BaseIntermediateOutputPath>
   </PropertyGroup>
 </Project>

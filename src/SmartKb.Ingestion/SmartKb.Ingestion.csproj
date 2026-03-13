@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SmartKb.Contracts\SmartKb.Contracts.csproj" />
+    <ProjectReference Include="..\SmartKb.Data\SmartKb.Data.csproj" />
   </ItemGroup>
 
 </Project>

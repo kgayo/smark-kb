@@ -1,0 +1,196 @@
+using Microsoft.EntityFrameworkCore;
+using SmartKb.Data.Entities;
+
+namespace SmartKb.Data;
+
+public class SmartKbDbContext : DbContext
+{
+    public SmartKbDbContext(DbContextOptions<SmartKbDbContext> options) : base(options) { }
+
+    public DbSet<TenantEntity> Tenants => Set<TenantEntity>();
+    public DbSet<UserRoleMappingEntity> UserRoleMappings => Set<UserRoleMappingEntity>();
+    public DbSet<ConnectorEntity> Connectors => Set<ConnectorEntity>();
+    public DbSet<SyncRunEntity> SyncRuns => Set<SyncRunEntity>();
+    public DbSet<SessionEntity> Sessions => Set<SessionEntity>();
+    public DbSet<MessageEntity> Messages => Set<MessageEntity>();
+    public DbSet<FeedbackEntity> Feedbacks => Set<FeedbackEntity>();
+    public DbSet<OutcomeEventEntity> OutcomeEvents => Set<OutcomeEventEntity>();
+    public DbSet<AuditEventEntity> AuditEvents => Set<AuditEventEntity>();
+    public DbSet<RetentionConfigEntity> RetentionConfigs => Set<RetentionConfigEntity>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        ConfigureTenant(modelBuilder);
+        ConfigureUserRoleMapping(modelBuilder);
+        ConfigureConnector(modelBuilder);
+        ConfigureSyncRun(modelBuilder);
+        ConfigureSession(modelBuilder);
+        ConfigureMessage(modelBuilder);
+        ConfigureFeedback(modelBuilder);
+        ConfigureOutcomeEvent(modelBuilder);
+        ConfigureAuditEvent(modelBuilder);
+        ConfigureRetentionConfig(modelBuilder);
+    }
+
+    private static void ConfigureTenant(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<TenantEntity>(e =>
+        {
+            e.ToTable("Tenants");
+            e.HasKey(t => t.TenantId);
+            e.Property(t => t.TenantId).HasMaxLength(128);
+            e.Property(t => t.DisplayName).HasMaxLength(256).IsRequired();
+            e.Property(t => t.IsActive).HasDefaultValue(true);
+        });
+    }
+
+    private static void ConfigureUserRoleMapping(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<UserRoleMappingEntity>(e =>
+        {
+            e.ToTable("UserRoleMappings");
+            e.HasKey(u => u.Id);
+            e.Property(u => u.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(u => u.UserId).HasMaxLength(128).IsRequired();
+            e.Property(u => u.Role).HasConversion<string>().HasMaxLength(64).IsRequired();
+            e.HasIndex(u => new { u.TenantId, u.UserId, u.Role }).IsUnique();
+            e.HasOne(u => u.Tenant).WithMany(t => t.UserRoleMappings).HasForeignKey(u => u.TenantId);
+        });
+    }
+
+    private static void ConfigureConnector(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<ConnectorEntity>(e =>
+        {
+            e.ToTable("Connectors");
+            e.HasKey(c => c.Id);
+            e.Property(c => c.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(c => c.Name).HasMaxLength(256).IsRequired();
+            e.Property(c => c.ConnectorType).HasConversion<string>().HasMaxLength(64).IsRequired();
+            e.Property(c => c.Status).HasConversion<string>().HasMaxLength(32).IsRequired();
+            e.Property(c => c.AuthType).HasConversion<string>().HasMaxLength(64).IsRequired();
+            e.Property(c => c.KeyVaultSecretName).HasMaxLength(256);
+            e.HasIndex(c => c.TenantId);
+            e.HasIndex(c => new { c.TenantId, c.Name }).IsUnique().HasFilter("[DeletedAt] IS NULL");
+            e.HasQueryFilter(c => c.DeletedAt == null);
+            e.HasOne(c => c.Tenant).WithMany(t => t.Connectors).HasForeignKey(c => c.TenantId);
+        });
+    }
+
+    private static void ConfigureSyncRun(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<SyncRunEntity>(e =>
+        {
+            e.ToTable("SyncRuns");
+            e.HasKey(s => s.Id);
+            e.Property(s => s.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(s => s.Status).HasConversion<string>().HasMaxLength(32).IsRequired();
+            e.Property(s => s.IdempotencyKey).HasMaxLength(256);
+            e.HasIndex(s => s.TenantId);
+            e.HasIndex(s => s.ConnectorId);
+            e.HasIndex(s => s.IdempotencyKey).IsUnique().HasFilter("[IdempotencyKey] IS NOT NULL");
+            e.HasOne(s => s.Connector).WithMany(c => c.SyncRuns).HasForeignKey(s => s.ConnectorId);
+        });
+    }
+
+    private static void ConfigureSession(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<SessionEntity>(e =>
+        {
+            e.ToTable("Sessions");
+            e.HasKey(s => s.Id);
+            e.Property(s => s.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(s => s.UserId).HasMaxLength(128).IsRequired();
+            e.HasIndex(s => s.TenantId);
+            e.HasIndex(s => new { s.TenantId, s.UserId });
+            e.HasQueryFilter(s => s.DeletedAt == null);
+            e.HasOne(s => s.Tenant).WithMany(t => t.Sessions).HasForeignKey(s => s.TenantId);
+        });
+    }
+
+    private static void ConfigureMessage(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<MessageEntity>(e =>
+        {
+            e.ToTable("Messages");
+            e.HasKey(m => m.Id);
+            e.Property(m => m.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(m => m.Role).HasConversion<string>().HasMaxLength(32).IsRequired();
+            e.Property(m => m.Content).IsRequired();
+            e.Property(m => m.TraceId).HasMaxLength(128);
+            e.Property(m => m.CorrelationId).HasMaxLength(128);
+            e.HasIndex(m => m.SessionId);
+            e.HasIndex(m => m.TenantId);
+            e.HasQueryFilter(m => m.DeletedAt == null);
+            e.HasOne(m => m.Session).WithMany(s => s.Messages).HasForeignKey(m => m.SessionId);
+        });
+    }
+
+    private static void ConfigureFeedback(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<FeedbackEntity>(e =>
+        {
+            e.ToTable("Feedbacks");
+            e.HasKey(f => f.Id);
+            e.Property(f => f.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(f => f.Type).HasConversion<string>().HasMaxLength(32).IsRequired();
+            e.Property(f => f.ReasonCode).HasMaxLength(128);
+            e.Property(f => f.TraceId).HasMaxLength(128);
+            e.HasIndex(f => f.TenantId);
+            e.HasIndex(f => f.SessionId);
+            e.HasIndex(f => f.MessageId);
+            e.HasOne(f => f.Session).WithMany(s => s.Feedbacks).HasForeignKey(f => f.SessionId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(f => f.Message).WithMany().HasForeignKey(f => f.MessageId).OnDelete(DeleteBehavior.Restrict);
+        });
+    }
+
+    private static void ConfigureOutcomeEvent(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<OutcomeEventEntity>(e =>
+        {
+            e.ToTable("OutcomeEvents");
+            e.HasKey(o => o.Id);
+            e.Property(o => o.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(o => o.ResolutionType).HasConversion<string>().HasMaxLength(64).IsRequired();
+            e.Property(o => o.TargetTeam).HasMaxLength(256);
+            e.Property(o => o.EscalationTraceId).HasMaxLength(128);
+            e.HasIndex(o => o.TenantId);
+            e.HasIndex(o => o.SessionId);
+            e.HasOne(o => o.Session).WithMany(s => s.OutcomeEvents).HasForeignKey(o => o.SessionId).OnDelete(DeleteBehavior.Restrict);
+        });
+    }
+
+    private static void ConfigureAuditEvent(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<AuditEventEntity>(e =>
+        {
+            e.ToTable("AuditEvents");
+            e.HasKey(a => a.Id);
+            e.Property(a => a.EventType).HasMaxLength(128).IsRequired();
+            e.Property(a => a.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(a => a.ActorId).HasMaxLength(128).IsRequired();
+            e.Property(a => a.CorrelationId).HasMaxLength(128).IsRequired();
+            e.Property(a => a.Detail).IsRequired();
+            e.HasIndex(a => a.TenantId);
+            e.HasIndex(a => a.EventType);
+            e.HasIndex(a => a.Timestamp);
+            e.HasIndex(a => new { a.TenantId, a.Timestamp });
+            e.HasIndex(a => new { a.TenantId, a.EventType });
+        });
+    }
+
+    private static void ConfigureRetentionConfig(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<RetentionConfigEntity>(e =>
+        {
+            e.ToTable("RetentionConfigs");
+            e.HasKey(r => r.Id);
+            e.Property(r => r.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(r => r.EntityType).HasMaxLength(128).IsRequired();
+            e.HasIndex(r => new { r.TenantId, r.EntityType }).IsUnique();
+            e.HasOne(r => r.Tenant).WithMany(t => t.RetentionConfigs).HasForeignKey(r => r.TenantId);
+        });
+    }
+}
