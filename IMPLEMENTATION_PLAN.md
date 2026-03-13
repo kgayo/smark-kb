@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-13 (Asia/Manila) — iteration 4 (P0-002 implemented)
-Status: Active backlog (P0-001, P0-002 complete; remaining items pending)
+Last updated: 2026-03-13 (Asia/Manila) — iteration 5 (P0-003 implemented)
+Status: Active backlog (P0-001, P0-002, P0-003 complete; remaining items pending)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -31,9 +31,10 @@ Status: Active backlog (P0-001, P0-002 complete; remaining items pending)
   - Exit criteria: protected endpoints enforce role checks; unauthorized access returns 401/403 and is tested; role claims propagated from Entra tokens; role-to-permission matrix documented in shared contracts.
   - Completed: Microsoft.Identity.Web JWT bearer auth integrated; PermissionRequirement/PermissionAuthorizationHandler maps Entra role claims to AppRole enum and checks RolePermissions matrix; authorization policies auto-generated per permission string; fallback policy requires authentication on all endpoints (health endpoints AllowAnonymous); `/api/me` returns user identity and roles; `/api/admin/connectors` gated on `connector:manage`; `/api/audit/events` gated on `audit:read`; 20 new auth tests (12 unit + 8 integration) covering 401/403 enforcement, role-based access, multi-role, case-insensitive parsing, and anonymous endpoint access; all 46 tests passing.
 
-- [ ] P0-003: Implement tenant context propagation and hard tenant isolation across API, retrieval, connector admin, and telemetry.
+- [x] P0-003: Implement tenant context propagation and hard tenant isolation across API, retrieval, connector admin, and telemetry.
   - Specs: jtbd-10
   - Exit criteria: tenant ID enforced in all data queries and requests; cross-tenant access tests pass; cross-tenant denial attempts produce immutable audit events (not just HTTP 403); tenant ID attached to correlation context for logs/traces.
+  - Completed: ITenantContextAccessor/TenantContextAccessor (scoped DI) extracts tenant from JWT `tid` claim; TenantContextMiddleware enforces tenant presence on all authenticated requests (403 + audit event on missing tenant); AuditEvent model and IAuditEventWriter interface in Contracts; InMemoryAuditEventWriter (placeholder for SQL in P0-005); cross-tenant access on `/api/admin/connectors/{tenantId}` denied with `tenant.cross_access_denied` audit event; tenant ID attached to Activity tags/baggage and log scope for correlation; all endpoints now tenant-scoped; .NET 10 target framework upgrade with package updates; 22 new tests (6 unit middleware + 3 audit writer + 2 contract + 11 integration isolation) covering tenant propagation, cross-tenant denial + audit, case-insensitive matching, missing tenant rejection, and anonymous bypass; all 68 tests passing.
 
 - [ ] P0-004: Implement secret architecture: fixed server-side OpenAI key from application settings, Key Vault for external connector secrets, SQL for secret references only; Managed Identity for Azure service access.
   - Specs: jtbd-01, jtbd-07, jtbd-10

@@ -29,13 +29,20 @@ public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationScheme
             return Task.FromResult(AuthenticateResult.NoResult());
         }
 
+        var userId = Request.Headers[UserIdHeader].FirstOrDefault() ?? "test-user";
+        var tenantId = Request.Headers[TenantHeader].FirstOrDefault();
+
         var claims = new List<Claim>
         {
-            new("sub", Request.Headers[UserIdHeader].FirstOrDefault() ?? "test-user"),
-            new("oid", Request.Headers[UserIdHeader].FirstOrDefault() ?? "test-user"),
-            new("tid", Request.Headers[TenantHeader].FirstOrDefault() ?? "test-tenant"),
+            new("sub", userId),
+            new("oid", userId),
             new("name", "Test User"),
         };
+
+        if (!string.IsNullOrEmpty(tenantId))
+        {
+            claims.Add(new Claim("tid", tenantId));
+        }
 
         var rolesHeader = Request.Headers[RolesHeader].FirstOrDefault();
         if (!string.IsNullOrEmpty(rolesHeader))

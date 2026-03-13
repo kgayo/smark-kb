@@ -77,7 +77,7 @@ public class AuthorizationTests : IClassFixture<AuthTestFactory>
     {
         var client = CreateClient();
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/admin/connectors");
-        AddAuth(request, roles: "SupportAgent");
+        AddAuth(request, roles: "SupportAgent", tenantId: "test-tenant");
 
         var response = await client.SendAsync(request);
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -88,7 +88,7 @@ public class AuthorizationTests : IClassFixture<AuthTestFactory>
     {
         var client = CreateClient();
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/admin/connectors");
-        AddAuth(request, roles: "Admin");
+        AddAuth(request, roles: "Admin", tenantId: "test-tenant");
 
         var response = await client.SendAsync(request);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -99,7 +99,7 @@ public class AuthorizationTests : IClassFixture<AuthTestFactory>
     {
         var client = CreateClient();
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/audit/events");
-        AddAuth(request, roles: "SupportAgent");
+        AddAuth(request, roles: "SupportAgent", tenantId: "test-tenant");
 
         var response = await client.SendAsync(request);
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -110,7 +110,7 @@ public class AuthorizationTests : IClassFixture<AuthTestFactory>
     {
         var client = CreateClient();
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/audit/events");
-        AddAuth(request, roles: "SecurityAuditor");
+        AddAuth(request, roles: "SecurityAuditor", tenantId: "test-tenant");
 
         var response = await client.SendAsync(request);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -121,7 +121,7 @@ public class AuthorizationTests : IClassFixture<AuthTestFactory>
     {
         var client = CreateClient();
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/audit/events");
-        AddAuth(request, roles: "Admin");
+        AddAuth(request, roles: "Admin", tenantId: "test-tenant");
 
         var response = await client.SendAsync(request);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -136,7 +136,7 @@ public class AuthorizationTests : IClassFixture<AuthTestFactory>
     {
         var client = CreateClient();
         var request = new HttpRequestMessage(HttpMethod.Get, path);
-        AddAuth(request, roles: "EngineeringViewer");
+        AddAuth(request, roles: "EngineeringViewer", tenantId: "test-tenant");
 
         var response = await client.SendAsync(request);
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -151,7 +151,7 @@ public class AuthorizationTests : IClassFixture<AuthTestFactory>
     {
         var client = CreateClient();
         var request = new HttpRequestMessage(HttpMethod.Get, path);
-        AddAuth(request); // authenticated but no roles
+        AddAuth(request, tenantId: "test-tenant"); // authenticated with tenant but no roles
 
         var response = await client.SendAsync(request);
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -164,7 +164,7 @@ public class AuthorizationTests : IClassFixture<AuthTestFactory>
     {
         var client = CreateClient();
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/me");
-        AddAuth(request);
+        AddAuth(request, tenantId: "test-tenant");
 
         var response = await client.SendAsync(request);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);

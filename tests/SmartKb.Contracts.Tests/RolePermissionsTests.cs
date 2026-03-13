@@ -58,4 +58,27 @@ public class RolePermissionsTests
         Assert.Equal("user-1", ctx.UserId);
         Assert.Equal("corr-1", ctx.CorrelationId);
     }
+
+    [Fact]
+    public void AuditEvent_StoresAllFields()
+    {
+        var ts = DateTimeOffset.UtcNow;
+        var evt = new Models.AuditEvent("e1", "test.type", "t1", "u1", "c1", ts, "detail text");
+        Assert.Equal("e1", evt.EventId);
+        Assert.Equal("test.type", evt.EventType);
+        Assert.Equal("t1", evt.TenantId);
+        Assert.Equal("u1", evt.ActorId);
+        Assert.Equal("c1", evt.CorrelationId);
+        Assert.Equal(ts, evt.Timestamp);
+        Assert.Equal("detail text", evt.Detail);
+    }
+
+    [Fact]
+    public void AuditEvent_IsImmutableRecord()
+    {
+        var evt1 = new Models.AuditEvent("e1", "type", "t", "u", "c", DateTimeOffset.UtcNow, "d");
+        var evt2 = evt1 with { EventId = "e2" };
+        Assert.NotEqual(evt1.EventId, evt2.EventId);
+        Assert.Equal(evt1.EventType, evt2.EventType);
+    }
 }
