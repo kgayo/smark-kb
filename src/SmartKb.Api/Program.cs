@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.Identity.Web;
 using SmartKb.Api.Audit;
 using SmartKb.Api.Auth;
+using SmartKb.Api.Secrets;
 using SmartKb.Api.Tenant;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
@@ -31,6 +32,8 @@ builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHand
 builder.Services.AddScoped<ITenantContextAccessor, TenantContextAccessor>();
 builder.Services.AddSingleton<InMemoryAuditEventWriter>();
 builder.Services.AddSingleton<IAuditEventWriter>(sp => sp.GetRequiredService<InMemoryAuditEventWriter>());
+
+builder.Services.AddSecretArchitecture(builder.Configuration);
 
 var app = builder.Build();
 
@@ -105,6 +108,34 @@ app.MapGet("/api/audit/events", (ITenantContextAccessor tenantAccessor) =>
     var tenant = tenantAccessor.Current!;
     return Results.Ok(new { tenantId = tenant.TenantId, message = "Audit events placeholder" });
 }).RequirePermission("audit:read");
+
+app.MapGet("/api/admin/secrets/status", (
+    ITenantContextAccessor tenantAccessor,
+    OpenAiKeyProvider openAiKeyProvider,
+    IServiceProvider sp) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var keyVaultConfigured = sp.GetService<ISecretProvider>() is not null;
+
+    bool openAiConfigured;
+    try
+    {
+        var key = openAiKeyProvider.GetApiKey();
+        openAiConfigured = !string.IsNullOrWhiteSpace(key);
+    }
+    catch (InvalidOperationException)
+    {
+        openAiConfigured = false;
+    }
+
+    return Results.Ok(new
+    {
+        tenantId = tenant.TenantId,
+        keyVaultConfigured,
+        openAiKeyConfigured = openAiConfigured,
+        openAiModel = openAiKeyProvider.GetModel(),
+    });
+}).RequirePermission("connector:manage");
 
 app.Run();
 

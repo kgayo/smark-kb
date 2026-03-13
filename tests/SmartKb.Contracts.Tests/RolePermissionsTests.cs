@@ -1,4 +1,5 @@
 using SmartKb.Contracts;
+using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Enums;
 
 namespace SmartKb.Contracts.Tests;
@@ -80,5 +81,98 @@ public class RolePermissionsTests
         var evt2 = evt1 with { EventId = "e2" };
         Assert.NotEqual(evt1.EventId, evt2.EventId);
         Assert.Equal(evt1.EventType, evt2.EventType);
+    }
+
+    [Theory]
+    [InlineData(SecretAuthType.OAuth)]
+    [InlineData(SecretAuthType.Pat)]
+    [InlineData(SecretAuthType.PrivateKey)]
+    [InlineData(SecretAuthType.ServiceAccount)]
+    public void SecretAuthType_AllValuesAreDefined(SecretAuthType authType)
+    {
+        Assert.True(Enum.IsDefined(authType));
+    }
+
+    [Fact]
+    public void SecretAuthType_HasExpectedCount()
+    {
+        Assert.Equal(4, Enum.GetValues<SecretAuthType>().Length);
+    }
+
+    [Fact]
+    public void ConnectorSecretReference_StoresAllFields()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var rotated = now.AddDays(-1);
+        var reference = new Models.ConnectorSecretReference(
+            ConnectorId: "conn-1",
+            TenantId: "tenant-1",
+            AuthType: SecretAuthType.OAuth,
+            KeyVaultSecretName: "connector-conn-1-oauth",
+            CreatedAt: now,
+            RotatedAt: rotated);
+
+        Assert.Equal("conn-1", reference.ConnectorId);
+        Assert.Equal("tenant-1", reference.TenantId);
+        Assert.Equal(SecretAuthType.OAuth, reference.AuthType);
+        Assert.Equal("connector-conn-1-oauth", reference.KeyVaultSecretName);
+        Assert.Equal(now, reference.CreatedAt);
+        Assert.Equal(rotated, reference.RotatedAt);
+    }
+
+    [Fact]
+    public void ConnectorSecretReference_RotatedAt_CanBeNull()
+    {
+        var reference = new Models.ConnectorSecretReference(
+            ConnectorId: "conn-2",
+            TenantId: "tenant-2",
+            AuthType: SecretAuthType.Pat,
+            KeyVaultSecretName: "connector-conn-2-pat",
+            CreatedAt: DateTimeOffset.UtcNow,
+            RotatedAt: null);
+
+        Assert.Null(reference.RotatedAt);
+    }
+
+    [Fact]
+    public void ConnectorSecretReference_IsImmutableRecord()
+    {
+        var ref1 = new Models.ConnectorSecretReference(
+            "c1", "t1", SecretAuthType.Pat, "secret-name", DateTimeOffset.UtcNow, null);
+        var ref2 = ref1 with { AuthType = SecretAuthType.PrivateKey };
+
+        Assert.Equal(SecretAuthType.Pat, ref1.AuthType);
+        Assert.Equal(SecretAuthType.PrivateKey, ref2.AuthType);
+        Assert.Equal(ref1.ConnectorId, ref2.ConnectorId);
+    }
+
+    [Fact]
+    public void OpenAiSettings_HasCorrectDefaults()
+    {
+        var settings = new OpenAiSettings();
+
+        Assert.Equal(string.Empty, settings.ApiKey);
+        Assert.Equal("gpt-4o", settings.Model);
+        Assert.Equal("https://api.openai.com/v1", settings.Endpoint);
+    }
+
+    [Fact]
+    public void OpenAiSettings_SectionName_IsCorrect()
+    {
+        Assert.Equal("OpenAi", OpenAiSettings.SectionName);
+    }
+
+    [Fact]
+    public void KeyVaultSettings_HasCorrectDefaults()
+    {
+        var settings = new KeyVaultSettings();
+
+        Assert.Equal(string.Empty, settings.VaultUri);
+    }
+
+    [Fact]
+    public void KeyVaultSettings_SectionName_IsCorrect()
+    {
+        Assert.Equal("KeyVault", KeyVaultSettings.SectionName);
     }
 }

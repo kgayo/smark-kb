@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-13 (Asia/Manila) — iteration 5 (P0-003 implemented)
-Status: Active backlog (P0-001, P0-002, P0-003 complete; remaining items pending)
+Last updated: 2026-03-13 (Asia/Manila) — iteration 6 (P0-004 implemented)
+Status: Active backlog (P0-001, P0-002, P0-003, P0-004 complete; remaining items pending)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -36,9 +36,10 @@ Status: Active backlog (P0-001, P0-002, P0-003 complete; remaining items pending
   - Exit criteria: tenant ID enforced in all data queries and requests; cross-tenant access tests pass; cross-tenant denial attempts produce immutable audit events (not just HTTP 403); tenant ID attached to correlation context for logs/traces.
   - Completed: ITenantContextAccessor/TenantContextAccessor (scoped DI) extracts tenant from JWT `tid` claim; TenantContextMiddleware enforces tenant presence on all authenticated requests (403 + audit event on missing tenant); AuditEvent model and IAuditEventWriter interface in Contracts; InMemoryAuditEventWriter (placeholder for SQL in P0-005); cross-tenant access on `/api/admin/connectors/{tenantId}` denied with `tenant.cross_access_denied` audit event; tenant ID attached to Activity tags/baggage and log scope for correlation; all endpoints now tenant-scoped; .NET 10 target framework upgrade with package updates; 22 new tests (6 unit middleware + 3 audit writer + 2 contract + 11 integration isolation) covering tenant propagation, cross-tenant denial + audit, case-insensitive matching, missing tenant rejection, and anonymous bypass; all 68 tests passing.
 
-- [ ] P0-004: Implement secret architecture: fixed server-side OpenAI key from application settings, Key Vault for external connector secrets, SQL for secret references only; Managed Identity for Azure service access.
+- [x] P0-004: Implement secret architecture: fixed server-side OpenAI key from application settings, Key Vault for external connector secrets, SQL for secret references only; Managed Identity for Azure service access.
   - Specs: jtbd-01, jtbd-07, jtbd-10
   - Exit criteria: connector credentials resolve from Key Vault; OpenAI key resolves from server-side application settings; SQL stores only external secret refs; Managed Identity used for Key Vault, SQL, Storage, Search, and Service Bus access; raw secrets never logged or returned in API responses.
+  - Completed: SecretAuthType enum (OAuth, Pat, PrivateKey, ServiceAccount) and ConnectorSecretReference model in Contracts store only Key Vault secret name references (no raw secrets in SQL); ISecretProvider interface with KeyVaultSecretProvider implementation using Azure.Identity DefaultAzureCredential (Managed Identity) for Key Vault access in both API and Ingestion; OpenAiSettings options class with server-side ApiKey bound from `OpenAi:ApiKey` app setting via OpenAiKeyProvider (never exposed in responses); KeyVaultSettings for vault URI configuration; SecretMaskingExtensions for sensitive key detection and value redaction; SecretServiceExtensions wires conditional Key Vault registration (only when VaultUri configured) and OpenAI options binding; `/api/admin/secrets/status` diagnostic endpoint (connector:manage gated) reports configuration state without exposing raw values; appsettings.json updated with OpenAi and KeyVault sections; 19 new tests (7 OpenAiKeyProvider unit + 4 SecretMaskingExtensions unit + 4 SecretStatusEndpoint integration + 4 contract tests for SecretAuthType/ConnectorSecretReference/OpenAiSettings/KeyVaultSettings); all 87 tests passing.
 
 - [ ] P0-005: Create initial SQL schema + migrations for tenants, users/roles mapping, connectors, sync runs, sessions/messages, feedback, outcomes, audit events.
   - Specs: jtbd-01, jtbd-05, jtbd-06, jtbd-07, jtbd-10
