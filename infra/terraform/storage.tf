@@ -20,3 +20,15 @@ resource "azurerm_storage_container" "raw_content" {
   storage_account_id    = azurerm_storage_account.main.id
   container_access_type = "private"
 }
+
+resource "azurerm_role_assignment" "api_storage_blob_contributor" {
+  scope                = azurerm_storage_account.main.id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = azurerm_linux_web_app.api.identity[0].principal_id
+}
+
+resource "azurerm_role_assignment" "ingestion_storage_blob_contributor" {
+  scope                = azurerm_storage_account.main.id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = azurerm_linux_web_app.ingestion.identity[0].principal_id
+}

@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-16 (Asia/Manila) — iteration 24 (P0-010 complete)
-Status: Active backlog (P0-001 through P0-010 complete; 0 bugs blocking, 0 tech-debt blocking; next up P0-010A)
+Last updated: 2026-03-16 (Asia/Manila) — iteration 29 (P0-013A complete)
+Status: Active backlog (P0-001 through P0-013A complete; 0 bugs blocking, 0 tech-debt blocking; next up P0-014)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -121,60 +121,47 @@ Status: Active backlog (P0-001 through P0-010 complete; 0 bugs blocking, 0 tech-
   - Dependencies: P0-008 or P0-009 (need at least one connector producing records)
   - Completed: `IChunkingService` + `TextChunkingService` (markdown structural boundaries, 512 tokens/chunk, 64 overlap, paragraph fallback, hard-split for oversized sections). `IEnrichmentService` + `BaselineEnrichmentService` (keyword-based category/severity/environment detection, error token extraction via regex — exception names, HTTP status codes, error codes, hex codes — baseline PII detection for emails/phones/SSNs/credit cards). `INormalizationPipeline` + `NormalizationPipeline` orchestrates chunking→enrichment→EvidenceChunk production with full lineage (ChunkId = `{EvidenceId}_chunk_{index}`). `EvidenceChunkEntity` in SQL with `AddEvidenceChunks` migration (tenant-scoped, connector FK, content hash for dedup, enrichment version tracking, reprocessed-at timestamp). `SyncJobProcessor` now runs normalization pipeline after each fetch batch and persists chunks via upsert. `ErrorTokens` field added to `CanonicalRecord`. `EnrichmentVersion` and `ErrorTokens` fields added to `EvidenceChunk`. Services registered in both API and Ingestion DI. 46 new tests (9 chunking, 19 enrichment, 13 pipeline, 5 existing test updates); all 410 tests passing. SPEC-005 (ErrorTokens) and SPEC-006 (chunk ID format) resolved.
 
-- [ ] P0-010A: Set up Azure Blob Storage raw content store for ingested snapshots and extracted text.
+- [x] P0-010A: Set up Azure Blob Storage raw content store for ingested snapshots and extracted text.
   - Specs: jtbd-01, jtbd-02
   - Dependencies: P0-005A (Blob resource provisioned in IaC)
-  - Exit criteria: raw content stored in tenant-scoped blob containers; blob references linked to canonical records in SQL; content accessible for reprocessing.
-  - Implementation notes: `raw-content` container already provisioned in IaC. Need `IBlobStorageService` interface, tenant-scoped path convention (`{tenantId}/{connectorType}/{evidenceId}/raw`), and blob reference column on a SQL entity.
+  - Completed: `IBlobStorageService` interface + `AzureBlobStorageService` implementation in `SmartKb.Contracts.Services`. `BlobStorageSettings` config class (ServiceUri for Managed Identity, ConnectionString fallback). Tenant-scoped blob path convention `{tenantId}/{connectorType}/{evidenceId}/raw`. `RawContentSnapshotEntity` in SQL with `AddRawContentSnapshots` migration (PK=EvidenceId, connector FK, content hash for dedup, content length, content type). `SyncJobProcessor` uploads raw content to blob before normalization; skips upload when content hash unchanged (dedup). `Azure.Storage.Blobs` package added to Contracts. `BlobContainerClient` registered in both API and Ingestion DI with Managed Identity preference. `Storage Blob Data Contributor` role assigned to both API and Ingestion App Services in Terraform (`storage.tf`) and ARM (`main.json`). `BlobStorage__ServiceUri` app setting added to both App Services. ARM template validated (22 resources, 13 outputs). 22 new tests (8 blob settings + path convention, 8 blob storage service, 4 SyncJobProcessor blob upload, 2 existing test updates); all 432 tests passing.
 
-- [ ] P0-011: Implement Azure AI Search Evidence index and indexing pipeline.
+- [x] P0-011: Implement Azure AI Search Evidence index and indexing pipeline.
   - Specs: jtbd-03
   - Dependencies: P0-010 (chunks must exist to index)
-  - Exit criteria: evidence searchable with metadata filters; ACL trim fields indexed; index schema supports vector, keyword, and semantic reranking profiles.
-  - Implementation notes: Index schema from SearchFieldNames (P0-005C). Need `IIndexingService` interface. Semantic configuration must specify which fields are used for semantic reranking. Vector profile for embedding_vector at 1536 dims. Index creation should be idempotent (create-or-update).
+  - Completed: `IIndexingService` interface + `AzureSearchIndexingService` implementation in `SmartKb.Contracts.Services`. Index schema built from `SearchFieldNames` with all 17 fields: key (`chunk_id`), 3 searchable text fields (`chunk_text`, `chunk_context`, `title` with EnMicrosoft analyzer), vector field (`embedding_vector` at 1536 dims), 8 filterable metadata fields (tenant_id, evidence_id, source_system, source_type, status, updated_at, product_area, tags), 3 ACL security trimming fields (visibility, allowed_groups, access_label), source_url. Vector search: HNSW algorithm with cosine metric (M=4, efConstruction=400, efSearch=500). Semantic search: `evidence-semantic-config` with title as TitleField, chunk_text+chunk_context as ContentFields, tags as KeywordsFields. Index creation is idempotent (CreateOrUpdate). Batch indexing with configurable batch size (default 100). `SearchServiceSettings` config class (Endpoint for Managed Identity, AdminApiKey fallback). `SyncJobProcessor` calls `IndexChunksAsync` after chunk persistence — indexing failures are non-fatal (chunks persisted in SQL for retry). `SearchIndexClient` registered in both API and Ingestion DI with Managed Identity preference. `SearchService__Endpoint` app setting added to both App Services in Terraform and ARM. `Search Index Data Contributor` + `Search Service Contributor` RBAC roles assigned to both API and Ingestion App Services in Terraform (`search.tf`) and ARM (`main.json`). ARM template validated (26 resources, 14 outputs). 27 new tests (6 settings, 17 index schema/document mapping, 4 SyncJobProcessor indexing integration); all 459 tests passing.
 
 ### P0 Retrieval + Orchestration MVP
 
-- [ ] P0-012: Implement hybrid retrieval service (vector + BM25 + semantic rerank).
+- [x] P0-012: Implement hybrid retrieval service (vector + BM25 + semantic rerank).
   - Specs: jtbd-03
-  - Dependencies: P0-011 (index must exist), **D-005 (top-k/RRF weights — must resolve)**, **D-012 (no-evidence threshold — must resolve)**
-  - Exit criteria: top-k retrieval with RRF-style score fusion; ACL and tenant filters enforced; ACL-filtered-out count returned; no-evidence indicator triggers next-step/escalation path; retrieval telemetry emits top IDs, scores, and trace IDs.
-  - Design decisions to resolve before implementation:
-    - **D-005**: Propose top-k=20 (Evidence), RRF weight 1.0 for both BM25 and vector (equal weighting as baseline). Phase 1 uses Evidence Index only; Pattern Index fusion deferred to P1-004.
-    - **D-012**: Propose no-evidence = fewer than 3 results above score threshold 0.3 (tunable via config).
-  - Implementation notes: Need `IRetrievalService` interface returning `RetrievalResult` (ranked chunks, scores, ACL-filtered count, no-evidence flag, trace ID). Phase 1 retrieves from Evidence Index only.
+  - Dependencies: P0-011 (complete), D-005 (resolved), D-012 (resolved)
+  - Completed: `IRetrievalService` interface + `AzureSearchRetrievalService` implementation in `SmartKb.Contracts.Services`. Hybrid search: vector (VectorizedQuery on `embedding_vector` field, HNSW cosine) + BM25 (text search on `chunk_text`, `chunk_context`, `title`). Azure AI Search handles RRF score fusion natively. Optional semantic reranking via `evidence-semantic-config` with extractive captions. Tenant isolation via OData filter on `tenant_id` (always server-side). ACL security trimming in-memory post-retrieval: Public/Internal pass through, Restricted requires user membership in `allowed_groups` (case-insensitive). `RetrievalSettings` config class with D-005 defaults (TopK=20, RrfK=60, equal BM25/vector weights 1.0/1.0) and D-012 defaults (NoEvidenceScoreThreshold=0.3, NoEvidenceMinResults=3). `RetrievalResult` DTO returns ranked `RetrievedChunk` list, `AclFilteredOutCount`, `HasEvidence` flag, and `TraceId` for audit. `RetrievedChunk` DTO includes citation metadata (title, source URL, source system/type, updated_at, access label, tags) plus RRF and optional semantic scores. Retrieval telemetry logs: total raw results, ACL-filtered count, returned count, has-evidence flag, above-threshold count, duration, top-5 chunk IDs and scores, trace ID. Over-fetches 2x TopK to account for ACL filtering. Error handling: `RequestFailedException` returns empty result with `HasEvidence=false`. OData value escaping for tenant ID. Services registered in both API and Ingestion DI. Phase 1 retrieves from Evidence Index only; Pattern Index fusion deferred to P1-004. 24 new tests (7 settings, 9 ACL filtering, 4 no-evidence detection, 2 OData escaping, 2 DTO validation); all 483 tests passing.
 
-- [ ] P0-013: Implement chat orchestration with structured outputs.
+- [x] P0-013: Implement chat orchestration with structured outputs.
   - Specs: jtbd-04
-  - Dependencies: P0-012 (retrieval), **D-003 (confidence scoring)**, **D-006 (OpenAI model)**, **D-010 (session token budget)**, **D-013 (hallucination degradation)**
-  - Exit criteria: response contract schema-validated; citations required for factual claims; low-confidence responses produce clarifying questions and diagnostic next steps; evidence-to-answer trace links persisted durably in SQL; hallucination-prone paths degrade to explicit "I don't know" with next-step guidance; session context bounded by configurable token budget.
-  - Design decisions to resolve before implementation:
-    - **D-003**: Propose 0-1 float from model self-report + heuristic blend (retrieval score average + evidence count). Categorical labels derived from thresholds: High (>=0.7), Medium (0.4-0.7), Low (<0.4).
-    - **D-006**: Propose `gpt-4o` (latest) as default, configurable via `OpenAiSettings.Model`.
-    - **D-010**: Propose sliding window with hard cutoff at 80% of model context window. Oldest messages dropped first. Summarization deferred to Phase 2.
-    - **D-013**: Propose refuse + next-steps as default. When confidence < 0.3 and no evidence above threshold, respond with "I don't have enough information" + diagnostic next steps + optional escalation suggestion.
-  - Implementation notes: Need `IChatOrchestrator` interface, `ChatRequest`/`ChatResponse` DTOs, `CitationDto` model. OpenAI structured output API for response schema enforcement. System prompt template with versioning. Token counting for context window management.
+  - Dependencies: P0-012 (complete), D-003 (resolved), D-006 (resolved), D-010 (resolved), D-013 (resolved)
+  - Completed: `IChatOrchestrator` interface + `ChatOrchestrator` implementation in `SmartKb.Contracts.Services`. Full orchestration pipeline: embed query → hybrid retrieve → ACL-filtered evidence → assemble grounded prompt → OpenAI structured output (`json_schema` strict mode, `grounded_answer` schema) → blend confidence → persist trace → return response. `IEmbeddingService` + `OpenAiEmbeddingService` for query embedding via OpenAI Embeddings API (text-embedding-3-large@1536). `ChatOrchestrationSettings` config with D-003 thresholds (High>=0.7, Medium>=0.4, Low<0.4), D-010 token budget (102k = 80% of gpt-4o 128k context), D-013 degradation threshold (0.3). Structured response contract: `ChatResponse` with `ResponseType` (final_answer/next_steps_only/escalate), `Answer`, `Citations` (mapped `CitationDto` with snippet + source metadata), blended `Confidence` + `ConfidenceLabel`, `NextSteps`, `EscalationSignal`, `TraceId`, `HasEvidence`, `SystemPromptVersion`. D-003 confidence scoring: blended = 0.6×modelSelfReport + 0.4×retrievalHeuristic (avgRrfScore × saturation factor). D-010 sliding window: oldest session messages dropped first when budget exceeded. D-013 degradation: when blendedConfidence < 0.3 and response_type was final_answer, overrides to next_steps_only with explicit "I don't have enough information" + diagnostic steps + escalation signal. No-evidence path returns next_steps_only with escalation recommended to Engineering. `AnswerTraceEntity` in SQL with `AddAnswerTraces` migration for durable evidence-to-answer trace links (tenant-scoped, correlation ID indexed). `IAnswerTraceWriter` + `SqlAnswerTraceWriter`. `POST /api/chat` endpoint with `chat:query` permission (SupportAgent, SupportLead, Admin). Conditional DI registration (requires OpenAI API key + Search Service configured). 503 graceful degradation when orchestrator unavailable. Registered in API DI. 49 new tests (12 settings, 21 orchestrator unit, 5 embedding DTO, 5 API endpoint integration, 6 chat DTO validation); all 532 tests passing.
 
-- [ ] P0-013A: Implement session and message persistence API for chat continuity.
+- [x] P0-013A: Implement session and message persistence API for chat continuity.
   - Specs: jtbd-05
-  - Dependencies: P0-013 (orchestration layer)
-  - Exit criteria: sessions and messages stored in SQL with tenant scope; follow-up questions carry session context; session history retrievable for the owning user; session expiry/max-length policy configurable.
-  - Implementation notes: `SessionEntity` and `MessageEntity` already exist in P0-005. Need CRUD endpoints: `POST /api/sessions`, `GET /api/sessions`, `GET /api/sessions/{id}/messages`, `POST /api/sessions/{id}/messages`. Need `CitationEntity` or JSON column on `MessageEntity` for citation persistence (jtbd-04 requires "persist trace links"). Session expiry: default 24h, configurable per tenant.
+  - Dependencies: P0-013 (complete)
+  - Completed: `SessionSettings` config class (default 24h expiry, max 200 messages/session, max 50 active sessions/user — all configurable via `Session:*` app settings). `SessionEntity` extended with `Title`, `CustomerRef`, `ExpiresAt` fields. `MessageEntity` extended with `CitationsJson` (JSON column for citation persistence), `Confidence`, `ConfidenceLabel`, `ResponseType` fields. `AddSessionPersistence` migration. `ISessionService` interface + `SessionService` implementation in `SmartKb.Data.Repositories`. Session CRUD: `POST /api/sessions` (create), `GET /api/sessions` (list user's sessions), `GET /api/sessions/{id}` (get detail), `DELETE /api/sessions/{id}` (soft-delete). Message endpoints: `GET /api/sessions/{id}/messages` (chronological history with persisted citations), `POST /api/sessions/{id}/messages` (orchestrate chat + persist user and assistant messages). Follow-up messages carry full session history to `ChatOrchestrator` for multi-turn context (D-010 token budget applies). Auto-title sessions from first user query when no title set. Session expiry extended on each message activity. Expired/over-limit sessions return 404. Tenant isolation + user ownership enforced on all operations. All endpoints require `chat:query` permission (SupportAgent, SupportLead, Admin). Stateless `POST /api/chat` endpoint preserved for backward compatibility. Registered in API DI via `DataServiceExtensions`. 35 new tests (4 settings, 14 service unit, 17 endpoint integration); all 567 tests passing.
 
 - [ ] P0-014: Enforce "never pass restricted content to model" check in orchestration path.
   - Specs: jtbd-03, jtbd-10
-  - Dependencies: P0-012 (retrieval returns ACL metadata), P0-013 (orchestration assembles prompt)
+  - Dependencies: P0-012 (complete), P0-013 (complete)
   - Exit criteria: ACL trimming occurs before prompt assembly; restricted documents excluded from model context; integration test proves restricted content never reaches generation layer.
 
 - [ ] P0-014A: Implement baseline PII detection and redaction in orchestration path.
   - Specs: jtbd-10
-  - Dependencies: P0-013 (orchestration path exists)
+  - Dependencies: P0-013 (complete)
   - Exit criteria: PII patterns (emails, phone numbers, SSNs, credit cards) detected and redacted/masked before model context assembly; redaction events written to immutable audit event store; redaction rules test-covered.
   - Implementation notes: Baseline scope — regex-based detection for common PII patterns. `PiiFlags` field on `CanonicalRecord` populated during enrichment (P0-010). Advanced policy controls deferred to P2-001. Tooling choice: start with custom regex; evaluate Azure AI Language PII or Presidio for Phase 2.
 
 - [ ] P0-015: Implement escalation recommendation + structured handoff draft object.
   - Specs: jtbd-08
-  - Dependencies: P0-013 (orchestration produces escalation signal), **D-004 (escalation policy schema)**
+  - Dependencies: P0-013 (complete), **D-004 (escalation policy schema)**
   - Exit criteria: response includes target team, reason, severity, suspected component, evidence links, and required handoff fields when escalation thresholds/policies are met; handoff draft reviewable by agent before any external action; all required structured fields validated as present when determinable.
   - Design decision to resolve:
     - **D-004**: Propose confidence-based trigger: escalation recommended when confidence < 0.4 AND severity >= P2. Per-tenant team routing table in SQL (tenant_id, product_area, target_team, escalation_threshold). Global fallback to "Engineering" team.
@@ -184,7 +171,7 @@ Status: Active backlog (P0-001 through P0-010 complete; 0 bugs blocking, 0 tech-
 
 - [ ] P0-016: Implement React agent chat with session continuity, confidence badge, citations, and Evidence Drawer.
   - Specs: jtbd-05
-  - Dependencies: P0-013A (session API), P0-013 (chat API)
+  - Dependencies: P0-013A (session API), P0-013 (complete)
   - Exit criteria: user can ask questions and follow up within a session; Evidence Drawer shows snippet, source location, timestamp, and access label per citation; confidence badge displayed on each response.
   - Implementation notes: Need MSAL React integration for Entra auth. Chat thread component, message input, Evidence Drawer panel. Confidence badge rendering depends on D-003 resolution (propose colored label: green/yellow/red). Streaming response support not in spec but should add typing indicator for P95 <= 8s SLO UX.
 
@@ -216,7 +203,7 @@ Status: Active backlog (P0-001 through P0-010 complete; 0 bugs blocking, 0 tech-
 
 - [ ] P0-020: Instrument OpenTelemetry + correlation IDs across all paths; wire audit event writes.
   - Specs: jtbd-06, jtbd-10
-  - Dependencies: P0-013 (orchestration path exists)
+  - Dependencies: P0-013 (complete)
   - Exit criteria: traces/logs correlate end-to-end; correlation IDs propagated through Service Bus; Application Insights receives structured telemetry; immutable audit events for queries, retrieval, answers, escalations, admin changes, cross-tenant denials, PII redaction.
   - Implementation notes: Baseline Activity tagging exists (P0-003). Need OpenTelemetry SDK for ASP.NET Core, HttpClient, EF Core, Azure SDK. Application Insights exporter.
 
@@ -230,7 +217,7 @@ Status: Active backlog (P0-001 through P0-010 complete; 0 bugs blocking, 0 tech-
 
 - [ ] P0-021: Implement baseline evaluation harness.
   - Specs: jtbd-06
-  - Dependencies: P0-013 (chat orchestration), **D-007 (gold dataset strategy)**
+  - Dependencies: P0-013 (complete), **D-007 (gold dataset strategy)**
   - Exit criteria: gold dataset schema defined; eval job produces retrieval precision, groundedness, citation coverage, routing accuracy, no-evidence rate; results compared against baseline; regression alerts; release gating.
   - Design decision to resolve:
     - **D-007**: Propose JSONL format, 30-50 manually authored cases, PR-based review, min 30 cases before gated release. Stored in `eval/gold-dataset/`.
@@ -329,7 +316,7 @@ Status: Active backlog (P0-001 through P0-010 complete; 0 bugs blocking, 0 tech-
 - [ ] R-010: Confidence/escalation thresholds undefined; treat as tunable config informed by eval runs.
 - [ ] R-011: Phase 1 escalation drafts — copy/export only. Must communicate in UX.
 - [x] R-012: ACL metadata models differ per source. Each connector must document its ACL mapping. ADO: area paths → Restricted groups. SharePoint: drive name → Restricted groups.
-- [ ] R-013: Session context may exceed token limits in long conversations.
+- [x] R-013: ~~Session context may exceed token limits~~ — resolved (D-010: sliding window with 80% context window budget, oldest messages dropped first).
 - [x] R-014: ~~No Ingestion Worker resource in IaC~~ — resolved (TECH-001 complete).
 - [x] R-015: ~~Service Bus uses connection string not Managed Identity~~ — resolved (TECH-002 complete).
 - [ ] R-016: Feedback reason codes not enumerated in any spec — must define before P0-018.
@@ -342,28 +329,22 @@ Status: Active backlog (P0-001 through P0-010 complete; 0 bugs blocking, 0 tech-
 
 - [x] D-001: Embedding model — resolved: text-embedding-3-large at 1536 dimensions.
 - [x] D-002: Chunking strategy — resolved: 512 tokens/chunk, 64 overlap, structural boundaries.
-- [ ] D-003: Confidence scoring methodology — blocks P0-013.
-  - **Proposed**: 0-1 float, model self-report + heuristic blend. Categorical: High (>=0.7), Medium (0.4-0.7), Low (<0.4).
+- [x] D-003: Confidence scoring methodology — resolved: 0-1 float, blended = 0.6×modelSelfReport + 0.4×retrievalHeuristic (avgRrfScore × saturation). Categorical: High (>=0.7), Medium (0.4-0.7), Low (<0.4). Configurable via `ChatOrchestrationSettings`.
 - [ ] D-004: Escalation policy schema and thresholds — blocks P0-015.
   - **Proposed**: Confidence < 0.4 AND severity >= P2. Per-tenant routing table in SQL. Fallback to "Engineering".
-- [ ] D-005: Top-k and RRF fusion weights — blocks P0-012.
-  - **Proposed**: top-k=20, equal RRF weights (1.0/1.0). Semantic reranker on merged top-20. Pattern Index deferred to P1-004.
-- [ ] D-006: OpenAI model version — blocks P0-013.
-  - **Proposed**: `gpt-4o` (latest), configurable via `OpenAiSettings.Model`.
+- [x] D-005: Top-k and RRF fusion weights — resolved: top-k=20, equal RRF weights (1.0/1.0), semantic reranker on merged top-20. Pattern Index deferred to P1-004. Configurable via `RetrievalSettings`.
+- [x] D-006: OpenAI model version — resolved: `gpt-4o` (latest), configurable via `OpenAiSettings.Model`. Temperature 0.2 for grounded generation.
 - [ ] D-007: Gold dataset strategy — blocks P0-021.
   - **Proposed**: JSONL, 30-50 manual cases, PR review, min 30 for gated release. In `eval/gold-dataset/`.
 - [ ] D-008: Solved-ticket candidate criteria — blocks P1-005.
   - **Proposed**: Status in (Closed, Resolved) AND ResolvedWithoutEscalation AND positive_feedback >= 1.
 - [ ] D-009: Terraform remote state backend — blocks P1-012.
   - **Proposed**: Azure Storage with blob lease locking.
-- [ ] D-010: Session token budget — blocks P0-013, P0-013A.
-  - **Proposed**: Sliding window, hard cutoff at 80% context window, drop oldest first. Summarization in Phase 2.
+- [x] D-010: Session token budget — resolved: sliding window, hard cutoff at 80% of gpt-4o 128k (102,400 tokens). Oldest messages dropped first. Configurable via `ChatOrchestrationSettings.MaxTokenBudget`. Summarization deferred to Phase 2.
 - [ ] D-011: Audit export format — blocks P0-020A.
   - **Proposed**: NDJSON with cursor-based pagination.
-- [ ] D-012: No-evidence threshold — blocks P0-012.
-  - **Proposed**: < 3 results above score 0.3 (both conditions, tunable).
-- [ ] D-013: Hallucination degradation — blocks P0-013.
-  - **Proposed**: Refuse + next-steps. Confidence < 0.3 + no evidence -> "I don't have enough information" + diagnostic steps + optional escalation.
+- [x] D-012: No-evidence threshold — resolved: < 3 results above score 0.3 (both conditions, tunable via `RetrievalSettings.NoEvidenceScoreThreshold` and `NoEvidenceMinResults`).
+- [x] D-013: Hallucination degradation — resolved: refuse + next-steps. Blended confidence < 0.3 overrides final_answer to next_steps_only with "I don't have enough information" + diagnostic steps + escalation to Engineering. No-evidence path (HasEvidence=false) returns next_steps_only immediately. Configurable via `ChatOrchestrationSettings.DegradationThreshold`.
 
 ## Spec Clarification Backlog
 Items where specs are ambiguous, inconsistent, or missing detail. Patch before or during dependent implementation.

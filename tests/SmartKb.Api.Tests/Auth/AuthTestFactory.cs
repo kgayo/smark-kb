@@ -6,9 +6,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SmartKb.Api.Audit;
 using SmartKb.Api.Tests.Connectors;
+using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Services;
 using SmartKb.Data;
 using SmartKb.Data.Entities;
+using SmartKb.Data.Repositories;
 
 namespace SmartKb.Api.Tests.Auth;
 
@@ -69,7 +71,10 @@ public sealed class AuthTestFactory : WebApplicationFactory<Program>, IAsyncLife
                 options.UseSqlite(_connection));
             services.AddSingleton<InMemoryAuditEventWriter>();
             services.AddSingleton<IAuditEventWriter>(sp => sp.GetRequiredService<InMemoryAuditEventWriter>());
+            services.AddScoped<IAnswerTraceWriter, SqlAnswerTraceWriter>();
+            services.AddScoped<ISessionService, SessionService>();
             services.AddSingleton<ISyncJobPublisher, TestSyncJobPublisher>();
+            services.AddSingleton(new SessionSettings());
             services.AddScoped<SmartKb.Api.Connectors.ConnectorAdminService>();
         });
     }

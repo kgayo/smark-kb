@@ -22,6 +22,8 @@ public sealed class SyncJobProcessor
     private readonly SmartKbDbContext _db;
     private readonly IEnumerable<IConnectorClient> _connectorClients;
     private readonly ISecretProvider? _secretProvider;
+    private readonly IBlobStorageService? _blobStorage;
+    private readonly IIndexingService? _indexingService;
     private readonly IAuditEventWriter _auditWriter;
     private readonly INormalizationPipeline _pipeline;
     private readonly ILogger<SyncJobProcessor> _logger;
@@ -32,7 +34,9 @@ public sealed class SyncJobProcessor
         IAuditEventWriter auditWriter,
         INormalizationPipeline pipeline,
         ILogger<SyncJobProcessor> logger,
-        ISecretProvider? secretProvider = null)
+        ISecretProvider? secretProvider = null,
+        IBlobStorageService? blobStorage = null,
+        IIndexingService? indexingService = null)
     {
         _db = db;
         _connectorClients = connectorClients;
@@ -40,6 +44,8 @@ public sealed class SyncJobProcessor
         _pipeline = pipeline;
         _logger = logger;
         _secretProvider = secretProvider;
+        _blobStorage = blobStorage;
+        _indexingService = indexingService;
     }
 
     public async Task<bool> ProcessAsync(SyncJobMessage message, CancellationToken cancellationToken)
@@ -127,11 +133,14 @@ public sealed class SyncJobProcessor
                     }
                 }
 
-                // Normalize: chunk + enrich records, then persist chunks.
+                // Upload raw content snapshots to blob storage, then normalize, persist, and index.
                 if (fetchResult.Records.Count > 0)
                 {
+                    await UploadRawContentAsync(fetchResult.Records, message.ConnectorId, cancellationToken);
+
                     var chunks = _pipeline.ProcessBatch(fetchResult.Records);
                     await PersistChunksAsync(chunks, message.ConnectorId, cancellationToken);
+                    await IndexChunksAsync(chunks, cancellationToken);
                     totalChunks += chunks.Count;
                 }
 
@@ -212,6 +221,62 @@ public sealed class SyncJobProcessor
             Detail: detail));
     }
 
+    private async Task UploadRawContentAsync(
+        IReadOnlyList<CanonicalRecord> records,
+        Guid connectorId,
+        CancellationToken ct)
+    {
+        if (_blobStorage is null) return;
+
+        var now = DateTimeOffset.UtcNow;
+        foreach (var record in records)
+        {
+            var connectorType = record.SourceSystem.ToString();
+            var blobPath = IBlobStorageService.BuildBlobPath(record.TenantId, connectorType, record.EvidenceId);
+
+            // Skip upload if content hash hasn't changed.
+            var existing = await _db.RawContentSnapshots
+                .FirstOrDefaultAsync(r => r.EvidenceId == record.EvidenceId, ct);
+
+            if (existing is not null && existing.ContentHash == record.ContentHash)
+            {
+                _logger.LogDebug("Raw content unchanged for {EvidenceId}, skipping blob upload.", record.EvidenceId);
+                continue;
+            }
+
+            await _blobStorage.UploadRawContentAsync(
+                record.TenantId, connectorType, record.EvidenceId, record.TextContent,
+                cancellationToken: ct);
+
+            var contentLength = System.Text.Encoding.UTF8.GetByteCount(record.TextContent);
+
+            if (existing is not null)
+            {
+                existing.BlobPath = blobPath;
+                existing.ContentHash = record.ContentHash;
+                existing.ContentLength = contentLength;
+                existing.UpdatedAt = now;
+            }
+            else
+            {
+                _db.RawContentSnapshots.Add(new RawContentSnapshotEntity
+                {
+                    EvidenceId = record.EvidenceId,
+                    TenantId = record.TenantId,
+                    ConnectorId = connectorId,
+                    BlobPath = blobPath,
+                    ContentHash = record.ContentHash,
+                    ContentLength = contentLength,
+                    ContentType = "text/plain; charset=utf-8",
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                });
+            }
+        }
+
+        await _db.SaveChangesAsync(ct);
+    }
+
     private async Task PersistChunksAsync(
         IReadOnlyList<EvidenceChunk> chunks,
         Guid connectorId,
@@ -273,6 +338,29 @@ public sealed class SyncJobProcessor
         var input = $"{chunk.ChunkId}|{chunk.ChunkText}|{chunk.EnrichmentVersion}";
         var bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(input));
         return Convert.ToHexString(bytes).ToLowerInvariant();
+    }
+
+    private async Task IndexChunksAsync(
+        IReadOnlyList<EvidenceChunk> chunks,
+        CancellationToken ct)
+    {
+        if (_indexingService is null || chunks.Count == 0) return;
+
+        try
+        {
+            var result = await _indexingService.IndexChunksAsync(chunks, ct);
+            if (result.Failed > 0)
+            {
+                _logger.LogWarning(
+                    "Indexing partially failed: {Succeeded} succeeded, {Failed} failed. Failed IDs: {FailedIds}",
+                    result.Succeeded, result.Failed, string.Join(", ", result.FailedChunkIds.Take(10)));
+            }
+        }
+        catch (Exception ex)
+        {
+            // Indexing failures are non-fatal — chunks are persisted in SQL and can be re-indexed.
+            _logger.LogError(ex, "Failed to index {Count} chunks. They are persisted in SQL for retry.", chunks.Count);
+        }
     }
 
     private static FieldMappingConfig? DeserializeFieldMapping(string? json)

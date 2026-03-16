@@ -1,0 +1,79 @@
+using Azure;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
+using Microsoft.Extensions.Logging;
+using SmartKb.Contracts.Configuration;
+
+namespace SmartKb.Contracts.Services;
+
+public sealed class AzureBlobStorageService : IBlobStorageService
+{
+    private readonly BlobContainerClient _container;
+    private readonly ILogger<AzureBlobStorageService> _logger;
+
+    public AzureBlobStorageService(BlobContainerClient container, ILogger<AzureBlobStorageService> logger)
+    {
+        _container = container;
+        _logger = logger;
+    }
+
+    public async Task<string> UploadRawContentAsync(
+        string tenantId,
+        string connectorType,
+        string evidenceId,
+        string content,
+        string contentType = "text/plain; charset=utf-8",
+        CancellationToken cancellationToken = default)
+    {
+        var blobPath = IBlobStorageService.BuildBlobPath(tenantId, connectorType, evidenceId);
+        var blobClient = _container.GetBlobClient(blobPath);
+
+        var data = new BinaryData(content);
+        var options = new BlobUploadOptions
+        {
+            HttpHeaders = new BlobHttpHeaders { ContentType = contentType },
+        };
+
+        await blobClient.UploadAsync(data, options, cancellationToken);
+
+        _logger.LogDebug(
+            "Uploaded raw content for {EvidenceId} to {BlobPath} ({Length} chars)",
+            evidenceId, blobPath, content.Length);
+
+        return blobPath;
+    }
+
+    public async Task<string?> DownloadRawContentAsync(string blobPath, CancellationToken cancellationToken = default)
+    {
+        var blobClient = _container.GetBlobClient(blobPath);
+
+        try
+        {
+            var response = await blobClient.DownloadContentAsync(cancellationToken);
+            return response.Value.Content.ToString();
+        }
+        catch (RequestFailedException ex) when (ex.Status == 404)
+        {
+            _logger.LogDebug("Blob not found at {BlobPath}", blobPath);
+            return null;
+        }
+    }
+
+    public async Task<bool> DeleteRawContentAsync(string blobPath, CancellationToken cancellationToken = default)
+    {
+        var blobClient = _container.GetBlobClient(blobPath);
+        var response = await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken);
+
+        if (response.Value)
+            _logger.LogDebug("Deleted blob at {BlobPath}", blobPath);
+
+        return response.Value;
+    }
+
+    public async Task<bool> ExistsAsync(string blobPath, CancellationToken cancellationToken = default)
+    {
+        var blobClient = _container.GetBlobClient(blobPath);
+        var response = await blobClient.ExistsAsync(cancellationToken);
+        return response.Value;
+    }
+}

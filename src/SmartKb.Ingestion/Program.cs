@@ -1,6 +1,9 @@
+using Azure;
 using Azure.Identity;
 using Azure.Messaging.ServiceBus;
+using Azure.Search.Documents.Indexes;
 using Azure.Security.KeyVault.Secrets;
+using Azure.Storage.Blobs;
 using SmartKb.Contracts.Connectors;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Services;
@@ -58,6 +61,43 @@ if (!string.IsNullOrEmpty(vaultUri) && Uri.TryCreate(vaultUri, UriKind.Absolute,
 {
     builder.Services.AddSingleton(new SecretClient(uri, new DefaultAzureCredential()));
     builder.Services.AddSingleton<ISecretProvider, KeyVaultSecretProvider>();
+}
+
+// Azure AI Search — prefer Managed Identity via Endpoint; fall back to admin API key.
+var searchSettings = new SearchServiceSettings();
+builder.Configuration.GetSection(SearchServiceSettings.SectionName).Bind(searchSettings);
+builder.Services.AddSingleton(searchSettings);
+
+var retrievalSettings = new RetrievalSettings();
+builder.Configuration.GetSection(RetrievalSettings.SectionName).Bind(retrievalSettings);
+builder.Services.AddSingleton(retrievalSettings);
+
+if (searchSettings.IsConfigured)
+{
+    var searchIndexClient = searchSettings.UsesManagedIdentity
+        ? new SearchIndexClient(new Uri(searchSettings.Endpoint), new DefaultAzureCredential())
+        : new SearchIndexClient(new Uri(searchSettings.Endpoint), new AzureKeyCredential(searchSettings.AdminApiKey));
+
+    builder.Services.AddSingleton(searchIndexClient);
+    builder.Services.AddSingleton<IIndexingService, AzureSearchIndexingService>();
+    builder.Services.AddSingleton<IRetrievalService, AzureSearchRetrievalService>();
+}
+
+// Blob Storage — prefer Managed Identity via ServiceUri; fall back to connection string.
+var blobSettings = new BlobStorageSettings();
+builder.Configuration.GetSection(BlobStorageSettings.SectionName).Bind(blobSettings);
+builder.Services.AddSingleton(blobSettings);
+
+if (blobSettings.IsConfigured)
+{
+    var containerClient = blobSettings.UsesManagedIdentity
+        ? new BlobServiceClient(new Uri(blobSettings.ServiceUri), new DefaultAzureCredential())
+            .GetBlobContainerClient(blobSettings.RawContentContainer)
+        : new BlobServiceClient(blobSettings.ConnectionString)
+            .GetBlobContainerClient(blobSettings.RawContentContainer);
+
+    builder.Services.AddSingleton(containerClient);
+    builder.Services.AddSingleton<IBlobStorageService, AzureBlobStorageService>();
 }
 
 var host = builder.Build();

@@ -309,6 +309,238 @@ public class SyncJobProcessorTests : IDisposable
         Assert.Contains("Key Vault", updated.ErrorDetail);
     }
 
+    [Fact]
+    public async Task ProcessAsync_UploadsRawContent_WhenBlobStorageConfigured()
+    {
+        var connector = CreateConnector("tenant-1");
+        var syncRun = CreateSyncRun(connector, SyncRunStatus.Pending);
+        await _db.SaveChangesAsync();
+
+        var record = CreateRecord();
+        var client = new FakeConnectorClient(new FetchResult
+        {
+            Records = [record],
+            FailedRecords = 0,
+            Errors = [],
+            NewCheckpoint = "cp-1",
+            HasMore = false,
+        });
+
+        var blobStore = new FakeBlobStorageService();
+        var processor = new SyncJobProcessor(_db, [client], _auditWriter, _pipeline, _logger, blobStorage: blobStore);
+        var message = CreateMessage(syncRun, connector);
+
+        var result = await processor.ProcessAsync(message, CancellationToken.None);
+
+        Assert.True(result);
+        Assert.Single(blobStore.Uploads);
+        Assert.Equal(record.TextContent, blobStore.Uploads.First().Value);
+
+        // Verify snapshot persisted in DB.
+        var snapshot = await _db.RawContentSnapshots.FirstOrDefaultAsync(r => r.EvidenceId == record.EvidenceId);
+        Assert.NotNull(snapshot);
+        Assert.Equal(record.TenantId, snapshot.TenantId);
+        Assert.Equal(connector.Id, snapshot.ConnectorId);
+        Assert.Equal(record.ContentHash, snapshot.ContentHash);
+        Assert.Contains("AzureDevOps", snapshot.BlobPath);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_SkipsBlobUpload_WhenContentHashUnchanged()
+    {
+        var connector = CreateConnector("tenant-1");
+        var syncRun = CreateSyncRun(connector, SyncRunStatus.Pending);
+        await _db.SaveChangesAsync();
+
+        var record = CreateRecord();
+
+        // Pre-seed a snapshot with matching content hash.
+        _db.RawContentSnapshots.Add(new Data.Entities.RawContentSnapshotEntity
+        {
+            EvidenceId = record.EvidenceId,
+            TenantId = record.TenantId,
+            ConnectorId = connector.Id,
+            BlobPath = $"{record.TenantId}/AzureDevOps/{record.EvidenceId}/raw",
+            ContentHash = record.ContentHash,
+            ContentLength = System.Text.Encoding.UTF8.GetByteCount(record.TextContent),
+            ContentType = "text/plain; charset=utf-8",
+            CreatedAt = DateTimeOffset.UtcNow.AddHours(-1),
+            UpdatedAt = DateTimeOffset.UtcNow.AddHours(-1),
+        });
+        await _db.SaveChangesAsync();
+
+        var client = new FakeConnectorClient(new FetchResult
+        {
+            Records = [record],
+            FailedRecords = 0,
+            Errors = [],
+            NewCheckpoint = "cp-1",
+            HasMore = false,
+        });
+
+        var blobStore = new FakeBlobStorageService();
+        var processor = new SyncJobProcessor(_db, [client], _auditWriter, _pipeline, _logger, blobStorage: blobStore);
+        var message = CreateMessage(syncRun, connector);
+
+        await processor.ProcessAsync(message, CancellationToken.None);
+
+        // No upload should have happened since content hash is unchanged.
+        Assert.Empty(blobStore.Uploads);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_ReUploadsBlob_WhenContentHashChanged()
+    {
+        var connector = CreateConnector("tenant-1");
+        var syncRun = CreateSyncRun(connector, SyncRunStatus.Pending);
+        await _db.SaveChangesAsync();
+
+        var record = CreateRecord();
+
+        // Pre-seed a snapshot with a DIFFERENT content hash.
+        _db.RawContentSnapshots.Add(new Data.Entities.RawContentSnapshotEntity
+        {
+            EvidenceId = record.EvidenceId,
+            TenantId = record.TenantId,
+            ConnectorId = connector.Id,
+            BlobPath = $"{record.TenantId}/AzureDevOps/{record.EvidenceId}/raw",
+            ContentHash = "old-hash-different",
+            ContentLength = 100,
+            ContentType = "text/plain; charset=utf-8",
+            CreatedAt = DateTimeOffset.UtcNow.AddHours(-1),
+            UpdatedAt = DateTimeOffset.UtcNow.AddHours(-1),
+        });
+        await _db.SaveChangesAsync();
+
+        var client = new FakeConnectorClient(new FetchResult
+        {
+            Records = [record],
+            FailedRecords = 0,
+            Errors = [],
+            NewCheckpoint = "cp-1",
+            HasMore = false,
+        });
+
+        var blobStore = new FakeBlobStorageService();
+        var processor = new SyncJobProcessor(_db, [client], _auditWriter, _pipeline, _logger, blobStorage: blobStore);
+        var message = CreateMessage(syncRun, connector);
+
+        await processor.ProcessAsync(message, CancellationToken.None);
+
+        // Upload should have happened since content hash changed.
+        Assert.Single(blobStore.Uploads);
+
+        // Snapshot should be updated with new hash.
+        var snapshot = await _db.RawContentSnapshots.FirstAsync(r => r.EvidenceId == record.EvidenceId);
+        Assert.Equal(record.ContentHash, snapshot.ContentHash);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_WorksWithoutBlobStorage()
+    {
+        // Verify existing behavior: no blob storage configured = no crash.
+        var connector = CreateConnector("tenant-1");
+        var syncRun = CreateSyncRun(connector, SyncRunStatus.Pending);
+        await _db.SaveChangesAsync();
+
+        var client = new FakeConnectorClient(new FetchResult
+        {
+            Records = [CreateRecord()],
+            FailedRecords = 0,
+            Errors = [],
+            NewCheckpoint = "cp-1",
+            HasMore = false,
+        });
+
+        var processor = CreateProcessor(client);
+        var message = CreateMessage(syncRun, connector);
+
+        var result = await processor.ProcessAsync(message, CancellationToken.None);
+
+        Assert.True(result);
+        Assert.Empty(await _db.RawContentSnapshots.ToListAsync());
+    }
+
+    [Fact]
+    public async Task ProcessAsync_IndexesChunks_WhenIndexingServiceConfigured()
+    {
+        var connector = CreateConnector("tenant-1");
+        var syncRun = CreateSyncRun(connector, SyncRunStatus.Pending);
+        await _db.SaveChangesAsync();
+
+        var client = new FakeConnectorClient(new FetchResult
+        {
+            Records = [CreateRecord(), CreateRecord()],
+            FailedRecords = 0,
+            Errors = [],
+            NewCheckpoint = "cp-1",
+            HasMore = false,
+        });
+
+        var indexer = new FakeIndexingService();
+        var processor = new SyncJobProcessor(_db, [client], _auditWriter, _pipeline, _logger, indexingService: indexer);
+        var message = CreateMessage(syncRun, connector);
+
+        var result = await processor.ProcessAsync(message, CancellationToken.None);
+
+        Assert.True(result);
+        Assert.Equal(1, indexer.IndexCallCount);
+        Assert.True(indexer.TotalChunksIndexed > 0);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_CompletesSuccessfully_WhenIndexingFails()
+    {
+        var connector = CreateConnector("tenant-1");
+        var syncRun = CreateSyncRun(connector, SyncRunStatus.Pending);
+        await _db.SaveChangesAsync();
+
+        var client = new FakeConnectorClient(new FetchResult
+        {
+            Records = [CreateRecord()],
+            FailedRecords = 0,
+            Errors = [],
+            NewCheckpoint = "cp-1",
+            HasMore = false,
+        });
+
+        var indexer = new FakeIndexingService(throwOnIndex: new InvalidOperationException("Search service down"));
+        var processor = new SyncJobProcessor(_db, [client], _auditWriter, _pipeline, _logger, indexingService: indexer);
+        var message = CreateMessage(syncRun, connector);
+
+        // Indexing failure should not cause the sync run to fail.
+        var result = await processor.ProcessAsync(message, CancellationToken.None);
+
+        Assert.True(result);
+        var updated = await _db.SyncRuns.FirstAsync(s => s.Id == syncRun.Id);
+        Assert.Equal(SyncRunStatus.Completed, updated.Status);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_WorksWithoutIndexingService()
+    {
+        // Verify existing behavior: no indexing service configured = no crash.
+        var connector = CreateConnector("tenant-1");
+        var syncRun = CreateSyncRun(connector, SyncRunStatus.Pending);
+        await _db.SaveChangesAsync();
+
+        var client = new FakeConnectorClient(new FetchResult
+        {
+            Records = [CreateRecord()],
+            FailedRecords = 0,
+            Errors = [],
+            NewCheckpoint = "cp-1",
+            HasMore = false,
+        });
+
+        var processor = CreateProcessor(client);
+        var message = CreateMessage(syncRun, connector);
+
+        var result = await processor.ProcessAsync(message, CancellationToken.None);
+
+        Assert.True(result);
+    }
+
     // --- Helpers ---
 
     private void SeedTenant(string tenantId)
@@ -445,6 +677,28 @@ internal class FakeConnectorClient : IConnectorClient
     }
 }
 
+internal class FakeBlobStorageService : IBlobStorageService
+{
+    public Dictionary<string, string> Uploads { get; } = new();
+
+    public Task<string> UploadRawContentAsync(string tenantId, string connectorType, string evidenceId,
+        string content, string contentType = "text/plain; charset=utf-8", CancellationToken cancellationToken = default)
+    {
+        var path = IBlobStorageService.BuildBlobPath(tenantId, connectorType, evidenceId);
+        Uploads[path] = content;
+        return Task.FromResult(path);
+    }
+
+    public Task<string?> DownloadRawContentAsync(string blobPath, CancellationToken cancellationToken = default)
+        => Task.FromResult(Uploads.TryGetValue(blobPath, out var content) ? content : null);
+
+    public Task<bool> DeleteRawContentAsync(string blobPath, CancellationToken cancellationToken = default)
+        => Task.FromResult(Uploads.Remove(blobPath));
+
+    public Task<bool> ExistsAsync(string blobPath, CancellationToken cancellationToken = default)
+        => Task.FromResult(Uploads.ContainsKey(blobPath));
+}
+
 internal class FakeSecretProvider : ISecretProvider
 {
     private readonly Exception? _throwOnGet;
@@ -462,4 +716,30 @@ internal class FakeSecretProvider : ISecretProvider
 
     public Task DeleteSecretAsync(string secretName, CancellationToken cancellationToken = default)
         => Task.CompletedTask;
+}
+
+internal class FakeIndexingService : IIndexingService
+{
+    private readonly Exception? _throwOnIndex;
+
+    public int IndexCallCount { get; private set; }
+    public int TotalChunksIndexed { get; private set; }
+
+    public FakeIndexingService(Exception? throwOnIndex = null)
+    {
+        _throwOnIndex = throwOnIndex;
+    }
+
+    public Task EnsureIndexAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+    public Task<IndexingResult> IndexChunksAsync(IReadOnlyList<EvidenceChunk> chunks, CancellationToken cancellationToken = default)
+    {
+        if (_throwOnIndex is not null) throw _throwOnIndex;
+        IndexCallCount++;
+        TotalChunksIndexed += chunks.Count;
+        return Task.FromResult(new IndexingResult(chunks.Count, 0, []));
+    }
+
+    public Task<int> DeleteChunksAsync(IReadOnlyList<string> chunkIds, CancellationToken cancellationToken = default)
+        => Task.FromResult(chunkIds.Count);
 }

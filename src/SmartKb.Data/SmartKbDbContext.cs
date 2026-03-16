@@ -19,6 +19,8 @@ public class SmartKbDbContext : DbContext
     public DbSet<RetentionConfigEntity> RetentionConfigs => Set<RetentionConfigEntity>();
     public DbSet<WebhookSubscriptionEntity> WebhookSubscriptions => Set<WebhookSubscriptionEntity>();
     public DbSet<EvidenceChunkEntity> EvidenceChunks => Set<EvidenceChunkEntity>();
+    public DbSet<RawContentSnapshotEntity> RawContentSnapshots => Set<RawContentSnapshotEntity>();
+    public DbSet<AnswerTraceEntity> AnswerTraces => Set<AnswerTraceEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -36,6 +38,8 @@ public class SmartKbDbContext : DbContext
         ConfigureRetentionConfig(modelBuilder);
         ConfigureWebhookSubscription(modelBuilder);
         ConfigureEvidenceChunk(modelBuilder);
+        ConfigureRawContentSnapshot(modelBuilder);
+        ConfigureAnswerTrace(modelBuilder);
     }
 
     private static void ConfigureTenant(ModelBuilder modelBuilder)
@@ -107,6 +111,8 @@ public class SmartKbDbContext : DbContext
             e.HasKey(s => s.Id);
             e.Property(s => s.TenantId).HasMaxLength(128).IsRequired();
             e.Property(s => s.UserId).HasMaxLength(128).IsRequired();
+            e.Property(s => s.Title).HasMaxLength(512);
+            e.Property(s => s.CustomerRef).HasMaxLength(256);
             e.HasIndex(s => s.TenantId);
             e.HasIndex(s => new { s.TenantId, s.UserId });
             e.HasQueryFilter(s => s.DeletedAt == null);
@@ -123,6 +129,10 @@ public class SmartKbDbContext : DbContext
             e.Property(m => m.TenantId).HasMaxLength(128).IsRequired();
             e.Property(m => m.Role).HasConversion<string>().HasMaxLength(32).IsRequired();
             e.Property(m => m.Content).IsRequired();
+            e.Property(m => m.CitationsJson);
+            e.Property(m => m.Confidence);
+            e.Property(m => m.ConfidenceLabel).HasMaxLength(32);
+            e.Property(m => m.ResponseType).HasMaxLength(64);
             e.Property(m => m.TraceId).HasMaxLength(128);
             e.Property(m => m.CorrelationId).HasMaxLength(128);
             e.HasIndex(m => m.SessionId);
@@ -242,6 +252,45 @@ public class SmartKbDbContext : DbContext
             e.HasIndex(c => new { c.TenantId, c.EvidenceId });
             e.HasIndex(c => new { c.EvidenceId, c.ContentHash });
             e.HasOne(c => c.Connector).WithMany().HasForeignKey(c => c.ConnectorId);
+        });
+    }
+
+    private static void ConfigureRawContentSnapshot(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<RawContentSnapshotEntity>(e =>
+        {
+            e.ToTable("RawContentSnapshots");
+            e.HasKey(r => r.EvidenceId);
+            e.Property(r => r.EvidenceId).HasMaxLength(256);
+            e.Property(r => r.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(r => r.BlobPath).HasMaxLength(1024).IsRequired();
+            e.Property(r => r.ContentHash).HasMaxLength(128).IsRequired();
+            e.Property(r => r.ContentType).HasMaxLength(128).IsRequired();
+            e.HasIndex(r => r.TenantId);
+            e.HasIndex(r => r.ConnectorId);
+            e.HasIndex(r => new { r.TenantId, r.ConnectorId });
+            e.HasOne(r => r.Connector).WithMany().HasForeignKey(r => r.ConnectorId);
+        });
+    }
+
+    private static void ConfigureAnswerTrace(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<AnswerTraceEntity>(e =>
+        {
+            e.ToTable("AnswerTraces");
+            e.HasKey(a => a.Id);
+            e.Property(a => a.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(a => a.UserId).HasMaxLength(128).IsRequired();
+            e.Property(a => a.CorrelationId).HasMaxLength(128).IsRequired();
+            e.Property(a => a.Query).IsRequired();
+            e.Property(a => a.ResponseType).HasMaxLength(64).IsRequired();
+            e.Property(a => a.ConfidenceLabel).HasMaxLength(32).IsRequired();
+            e.Property(a => a.CitedChunkIds).IsRequired();
+            e.Property(a => a.RetrievedChunkIds).IsRequired();
+            e.Property(a => a.SystemPromptVersion).HasMaxLength(32).IsRequired();
+            e.HasIndex(a => a.TenantId);
+            e.HasIndex(a => a.CorrelationId);
+            e.HasIndex(a => new { a.TenantId, a.CreatedAt });
         });
     }
 }

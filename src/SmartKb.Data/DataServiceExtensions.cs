@@ -17,6 +17,8 @@ public static class DataServiceExtensions
             }));
 
         services.AddScoped<IAuditEventWriter, SqlAuditEventWriter>();
+        services.AddScoped<IAnswerTraceWriter, SqlAnswerTraceWriter>();
+        services.AddScoped<ISessionService, SessionService>();
 
         return services;
     }

@@ -1,6 +1,9 @@
 using System.Reflection;
+using Azure;
 using Azure.Identity;
 using Azure.Messaging.ServiceBus;
+using Azure.Search.Documents.Indexes;
+using Azure.Storage.Blobs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Identity.Web;
 using SmartKb.Api.Audit;
@@ -81,6 +84,70 @@ builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.Sha
 // Webhook managers — register all IWebhookManager implementations.
 builder.Services.AddSingleton<IWebhookManager, SmartKb.Contracts.Connectors.AdoWebhookManager>();
 builder.Services.AddSingleton<IWebhookManager, SmartKb.Contracts.Connectors.SharePointWebhookManager>();
+
+// Azure AI Search — prefer Managed Identity via Endpoint; fall back to admin API key.
+var searchSettings = new SearchServiceSettings();
+builder.Configuration.GetSection(SearchServiceSettings.SectionName).Bind(searchSettings);
+builder.Services.AddSingleton(searchSettings);
+
+var retrievalSettings = new RetrievalSettings();
+builder.Configuration.GetSection(RetrievalSettings.SectionName).Bind(retrievalSettings);
+builder.Services.AddSingleton(retrievalSettings);
+
+if (searchSettings.IsConfigured)
+{
+    var searchIndexClient = searchSettings.UsesManagedIdentity
+        ? new SearchIndexClient(new Uri(searchSettings.Endpoint), new DefaultAzureCredential())
+        : new SearchIndexClient(new Uri(searchSettings.Endpoint), new AzureKeyCredential(searchSettings.AdminApiKey));
+
+    builder.Services.AddSingleton(searchIndexClient);
+    builder.Services.AddSingleton<IIndexingService, AzureSearchIndexingService>();
+    builder.Services.AddSingleton<IRetrievalService, AzureSearchRetrievalService>();
+}
+
+// Session settings.
+var sessionSettings = new SessionSettings();
+builder.Configuration.GetSection(SessionSettings.SectionName).Bind(sessionSettings);
+builder.Services.AddSingleton(sessionSettings);
+
+// Chat orchestration — OpenAI embedding + chat with structured outputs.
+// Requires both OpenAI API key and search service to be configured.
+var chatOrchestrationSettings = new ChatOrchestrationSettings();
+builder.Configuration.GetSection(ChatOrchestrationSettings.SectionName).Bind(chatOrchestrationSettings);
+builder.Services.AddSingleton(chatOrchestrationSettings);
+
+var openAiSettings = new OpenAiSettings();
+builder.Configuration.GetSection(OpenAiSettings.SectionName).Bind(openAiSettings);
+builder.Services.AddSingleton(openAiSettings);
+
+var embeddingSettings = new EmbeddingSettings();
+builder.Configuration.GetSection(EmbeddingSettings.SectionName).Bind(embeddingSettings);
+builder.Services.AddSingleton(embeddingSettings);
+
+builder.Services.AddHttpClient("OpenAi");
+
+if (!string.IsNullOrEmpty(openAiSettings.ApiKey) && searchSettings.IsConfigured)
+{
+    builder.Services.AddSingleton<IEmbeddingService, OpenAiEmbeddingService>();
+    builder.Services.AddScoped<IChatOrchestrator, SmartKb.Contracts.Services.ChatOrchestrator>();
+}
+
+// Blob Storage — prefer Managed Identity via ServiceUri; fall back to connection string.
+var blobSettings = new BlobStorageSettings();
+builder.Configuration.GetSection(BlobStorageSettings.SectionName).Bind(blobSettings);
+builder.Services.AddSingleton(blobSettings);
+
+if (blobSettings.IsConfigured)
+{
+    var containerClient = blobSettings.UsesManagedIdentity
+        ? new BlobServiceClient(new Uri(blobSettings.ServiceUri), new DefaultAzureCredential())
+            .GetBlobContainerClient(blobSettings.RawContentContainer)
+        : new BlobServiceClient(blobSettings.ConnectionString)
+            .GetBlobContainerClient(blobSettings.RawContentContainer);
+
+    builder.Services.AddSingleton(containerClient);
+    builder.Services.AddSingleton<IBlobStorageService, AzureBlobStorageService>();
+}
 
 var connectionString = builder.Configuration.GetConnectionString("SmartKbDb");
 if (!string.IsNullOrEmpty(connectionString))
@@ -358,6 +425,97 @@ app.MapPost("/api/webhooks/msgraph/{connectorId:guid}", async (
     var (statusCode, message) = await handler.HandleNotificationAsync(connectorId, requestBody);
     return Results.Json(new { message }, statusCode: statusCode);
 }).AllowAnonymous();
+
+// --- Session Endpoints ---
+
+app.MapPost("/api/sessions", async (
+    CreateSessionRequest request,
+    ITenantContextAccessor tenantAccessor,
+    ISessionService sessionService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var response = await sessionService.CreateSessionAsync(tenant.TenantId, tenant.UserId, request);
+    return Results.Created($"/api/sessions/{response.SessionId}",
+        ApiResponse<SessionResponse>.Success(response, tenant.CorrelationId));
+}).RequirePermission("chat:query");
+
+app.MapGet("/api/sessions", async (
+    ITenantContextAccessor tenantAccessor,
+    ISessionService sessionService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var response = await sessionService.ListSessionsAsync(tenant.TenantId, tenant.UserId);
+    return Results.Ok(ApiResponse<SessionListResponse>.Success(response, tenant.CorrelationId));
+}).RequirePermission("chat:query");
+
+app.MapGet("/api/sessions/{sessionId:guid}", async (
+    Guid sessionId,
+    ITenantContextAccessor tenantAccessor,
+    ISessionService sessionService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var response = await sessionService.GetSessionAsync(tenant.TenantId, tenant.UserId, sessionId);
+    return response is null
+        ? Results.NotFound(ApiResponse<object>.Failure("Session not found.", tenant.CorrelationId))
+        : Results.Ok(ApiResponse<SessionResponse>.Success(response, tenant.CorrelationId));
+}).RequirePermission("chat:query");
+
+app.MapDelete("/api/sessions/{sessionId:guid}", async (
+    Guid sessionId,
+    ITenantContextAccessor tenantAccessor,
+    ISessionService sessionService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var deleted = await sessionService.DeleteSessionAsync(tenant.TenantId, tenant.UserId, sessionId);
+    return deleted
+        ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
+        : Results.NotFound(ApiResponse<object>.Failure("Session not found.", tenant.CorrelationId));
+}).RequirePermission("chat:query");
+
+app.MapGet("/api/sessions/{sessionId:guid}/messages", async (
+    Guid sessionId,
+    ITenantContextAccessor tenantAccessor,
+    ISessionService sessionService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var response = await sessionService.GetMessagesAsync(tenant.TenantId, tenant.UserId, sessionId);
+    return response is null
+        ? Results.NotFound(ApiResponse<object>.Failure("Session not found.", tenant.CorrelationId))
+        : Results.Ok(ApiResponse<MessageListResponse>.Success(response, tenant.CorrelationId));
+}).RequirePermission("chat:query");
+
+app.MapPost("/api/sessions/{sessionId:guid}/messages", async (
+    Guid sessionId,
+    SendMessageRequest request,
+    ITenantContextAccessor tenantAccessor,
+    ISessionService sessionService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var response = await sessionService.SendMessageAsync(
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, sessionId, request);
+    return response is null
+        ? Results.NotFound(ApiResponse<object>.Failure("Session not found or expired.", tenant.CorrelationId))
+        : Results.Ok(ApiResponse<SessionChatResponse>.Success(response, tenant.CorrelationId));
+}).RequirePermission("chat:query");
+
+// --- Chat Endpoint (stateless, kept for backward compatibility) ---
+
+app.MapPost("/api/chat", async (
+    ChatRequest request,
+    ITenantContextAccessor tenantAccessor,
+    HttpContext httpContext) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var orchestrator = httpContext.RequestServices.GetService<IChatOrchestrator>();
+    if (orchestrator is null)
+        return Results.Json(
+            ApiResponse<object>.Failure("Chat orchestration is not configured. Ensure OpenAI and Search Service are set up.", tenant.CorrelationId),
+            statusCode: 503);
+
+    var response = await orchestrator.OrchestrateAsync(
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, request);
+    return Results.Ok(ApiResponse<ChatResponse>.Success(response, tenant.CorrelationId));
+}).RequirePermission("chat:query");
 
 // --- Audit Endpoint ---
 

@@ -59,8 +59,11 @@ public sealed class ConnectorTestFactory : WebApplicationFactory<Program>, IAsyn
             services.AddDbContext<SmartKbDbContext>(options =>
                 options.UseSqlite(_connection));
             services.AddScoped<IAuditEventWriter, SqlAuditEventWriter>();
+            services.AddScoped<IAnswerTraceWriter, SqlAnswerTraceWriter>();
+            services.AddScoped<ISessionService, SessionService>();
             services.AddSingleton<ISyncJobPublisher, TestSyncJobPublisher>();
             services.AddSingleton(new WebhookSettings());
+            services.AddSingleton(new SessionSettings());
             services.AddScoped<ConnectorAdminService>();
             services.AddScoped<AdoWebhookHandler>();
             services.AddScoped<SharePointWebhookHandler>();

@@ -9,6 +9,10 @@ public sealed class MessageEntity
     public string TenantId { get; set; } = string.Empty;
     public MessageRole Role { get; set; }
     public string Content { get; set; } = string.Empty;
+    public string? CitationsJson { get; set; }
+    public float? Confidence { get; set; }
+    public string? ConfidenceLabel { get; set; }
+    public string? ResponseType { get; set; }
     public string? TraceId { get; set; }
     public string? CorrelationId { get; set; }
     public DateTimeOffset CreatedAt { get; set; }

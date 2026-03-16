@@ -29,6 +29,8 @@ resource "azurerm_linux_web_app" "api" {
     "APPLICATIONINSIGHTS_CONNECTION_STRING"  = azurerm_application_insights.main.connection_string
     "KeyVault__VaultUri"                     = azurerm_key_vault.main.vault_uri
     "ServiceBus__FullyQualifiedNamespace"    = "${azurerm_servicebus_namespace.main.name}.servicebus.windows.net"
+    "BlobStorage__ServiceUri"                = azurerm_storage_account.main.primary_blob_endpoint
+    "SearchService__Endpoint"                = "https://${azurerm_search_service.main.name}.search.windows.net"
   }
 
   connection_string {
@@ -61,6 +63,8 @@ resource "azurerm_linux_web_app" "ingestion" {
     "APPLICATIONINSIGHTS_CONNECTION_STRING"  = azurerm_application_insights.main.connection_string
     "KeyVault__VaultUri"                     = azurerm_key_vault.main.vault_uri
     "ServiceBus__FullyQualifiedNamespace"    = "${azurerm_servicebus_namespace.main.name}.servicebus.windows.net"
+    "BlobStorage__ServiceUri"                = azurerm_storage_account.main.primary_blob_endpoint
+    "SearchService__Endpoint"                = "https://${azurerm_search_service.main.name}.search.windows.net"
   }
 
   connection_string {
