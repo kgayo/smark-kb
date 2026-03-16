@@ -75,6 +75,8 @@ public sealed class AuthTestFactory : WebApplicationFactory<Program>, IAsyncLife
             services.AddScoped<ISessionService, SessionService>();
             services.AddSingleton<ISyncJobPublisher, TestSyncJobPublisher>();
             services.AddSingleton(new SessionSettings());
+            services.AddSingleton(new EscalationSettings());
+            services.AddScoped<IEscalationDraftService, EscalationDraftService>();
             services.AddScoped<SmartKb.Api.Connectors.ConnectorAdminService>();
         });
     }

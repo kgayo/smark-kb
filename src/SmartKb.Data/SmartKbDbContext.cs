@@ -21,6 +21,8 @@ public class SmartKbDbContext : DbContext
     public DbSet<EvidenceChunkEntity> EvidenceChunks => Set<EvidenceChunkEntity>();
     public DbSet<RawContentSnapshotEntity> RawContentSnapshots => Set<RawContentSnapshotEntity>();
     public DbSet<AnswerTraceEntity> AnswerTraces => Set<AnswerTraceEntity>();
+    public DbSet<EscalationDraftEntity> EscalationDrafts => Set<EscalationDraftEntity>();
+    public DbSet<EscalationRoutingRuleEntity> EscalationRoutingRules => Set<EscalationRoutingRuleEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -40,6 +42,8 @@ public class SmartKbDbContext : DbContext
         ConfigureEvidenceChunk(modelBuilder);
         ConfigureRawContentSnapshot(modelBuilder);
         ConfigureAnswerTrace(modelBuilder);
+        ConfigureEscalationDraft(modelBuilder);
+        ConfigureEscalationRoutingRule(modelBuilder);
     }
 
     private static void ConfigureTenant(ModelBuilder modelBuilder)
@@ -291,6 +295,48 @@ public class SmartKbDbContext : DbContext
             e.HasIndex(a => a.TenantId);
             e.HasIndex(a => a.CorrelationId);
             e.HasIndex(a => new { a.TenantId, a.CreatedAt });
+        });
+    }
+
+    private static void ConfigureEscalationDraft(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<EscalationDraftEntity>(e =>
+        {
+            e.ToTable("EscalationDrafts");
+            e.HasKey(d => d.Id);
+            e.Property(d => d.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(d => d.UserId).HasMaxLength(128).IsRequired();
+            e.Property(d => d.Title).HasMaxLength(512).IsRequired();
+            e.Property(d => d.CustomerSummary).IsRequired();
+            e.Property(d => d.StepsToReproduce).IsRequired();
+            e.Property(d => d.LogsIdsRequested).IsRequired();
+            e.Property(d => d.SuspectedComponent).HasMaxLength(256).IsRequired();
+            e.Property(d => d.Severity).HasMaxLength(16).IsRequired();
+            e.Property(d => d.EvidenceLinksJson).IsRequired();
+            e.Property(d => d.TargetTeam).HasMaxLength(256).IsRequired();
+            e.Property(d => d.Reason).IsRequired();
+            e.HasIndex(d => d.TenantId);
+            e.HasIndex(d => d.SessionId);
+            e.HasIndex(d => new { d.TenantId, d.SessionId, d.CreatedAt });
+            e.HasIndex(d => new { d.TenantId, d.UserId, d.CreatedAt });
+            e.HasQueryFilter(d => d.DeletedAt == null);
+            e.HasOne(d => d.Session).WithMany(s => s.EscalationDrafts).HasForeignKey(d => d.SessionId).OnDelete(DeleteBehavior.Restrict);
+        });
+    }
+
+    private static void ConfigureEscalationRoutingRule(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<EscalationRoutingRuleEntity>(e =>
+        {
+            e.ToTable("EscalationRoutingRules");
+            e.HasKey(r => r.Id);
+            e.Property(r => r.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(r => r.ProductArea).HasMaxLength(256).IsRequired();
+            e.Property(r => r.TargetTeam).HasMaxLength(256).IsRequired();
+            e.Property(r => r.MinSeverity).HasMaxLength(16).IsRequired();
+            e.HasIndex(r => r.TenantId);
+            e.HasIndex(r => new { r.TenantId, r.ProductArea }).IsUnique().HasFilter("[IsActive] = 1");
+            e.HasOne(r => r.Tenant).WithMany().HasForeignKey(r => r.TenantId);
         });
     }
 }

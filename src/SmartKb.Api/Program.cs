@@ -110,6 +110,11 @@ var sessionSettings = new SessionSettings();
 builder.Configuration.GetSection(SessionSettings.SectionName).Bind(sessionSettings);
 builder.Services.AddSingleton(sessionSettings);
 
+// Escalation settings (D-004).
+var escalationSettings = new EscalationSettings();
+builder.Configuration.GetSection(EscalationSettings.SectionName).Bind(escalationSettings);
+builder.Services.AddSingleton(escalationSettings);
+
 // Chat orchestration — OpenAI embedding + chat with structured outputs.
 // Requires both OpenAI API key and search service to be configured.
 var chatOrchestrationSettings = new ChatOrchestrationSettings();
@@ -503,6 +508,91 @@ app.MapPost("/api/sessions/{sessionId:guid}/messages", async (
     return response is null
         ? Results.NotFound(ApiResponse<object>.Failure("Session not found or expired.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<SessionChatResponse>.Success(response, tenant.CorrelationId));
+}).RequirePermission("chat:query");
+
+// --- Escalation Draft Endpoints ---
+
+app.MapPost("/api/escalations/draft", async (
+    CreateEscalationDraftRequest request,
+    ITenantContextAccessor tenantAccessor,
+    IEscalationDraftService escalationService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    try
+    {
+        var response = await escalationService.CreateDraftAsync(
+            tenant.TenantId, tenant.UserId, tenant.CorrelationId, request);
+        return Results.Created($"/api/escalations/draft/{response.DraftId}",
+            ApiResponse<EscalationDraftResponse>.Success(response, tenant.CorrelationId));
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.UnprocessableEntity(
+            ApiResponse<object>.Failure(ex.Message, tenant.CorrelationId));
+    }
+}).RequirePermission("chat:query");
+
+app.MapGet("/api/escalations/draft/{draftId:guid}", async (
+    Guid draftId,
+    ITenantContextAccessor tenantAccessor,
+    IEscalationDraftService escalationService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var response = await escalationService.GetDraftAsync(tenant.TenantId, tenant.UserId, draftId);
+    return response is null
+        ? Results.NotFound(ApiResponse<object>.Failure("Escalation draft not found.", tenant.CorrelationId))
+        : Results.Ok(ApiResponse<EscalationDraftResponse>.Success(response, tenant.CorrelationId));
+}).RequirePermission("chat:query");
+
+app.MapGet("/api/sessions/{sessionId:guid}/escalations/drafts", async (
+    Guid sessionId,
+    ITenantContextAccessor tenantAccessor,
+    IEscalationDraftService escalationService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var response = await escalationService.ListDraftsAsync(tenant.TenantId, tenant.UserId, sessionId);
+    return response is null
+        ? Results.NotFound(ApiResponse<object>.Failure("Session not found.", tenant.CorrelationId))
+        : Results.Ok(ApiResponse<EscalationDraftListResponse>.Success(response, tenant.CorrelationId));
+}).RequirePermission("chat:query");
+
+app.MapPut("/api/escalations/draft/{draftId:guid}", async (
+    Guid draftId,
+    UpdateEscalationDraftRequest request,
+    ITenantContextAccessor tenantAccessor,
+    IEscalationDraftService escalationService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var (response, notFound) = await escalationService.UpdateDraftAsync(
+        tenant.TenantId, tenant.UserId, draftId, request);
+    return notFound
+        ? Results.NotFound(ApiResponse<object>.Failure("Escalation draft not found.", tenant.CorrelationId))
+        : Results.Ok(ApiResponse<EscalationDraftResponse>.Success(response!, tenant.CorrelationId));
+}).RequirePermission("chat:query");
+
+app.MapGet("/api/escalations/draft/{draftId:guid}/export", async (
+    Guid draftId,
+    ITenantContextAccessor tenantAccessor,
+    IEscalationDraftService escalationService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var response = await escalationService.ExportDraftAsMarkdownAsync(
+        tenant.TenantId, tenant.UserId, draftId);
+    return response is null
+        ? Results.NotFound(ApiResponse<object>.Failure("Escalation draft not found.", tenant.CorrelationId))
+        : Results.Ok(ApiResponse<EscalationDraftExportResponse>.Success(response, tenant.CorrelationId));
+}).RequirePermission("chat:query");
+
+app.MapDelete("/api/escalations/draft/{draftId:guid}", async (
+    Guid draftId,
+    ITenantContextAccessor tenantAccessor,
+    IEscalationDraftService escalationService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var deleted = await escalationService.DeleteDraftAsync(tenant.TenantId, tenant.UserId, draftId);
+    return deleted
+        ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
+        : Results.NotFound(ApiResponse<object>.Failure("Escalation draft not found.", tenant.CorrelationId));
 }).RequirePermission("chat:query");
 
 // --- Chat Endpoint (stateless, kept for backward compatibility) ---

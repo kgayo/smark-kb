@@ -325,6 +325,8 @@ internal sealed class SessionTestFactory : WebApplicationFactory<Program>, IAsyn
             services.AddSingleton<ISyncJobPublisher, TestSyncJobPublisher>();
             services.AddSingleton(new WebhookSettings());
             services.AddSingleton(new SessionSettings { DefaultExpiryHours = 24 });
+            services.AddSingleton(new EscalationSettings());
+            services.AddScoped<IEscalationDraftService, EscalationDraftService>();
             services.AddScoped<ConnectorAdminService>();
             services.AddScoped<AdoWebhookHandler>();
             services.AddScoped<SharePointWebhookHandler>();

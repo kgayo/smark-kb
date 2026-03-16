@@ -16,4 +16,5 @@ public sealed class SessionEntity
     public ICollection<MessageEntity> Messages { get; set; } = [];
     public ICollection<FeedbackEntity> Feedbacks { get; set; } = [];
     public ICollection<OutcomeEventEntity> OutcomeEvents { get; set; } = [];
+    public ICollection<EscalationDraftEntity> EscalationDrafts { get; set; } = [];
 }

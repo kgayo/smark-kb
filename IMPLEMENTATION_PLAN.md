@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-16 (Asia/Manila) — iteration 31 (P0-014A complete)
-Status: Active backlog (P0-001 through P0-014A complete; 0 bugs blocking, 0 tech-debt blocking; next up P0-015)
+Last updated: 2026-03-16 (Asia/Manila) — iteration 32 (P0-015 complete)
+Status: Active backlog (P0-001 through P0-015 complete; 0 bugs blocking, 0 tech-debt blocking; next up P0-016)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -158,13 +158,10 @@ Status: Active backlog (P0-001 through P0-014A complete; 0 bugs blocking, 0 tech
   - Dependencies: P0-013 (complete)
   - Completed: `IPiiRedactionService` interface + `PiiRedactionService` implementation in `SmartKb.Contracts.Services`. Regex-based redaction of 4 PII categories: emails → `[REDACTED-EMAIL]`, phone numbers → `[REDACTED-PHONE]`, SSNs → `[REDACTED-SSN]`, credit card numbers → `[REDACTED-CREDIT-CARD]`. Same regex patterns as `BaselineEnrichmentService.DetectPii` (kept in sync). `ChatOrchestrator.RedactPiiInChunks` static method applies redaction to both `ChunkText` and `ChunkContext` of retrieved chunks. Defense-in-depth: runs after ACL enforcement (step 3.5) and before prompt assembly (step 4), ensuring no PII reaches model context regardless of indexing pipeline behavior. Audit events: `pii.redaction` event written to immutable audit store via `IAuditEventWriter` when PII is redacted, with tenant/user/correlation context. `PiiRedactedCount` field added to `ChatResponse` for client transparency. `ChatOrchestrator` constructor now accepts `IPiiRedactionService` and `IAuditEventWriter` dependencies. `PiiRedactionService` registered as singleton in API DI. 17 new tests (10 PII redaction service unit + 7 RedactPiiInChunks integration including end-to-end proof that PII never reaches `BuildSystemPrompt`); all 597 tests passing. Advanced policy controls deferred to P2-001.
 
-- [ ] P0-015: Implement escalation recommendation + structured handoff draft object.
+- [x] P0-015: Implement escalation recommendation + structured handoff draft object.
   - Specs: jtbd-08
-  - Dependencies: P0-013 (complete), **D-004 (escalation policy schema)**
-  - Exit criteria: response includes target team, reason, severity, suspected component, evidence links, and required handoff fields when escalation thresholds/policies are met; handoff draft reviewable by agent before any external action; all required structured fields validated as present when determinable.
-  - Design decision to resolve:
-    - **D-004**: Propose confidence-based trigger: escalation recommended when confidence < 0.4 AND severity >= P2. Per-tenant team routing table in SQL (tenant_id, product_area, target_team, escalation_threshold). Global fallback to "Engineering" team.
-  - Implementation notes: `POST /api/escalations/draft` endpoint. `EscalationDraft` DTO with title, customer_summary, steps_to_reproduce, logs_ids_requested, suspected_component, severity, evidence_links, target_team, reason. Phase 1: copy/export only (R-011).
+  - Dependencies: P0-013 (complete), D-004 (resolved)
+  - Completed: `EscalationDraftEntity` in SQL with `AddEscalationDrafts` migration (soft-delete, tenant-scoped, session FK, message reference). `EscalationRoutingRuleEntity` for per-tenant team routing (product area → target team, configurable threshold + min severity, unique active rule per product area per tenant). `EscalationSettings` config class with D-004 defaults (threshold=0.4, minSeverity=P2, fallback team="Engineering"). Severity ordering (P1>P2>P3>P4) with `MeetsSeverityThreshold` helper. `IEscalationDraftService` interface + `EscalationDraftService` implementation in `SmartKb.Data.Repositories`. Full CRUD: `POST /api/escalations/draft` (create draft from session message), `GET /api/escalations/draft/{draftId}` (get for review), `GET /api/sessions/{sessionId}/escalations/drafts` (list drafts for session), `PUT /api/escalations/draft/{draftId}` (update/edit before export), `GET /api/escalations/draft/{draftId}/export` (export as markdown), `DELETE /api/escalations/draft/{draftId}` (soft-delete). All endpoints require `chat:query` permission (SupportAgent, SupportLead, Admin). Structured handoff fields: title, customer_summary, steps_to_reproduce, logs_ids_requested, suspected_component, severity, evidence_links (JSON citations), target_team, reason. Routing rule lookup: when target team not specified, resolves from per-tenant `EscalationRoutingRules` table by suspected component; falls back to "Engineering". Audit event written on draft creation (`escalation.draft.created`). Markdown export includes all structured fields with evidence links. `ExportedAt` timestamp tracked. Tenant isolation + user ownership enforced on all operations. Phase 1: copy/export only (R-011); external ticket creation deferred to P1-003. Registered in API DI via `DataServiceExtensions`. 43 new tests (22 service unit + 4 settings + 17 endpoint integration); all 644 tests passing.
 
 ### P0 Frontend MVP
 
@@ -329,8 +326,7 @@ Status: Active backlog (P0-001 through P0-014A complete; 0 bugs blocking, 0 tech
 - [x] D-001: Embedding model — resolved: text-embedding-3-large at 1536 dimensions.
 - [x] D-002: Chunking strategy — resolved: 512 tokens/chunk, 64 overlap, structural boundaries.
 - [x] D-003: Confidence scoring methodology — resolved: 0-1 float, blended = 0.6×modelSelfReport + 0.4×retrievalHeuristic (avgRrfScore × saturation). Categorical: High (>=0.7), Medium (0.4-0.7), Low (<0.4). Configurable via `ChatOrchestrationSettings`.
-- [ ] D-004: Escalation policy schema and thresholds — blocks P0-015.
-  - **Proposed**: Confidence < 0.4 AND severity >= P2. Per-tenant routing table in SQL. Fallback to "Engineering".
+- [x] D-004: Escalation policy schema and thresholds — resolved: confidence < 0.4 AND severity >= P2. Per-tenant `EscalationRoutingRules` table (tenant_id, product_area, target_team, escalation_threshold, min_severity). Fallback to "Engineering". Configurable via `EscalationSettings`.
 - [x] D-005: Top-k and RRF fusion weights — resolved: top-k=20, equal RRF weights (1.0/1.0), semantic reranker on merged top-20. Pattern Index deferred to P1-004. Configurable via `RetrievalSettings`.
 - [x] D-006: OpenAI model version — resolved: `gpt-4o` (latest), configurable via `OpenAiSettings.Model`. Temperature 0.2 for grounded generation.
 - [ ] D-007: Gold dataset strategy — blocks P0-021.
