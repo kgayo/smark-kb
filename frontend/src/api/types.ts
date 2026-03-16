@@ -95,3 +95,60 @@ export interface EscalationSignal {
 }
 
 export type ConfidenceLevel = 'High' | 'Medium' | 'Low';
+
+// ── Escalation draft types ──
+
+export interface CreateEscalationDraftRequest {
+  sessionId: string;
+  messageId: string;
+  title: string;
+  customerSummary: string;
+  stepsToReproduce: string;
+  logsIdsRequested: string;
+  suspectedComponent: string;
+  severity: string;
+  evidenceLinks: CitationDto[];
+  targetTeam: string;
+  reason: string;
+}
+
+export interface UpdateEscalationDraftRequest {
+  title?: string;
+  customerSummary?: string;
+  stepsToReproduce?: string;
+  logsIdsRequested?: string;
+  suspectedComponent?: string;
+  severity?: string;
+  evidenceLinks?: CitationDto[];
+  targetTeam?: string;
+  reason?: string;
+}
+
+export interface EscalationDraftResponse {
+  draftId: string;
+  sessionId: string;
+  messageId: string;
+  title: string;
+  customerSummary: string;
+  stepsToReproduce: string;
+  logsIdsRequested: string;
+  suspectedComponent: string;
+  severity: string;
+  evidenceLinks: CitationDto[];
+  targetTeam: string;
+  reason: string;
+  createdAt: string;
+  exportedAt: string | null;
+}
+
+export interface EscalationDraftListResponse {
+  sessionId: string;
+  drafts: EscalationDraftResponse[];
+  totalCount: number;
+}
+
+export interface EscalationDraftExportResponse {
+  draftId: string;
+  markdown: string;
+  exportedAt: string;
+}

@@ -131,7 +131,7 @@ describe('ChatThread', () => {
         'msg-2',
         {
           nextSteps: [],
-          escalation: { recommended: true, targetTeam: 'Engineering', reason: 'Low confidence' },
+          escalation: { recommended: true, targetTeam: 'Engineering', reason: 'Low confidence', handoffNote: '' },
         },
       ],
     ]);
@@ -150,7 +150,7 @@ describe('ChatThread', () => {
 
   it('does not render escalation banner when not recommended', () => {
     const meta = new Map<string, AssistantMeta>([
-      ['msg-2', { nextSteps: [], escalation: { recommended: false, targetTeam: '', reason: '' } }],
+      ['msg-2', { nextSteps: [], escalation: { recommended: false, targetTeam: '', reason: '', handoffNote: '' } }],
     ]);
     render(
       <ChatThread
@@ -161,5 +161,53 @@ describe('ChatThread', () => {
       />,
     );
     expect(screen.queryByTestId('escalation-banner')).not.toBeInTheDocument();
+  });
+
+  it('renders escalation CTA button and calls onCreateEscalationDraft', () => {
+    const onCreateDraft = vi.fn();
+    const meta = new Map<string, AssistantMeta>([
+      [
+        'msg-2',
+        {
+          nextSteps: [],
+          escalation: { recommended: true, targetTeam: 'Engineering', reason: 'Low confidence', handoffNote: '' },
+        },
+      ],
+    ]);
+    render(
+      <ChatThread
+        messages={[assistantMsg]}
+        loading={false}
+        onShowEvidence={() => {}}
+        onCreateEscalationDraft={onCreateDraft}
+        metaMap={meta}
+      />,
+    );
+    const ctaBtn = screen.getByTestId('create-escalation-draft');
+    expect(ctaBtn).toBeInTheDocument();
+    expect(ctaBtn).toHaveTextContent('Create escalation draft');
+    fireEvent.click(ctaBtn);
+    expect(onCreateDraft).toHaveBeenCalledWith('msg-2');
+  });
+
+  it('does not render CTA button when onCreateEscalationDraft not provided', () => {
+    const meta = new Map<string, AssistantMeta>([
+      [
+        'msg-2',
+        {
+          nextSteps: [],
+          escalation: { recommended: true, targetTeam: 'Engineering', reason: 'Low confidence', handoffNote: '' },
+        },
+      ],
+    ]);
+    render(
+      <ChatThread
+        messages={[assistantMsg]}
+        loading={false}
+        onShowEvidence={() => {}}
+        metaMap={meta}
+      />,
+    );
+    expect(screen.queryByTestId('create-escalation-draft')).not.toBeInTheDocument();
   });
 });

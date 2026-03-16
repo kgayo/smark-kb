@@ -3,13 +3,14 @@ import { ConfidenceBadge } from './ConfidenceBadge';
 
 export interface AssistantMeta {
   nextSteps: string[];
-  escalation: { recommended: boolean; targetTeam: string; reason: string } | null;
+  escalation: { recommended: boolean; targetTeam: string; reason: string; handoffNote: string } | null;
 }
 
 interface ChatThreadProps {
   messages: MessageResponse[];
   loading: boolean;
   onShowEvidence: (citations: CitationDto[]) => void;
+  onCreateEscalationDraft?: (messageId: string) => void;
   metaMap: Map<string, AssistantMeta>;
 }
 
@@ -49,20 +50,33 @@ function NextStepsList({ steps }: { steps: string[] }) {
 function EscalationBanner({
   targetTeam,
   reason,
+  onCreateDraft,
 }: {
   targetTeam: string;
   reason: string;
+  onCreateDraft?: () => void;
 }) {
   return (
     <div className="escalation-banner" data-testid="escalation-banner">
-      <strong>Escalation recommended</strong>
-      {targetTeam && <span> to {targetTeam}</span>}
-      {reason && <p className="escalation-reason">{reason}</p>}
+      <div className="escalation-banner-content">
+        <strong>Escalation recommended</strong>
+        {targetTeam && <span> to {targetTeam}</span>}
+        {reason && <p className="escalation-reason">{reason}</p>}
+      </div>
+      {onCreateDraft && (
+        <button
+          className="btn btn-sm btn-escalate"
+          data-testid="create-escalation-draft"
+          onClick={onCreateDraft}
+        >
+          Create escalation draft
+        </button>
+      )}
     </div>
   );
 }
 
-export function ChatThread({ messages, loading, onShowEvidence, metaMap }: ChatThreadProps) {
+export function ChatThread({ messages, loading, onShowEvidence, onCreateEscalationDraft, metaMap }: ChatThreadProps) {
   return (
     <div className="chat-thread" data-testid="chat-thread" role="log" aria-live="polite">
       {messages.length === 0 && !loading && (
@@ -106,6 +120,11 @@ export function ChatThread({ messages, loading, onShowEvidence, metaMap }: ChatT
                   <EscalationBanner
                     targetTeam={meta.escalation.targetTeam}
                     reason={meta.escalation.reason}
+                    onCreateDraft={
+                      onCreateEscalationDraft
+                        ? () => onCreateEscalationDraft(msg.messageId)
+                        : undefined
+                    }
                   />
                 )}
               </div>

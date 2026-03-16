@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-16 (Asia/Manila) — iteration 33 (P0-016 complete)
-Status: Active backlog (P0-001 through P0-016 complete; 0 bugs blocking, 0 tech-debt blocking; next up P0-017)
+Last updated: 2026-03-16 (Asia/Manila) — iteration 34 (P0-017 complete)
+Status: Active backlog (P0-001 through P0-017 complete; 0 bugs blocking, 0 tech-debt blocking; next up P0-018)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -170,11 +170,10 @@ Status: Active backlog (P0-001 through P0-016 complete; 0 bugs blocking, 0 tech-
   - Dependencies: P0-013A (session API), P0-013 (complete)
   - Completed: Full React chat UI with MSAL Entra ID authentication (conditional — bypassed in local dev when `VITE_ENTRA_CLIENT_ID` not set). `AuthProvider` wraps app with `MsalProvider` + `AuthGate` (login redirect flow, silent token acquisition with `InteractionRequiredAuthError` fallback). API client layer (`api/client.ts`) with bearer token injection, `ApiResponse<T>` unwrapping, typed fetch for all session and chat endpoints. `SessionSidebar` component: session list with title, message count, time-ago display, create/select/delete actions, active highlight. `ChatThread` component: user and assistant message rendering, `ConfidenceBadge` (green High >=0.7, yellow Medium 0.4-0.7, red Low <0.4 per D-003), inline citation count button, next-steps list, escalation banner (purple, target team + reason). `EvidenceDrawer` slide-out panel: citation cards with title, snippet (4-line clamp), source system, formatted date, access label (colored: green Public, yellow Internal, red Restricted), external source link. `MessageInput` with Enter-to-send (Shift+Enter for newline), disabled state with "Thinking..." indicator. Typing dots animation during API call. `ChatPage` orchestrates: session CRUD via API, message send with response meta (nextSteps, escalation) stored in `metaMap`, auto-scroll, error banner, drawer state. `index.css` with CSS variables, responsive layout (sidebar 260px + main + drawer 340px). TypeScript strict mode, Vite env types for MSAL config. ESLint config (`.eslintrc.cjs`) with TS parser. 44 new frontend tests (3 App, 5 ConfidenceBadge, 9 EvidenceDrawer, 9 MessageInput, 9 ChatThread, 7 SessionSidebar, 2 API client); all passing. Build clean (191 modules, 7.3KB CSS + 440KB JS gzipped). All 644 backend tests still passing.
 
-- [ ] P0-017: Implement next-steps and escalation UX (CTA + handoff draft review/edit + copy/export).
+- [x] P0-017: Implement next-steps and escalation UX (CTA + handoff draft review/edit + copy/export).
   - Specs: jtbd-04, jtbd-05, jtbd-08
   - Dependencies: P0-015 (escalation draft API), P0-016 (chat UI)
-  - Exit criteria: escalation CTA visible when escalation signal is present; handoff draft can be reviewed, edited, and copied/exported by agent; next-step guidance displayed for low-confidence responses.
-  - Implementation notes: Phase 1 provides copy-to-clipboard and markdown export. ADO/ClickUp buttons disabled with "Coming soon" tooltip (R-011).
+  - Completed: `EscalationDraftModal` component with full draft lifecycle: auto-create draft on CTA click, editable form (title, severity P1-P4, target team, reason, customer summary, suspected component, steps to reproduce, logs/IDs requested), evidence links count, save via PUT, markdown export via GET with clipboard copy + "Copied!" feedback. `EscalationBanner` updated with "Create escalation draft" CTA button (purple, `btn-escalate`) that passes `messageId` up to `ChatPage`. `ChatPage` wires modal state: extracts escalation signal + citations for the target message, opens modal overlay. `AssistantMeta` extended with `handoffNote` field. API client layer: `createEscalationDraft`, `updateEscalationDraft`, `exportEscalationDraft`, `deleteEscalationDraft` + full TypeScript types matching backend DTOs. ADO/ClickUp buttons rendered disabled with "Coming soon" tooltip (R-011). Modal backdrop with centered card layout, responsive (max 90vw, 85vh). CSS: modal backdrop, form fields, field rows, evidence summary badge, coming-soon disabled style. Next-step guidance already rendered from P0-016 (no changes needed). 14 new frontend tests (12 EscalationDraftModal + 2 ChatThread CTA); 58 frontend tests passing. Build clean (192 modules, 9.4KB CSS + 447KB JS gzipped). All 644 backend tests passing.
 
 - [ ] P0-018: Implement feedback capture UI + API wiring.
   - Specs: jtbd-05, jtbd-06

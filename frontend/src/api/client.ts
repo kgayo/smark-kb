@@ -1,11 +1,15 @@
 import type {
   ApiResponse,
+  CreateEscalationDraftRequest,
   CreateSessionRequest,
+  EscalationDraftExportResponse,
+  EscalationDraftResponse,
   MessageListResponse,
   SendMessageRequest,
   SessionChatResponse,
   SessionListResponse,
   SessionResponse,
+  UpdateEscalationDraftRequest,
 } from './types';
 
 let getAccessToken: (() => Promise<string | null>) | null = null;
@@ -97,4 +101,57 @@ export async function sendMessage(
     },
   );
   return unwrap(res);
+}
+
+// ── Escalation draft endpoints ──
+
+export async function createEscalationDraft(
+  req: CreateEscalationDraftRequest,
+): Promise<EscalationDraftResponse> {
+  const res = await apiFetch<ApiResponse<EscalationDraftResponse>>(
+    '/api/escalations/draft',
+    {
+      method: 'POST',
+      body: JSON.stringify(req),
+    },
+  );
+  return unwrap(res);
+}
+
+export async function getEscalationDraft(
+  draftId: string,
+): Promise<EscalationDraftResponse> {
+  const res = await apiFetch<ApiResponse<EscalationDraftResponse>>(
+    `/api/escalations/draft/${draftId}`,
+  );
+  return unwrap(res);
+}
+
+export async function updateEscalationDraft(
+  draftId: string,
+  req: UpdateEscalationDraftRequest,
+): Promise<EscalationDraftResponse> {
+  const res = await apiFetch<ApiResponse<EscalationDraftResponse>>(
+    `/api/escalations/draft/${draftId}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(req),
+    },
+  );
+  return unwrap(res);
+}
+
+export async function exportEscalationDraft(
+  draftId: string,
+): Promise<EscalationDraftExportResponse> {
+  const res = await apiFetch<ApiResponse<EscalationDraftExportResponse>>(
+    `/api/escalations/draft/${draftId}/export`,
+  );
+  return unwrap(res);
+}
+
+export async function deleteEscalationDraft(draftId: string): Promise<void> {
+  await apiFetch<ApiResponse<unknown>>(`/api/escalations/draft/${draftId}`, {
+    method: 'DELETE',
+  });
 }

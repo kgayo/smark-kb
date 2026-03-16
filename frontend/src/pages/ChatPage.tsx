@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { CitationDto, MessageResponse, SessionResponse } from '../api/types';
+import type { CitationDto, EscalationSignal, MessageResponse, SessionResponse } from '../api/types';
 import type { AssistantMeta } from '../components/ChatThread';
 import * as api from '../api/client';
 import { SessionSidebar } from '../components/SessionSidebar';
 import { ChatThread } from '../components/ChatThread';
 import { MessageInput } from '../components/MessageInput';
 import { EvidenceDrawer } from '../components/EvidenceDrawer';
+import { EscalationDraftModal } from '../components/EscalationDraftModal';
 
 export function ChatPage() {
   const [sessions, setSessions] = useState<SessionResponse[]>([]);
@@ -16,6 +17,10 @@ export function ChatPage() {
   const [error, setError] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerCitations, setDrawerCitations] = useState<CitationDto[]>([]);
+  const [draftModalOpen, setDraftModalOpen] = useState(false);
+  const [draftMessageId, setDraftMessageId] = useState<string | null>(null);
+  const [draftEscalation, setDraftEscalation] = useState<EscalationSignal | null>(null);
+  const [draftCitations, setDraftCitations] = useState<CitationDto[]>([]);
   const threadEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -97,7 +102,14 @@ export function ChatPage() {
           const next = new Map(prev);
           next.set(result.assistantMessage.messageId, {
             nextSteps: result.chatResponse.nextSteps,
-            escalation: result.chatResponse.escalation,
+            escalation: result.chatResponse.escalation
+              ? {
+                  recommended: result.chatResponse.escalation.recommended,
+                  targetTeam: result.chatResponse.escalation.targetTeam,
+                  reason: result.chatResponse.escalation.reason,
+                  handoffNote: result.chatResponse.escalation.handoffNote,
+                }
+              : null,
           });
           return next;
         });
@@ -120,6 +132,19 @@ export function ChatPage() {
     setDrawerCitations(citations);
     setDrawerOpen(true);
   }, []);
+
+  const handleCreateEscalationDraft = useCallback(
+    (messageId: string) => {
+      const meta = metaMap.get(messageId);
+      if (!meta?.escalation?.recommended) return;
+      const msg = messages.find((m) => m.messageId === messageId);
+      setDraftMessageId(messageId);
+      setDraftEscalation(meta.escalation);
+      setDraftCitations(msg?.citations ?? []);
+      setDraftModalOpen(true);
+    },
+    [metaMap, messages],
+  );
 
   return (
     <div className="chat-layout">
@@ -158,6 +183,7 @@ export function ChatPage() {
               messages={messages}
               loading={loading}
               onShowEvidence={handleShowEvidence}
+              onCreateEscalationDraft={handleCreateEscalationDraft}
               metaMap={metaMap}
             />
             <div ref={threadEndRef} />
@@ -170,6 +196,16 @@ export function ChatPage() {
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
       />
+      {draftModalOpen && activeSessionId && draftMessageId && draftEscalation && (
+        <EscalationDraftModal
+          open={draftModalOpen}
+          sessionId={activeSessionId}
+          messageId={draftMessageId}
+          escalation={draftEscalation}
+          citations={draftCitations}
+          onClose={() => setDraftModalOpen(false)}
+        />
+      )}
     </div>
   );
 }
