@@ -94,10 +94,49 @@ public class SyncJobMessageTests
     {
         var settings = new Configuration.ServiceBusSettings();
 
+        Assert.Equal("", settings.FullyQualifiedNamespace);
         Assert.Equal("", settings.ConnectionString);
         Assert.Equal("ingestion-jobs", settings.QueueName);
         Assert.Equal(10, settings.MaxDeliveryCount);
         Assert.Equal(5, settings.MaxConcurrentCalls);
         Assert.Equal("ServiceBus", Configuration.ServiceBusSettings.SectionName);
+        Assert.False(settings.IsConfigured);
+        Assert.False(settings.UsesManagedIdentity);
+    }
+
+    [Fact]
+    public void ServiceBusSettings_IsConfigured_TrueWhenNamespaceSet()
+    {
+        var settings = new Configuration.ServiceBusSettings
+        {
+            FullyQualifiedNamespace = "sb-smartkb-dev.servicebus.windows.net",
+        };
+
+        Assert.True(settings.IsConfigured);
+        Assert.True(settings.UsesManagedIdentity);
+    }
+
+    [Fact]
+    public void ServiceBusSettings_IsConfigured_TrueWhenConnectionStringSet()
+    {
+        var settings = new Configuration.ServiceBusSettings
+        {
+            ConnectionString = "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=key;SharedAccessKey=val",
+        };
+
+        Assert.True(settings.IsConfigured);
+        Assert.False(settings.UsesManagedIdentity);
+    }
+
+    [Fact]
+    public void ServiceBusSettings_UsesManagedIdentity_PrefersNamespaceOverConnectionString()
+    {
+        var settings = new Configuration.ServiceBusSettings
+        {
+            FullyQualifiedNamespace = "sb-smartkb-dev.servicebus.windows.net",
+            ConnectionString = "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=key;SharedAccessKey=val",
+        };
+
+        Assert.True(settings.UsesManagedIdentity);
     }
 }

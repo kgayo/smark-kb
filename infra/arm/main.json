@@ -67,6 +67,7 @@
   "variables": {
     "appServicePlanName": "[format('plan-smartkb-{0}', parameters('environment'))]",
     "webAppName": "[format('app-smartkb-api-{0}', parameters('environment'))]",
+    "ingestionAppName": "[format('app-smartkb-ingestion-{0}', parameters('environment'))]",
     "sqlServerName": "[format('sql-smartkb-{0}', parameters('environment'))]",
     "sqlDatabaseName": "[format('sqldb-smartkb-{0}', parameters('environment'))]",
     "searchServiceName": "[format('srch-smartkb-{0}', parameters('environment'))]",
@@ -297,6 +298,10 @@
             {
               "name": "KeyVault__VaultUri",
               "value": "[reference(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))).vaultUri]"
+            },
+            {
+              "name": "ServiceBus__FullyQualifiedNamespace",
+              "value": "[format('{0}.servicebus.windows.net', variables('serviceBusNamespaceName'))]"
             }
           ],
           "connectionStrings": [
@@ -313,7 +318,23 @@
         "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
         "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]",
         "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
-        "[resourceId('Microsoft.Sql/servers', variables('sqlServerName'))]"
+        "[resourceId('Microsoft.Sql/servers', variables('sqlServerName'))]",
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "name": "[guid(resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName')), resourceId('Microsoft.Web/sites', variables('webAppName')), '69a216fc-b224-4f8e-923b-bc1667e3a975')]",
+      "scope": "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '69a216fc-b224-4f8e-923b-bc1667e3a975')]",
+        "principalId": "[reference(resourceId('Microsoft.Web/sites', variables('webAppName')), '2023-12-01', 'Full').identity.principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', variables('webAppName'))]",
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
       ]
     },
     {
@@ -329,6 +350,83 @@
       "dependsOn": [
         "[resourceId('Microsoft.Web/sites', variables('webAppName'))]",
         "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2023-12-01",
+      "name": "[variables('ingestionAppName')]",
+      "location": "[parameters('location')]",
+      "tags": "[variables('commonTags')]",
+      "kind": "app,linux",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
+        "siteConfig": {
+          "linuxFxVersion": "DOTNETCORE|10.0",
+          "alwaysOn": "[not(equals(parameters('environment'), 'dev'))]",
+          "appSettings": [
+            {
+              "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+              "value": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName'))).ConnectionString]"
+            },
+            {
+              "name": "KeyVault__VaultUri",
+              "value": "[reference(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))).vaultUri]"
+            },
+            {
+              "name": "ServiceBus__FullyQualifiedNamespace",
+              "value": "[format('{0}.servicebus.windows.net', variables('serviceBusNamespaceName'))]"
+            }
+          ],
+          "connectionStrings": [
+            {
+              "name": "SmartKbDb",
+              "connectionString": "[format('Server=tcp:{0}.database.windows.net,1433;Database={1};Authentication=Active Directory Default;', variables('sqlServerName'), variables('sqlDatabaseName'))]",
+              "type": "SQLAzure"
+            }
+          ]
+        },
+        "httpsOnly": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
+        "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]",
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
+        "[resourceId('Microsoft.Sql/servers', variables('sqlServerName'))]",
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "name": "[guid(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), resourceId('Microsoft.Web/sites', variables('ingestionAppName')), '4633458b-17de-408a-b874-0445c86b69e6')]",
+      "scope": "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')]",
+        "principalId": "[reference(resourceId('Microsoft.Web/sites', variables('ingestionAppName')), '2023-12-01', 'Full').identity.principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', variables('ingestionAppName'))]",
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "name": "[guid(resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName')), resourceId('Microsoft.Web/sites', variables('ingestionAppName')), '4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0')]",
+      "scope": "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0')]",
+        "principalId": "[reference(resourceId('Microsoft.Web/sites', variables('ingestionAppName')), '2023-12-01', 'Full').identity.principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', variables('ingestionAppName'))]",
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
       ]
     }
   ],
@@ -368,6 +466,18 @@
     "serviceBusNamespace": {
       "type": "string",
       "value": "[variables('serviceBusNamespaceName')]"
+    },
+    "serviceBusFullyQualifiedNamespace": {
+      "type": "string",
+      "value": "[format('{0}.servicebus.windows.net', variables('serviceBusNamespaceName'))]"
+    },
+    "ingestionAppServiceName": {
+      "type": "string",
+      "value": "[variables('ingestionAppName')]"
+    },
+    "ingestionAppServiceDefaultHostname": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Web/sites', variables('ingestionAppName'))).defaultHostName]"
     },
     "applicationInsightsConnectionString": {
       "type": "string",

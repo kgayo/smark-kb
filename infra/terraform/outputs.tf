@@ -34,6 +34,18 @@ output "servicebus_namespace" {
   value = azurerm_servicebus_namespace.main.name
 }
 
+output "servicebus_fully_qualified_namespace" {
+  value = "${azurerm_servicebus_namespace.main.name}.servicebus.windows.net"
+}
+
+output "ingestion_app_service_name" {
+  value = azurerm_linux_web_app.ingestion.name
+}
+
+output "ingestion_app_service_default_hostname" {
+  value = azurerm_linux_web_app.ingestion.default_hostname
+}
+
 output "application_insights_connection_string" {
   value     = azurerm_application_insights.main.connection_string
   sensitive = true

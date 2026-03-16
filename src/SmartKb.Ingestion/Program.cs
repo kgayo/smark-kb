@@ -15,15 +15,18 @@ builder.Services.AddHealthChecks();
 
 builder.Services.Configure<KeyVaultSettings>(builder.Configuration.GetSection(KeyVaultSettings.SectionName));
 
-// Service Bus configuration.
+// Service Bus configuration — prefer Managed Identity via FullyQualifiedNamespace; fall back to connection string.
 var serviceBusSettings = new ServiceBusSettings();
 builder.Configuration.GetSection(ServiceBusSettings.SectionName).Bind(serviceBusSettings);
 builder.Services.AddSingleton(serviceBusSettings);
 
-var sbConnectionString = serviceBusSettings.ConnectionString;
-if (!string.IsNullOrEmpty(sbConnectionString))
+if (serviceBusSettings.IsConfigured)
 {
-    builder.Services.AddSingleton(new ServiceBusClient(sbConnectionString));
+    var sbClient = serviceBusSettings.UsesManagedIdentity
+        ? new ServiceBusClient(serviceBusSettings.FullyQualifiedNamespace, new DefaultAzureCredential())
+        : new ServiceBusClient(serviceBusSettings.ConnectionString);
+
+    builder.Services.AddSingleton(sbClient);
 }
 
 // Database.

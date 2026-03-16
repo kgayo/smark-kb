@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-16 (Asia/Manila) — iteration 17 (BUG-002 fixed; TECH-006 complete)
-Status: Active backlog (P0-001 through P0-007 complete; 1 bug, 5 tech-debt items; remaining items re-prioritized)
+Last updated: 2026-03-16 (Asia/Manila) — iteration 19 (TECH-002 complete)
+Status: Active backlog (P0-001 through P0-007 complete; 1 bug, 3 tech-debt items; remaining items re-prioritized)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -76,14 +76,13 @@ Status: Active backlog (P0-001 through P0-007 complete; 1 bug, 5 tech-debt items
   - Fix: Either integrate into ConnectorEntity (add RotatedAt tracking) or remove the orphaned type.
   - Priority: LOW — no runtime impact but misleading contract.
 
-- [ ] TECH-001: Add Ingestion Worker App Service to Terraform and ARM templates.
+- [x] TECH-001: Add Ingestion Worker App Service to Terraform and ARM templates.
   - Root cause: Only the API web app (`app-smartkb-api-{env}`) is provisioned in IaC. The Ingestion Worker needs its own App Service (or Container App) resource for production deployment.
-  - Priority: MEDIUM — blocks production deployment of ingestion pipeline.
+  - Completed: Added `app-smartkb-ingestion-{env}` Linux Web App to both Terraform (`app-service.tf`) and ARM (`main.json`). Shares same App Service Plan as API. SystemAssigned managed identity with Key Vault Secrets User role and Azure Service Bus Data Receiver role. App settings: Application Insights + Key Vault URI. Connection string: SmartKbDb with Active Directory Default auth. ARM template validated (19 resources). All 233 tests passing.
 
-- [ ] TECH-002: Service Bus should use Managed Identity instead of connection string.
+- [x] TECH-002: Service Bus should use Managed Identity instead of connection string.
   - Root cause: `ServiceBusSyncJobPublisher` and `IngestionWorker` both use `ServiceBusClient(connectionString)`. Per jtbd-10 R6 and AGENTS.md, Managed Identity should be preferred.
-  - Fix: Switch to `DefaultAzureCredential` with `fullyQualifiedNamespace` parameter.
-  - Priority: MEDIUM — security improvement.
+  - Completed: Added `FullyQualifiedNamespace` to `ServiceBusSettings` (preferred over `ConnectionString`). Both API and Ingestion `Program.cs` now create `ServiceBusClient` with `DefaultAzureCredential` when namespace is set. Added `ServiceBus__FullyQualifiedNamespace` app setting to both App Services in Terraform and ARM. Added `Azure Service Bus Data Sender` role for API app (was missing). Added `IsConfigured`/`UsesManagedIdentity` helpers. 4 new tests; all 236 tests passing. ARM template validated (20 resources, 13 outputs).
 
 - [ ] TECH-003: Duplicate `KeyVaultSecretProvider` in API and Ingestion projects.
   - Root cause: `src/SmartKb.Api/Secrets/KeyVaultSecretProvider.cs` and `src/SmartKb.Ingestion/Secrets/KeyVaultSecretProvider.cs` are identical copies.
@@ -336,8 +335,8 @@ Status: Active backlog (P0-001 through P0-007 complete; 1 bug, 5 tech-debt items
 - [ ] R-011: Phase 1 escalation drafts — copy/export only. Must communicate in UX.
 - [ ] R-012: ACL metadata models differ per source. Each connector must document its ACL mapping.
 - [ ] R-013: Session context may exceed token limits in long conversations.
-- [ ] R-014: No Ingestion Worker resource in IaC — blocks production deployment (TECH-001).
-- [ ] R-015: Service Bus uses connection string not Managed Identity (TECH-002).
+- [x] R-014: ~~No Ingestion Worker resource in IaC~~ — resolved (TECH-001 complete).
+- [x] R-015: ~~Service Bus uses connection string not Managed Identity~~ — resolved (TECH-002 complete).
 - [ ] R-016: Feedback reason codes not enumerated in any spec — must define before P0-018.
 - [ ] R-017: jtbd-06 has no numeric SLO thresholds — eval harness (P0-021) cannot gate without agreed values.
 - [ ] R-018: Entra ID config optional with silent fallback — misconfiguration risk in production.
@@ -390,7 +389,7 @@ Items where specs are ambiguous, inconsistent, or missing detail. Patch before o
 - [ ] SPEC-014: jtbd-10 — Specify PII detection tooling and category list.
 - [ ] SPEC-015: jtbd-10 — Define default retention window values and entity-to-window mapping.
 - [ ] SPEC-016: jtbd-10 — Define cross-tenant access detection beyond missing-tid.
-- [ ] SPEC-017: jtbd-11 — Add Ingestion Worker to IaC resource inventory.
+- [x] SPEC-017: jtbd-11 — Add Ingestion Worker to IaC resource inventory. Resolved: TECH-001 complete.
 
 ## Plan Maintenance Checklist (run each iteration)
 - [ ] Mark completed items with evidence (PR/test IDs).

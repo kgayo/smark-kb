@@ -38,7 +38,7 @@ public sealed class IngestionWorker : BackgroundService
         {
             _logger.LogWarning(
                 "Service Bus not configured. Ingestion worker running in idle mode. " +
-                "Configure ServiceBus:ConnectionString to enable queue processing.");
+                "Configure ServiceBus:FullyQualifiedNamespace (preferred) or ServiceBus:ConnectionString to enable queue processing.");
 
             // Idle loop for environments without Service Bus.
             while (!stoppingToken.IsCancellationRequested)

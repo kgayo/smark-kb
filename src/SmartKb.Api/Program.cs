@@ -1,4 +1,5 @@
 using System.Reflection;
+using Azure.Identity;
 using Azure.Messaging.ServiceBus;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Identity.Web;
@@ -37,15 +38,18 @@ builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHand
 builder.Services.AddScoped<ITenantContextAccessor, TenantContextAccessor>();
 builder.Services.AddSecretArchitecture(builder.Configuration);
 
-// Service Bus registration.
+// Service Bus registration — prefer Managed Identity via FullyQualifiedNamespace; fall back to connection string.
 var serviceBusSettings = new ServiceBusSettings();
 builder.Configuration.GetSection(ServiceBusSettings.SectionName).Bind(serviceBusSettings);
 builder.Services.AddSingleton(serviceBusSettings);
 
-var sbConnectionString = serviceBusSettings.ConnectionString;
-if (!string.IsNullOrEmpty(sbConnectionString))
+if (serviceBusSettings.IsConfigured)
 {
-    builder.Services.AddSingleton(new ServiceBusClient(sbConnectionString));
+    var sbClient = serviceBusSettings.UsesManagedIdentity
+        ? new ServiceBusClient(serviceBusSettings.FullyQualifiedNamespace, new DefaultAzureCredential())
+        : new ServiceBusClient(serviceBusSettings.ConnectionString);
+
+    builder.Services.AddSingleton(sbClient);
     builder.Services.AddSingleton<ISyncJobPublisher, ServiceBusSyncJobPublisher>();
     builder.Services.AddSingleton<DeadLetterService>();
 }
