@@ -1,7 +1,7 @@
 using Azure.Security.KeyVault.Secrets;
-using SmartKb.Contracts.Services;
+using Microsoft.Extensions.Logging;
 
-namespace SmartKb.Api.Secrets;
+namespace SmartKb.Contracts.Services;
 
 public sealed class KeyVaultSecretProvider : ISecretProvider
 {

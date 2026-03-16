@@ -204,8 +204,8 @@ app.MapPost("/api/admin/connectors/{connectorId:guid}/disable", async (
     ConnectorAdminService service) =>
 {
     var tenant = tenantAccessor.Current!;
-    var (found, response) = await service.SetStatusAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, ConnectorStatus.Disabled);
+    var (found, response) = await service.DisableAsync(
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId);
 
     if (!found)
         return Results.NotFound(ApiResponse<object>.Failure("Connector not found.", tenant.CorrelationId));

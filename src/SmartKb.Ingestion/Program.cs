@@ -6,8 +6,6 @@ using SmartKb.Contracts.Services;
 using SmartKb.Ingestion;
 using SmartKb.Ingestion.Processing;
 using SmartKb.Data;
-using SmartKb.Ingestion.Secrets;
-
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.Services.AddHostedService<IngestionWorker>();

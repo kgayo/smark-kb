@@ -160,28 +160,19 @@ public sealed class ConnectorAdminService
         return true;
     }
 
-    public async Task<(bool Found, ConnectorResponse? Response)> SetStatusAsync(
+    public async Task<(bool Found, ConnectorResponse? Response)> DisableAsync(
         string tenantId, string actorId, string correlationId,
-        Guid connectorId, ConnectorStatus newStatus, CancellationToken ct = default)
+        Guid connectorId, CancellationToken ct = default)
     {
         var entity = await FindConnectorAsync(tenantId, connectorId, ct);
         if (entity is null) return (false, null);
 
-        // Validate before enabling: field mapping must cover required fields.
-        if (newStatus == ConnectorStatus.Enabled)
-        {
-            var validation = ValidateFieldMappingForActivation(entity.FieldMapping);
-            if (!validation.IsValid)
-                return (true, null); // Found but validation failed — caller checks validation separately.
-        }
-
-        entity.Status = newStatus;
+        entity.Status = ConnectorStatus.Disabled;
         entity.UpdatedAt = DateTimeOffset.UtcNow;
         await _db.SaveChangesAsync(ct);
 
-        var verb = newStatus == ConnectorStatus.Enabled ? "enabled" : "disabled";
-        await WriteAuditAsync(tenantId, actorId, correlationId, $"connector.{verb}",
-            $"Connector '{entity.Name}' (id={entity.Id}) {verb}.");
+        await WriteAuditAsync(tenantId, actorId, correlationId, "connector.disabled",
+            $"Connector '{entity.Name}' (id={entity.Id}) disabled.");
 
         return (true, ToResponse(entity));
     }

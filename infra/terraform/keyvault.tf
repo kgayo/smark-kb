@@ -17,3 +17,9 @@ resource "azurerm_role_assignment" "api_keyvault_secrets" {
   role_definition_name = "Key Vault Secrets User"
   principal_id         = azurerm_linux_web_app.api.identity[0].principal_id
 }
+
+resource "azurerm_role_assignment" "ingestion_keyvault_secrets" {
+  scope                = azurerm_key_vault.main.id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = azurerm_linux_web_app.ingestion.identity[0].principal_id
+}

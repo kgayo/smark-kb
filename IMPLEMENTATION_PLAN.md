@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-16 (Asia/Manila) — iteration 19 (TECH-002 complete)
-Status: Active backlog (P0-001 through P0-007 complete; 1 bug, 3 tech-debt items; remaining items re-prioritized)
+Last updated: 2026-03-16 (Asia/Manila) — iteration 20 (BUG-003, TECH-003, TECH-005, TECH-007 complete)
+Status: Active backlog (P0-001 through P0-007 complete; 0 bugs blocking, 0 tech-debt blocking; next up P0-008)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -71,10 +71,9 @@ Status: Active backlog (P0-001 through P0-007 complete; 1 bug, 3 tech-debt items
   - Root cause: `infra/terraform/sql.tf` has `azuread_administrator {}` block wiring the App Service managed identity as SQL admin. `infra/arm/main.json` had no corresponding `Microsoft.Sql/servers/administrators` resource.
   - Completed: Added `Microsoft.Sql/servers/administrators/ActiveDirectory` resource to ARM template matching Terraform behavior (login=smartkb-admin, sid=App Service managed identity principal, tenantId=entraTenantId). JSON validated.
 
-- [ ] BUG-003: `ConnectorSecretReference` model is orphaned.
+- [x] BUG-003: `ConnectorSecretReference` model is orphaned.
   - Root cause: Model defined in `SmartKb.Contracts/Models/ConnectorSecretReference.cs` with fields for ConnectorId, TenantId, AuthType, KeyVaultSecretName, CreatedAt, RotatedAt. But no SQL entity, migration column, repository, or API surface references it.
-  - Fix: Either integrate into ConnectorEntity (add RotatedAt tracking) or remove the orphaned type.
-  - Priority: LOW — no runtime impact but misleading contract.
+  - Completed: Removed orphaned `ConnectorSecretReference` record and 3 associated tests. Can be re-added if secret rotation tracking is needed for P0-008/P0-009 connectors. All 233 tests passing.
 
 - [x] TECH-001: Add Ingestion Worker App Service to Terraform and ARM templates.
   - Root cause: Only the API web app (`app-smartkb-api-{env}`) is provisioned in IaC. The Ingestion Worker needs its own App Service (or Container App) resource for production deployment.
@@ -84,27 +83,22 @@ Status: Active backlog (P0-001 through P0-007 complete; 1 bug, 3 tech-debt items
   - Root cause: `ServiceBusSyncJobPublisher` and `IngestionWorker` both use `ServiceBusClient(connectionString)`. Per jtbd-10 R6 and AGENTS.md, Managed Identity should be preferred.
   - Completed: Added `FullyQualifiedNamespace` to `ServiceBusSettings` (preferred over `ConnectionString`). Both API and Ingestion `Program.cs` now create `ServiceBusClient` with `DefaultAzureCredential` when namespace is set. Added `ServiceBus__FullyQualifiedNamespace` app setting to both App Services in Terraform and ARM. Added `Azure Service Bus Data Sender` role for API app (was missing). Added `IsConfigured`/`UsesManagedIdentity` helpers. 4 new tests; all 236 tests passing. ARM template validated (20 resources, 13 outputs).
 
-- [ ] TECH-003: Duplicate `KeyVaultSecretProvider` in API and Ingestion projects.
+- [x] TECH-003: Duplicate `KeyVaultSecretProvider` in API and Ingestion projects.
   - Root cause: `src/SmartKb.Api/Secrets/KeyVaultSecretProvider.cs` and `src/SmartKb.Ingestion/Secrets/KeyVaultSecretProvider.cs` are identical copies.
-  - Fix: Move to a shared project (SmartKb.Contracts or a new SmartKb.Infrastructure).
-  - Priority: LOW — DRY improvement.
+  - Completed: Moved single implementation to `SmartKb.Contracts/Services/KeyVaultSecretProvider.cs`. Added `Azure.Security.KeyVault.Secrets` and `Microsoft.Extensions.Logging.Abstractions` to Contracts csproj. Deleted both duplicate files. All 233 tests passing.
 
 - [x] ~~TECH-004~~: Soft-deleted connectors block name reuse — **CLOSED (not a bug)**.
   - Resolution: EF Core global query filter `HasQueryFilter(c => c.DeletedAt == null)` on `ConnectorEntity` applies automatically to all queries on `_db.Connectors`, including the duplicate name checks in `CreateAsync` (line 80) and `UpdateAsync` (line 124). Soft-deleted connectors are already excluded. Verified 2026-03-16.
 
-- [ ] TECH-005: `SetStatusAsync` vs `EnableAsync` inconsistency in ConnectorAdminService.
-  - Root cause: `SetStatusAsync` has a silent validation failure path (returns `(true, null)` when validation fails), while `EnableAsync` returns the validation result explicitly. Two overlapping methods with inconsistent error handling.
-  - Note: `SetStatusAsync` is dead code — not called from any route in `Program.cs`. All routes use `EnableAsync` or `DisableAsync` directly. Latent bug only.
-  - Fix: Remove `SetStatusAsync` (dead code cleanup).
-  - Priority: LOW — internal code quality, no runtime impact.
+- [x] TECH-005: `SetStatusAsync` vs `EnableAsync` inconsistency in ConnectorAdminService.
+  - Root cause: `SetStatusAsync` had a silent validation failure path (returns `(true, null)` when validation fails), while `EnableAsync` returns the validation result explicitly. The `/disable` route used `SetStatusAsync`.
+  - Completed: Replaced `SetStatusAsync` with dedicated `DisableAsync` method. Updated `/disable` route to call `DisableAsync` directly. `DisableAsync` has clean return type `(Found, Response)` with no unnecessary validation path. All 233 tests passing.
 
 - [x] TECH-006: No CI pipeline for .NET build/test or frontend build.
   - Completed: Added `.github/workflows/ci.yml` with two jobs — `dotnet` (restore/build/test in Release) and `frontend` (npm ci/lint/build). Triggers on PRs to main and pushes to main.
 
-- [ ] TECH-007: Stale `src/src.sln` file in repo root.
-  - Root cause: An untracked `src/src.sln` file exists alongside the main solution file. May confuse IDE auto-discovery or build tooling.
-  - Fix: Verify which `.sln` is canonical; remove the stale one and add to `.gitignore` if generated.
-  - Priority: LOW — housekeeping.
+- [x] ~~TECH-007~~: Stale `src/src.sln` file in repo root — **CLOSED (not found)**.
+  - Resolution: No `src/src.sln` file exists in the repository. Only `SmartKb.sln` at the root. Verified 2026-03-16.
 
 ### P0 Ingestion + Evidence Store MVP (continued)
 
