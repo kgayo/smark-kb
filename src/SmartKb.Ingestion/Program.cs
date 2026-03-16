@@ -1,6 +1,7 @@
 using Azure.Identity;
 using Azure.Messaging.ServiceBus;
 using Azure.Security.KeyVault.Secrets;
+using SmartKb.Contracts.Connectors;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Services;
 using SmartKb.Ingestion;
@@ -33,6 +34,10 @@ if (!string.IsNullOrEmpty(connectionString))
 {
     builder.Services.AddSmartKbData(connectionString);
 }
+
+// Connector clients — register all IConnectorClient implementations.
+builder.Services.AddHttpClient("AzureDevOps");
+builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.AzureDevOpsConnectorClient>();
 
 // Sync job processor (scoped — uses DbContext).
 builder.Services.AddScoped<SyncJobProcessor>();

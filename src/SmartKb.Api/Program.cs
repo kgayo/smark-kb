@@ -58,6 +58,10 @@ else
     builder.Services.AddSingleton<ISyncJobPublisher, InMemorySyncJobPublisher>();
 }
 
+// Connector clients — register all IConnectorClient implementations.
+builder.Services.AddHttpClient("AzureDevOps");
+builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.AzureDevOpsConnectorClient>();
+
 var connectionString = builder.Configuration.GetConnectionString("SmartKbDb");
 if (!string.IsNullOrEmpty(connectionString))
 {

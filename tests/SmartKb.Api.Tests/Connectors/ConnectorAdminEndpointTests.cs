@@ -307,9 +307,8 @@ public sealed class ConnectorAdminEndpointTests : IClassFixture<ConnectorTestFac
 
         var body = await Deserialize<ApiResponse<TestConnectionResponse>>(response);
         Assert.NotNull(body!.Data);
-        // No connector client registered, so it should fail with a diagnostic message.
+        // ADO connector is registered but test connector has no source config, so test should fail.
         Assert.False(body.Data.Success);
-        Assert.Contains("No connector client registered", body.Data.Message);
     }
 
     [Fact]
@@ -391,8 +390,8 @@ public sealed class ConnectorAdminEndpointTests : IClassFixture<ConnectorTestFac
 
         var body = await Deserialize<ApiResponse<PreviewResponse>>(response);
         Assert.NotNull(body!.Data);
-        // No connector client, so should have validation errors.
-        Assert.NotEmpty(body.Data.ValidationErrors);
+        // ADO connector is registered but returns empty records (no source config/secret).
+        Assert.Empty(body.Data.Records);
     }
 
     // --- Validate Mapping ---

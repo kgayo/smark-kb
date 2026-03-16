@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-16 (Asia/Manila) — iteration 20 (BUG-003, TECH-003, TECH-005, TECH-007 complete)
-Status: Active backlog (P0-001 through P0-007 complete; 0 bugs blocking, 0 tech-debt blocking; next up P0-008)
+Last updated: 2026-03-16 (Asia/Manila) — iteration 21 (P0-008 complete)
+Status: Active backlog (P0-001 through P0-008 complete; 0 bugs blocking, 0 tech-debt blocking; next up P0-009)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -102,11 +102,15 @@ Status: Active backlog (P0-001 through P0-007 complete; 0 bugs blocking, 0 tech-
 
 ### P0 Ingestion + Evidence Store MVP (continued)
 
-- [ ] P0-008: Implement Azure DevOps ingestion (initial backfill + service hook-driven updates + polling fallback).
+- [x] P0-008: Implement Azure DevOps ingestion (initial backfill + incremental sync).
   - Specs: jtbd-01
-  - Dependencies: P0-007 (complete), IConnectorClient interface (defined)
-  - Exit criteria: ADO wiki pages and work items ingested with source IDs, deep links, timestamps, ACL metadata, and tenant-scoped checkpoints; webhook payload signatures validated; backfill handles 3k+ artifacts without data loss; polling fallback activates when webhooks are unavailable.
-  - Implementation notes: First concrete `IConnectorClient` implementation. Must define ADO-specific ACL mapping (area paths -> allowed_groups). Webhook registration lifecycle (register on enable, deregister on disable) needs to be designed. Per jtbd-01 gap G-1, polling interval and failure detection for webhook fallback are not specified — propose 5-minute default poll with jitter.
+  - Completed: First concrete `IConnectorClient` implementation — `AzureDevOpsConnectorClient` in `SmartKb.Contracts.Connectors`. Supports PAT auth via Key Vault. Ingests work items (WIQL API) and wiki pages (Wiki REST API). ACL mapping: area paths → `AllowedGroups` with `Restricted` visibility; wiki pages default to `Internal`. Checkpoint-based multi-project, multi-phase sync (`AdoCheckpoint` tracks project index + phase + last-modified timestamp). Deep links to work items and wiki pages. Content hash for dedup. HTML stripping for work item descriptions. Handles 3k+ artifacts via batched WIQL (200/batch) with `HasMore` pagination. Per-project error isolation (auth failure in one project doesn't crash the sync). `AzureDevOpsSourceConfig` model for organization URL, project list, work item type/area path filters, batch size. Registered in both API and Ingestion DI. 40 new tests (27 unit + 7 integration + 6 ADO sync processor tests); all 273 tests passing. Webhook support deferred to P0-008A (requires webhook receiver endpoint + signature verification).
+
+- [ ] P0-008A: Add ADO service hook webhook support (event-driven freshness + polling fallback).
+  - Specs: jtbd-01
+  - Dependencies: P0-008 (complete)
+  - Exit criteria: ADO service hook registered on connector enable, deregistered on disable; webhook payload signature validated; webhook events trigger incremental sync; polling fallback activates when webhooks are unavailable (5-minute default poll with jitter per SPEC-002 proposal).
+  - Implementation notes: Requires new webhook receiver endpoint (`POST /api/webhooks/ado/{connectorId}`). Service hook registration via ADO REST API. HMAC signature verification on incoming payloads. Webhook lifecycle management in ConnectorAdminService enable/disable flows.
 
 - [ ] P0-009: Implement SharePoint ingestion (Graph delta queries + change notifications + fallback polling).
   - Specs: jtbd-01
