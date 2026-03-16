@@ -34,4 +34,5 @@ public sealed record CanonicalRecord
     public string? ThreadId { get; init; }
     public IReadOnlyList<string>? PiiFlags { get; init; }
     public string? SensitivityLabel { get; init; }
+    public IReadOnlyList<string> ErrorTokens { get; init; } = [];
 }

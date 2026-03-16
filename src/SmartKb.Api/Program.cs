@@ -64,6 +64,14 @@ var webhookSettings = new WebhookSettings();
 builder.Configuration.GetSection(WebhookSettings.SectionName).Bind(webhookSettings);
 builder.Services.AddSingleton(webhookSettings);
 
+// Normalization pipeline (chunking + enrichment).
+var chunkingSettings = new SmartKb.Contracts.Configuration.ChunkingSettings();
+builder.Configuration.GetSection(SmartKb.Contracts.Configuration.ChunkingSettings.SectionName).Bind(chunkingSettings);
+builder.Services.AddSingleton(chunkingSettings);
+builder.Services.AddSingleton<IChunkingService, SmartKb.Contracts.Services.TextChunkingService>();
+builder.Services.AddSingleton<IEnrichmentService, SmartKb.Contracts.Services.BaselineEnrichmentService>();
+builder.Services.AddSingleton<INormalizationPipeline, SmartKb.Contracts.Services.NormalizationPipeline>();
+
 // Connector clients — register all IConnectorClient implementations.
 builder.Services.AddHttpClient("AzureDevOps");
 builder.Services.AddHttpClient("SharePoint");

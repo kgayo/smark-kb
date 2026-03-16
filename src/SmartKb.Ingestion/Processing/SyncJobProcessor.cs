@@ -4,12 +4,13 @@ using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
 using SmartKb.Data;
+using SmartKb.Data.Entities;
 
 namespace SmartKb.Ingestion.Processing;
 
 /// <summary>
 /// Processes a sync job: transitions SyncRun status, fetches records via the connector client,
-/// persists checkpoint state, and surfaces field mapping failures.
+/// runs normalization (chunking + enrichment), persists chunks, and surfaces field mapping failures.
 /// </summary>
 public sealed class SyncJobProcessor
 {
@@ -22,18 +23,21 @@ public sealed class SyncJobProcessor
     private readonly IEnumerable<IConnectorClient> _connectorClients;
     private readonly ISecretProvider? _secretProvider;
     private readonly IAuditEventWriter _auditWriter;
+    private readonly INormalizationPipeline _pipeline;
     private readonly ILogger<SyncJobProcessor> _logger;
 
     public SyncJobProcessor(
         SmartKbDbContext db,
         IEnumerable<IConnectorClient> connectorClients,
         IAuditEventWriter auditWriter,
+        INormalizationPipeline pipeline,
         ILogger<SyncJobProcessor> logger,
         ISecretProvider? secretProvider = null)
     {
         _db = db;
         _connectorClients = connectorClients;
         _auditWriter = auditWriter;
+        _pipeline = pipeline;
         _logger = logger;
         _secretProvider = secretProvider;
     }
@@ -92,6 +96,7 @@ public sealed class SyncJobProcessor
         var checkpoint = message.Checkpoint;
         var totalProcessed = 0;
         var totalFailed = 0;
+        var totalChunks = 0;
         var allErrors = new List<string>();
 
         try
@@ -122,6 +127,14 @@ public sealed class SyncJobProcessor
                     }
                 }
 
+                // Normalize: chunk + enrich records, then persist chunks.
+                if (fetchResult.Records.Count > 0)
+                {
+                    var chunks = _pipeline.ProcessBatch(fetchResult.Records);
+                    await PersistChunksAsync(chunks, message.ConnectorId, cancellationToken);
+                    totalChunks += chunks.Count;
+                }
+
                 // Update checkpoint after each batch.
                 if (fetchResult.NewCheckpoint is not null)
                 {
@@ -147,11 +160,11 @@ public sealed class SyncJobProcessor
             await _db.SaveChangesAsync(cancellationToken);
 
             await WriteAuditAsync(message, "sync.completed",
-                $"Sync run {message.SyncRunId} completed: {totalProcessed} processed, {totalFailed} failed.");
+                $"Sync run {message.SyncRunId} completed: {totalProcessed} processed, {totalFailed} failed, {totalChunks} chunks produced.");
 
             _logger.LogInformation(
-                "Sync run {SyncRunId} completed: {Processed} processed, {Failed} failed",
-                message.SyncRunId, totalProcessed, totalFailed);
+                "Sync run {SyncRunId} completed: {Processed} processed, {Failed} failed, {Chunks} chunks",
+                message.SyncRunId, totalProcessed, totalFailed, totalChunks);
 
             return true;
         }
@@ -197,6 +210,69 @@ public sealed class SyncJobProcessor
             CorrelationId: message.CorrelationId,
             Timestamp: DateTimeOffset.UtcNow,
             Detail: detail));
+    }
+
+    private async Task PersistChunksAsync(
+        IReadOnlyList<EvidenceChunk> chunks,
+        Guid connectorId,
+        CancellationToken ct)
+    {
+        if (chunks.Count == 0) return;
+
+        var now = DateTimeOffset.UtcNow;
+        foreach (var chunk in chunks)
+        {
+            // Upsert: if chunk already exists with same content hash, skip. Otherwise replace.
+            var existing = await _db.EvidenceChunks
+                .AsNoTracking()
+                .FirstOrDefaultAsync(e => e.ChunkId == chunk.ChunkId, ct);
+
+            var entity = new EvidenceChunkEntity
+            {
+                ChunkId = chunk.ChunkId,
+                EvidenceId = chunk.EvidenceId,
+                TenantId = chunk.TenantId,
+                ConnectorId = connectorId,
+                ChunkIndex = chunk.ChunkIndex,
+                ChunkText = chunk.ChunkText,
+                ChunkContext = chunk.ChunkContext,
+                SourceSystem = chunk.SourceSystem.ToString(),
+                SourceType = chunk.SourceType.ToString(),
+                Status = chunk.Status.ToString(),
+                UpdatedAt = chunk.UpdatedAt,
+                ProductArea = chunk.ProductArea,
+                Tags = chunk.Tags.Count > 0 ? JsonSerializer.Serialize(chunk.Tags, JsonOptions) : null,
+                Visibility = chunk.Visibility.ToString(),
+                AllowedGroups = chunk.AllowedGroups.Count > 0 ? JsonSerializer.Serialize(chunk.AllowedGroups, JsonOptions) : null,
+                AccessLabel = chunk.AccessLabel,
+                Title = chunk.Title,
+                SourceUrl = chunk.SourceUrl,
+                ErrorTokens = chunk.ErrorTokens.Count > 0 ? JsonSerializer.Serialize(chunk.ErrorTokens, JsonOptions) : null,
+                EnrichmentVersion = chunk.EnrichmentVersion,
+                ContentHash = ComputeChunkHash(chunk),
+                CreatedAt = existing?.CreatedAt ?? now,
+                ReprocessedAt = existing is not null ? now : null,
+            };
+
+            if (existing is not null)
+            {
+                _db.EvidenceChunks.Update(entity);
+            }
+            else
+            {
+                _db.EvidenceChunks.Add(entity);
+            }
+        }
+
+        await _db.SaveChangesAsync(ct);
+        _logger.LogDebug("Persisted {Count} evidence chunks for connector {ConnectorId}.", chunks.Count, connectorId);
+    }
+
+    private static string ComputeChunkHash(EvidenceChunk chunk)
+    {
+        var input = $"{chunk.ChunkId}|{chunk.ChunkText}|{chunk.EnrichmentVersion}";
+        var bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(input));
+        return Convert.ToHexString(bytes).ToLowerInvariant();
     }
 
     private static FieldMappingConfig? DeserializeFieldMapping(string? json)

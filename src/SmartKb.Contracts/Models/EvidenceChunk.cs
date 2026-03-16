@@ -47,4 +47,10 @@ public sealed record EvidenceChunk
     // Source linkage for citation display
     public required string Title { get; init; }
     public required string SourceUrl { get; init; }
+
+    /// <summary>Monotonic enrichment version for safe reprocessing.</summary>
+    public int EnrichmentVersion { get; init; } = 1;
+
+    /// <summary>Error tokens extracted during baseline enrichment.</summary>
+    public IReadOnlyList<string> ErrorTokens { get; init; } = [];
 }

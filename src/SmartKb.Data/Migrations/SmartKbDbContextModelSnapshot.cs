@@ -70,6 +70,118 @@ namespace SmartKb.Data.Migrations
                     b.ToTable("AuditEvents", (string)null);
                 });
 
+            modelBuilder.Entity("SmartKb.Data.Entities.EvidenceChunkEntity", b =>
+                {
+                    b.Property<string>("ChunkId")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<string>("AccessLabel")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("AllowedGroups")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ChunkIndex")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ChunkContext")
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
+                    b.Property<string>("ChunkText")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ConnectorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("EnrichmentVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
+                    b.Property<string>("ErrorTokens")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EvidenceId")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("ProductArea")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<DateTimeOffset?>("ReprocessedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("SourceSystem")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("SourceType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("SourceUrl")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("Tags")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.HasKey("ChunkId");
+
+                    b.HasIndex("ConnectorId");
+
+                    b.HasIndex("EvidenceId");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("EvidenceId", "ContentHash");
+
+                    b.HasIndex("TenantId", "EvidenceId");
+
+                    b.ToTable("EvidenceChunks", (string)null);
+                });
+
             modelBuilder.Entity("SmartKb.Data.Entities.ConnectorEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -524,6 +636,17 @@ namespace SmartKb.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("WebhookSubscriptions", (string)null);
+                });
+
+            modelBuilder.Entity("SmartKb.Data.Entities.EvidenceChunkEntity", b =>
+                {
+                    b.HasOne("SmartKb.Data.Entities.ConnectorEntity", "Connector")
+                        .WithMany()
+                        .HasForeignKey("ConnectorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Connector");
                 });
 
             modelBuilder.Entity("SmartKb.Data.Entities.ConnectorEntity", b =>

@@ -1,6 +1,7 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
@@ -16,6 +17,7 @@ public class SyncJobProcessorTests : IDisposable
     private readonly SmartKbDbContext _db;
     private readonly TestAuditWriter _auditWriter;
     private readonly ILogger<SyncJobProcessor> _logger;
+    private readonly INormalizationPipeline _pipeline;
 
     public SyncJobProcessorTests()
     {
@@ -31,6 +33,11 @@ public class SyncJobProcessorTests : IDisposable
 
         _auditWriter = new TestAuditWriter();
         _logger = new LoggerFactory().CreateLogger<SyncJobProcessor>();
+        _pipeline = new NormalizationPipeline(
+            new TextChunkingService(),
+            new BaselineEnrichmentService(),
+            new ChunkingSettings(),
+            new LoggerFactory().CreateLogger<NormalizationPipeline>());
 
         SeedTenant("tenant-1");
     }
@@ -131,7 +138,7 @@ public class SyncJobProcessorTests : IDisposable
         await _db.SaveChangesAsync();
 
         // No connector clients registered.
-        var processor = new SyncJobProcessor(_db, [], _auditWriter, _logger);
+        var processor = new SyncJobProcessor(_db, [], _auditWriter, _pipeline, _logger);
         var message = CreateMessage(syncRun, connector);
 
         var result = await processor.ProcessAsync(message, CancellationToken.None);
@@ -289,7 +296,7 @@ public class SyncJobProcessorTests : IDisposable
         });
 
         var secretProvider = new FakeSecretProvider(throwOnGet: new Exception("Vault down"));
-        var processor = new SyncJobProcessor(_db, [client], _auditWriter, _logger, secretProvider);
+        var processor = new SyncJobProcessor(_db, [client], _auditWriter, _pipeline, _logger, secretProvider);
         var message = CreateMessage(syncRun, connector);
         message = message with { KeyVaultSecretName = "my-secret" };
 
@@ -383,7 +390,7 @@ public class SyncJobProcessorTests : IDisposable
 
     private SyncJobProcessor CreateProcessor(params IConnectorClient[] clients)
     {
-        return new SyncJobProcessor(_db, clients, _auditWriter, _logger);
+        return new SyncJobProcessor(_db, clients, _auditWriter, _pipeline, _logger);
     }
 }
 

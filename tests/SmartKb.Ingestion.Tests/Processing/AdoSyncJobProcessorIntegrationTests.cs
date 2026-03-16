@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Connectors;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
@@ -29,6 +30,7 @@ public class AdoSyncJobProcessorIntegrationTests : IDisposable
     private readonly SmartKbDbContext _db;
     private readonly TestAuditWriter _auditWriter;
     private readonly ILogger<SyncJobProcessor> _processorLogger;
+    private readonly INormalizationPipeline _pipeline;
 
     public AdoSyncJobProcessorIntegrationTests()
     {
@@ -44,6 +46,11 @@ public class AdoSyncJobProcessorIntegrationTests : IDisposable
 
         _auditWriter = new TestAuditWriter();
         _processorLogger = new LoggerFactory().CreateLogger<SyncJobProcessor>();
+        _pipeline = new NormalizationPipeline(
+            new TextChunkingService(),
+            new BaselineEnrichmentService(),
+            new ChunkingSettings(),
+            new LoggerFactory().CreateLogger<NormalizationPipeline>());
 
         SeedTenant("tenant-ado");
     }
@@ -67,7 +74,7 @@ public class AdoSyncJobProcessorIntegrationTests : IDisposable
         var syncRun = CreateSyncRun(connector);
         await _db.SaveChangesAsync();
 
-        var processor = new SyncJobProcessor(_db, [adoClient], _auditWriter, _processorLogger, secretProvider);
+        var processor = new SyncJobProcessor(_db, [adoClient], _auditWriter, _pipeline, _processorLogger, secretProvider);
         var message = CreateMessage(syncRun, connector);
 
         // Act.
@@ -99,7 +106,7 @@ public class AdoSyncJobProcessorIntegrationTests : IDisposable
         var syncRun = CreateSyncRun(connector);
         await _db.SaveChangesAsync();
 
-        var processor = new SyncJobProcessor(_db, [adoClient], _auditWriter, _processorLogger, secretProvider);
+        var processor = new SyncJobProcessor(_db, [adoClient], _auditWriter, _pipeline, _processorLogger, secretProvider);
         var message = CreateMessage(syncRun, connector);
 
         // Act.
@@ -127,7 +134,7 @@ public class AdoSyncJobProcessorIntegrationTests : IDisposable
         var syncRun = CreateSyncRun(connector);
         await _db.SaveChangesAsync();
 
-        var processor = new SyncJobProcessor(_db, [adoClient], _auditWriter, _processorLogger, secretProvider);
+        var processor = new SyncJobProcessor(_db, [adoClient], _auditWriter, _pipeline, _processorLogger, secretProvider);
         var message = CreateMessage(syncRun, connector);
 
         // Act.
@@ -166,7 +173,7 @@ public class AdoSyncJobProcessorIntegrationTests : IDisposable
         var syncRun = CreateSyncRun(connector);
         await _db.SaveChangesAsync();
 
-        var processor = new SyncJobProcessor(_db, [adoClient], _auditWriter, _processorLogger, secretProvider);
+        var processor = new SyncJobProcessor(_db, [adoClient], _auditWriter, _pipeline, _processorLogger, secretProvider);
         var message = CreateMessage(syncRun, connector);
 
         // Act.
@@ -192,7 +199,7 @@ public class AdoSyncJobProcessorIntegrationTests : IDisposable
         var syncRun = CreateSyncRun(connector);
         await _db.SaveChangesAsync();
 
-        var processor = new SyncJobProcessor(_db, [adoClient], _auditWriter, _processorLogger, secretProvider);
+        var processor = new SyncJobProcessor(_db, [adoClient], _auditWriter, _pipeline, _processorLogger, secretProvider);
         var message = CreateMessage(syncRun, connector) with { KeyVaultSecretName = "ado-pat-secret" };
 
         // Act.
@@ -217,7 +224,7 @@ public class AdoSyncJobProcessorIntegrationTests : IDisposable
         syncRun.CompletedAt = DateTimeOffset.UtcNow;
         await _db.SaveChangesAsync();
 
-        var processor = new SyncJobProcessor(_db, [adoClient], _auditWriter, _processorLogger);
+        var processor = new SyncJobProcessor(_db, [adoClient], _auditWriter, _pipeline, _processorLogger);
         var message = CreateMessage(syncRun, connector);
 
         // Act: replaying the message.
@@ -240,7 +247,7 @@ public class AdoSyncJobProcessorIntegrationTests : IDisposable
         var syncRun = CreateSyncRun(connector);
         await _db.SaveChangesAsync();
 
-        var processor = new SyncJobProcessor(_db, [adoClient], _auditWriter, _processorLogger, secretProvider);
+        var processor = new SyncJobProcessor(_db, [adoClient], _auditWriter, _pipeline, _processorLogger, secretProvider);
         var message = CreateMessage(syncRun, connector);
 
         // Act.

@@ -18,6 +18,7 @@ public class SmartKbDbContext : DbContext
     public DbSet<AuditEventEntity> AuditEvents => Set<AuditEventEntity>();
     public DbSet<RetentionConfigEntity> RetentionConfigs => Set<RetentionConfigEntity>();
     public DbSet<WebhookSubscriptionEntity> WebhookSubscriptions => Set<WebhookSubscriptionEntity>();
+    public DbSet<EvidenceChunkEntity> EvidenceChunks => Set<EvidenceChunkEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -34,6 +35,7 @@ public class SmartKbDbContext : DbContext
         ConfigureAuditEvent(modelBuilder);
         ConfigureRetentionConfig(modelBuilder);
         ConfigureWebhookSubscription(modelBuilder);
+        ConfigureEvidenceChunk(modelBuilder);
     }
 
     private static void ConfigureTenant(ModelBuilder modelBuilder)
@@ -211,6 +213,35 @@ public class SmartKbDbContext : DbContext
             e.HasIndex(w => w.TenantId);
             e.HasIndex(w => new { w.ConnectorId, w.EventType }).IsUnique();
             e.HasOne(w => w.Connector).WithMany(c => c.WebhookSubscriptions).HasForeignKey(w => w.ConnectorId);
+        });
+    }
+
+    private static void ConfigureEvidenceChunk(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<EvidenceChunkEntity>(e =>
+        {
+            e.ToTable("EvidenceChunks");
+            e.HasKey(c => c.ChunkId);
+            e.Property(c => c.ChunkId).HasMaxLength(512);
+            e.Property(c => c.EvidenceId).HasMaxLength(256).IsRequired();
+            e.Property(c => c.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(c => c.ChunkText).IsRequired();
+            e.Property(c => c.ChunkContext).HasMaxLength(1024);
+            e.Property(c => c.SourceSystem).HasMaxLength(64).IsRequired();
+            e.Property(c => c.SourceType).HasMaxLength(64).IsRequired();
+            e.Property(c => c.Status).HasMaxLength(32).IsRequired();
+            e.Property(c => c.Visibility).HasMaxLength(32).IsRequired();
+            e.Property(c => c.AccessLabel).HasMaxLength(256).IsRequired();
+            e.Property(c => c.Title).HasMaxLength(512).IsRequired();
+            e.Property(c => c.SourceUrl).HasMaxLength(2048).IsRequired();
+            e.Property(c => c.ContentHash).HasMaxLength(128).IsRequired();
+            e.Property(c => c.ProductArea).HasMaxLength(256);
+            e.HasIndex(c => c.TenantId);
+            e.HasIndex(c => c.EvidenceId);
+            e.HasIndex(c => c.ConnectorId);
+            e.HasIndex(c => new { c.TenantId, c.EvidenceId });
+            e.HasIndex(c => new { c.EvidenceId, c.ContentHash });
+            e.HasOne(c => c.Connector).WithMany().HasForeignKey(c => c.ConnectorId);
         });
     }
 }

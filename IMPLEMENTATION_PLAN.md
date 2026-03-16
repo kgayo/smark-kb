@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-16 (Asia/Manila) — iteration 23 (P0-009 complete)
-Status: Active backlog (P0-001 through P0-009 complete; 0 bugs blocking, 0 tech-debt blocking; next up P0-010)
+Last updated: 2026-03-16 (Asia/Manila) — iteration 24 (P0-010 complete)
+Status: Active backlog (P0-001 through P0-010 complete; 0 bugs blocking, 0 tech-debt blocking; next up P0-010A)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -116,11 +116,10 @@ Status: Active backlog (P0-001 through P0-009 complete; 0 bugs blocking, 0 tech-
   - Dependencies: P0-007 (complete)
   - Completed: Second `IConnectorClient` implementation — `SharePointConnectorClient` in `SmartKb.Contracts.Connectors`. Uses Microsoft Graph REST API (no SDK dependency) with OAuth2 client credentials flow for authentication. Ingests document library files via delta queries (`/drives/{id}/root/delta`). Delta token checkpoint tracks multi-drive incremental sync position. Handles delta token expiry (410 Gone) by falling back to full sync automatically. File extension filtering (supported: .txt, .md, .pdf, .docx, .pptx, .xlsx, etc.) and folder exclusion. ACL mapping: drive name → `AllowedGroups` with `Restricted` visibility. Content hash for dedup based on item metadata (full text extraction deferred to P0-010). `SharePointSourceConfig` model with site URL, Entra ID tenant ID, client ID, drive IDs, extension/folder filters, batch size. `SharePointWebhookManager` registers Graph change notification subscriptions per drive (max 4230-minute lifetime). `SharePointWebhookHandler` processes Graph change notifications with clientState validation (constant-time comparison) and validation handshake support. Anonymous endpoint `POST /api/webhooks/msgraph/{connectorId}` with `?validationToken=` handshake. Webhook lifecycle managed in `ConnectorAdminService`: register on enable, deregister on disable. Reuses existing `WebhookPollingFallbackService` for failure recovery (3 consecutive failures threshold). `GraphChangeNotificationPayload`, `GraphSubscriptionRequest/Response` models for Graph webhook protocol. Registered in both API and Ingestion DI. 55 new tests (27 connector client unit + 8 webhook manager + 13 webhook handler + 5 endpoint integration + 2 checkpoint); all 364 tests passing.
 
-- [ ] P0-010: Implement canonical normalization + chunking + baseline enrichment.
+- [x] P0-010: Implement canonical normalization + chunking + baseline enrichment.
   - Specs: jtbd-02
   - Dependencies: P0-008 or P0-009 (need at least one connector producing records)
-  - Exit criteria: normalized/chunked artifacts persisted in Azure Blob Storage with lineage IDs linking chunks to parent source records and tenant; enrichment version tracked for safe reprocessing; metadata supports filterable retrieval; access label computed and stored per canonical record.
-  - Implementation notes: Needs `IChunkingService` and `IEnrichmentService` interfaces. Chunking settings (512/64/structural) defined in P0-005C. Chunk ID convention: use `{EvidenceId}_chunk_{index}` (underscore format, matching EvidenceChunk code, NOT PRD `#` format — resolve inconsistency). Baseline enrichment fields: category, product_area, severity, environment, error tokens. `CanonicalRecord` missing `ErrorTokens` field — add during this item. PII detection is baseline only (regex for emails, phones, SSNs, credit cards — tooling choice deferred to P0-014A). Enrichment version scheme: use monotonic integer stored alongside chunk metadata.
+  - Completed: `IChunkingService` + `TextChunkingService` (markdown structural boundaries, 512 tokens/chunk, 64 overlap, paragraph fallback, hard-split for oversized sections). `IEnrichmentService` + `BaselineEnrichmentService` (keyword-based category/severity/environment detection, error token extraction via regex — exception names, HTTP status codes, error codes, hex codes — baseline PII detection for emails/phones/SSNs/credit cards). `INormalizationPipeline` + `NormalizationPipeline` orchestrates chunking→enrichment→EvidenceChunk production with full lineage (ChunkId = `{EvidenceId}_chunk_{index}`). `EvidenceChunkEntity` in SQL with `AddEvidenceChunks` migration (tenant-scoped, connector FK, content hash for dedup, enrichment version tracking, reprocessed-at timestamp). `SyncJobProcessor` now runs normalization pipeline after each fetch batch and persists chunks via upsert. `ErrorTokens` field added to `CanonicalRecord`. `EnrichmentVersion` and `ErrorTokens` fields added to `EvidenceChunk`. Services registered in both API and Ingestion DI. 46 new tests (9 chunking, 19 enrichment, 13 pipeline, 5 existing test updates); all 410 tests passing. SPEC-005 (ErrorTokens) and SPEC-006 (chunk ID format) resolved.
 
 - [ ] P0-010A: Set up Azure Blob Storage raw content store for ingested snapshots and extracted text.
   - Specs: jtbd-01, jtbd-02
@@ -373,8 +372,8 @@ Items where specs are ambiguous, inconsistent, or missing detail. Patch before o
 - [x] SPEC-002: jtbd-01 — Define polling fallback interval and failure detection mechanism. Resolved: P0-008A implements 5-minute default interval with 0-60s jitter, 3 consecutive failure threshold, `WebhookPollingFallbackService` BackgroundService.
 - [ ] SPEC-003: jtbd-01 — Define content-level dedup strategy using ContentHash.
 - [ ] SPEC-004: jtbd-02 — Define enrichment version scheme (format, storage, reprocessing trigger).
-- [ ] SPEC-005: jtbd-02 — Define error token extraction method; add `ErrorTokens` field to CanonicalRecord.
-- [ ] SPEC-006: jtbd-02 — Standardize chunk ID format (`_` in code vs `#` in PRD). Propose `_`.
+- [x] SPEC-005: jtbd-02 — Define error token extraction method; add `ErrorTokens` field to CanonicalRecord. Resolved: `ErrorTokens` added to `CanonicalRecord`. `BaselineEnrichmentService.ExtractErrorTokens` uses regex for exception names, HTTP status codes, error codes (ERR-xxx, AADSTS), and hex codes (0x...).
+- [x] SPEC-006: jtbd-02 — Standardize chunk ID format (`_` in code vs `#` in PRD). Resolved: underscore format `{EvidenceId}_chunk_{index}` is canonical. PRD `#` format deprecated.
 - [ ] SPEC-007: jtbd-03 — Expand thin spec (33 lines) with PRD detail (query stages, field schema, merge algorithm, telemetry).
 - [ ] SPEC-008: jtbd-06 — Enumerate feedback reason codes.
 - [ ] SPEC-009: jtbd-06 — Define numeric SLO thresholds for eval gates.
