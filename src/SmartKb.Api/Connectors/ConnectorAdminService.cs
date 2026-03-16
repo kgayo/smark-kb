@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
@@ -28,20 +29,29 @@ public sealed class ConnectorAdminService
     private readonly IAuditEventWriter _auditWriter;
     private readonly ISecretProvider? _secretProvider;
     private readonly IEnumerable<IConnectorClient> _connectorClients;
+    private readonly IEnumerable<IWebhookManager> _webhookManagers;
     private readonly ISyncJobPublisher _syncJobPublisher;
+    private readonly WebhookSettings _webhookSettings;
+    private readonly ILogger<ConnectorAdminService> _logger;
 
     public ConnectorAdminService(
         SmartKbDbContext db,
         IAuditEventWriter auditWriter,
         IEnumerable<IConnectorClient> connectorClients,
+        IEnumerable<IWebhookManager> webhookManagers,
         ISyncJobPublisher syncJobPublisher,
+        WebhookSettings webhookSettings,
+        ILogger<ConnectorAdminService> logger,
         ISecretProvider? secretProvider = null)
     {
         _db = db;
         _auditWriter = auditWriter;
         _secretProvider = secretProvider;
         _connectorClients = connectorClients;
+        _webhookManagers = webhookManagers;
         _syncJobPublisher = syncJobPublisher;
+        _webhookSettings = webhookSettings;
+        _logger = logger;
     }
 
     public async Task<ConnectorListResponse> ListAsync(string tenantId, CancellationToken ct = default)
@@ -167,6 +177,9 @@ public sealed class ConnectorAdminService
         var entity = await FindConnectorAsync(tenantId, connectorId, ct);
         if (entity is null) return (false, null);
 
+        // Deregister webhooks on disable.
+        await DeregisterWebhooksAsync(entity, correlationId, ct);
+
         entity.Status = ConnectorStatus.Disabled;
         entity.UpdatedAt = DateTimeOffset.UtcNow;
         await _db.SaveChangesAsync(ct);
@@ -191,6 +204,9 @@ public sealed class ConnectorAdminService
         entity.Status = ConnectorStatus.Enabled;
         entity.UpdatedAt = DateTimeOffset.UtcNow;
         await _db.SaveChangesAsync(ct);
+
+        // Register webhooks on enable.
+        await RegisterWebhooksAsync(entity, correlationId, ct);
 
         await WriteAuditAsync(tenantId, actorId, correlationId, "connector.enabled",
             $"Connector '{entity.Name}' (id={entity.Id}) enabled.");
@@ -505,6 +521,151 @@ public sealed class ConnectorAdminService
         {
             return null;
         }
+    }
+
+    private async Task RegisterWebhooksAsync(ConnectorEntity entity, string correlationId, CancellationToken ct)
+    {
+        var webhookManager = _webhookManagers.FirstOrDefault(m => m.Type == entity.ConnectorType);
+        if (webhookManager is null || !_webhookSettings.IsConfigured)
+        {
+            _logger.LogInformation(
+                "Webhook registration skipped: no manager for {ConnectorType} or webhook base URL not configured (connector={ConnectorId})",
+                entity.ConnectorType, entity.Id);
+            return;
+        }
+
+        string? secretValue = null;
+        if (!string.IsNullOrEmpty(entity.KeyVaultSecretName) && _secretProvider is not null)
+        {
+            try
+            {
+                secretValue = await _secretProvider.GetSecretAsync(entity.KeyVaultSecretName, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to retrieve secret for webhook registration (connector={ConnectorId})", entity.Id);
+                return;
+            }
+        }
+
+        try
+        {
+            var registrations = await webhookManager.RegisterAsync(
+                new WebhookRegistrationContext(
+                    entity.Id, entity.TenantId, entity.SourceConfig,
+                    secretValue, _webhookSettings.BaseCallbackUrl!),
+                ct);
+
+            var now = DateTimeOffset.UtcNow;
+            foreach (var reg in registrations)
+            {
+                // Store webhook secret in Key Vault if a secret provider is available.
+                string? webhookSecretName = null;
+                if (!string.IsNullOrEmpty(reg.WebhookSecret) && _secretProvider is not null)
+                {
+                    webhookSecretName = $"webhook-{entity.Id}-{reg.EventType.Replace('.', '-')}";
+                    try
+                    {
+                        await _secretProvider.SetSecretAsync(webhookSecretName, reg.WebhookSecret, ct);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to store webhook secret in Key Vault (connector={ConnectorId})", entity.Id);
+                        webhookSecretName = null;
+                    }
+                }
+
+                var subscription = new WebhookSubscriptionEntity
+                {
+                    Id = Guid.NewGuid(),
+                    ConnectorId = entity.Id,
+                    TenantId = entity.TenantId,
+                    ExternalSubscriptionId = reg.ExternalSubscriptionId,
+                    EventType = reg.EventType,
+                    CallbackUrl = reg.CallbackUrl,
+                    WebhookSecretName = webhookSecretName,
+                    IsActive = true,
+                    PollingFallbackActive = false,
+                    ConsecutiveFailures = 0,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                };
+
+                _db.Set<WebhookSubscriptionEntity>().Add(subscription);
+            }
+
+            await _db.SaveChangesAsync(ct);
+
+            _logger.LogInformation(
+                "Registered {Count} webhook subscriptions for connector {ConnectorId}",
+                registrations.Count, entity.Id);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Webhook registration failed for connector {ConnectorId}; polling fallback will be used",
+                entity.Id);
+        }
+    }
+
+    private async Task DeregisterWebhooksAsync(ConnectorEntity entity, string correlationId, CancellationToken ct)
+    {
+        var subscriptions = await _db.Set<WebhookSubscriptionEntity>()
+            .Where(w => w.ConnectorId == entity.Id && w.IsActive)
+            .ToListAsync(ct);
+
+        if (subscriptions.Count == 0) return;
+
+        var webhookManager = _webhookManagers.FirstOrDefault(m => m.Type == entity.ConnectorType);
+        if (webhookManager is not null)
+        {
+            string? secretValue = null;
+            if (!string.IsNullOrEmpty(entity.KeyVaultSecretName) && _secretProvider is not null)
+            {
+                try
+                {
+                    secretValue = await _secretProvider.GetSecretAsync(entity.KeyVaultSecretName, ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to retrieve secret for webhook deregistration (connector={ConnectorId})", entity.Id);
+                }
+            }
+
+            var externalIds = subscriptions
+                .Where(s => !string.IsNullOrEmpty(s.ExternalSubscriptionId))
+                .Select(s => s.ExternalSubscriptionId!)
+                .ToList();
+
+            if (externalIds.Count > 0)
+            {
+                try
+                {
+                    await webhookManager.DeregisterAsync(
+                        new WebhookDeregistrationContext(
+                            entity.Id, entity.TenantId, entity.SourceConfig,
+                            secretValue, externalIds),
+                        ct);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogWarning(ex, "Failed to deregister webhooks from external system (connector={ConnectorId})", entity.Id);
+                }
+            }
+        }
+
+        // Mark all subscriptions as inactive.
+        var now = DateTimeOffset.UtcNow;
+        foreach (var sub in subscriptions)
+        {
+            sub.IsActive = false;
+            sub.UpdatedAt = now;
+        }
+
+        await _db.SaveChangesAsync(ct);
+
+        _logger.LogInformation(
+            "Deactivated {Count} webhook subscriptions for connector {ConnectorId}",
+            subscriptions.Count, entity.Id);
     }
 
     private async Task WriteAuditAsync(string tenantId, string actorId, string correlationId, string eventType, string detail)

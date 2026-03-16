@@ -17,6 +17,7 @@ public class SmartKbDbContext : DbContext
     public DbSet<OutcomeEventEntity> OutcomeEvents => Set<OutcomeEventEntity>();
     public DbSet<AuditEventEntity> AuditEvents => Set<AuditEventEntity>();
     public DbSet<RetentionConfigEntity> RetentionConfigs => Set<RetentionConfigEntity>();
+    public DbSet<WebhookSubscriptionEntity> WebhookSubscriptions => Set<WebhookSubscriptionEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -32,6 +33,7 @@ public class SmartKbDbContext : DbContext
         ConfigureOutcomeEvent(modelBuilder);
         ConfigureAuditEvent(modelBuilder);
         ConfigureRetentionConfig(modelBuilder);
+        ConfigureWebhookSubscription(modelBuilder);
     }
 
     private static void ConfigureTenant(ModelBuilder modelBuilder)
@@ -191,6 +193,24 @@ public class SmartKbDbContext : DbContext
             e.Property(r => r.EntityType).HasMaxLength(128).IsRequired();
             e.HasIndex(r => new { r.TenantId, r.EntityType }).IsUnique();
             e.HasOne(r => r.Tenant).WithMany(t => t.RetentionConfigs).HasForeignKey(r => r.TenantId);
+        });
+    }
+
+    private static void ConfigureWebhookSubscription(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<WebhookSubscriptionEntity>(e =>
+        {
+            e.ToTable("WebhookSubscriptions");
+            e.HasKey(w => w.Id);
+            e.Property(w => w.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(w => w.ExternalSubscriptionId).HasMaxLength(256);
+            e.Property(w => w.EventType).HasMaxLength(128).IsRequired();
+            e.Property(w => w.CallbackUrl).HasMaxLength(1024).IsRequired();
+            e.Property(w => w.WebhookSecretName).HasMaxLength(256);
+            e.HasIndex(w => w.ConnectorId);
+            e.HasIndex(w => w.TenantId);
+            e.HasIndex(w => new { w.ConnectorId, w.EventType }).IsUnique();
+            e.HasOne(w => w.Connector).WithMany(c => c.WebhookSubscriptions).HasForeignKey(w => w.ConnectorId);
         });
     }
 }

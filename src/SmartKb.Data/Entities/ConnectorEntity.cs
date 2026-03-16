@@ -20,4 +20,5 @@ public sealed class ConnectorEntity
 
     public TenantEntity Tenant { get; set; } = null!;
     public ICollection<SyncRunEntity> SyncRuns { get; set; } = [];
+    public ICollection<WebhookSubscriptionEntity> WebhookSubscriptions { get; set; } = [];
 }

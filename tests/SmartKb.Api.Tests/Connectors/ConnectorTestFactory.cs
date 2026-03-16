@@ -6,6 +6,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SmartKb.Api.Connectors;
 using SmartKb.Api.Tests.Auth;
+using SmartKb.Api.Webhooks;
+using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Services;
 using SmartKb.Data;
 using SmartKb.Data.Entities;
@@ -58,7 +60,9 @@ public sealed class ConnectorTestFactory : WebApplicationFactory<Program>, IAsyn
                 options.UseSqlite(_connection));
             services.AddScoped<IAuditEventWriter, SqlAuditEventWriter>();
             services.AddSingleton<ISyncJobPublisher, TestSyncJobPublisher>();
+            services.AddSingleton(new WebhookSettings());
             services.AddScoped<ConnectorAdminService>();
+            services.AddScoped<AdoWebhookHandler>();
         });
     }
 

@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-16 (Asia/Manila) — iteration 21 (P0-008 complete)
-Status: Active backlog (P0-001 through P0-008 complete; 0 bugs blocking, 0 tech-debt blocking; next up P0-009)
+Last updated: 2026-03-16 (Asia/Manila) — iteration 22 (P0-008A complete)
+Status: Active backlog (P0-001 through P0-008A complete; 0 bugs blocking, 0 tech-debt blocking; next up P0-009)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -106,11 +106,10 @@ Status: Active backlog (P0-001 through P0-008 complete; 0 bugs blocking, 0 tech-
   - Specs: jtbd-01
   - Completed: First concrete `IConnectorClient` implementation — `AzureDevOpsConnectorClient` in `SmartKb.Contracts.Connectors`. Supports PAT auth via Key Vault. Ingests work items (WIQL API) and wiki pages (Wiki REST API). ACL mapping: area paths → `AllowedGroups` with `Restricted` visibility; wiki pages default to `Internal`. Checkpoint-based multi-project, multi-phase sync (`AdoCheckpoint` tracks project index + phase + last-modified timestamp). Deep links to work items and wiki pages. Content hash for dedup. HTML stripping for work item descriptions. Handles 3k+ artifacts via batched WIQL (200/batch) with `HasMore` pagination. Per-project error isolation (auth failure in one project doesn't crash the sync). `AzureDevOpsSourceConfig` model for organization URL, project list, work item type/area path filters, batch size. Registered in both API and Ingestion DI. 40 new tests (27 unit + 7 integration + 6 ADO sync processor tests); all 273 tests passing. Webhook support deferred to P0-008A (requires webhook receiver endpoint + signature verification).
 
-- [ ] P0-008A: Add ADO service hook webhook support (event-driven freshness + polling fallback).
+- [x] P0-008A: Add ADO service hook webhook support (event-driven freshness + polling fallback).
   - Specs: jtbd-01
   - Dependencies: P0-008 (complete)
-  - Exit criteria: ADO service hook registered on connector enable, deregistered on disable; webhook payload signature validated; webhook events trigger incremental sync; polling fallback activates when webhooks are unavailable (5-minute default poll with jitter per SPEC-002 proposal).
-  - Implementation notes: Requires new webhook receiver endpoint (`POST /api/webhooks/ado/{connectorId}`). Service hook registration via ADO REST API. HMAC signature verification on incoming payloads. Webhook lifecycle management in ConnectorAdminService enable/disable flows.
+  - Completed: `WebhookSubscriptionEntity` with SQL table, unique index on (ConnectorId, EventType). `IWebhookManager` interface with `AdoWebhookManager` implementation — registers `workitem.created` and `workitem.updated` service hooks via ADO REST API (v7.1). Webhook secret generated (32-byte random), stored in Key Vault via `ISecretProvider.SetSecretAsync`. `AdoWebhookHandler` processes incoming payloads: validates HMAC signature (Basic auth shared secret), deduplicates via idempotency key, triggers incremental sync via Service Bus. Anonymous endpoint `POST /api/webhooks/ado/{connectorId}`. Webhook lifecycle managed in `ConnectorAdminService`: register on enable, deregister on disable. `WebhookPollingFallbackService` (BackgroundService) checks every 30s for subscriptions in fallback mode; triggers incremental syncs at 5-minute intervals with 0-60s jitter. Failure threshold: 3 consecutive failures activates fallback. `WebhookSettings` configurable via `Webhook:*` app settings. EF Core migration `AddWebhookSubscriptions`. 36 new tests (8 signature, 11 handler, 4 endpoint, 9 webhook manager, 4 polling fallback); all 309 tests passing.
 
 - [ ] P0-009: Implement SharePoint ingestion (Graph delta queries + change notifications + fallback polling).
   - Specs: jtbd-01
@@ -371,8 +370,8 @@ Status: Active backlog (P0-001 through P0-008 complete; 0 bugs blocking, 0 tech-
 ## Spec Clarification Backlog
 Items where specs are ambiguous, inconsistent, or missing detail. Patch before or during dependent implementation.
 
-- [ ] SPEC-001: jtbd-01 — Add webhook registration lifecycle (register/renew/deregister on enable/disable).
-- [ ] SPEC-002: jtbd-01 — Define polling fallback interval and failure detection mechanism.
+- [x] SPEC-001: jtbd-01 — Add webhook registration lifecycle (register/renew/deregister on enable/disable). Resolved: P0-008A implements register on enable, deregister on disable via `IWebhookManager`. Renewal deferred (ADO hooks don't expire).
+- [x] SPEC-002: jtbd-01 — Define polling fallback interval and failure detection mechanism. Resolved: P0-008A implements 5-minute default interval with 0-60s jitter, 3 consecutive failure threshold, `WebhookPollingFallbackService` BackgroundService.
 - [ ] SPEC-003: jtbd-01 — Define content-level dedup strategy using ContentHash.
 - [ ] SPEC-004: jtbd-02 — Define enrichment version scheme (format, storage, reprocessing trigger).
 - [ ] SPEC-005: jtbd-02 — Define error token extraction method; add `ErrorTokens` field to CanonicalRecord.

@@ -8,6 +8,7 @@ using SmartKb.Api.Auth;
 using SmartKb.Api.Connectors;
 using SmartKb.Api.Secrets;
 using SmartKb.Api.Tenant;
+using SmartKb.Api.Webhooks;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
@@ -58,15 +59,25 @@ else
     builder.Services.AddSingleton<ISyncJobPublisher, InMemorySyncJobPublisher>();
 }
 
+// Webhook settings.
+var webhookSettings = new WebhookSettings();
+builder.Configuration.GetSection(WebhookSettings.SectionName).Bind(webhookSettings);
+builder.Services.AddSingleton(webhookSettings);
+
 // Connector clients — register all IConnectorClient implementations.
 builder.Services.AddHttpClient("AzureDevOps");
 builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.AzureDevOpsConnectorClient>();
+
+// Webhook managers — register all IWebhookManager implementations.
+builder.Services.AddSingleton<IWebhookManager, SmartKb.Contracts.Connectors.AdoWebhookManager>();
 
 var connectionString = builder.Configuration.GetConnectionString("SmartKbDb");
 if (!string.IsNullOrEmpty(connectionString))
 {
     builder.Services.AddSmartKbData(connectionString);
     builder.Services.AddScoped<ConnectorAdminService>();
+    builder.Services.AddScoped<AdoWebhookHandler>();
+    builder.Services.AddHostedService<WebhookPollingFallbackService>();
 }
 else
 {
@@ -296,6 +307,22 @@ app.MapGet("/api/admin/connectors/{connectorId:guid}/sync-runs/{syncRunId:guid}"
         ? Results.NotFound(ApiResponse<object>.Failure("Sync run not found.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<SyncRunSummary>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
+
+// --- Webhook Receiver Endpoints (anonymous — HMAC-verified inside handler) ---
+
+app.MapPost("/api/webhooks/ado/{connectorId:guid}", async (
+    Guid connectorId,
+    HttpContext httpContext,
+    AdoWebhookHandler handler) =>
+{
+    // Read raw body for signature verification.
+    using var reader = new StreamReader(httpContext.Request.Body);
+    var body = await reader.ReadToEndAsync();
+    var authHeader = httpContext.Request.Headers.Authorization.FirstOrDefault();
+
+    var (statusCode, message) = await handler.HandleAsync(connectorId, body, authHeader);
+    return Results.Json(new { message }, statusCode: statusCode);
+}).AllowAnonymous();
 
 // --- Audit Endpoint ---
 

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SmartKb.Data;
 
@@ -11,9 +12,11 @@ using SmartKb.Data;
 namespace SmartKb.Data.Migrations
 {
     [DbContext(typeof(SmartKbDbContext))]
-    partial class SmartKbDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260316071038_AddWebhookSubscriptions")]
+    partial class AddWebhookSubscriptions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
