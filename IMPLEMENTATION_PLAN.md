@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-16 (Asia/Manila) — iteration 34 (P0-017 complete)
-Status: Active backlog (P0-001 through P0-017 complete; 0 bugs blocking, 0 tech-debt blocking; next up P0-018)
+Last updated: 2026-03-16 (Asia/Manila) — iteration 35 (P0-018 complete)
+Status: Active backlog (P0-001 through P0-018 complete; 0 bugs blocking, 0 tech-debt blocking; next up P0-018A)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -175,11 +175,10 @@ Status: Active backlog (P0-001 through P0-017 complete; 0 bugs blocking, 0 tech-
   - Dependencies: P0-015 (escalation draft API), P0-016 (chat UI)
   - Completed: `EscalationDraftModal` component with full draft lifecycle: auto-create draft on CTA click, editable form (title, severity P1-P4, target team, reason, customer summary, suspected component, steps to reproduce, logs/IDs requested), evidence links count, save via PUT, markdown export via GET with clipboard copy + "Copied!" feedback. `EscalationBanner` updated with "Create escalation draft" CTA button (purple, `btn-escalate`) that passes `messageId` up to `ChatPage`. `ChatPage` wires modal state: extracts escalation signal + citations for the target message, opens modal overlay. `AssistantMeta` extended with `handoffNote` field. API client layer: `createEscalationDraft`, `updateEscalationDraft`, `exportEscalationDraft`, `deleteEscalationDraft` + full TypeScript types matching backend DTOs. ADO/ClickUp buttons rendered disabled with "Coming soon" tooltip (R-011). Modal backdrop with centered card layout, responsive (max 90vw, 85vh). CSS: modal backdrop, form fields, field rows, evidence summary badge, coming-soon disabled style. Next-step guidance already rendered from P0-016 (no changes needed). 14 new frontend tests (12 EscalationDraftModal + 2 ChatThread CTA); 58 frontend tests passing. Build clean (192 modules, 9.4KB CSS + 447KB JS gzipped). All 644 backend tests passing.
 
-- [ ] P0-018: Implement feedback capture UI + API wiring.
+- [x] P0-018: Implement feedback capture UI + API wiring.
   - Specs: jtbd-05, jtbd-06
   - Dependencies: P0-016 (chat UI), P0-013A (session/message API)
-  - Exit criteria: feedback events persist with trace ID and session linkage; reason codes selectable from predefined list; correction text and corrected-answer proposals stored when provided.
-  - Implementation notes: Need `POST /api/sessions/{id}/messages/{id}/feedback` endpoint. Reason codes must be defined — propose initial set: `wrong_answer`, `outdated_info`, `missing_context`, `wrong_source`, `too_vague`, `other`. `FeedbackEntity` exists in P0-005.
+  - Completed: `FeedbackReasonCode` enum with 7 values (WrongAnswer, OutdatedInfo, MissingContext, WrongSource, TooVague, WrongEscalation, Other). `FeedbackEntity` extended with `UserId`, `ReasonCodesJson` (JSON multi-select), `Comment`, `CorrelationId`. `IFeedbackService` interface + `FeedbackService` implementation in `SmartKb.Data.Repositories`. Full CRUD: `POST /api/sessions/{id}/messages/{id}/feedback` (submit/update), `GET /api/sessions/{id}/messages/{id}/feedback` (get for message), `GET /api/sessions/{id}/feedbacks` (list for session). All endpoints require `chat:feedback` permission (SupportAgent, SupportLead, Admin). One feedback per message per user (upsert on resubmit). Audit event written on new feedback (`chat.feedback`). Trace ID linked from assistant message. `UpdateFeedbackSchema` migration (ReasonCodesJson, Comment, UserId, CorrelationId, TenantId+SessionId composite index). `FeedbackWidget` React component: thumbs up/down toggle, reason code multi-select checkboxes (7 options), optional comment textarea, optional corrected answer textarea, immediate submit on thumbs up, detail form on thumbs down, "Thanks for your feedback" confirmation. Wired into `ChatThread` message footer (after escalation banner) and `ChatPage` state management (feedbackMap). API client: `submitFeedback`, `getFeedback`. CSS: feedback widget styling (thumbs buttons, detail form, reason checkboxes). 26 new backend tests (14 FeedbackService unit + 12 FeedbackEndpoint integration); 670 backend tests passing. 9 new frontend tests (FeedbackWidget); 67 frontend tests passing. Build clean (193 modules, 10.7KB CSS + 450KB JS gzipped).
 
 - [ ] P0-018A: Implement outcome tracking API and UI.
   - Specs: jtbd-06, jtbd-08
@@ -313,7 +312,7 @@ Status: Active backlog (P0-001 through P0-017 complete; 0 bugs blocking, 0 tech-
 - [x] R-013: ~~Session context may exceed token limits~~ — resolved (D-010: sliding window with 80% context window budget, oldest messages dropped first).
 - [x] R-014: ~~No Ingestion Worker resource in IaC~~ — resolved (TECH-001 complete).
 - [x] R-015: ~~Service Bus uses connection string not Managed Identity~~ — resolved (TECH-002 complete).
-- [ ] R-016: Feedback reason codes not enumerated in any spec — must define before P0-018.
+- [x] R-016: ~~Feedback reason codes not enumerated~~ — resolved (P0-018: `FeedbackReasonCode` enum with 7 values).
 - [ ] R-017: jtbd-06 has no numeric SLO thresholds — eval harness (P0-021) cannot gate without agreed values.
 - [ ] R-018: Entra ID config optional with silent fallback — misconfiguration risk in production.
 - [ ] R-019: jtbd-03 spec very thin (33 lines) — all detail in PRD. Risk of divergence.
@@ -349,7 +348,7 @@ Items where specs are ambiguous, inconsistent, or missing detail. Patch before o
 - [x] SPEC-005: jtbd-02 — Define error token extraction method; add `ErrorTokens` field to CanonicalRecord. Resolved: `ErrorTokens` added to `CanonicalRecord`. `BaselineEnrichmentService.ExtractErrorTokens` uses regex for exception names, HTTP status codes, error codes (ERR-xxx, AADSTS), and hex codes (0x...).
 - [x] SPEC-006: jtbd-02 — Standardize chunk ID format (`_` in code vs `#` in PRD). Resolved: underscore format `{EvidenceId}_chunk_{index}` is canonical. PRD `#` format deprecated.
 - [ ] SPEC-007: jtbd-03 — Expand thin spec (33 lines) with PRD detail (query stages, field schema, merge algorithm, telemetry).
-- [ ] SPEC-008: jtbd-06 — Enumerate feedback reason codes.
+- [x] SPEC-008: jtbd-06 — Enumerate feedback reason codes. Resolved: `FeedbackReasonCode` enum with 7 values: WrongAnswer, OutdatedInfo, MissingContext, WrongSource, TooVague, WrongEscalation, Other. Multi-select stored as JSON array in `ReasonCodesJson`.
 - [ ] SPEC-009: jtbd-06 — Define numeric SLO thresholds for eval gates.
 - [ ] SPEC-010: jtbd-08 — Define routing rule precedence for multiple matching rules.
 - [ ] SPEC-011: jtbd-08 — Define severity classification ownership (LLM, classification, agent, source ticket).

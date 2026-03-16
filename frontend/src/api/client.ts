@@ -4,11 +4,13 @@ import type {
   CreateSessionRequest,
   EscalationDraftExportResponse,
   EscalationDraftResponse,
+  FeedbackResponse,
   MessageListResponse,
   SendMessageRequest,
   SessionChatResponse,
   SessionListResponse,
   SessionResponse,
+  SubmitFeedbackRequest,
   UpdateEscalationDraftRequest,
 } from './types';
 
@@ -154,4 +156,36 @@ export async function deleteEscalationDraft(draftId: string): Promise<void> {
   await apiFetch<ApiResponse<unknown>>(`/api/escalations/draft/${draftId}`, {
     method: 'DELETE',
   });
+}
+
+// ── Feedback endpoints ──
+
+export async function submitFeedback(
+  sessionId: string,
+  messageId: string,
+  req: SubmitFeedbackRequest,
+): Promise<FeedbackResponse> {
+  const res = await apiFetch<ApiResponse<FeedbackResponse>>(
+    `/api/sessions/${sessionId}/messages/${messageId}/feedback`,
+    {
+      method: 'POST',
+      body: JSON.stringify(req),
+    },
+  );
+  return unwrap(res);
+}
+
+export async function getFeedback(
+  sessionId: string,
+  messageId: string,
+): Promise<FeedbackResponse | null> {
+  try {
+    const res = await apiFetch<ApiResponse<FeedbackResponse>>(
+      `/api/sessions/${sessionId}/messages/${messageId}/feedback`,
+    );
+    return unwrap(res);
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null;
+    throw e;
+  }
 }

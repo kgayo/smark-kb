@@ -510,6 +510,57 @@ app.MapPost("/api/sessions/{sessionId:guid}/messages", async (
         : Results.Ok(ApiResponse<SessionChatResponse>.Success(response, tenant.CorrelationId));
 }).RequirePermission("chat:query");
 
+// --- Feedback Endpoints ---
+
+app.MapPost("/api/sessions/{sessionId:guid}/messages/{messageId:guid}/feedback", async (
+    Guid sessionId,
+    Guid messageId,
+    SubmitFeedbackRequest request,
+    ITenantContextAccessor tenantAccessor,
+    IFeedbackService feedbackService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    try
+    {
+        var response = await feedbackService.SubmitFeedbackAsync(
+            tenant.TenantId, tenant.UserId, tenant.CorrelationId,
+            sessionId, messageId, request);
+        return Results.Ok(ApiResponse<FeedbackResponse>.Success(response, tenant.CorrelationId));
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.UnprocessableEntity(
+            ApiResponse<object>.Failure(ex.Message, tenant.CorrelationId));
+    }
+}).RequirePermission("chat:feedback");
+
+app.MapGet("/api/sessions/{sessionId:guid}/messages/{messageId:guid}/feedback", async (
+    Guid sessionId,
+    Guid messageId,
+    ITenantContextAccessor tenantAccessor,
+    IFeedbackService feedbackService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var response = await feedbackService.GetFeedbackAsync(
+        tenant.TenantId, tenant.UserId, sessionId, messageId);
+    return response is null
+        ? Results.NotFound(ApiResponse<object>.Failure("Feedback not found.", tenant.CorrelationId))
+        : Results.Ok(ApiResponse<FeedbackResponse>.Success(response, tenant.CorrelationId));
+}).RequirePermission("chat:feedback");
+
+app.MapGet("/api/sessions/{sessionId:guid}/feedbacks", async (
+    Guid sessionId,
+    ITenantContextAccessor tenantAccessor,
+    IFeedbackService feedbackService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var response = await feedbackService.ListFeedbacksAsync(
+        tenant.TenantId, tenant.UserId, sessionId);
+    return response is null
+        ? Results.NotFound(ApiResponse<object>.Failure("Session not found.", tenant.CorrelationId))
+        : Results.Ok(ApiResponse<FeedbackListResponse>.Success(response, tenant.CorrelationId));
+}).RequirePermission("chat:feedback");
+
 // --- Escalation Draft Endpoints ---
 
 app.MapPost("/api/escalations/draft", async (

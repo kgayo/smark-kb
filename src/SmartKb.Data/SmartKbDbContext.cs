@@ -153,12 +153,16 @@ public class SmartKbDbContext : DbContext
             e.ToTable("Feedbacks");
             e.HasKey(f => f.Id);
             e.Property(f => f.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(f => f.UserId).HasMaxLength(128).IsRequired();
             e.Property(f => f.Type).HasConversion<string>().HasMaxLength(32).IsRequired();
-            e.Property(f => f.ReasonCode).HasMaxLength(128);
+            e.Property(f => f.ReasonCodesJson);
+            e.Property(f => f.Comment);
             e.Property(f => f.TraceId).HasMaxLength(128);
+            e.Property(f => f.CorrelationId).HasMaxLength(128);
             e.HasIndex(f => f.TenantId);
             e.HasIndex(f => f.SessionId);
             e.HasIndex(f => f.MessageId);
+            e.HasIndex(f => new { f.TenantId, f.SessionId });
             e.HasOne(f => f.Session).WithMany(s => s.Feedbacks).HasForeignKey(f => f.SessionId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(f => f.Message).WithMany().HasForeignKey(f => f.MessageId).OnDelete(DeleteBehavior.Restrict);
         });

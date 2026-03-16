@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { CitationDto, EscalationSignal, MessageResponse, SessionResponse } from '../api/types';
-import type { AssistantMeta } from '../components/ChatThread';
+import type { CitationDto, EscalationSignal, MessageResponse, SessionResponse, SubmitFeedbackRequest } from '../api/types';
+import type { AssistantMeta, FeedbackState } from '../components/ChatThread';
 import * as api from '../api/client';
 import { SessionSidebar } from '../components/SessionSidebar';
 import { ChatThread } from '../components/ChatThread';
@@ -21,6 +21,7 @@ export function ChatPage() {
   const [draftMessageId, setDraftMessageId] = useState<string | null>(null);
   const [draftEscalation, setDraftEscalation] = useState<EscalationSignal | null>(null);
   const [draftCitations, setDraftCitations] = useState<CitationDto[]>([]);
+  const [feedbackMap, setFeedbackMap] = useState<Map<string, FeedbackState>>(() => new Map());
   const threadEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -54,6 +55,7 @@ export function ChatPage() {
     setError(null);
     setDrawerOpen(false);
     setMetaMap(new Map());
+    setFeedbackMap(new Map());
     await loadMessages(sessionId);
   }, []);
 
@@ -65,6 +67,7 @@ export function ChatPage() {
       setActiveSessionId(session.sessionId);
       setMessages([]);
       setMetaMap(new Map());
+      setFeedbackMap(new Map());
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create session');
     }
@@ -79,6 +82,7 @@ export function ChatPage() {
           setActiveSessionId(null);
           setMessages([]);
           setMetaMap(new Map());
+          setFeedbackMap(new Map());
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to delete session');
@@ -133,6 +137,23 @@ export function ChatPage() {
     setDrawerOpen(true);
   }, []);
 
+  const handleSubmitFeedback = useCallback(
+    async (messageId: string, request: SubmitFeedbackRequest) => {
+      if (!activeSessionId) return;
+      try {
+        const result = await api.submitFeedback(activeSessionId, messageId, request);
+        setFeedbackMap((prev) => {
+          const next = new Map(prev);
+          next.set(messageId, { type: result.type, reasonCodes: result.reasonCodes });
+          return next;
+        });
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to submit feedback');
+      }
+    },
+    [activeSessionId],
+  );
+
   const handleCreateEscalationDraft = useCallback(
     (messageId: string) => {
       const meta = metaMap.get(messageId);
@@ -184,7 +205,9 @@ export function ChatPage() {
               loading={loading}
               onShowEvidence={handleShowEvidence}
               onCreateEscalationDraft={handleCreateEscalationDraft}
+              onSubmitFeedback={handleSubmitFeedback}
               metaMap={metaMap}
+              feedbackMap={feedbackMap}
             />
             <div ref={threadEndRef} />
             <MessageInput onSend={handleSend} disabled={loading} />

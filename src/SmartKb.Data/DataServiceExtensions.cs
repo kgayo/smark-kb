@@ -20,6 +20,7 @@ public static class DataServiceExtensions
         services.AddScoped<IAnswerTraceWriter, SqlAnswerTraceWriter>();
         services.AddScoped<ISessionService, SessionService>();
         services.AddScoped<IEscalationDraftService, EscalationDraftService>();
+        services.AddScoped<IFeedbackService, FeedbackService>();
 
         return services;
     }

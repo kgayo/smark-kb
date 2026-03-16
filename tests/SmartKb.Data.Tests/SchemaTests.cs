@@ -355,11 +355,13 @@ public class SchemaTests : IDisposable
         var feedback = new FeedbackEntity
         {
             Id = Guid.NewGuid(), MessageId = message.Id, SessionId = session.Id,
-            TenantId = "t11", Type = FeedbackType.ThumbsDown,
-            ReasonCode = "incorrect_answer",
+            TenantId = "t11", UserId = "user-1", Type = FeedbackType.ThumbsDown,
+            ReasonCodesJson = "[\"WrongAnswer\"]",
+            Comment = "This answer was incorrect",
             CorrectionText = "The correct answer is X",
             CorrectedAnswer = "X is the answer",
             TraceId = "trace-123",
+            CorrelationId = "corr-123",
             CreatedAt = DateTimeOffset.UtcNow,
         };
         _db.Feedbacks.Add(feedback);
@@ -367,7 +369,8 @@ public class SchemaTests : IDisposable
 
         var loaded = await _db.Feedbacks.Include(f => f.Message).FirstAsync(f => f.TenantId == "t11");
         Assert.Equal(FeedbackType.ThumbsDown, loaded.Type);
-        Assert.Equal("incorrect_answer", loaded.ReasonCode);
+        Assert.Equal("[\"WrongAnswer\"]", loaded.ReasonCodesJson);
+        Assert.Equal("This answer was incorrect", loaded.Comment);
         Assert.Equal("The correct answer is X", loaded.CorrectionText);
         Assert.Equal("X is the answer", loaded.CorrectedAnswer);
         Assert.NotNull(loaded.Message);

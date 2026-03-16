@@ -1,9 +1,15 @@
-import type { MessageResponse, CitationDto, ConfidenceLevel } from '../api/types';
+import type { MessageResponse, CitationDto, ConfidenceLevel, SubmitFeedbackRequest } from '../api/types';
 import { ConfidenceBadge } from './ConfidenceBadge';
+import { FeedbackWidget } from './FeedbackWidget';
 
 export interface AssistantMeta {
   nextSteps: string[];
   escalation: { recommended: boolean; targetTeam: string; reason: string; handoffNote: string } | null;
+}
+
+export interface FeedbackState {
+  type: string;
+  reasonCodes: string[];
 }
 
 interface ChatThreadProps {
@@ -11,7 +17,9 @@ interface ChatThreadProps {
   loading: boolean;
   onShowEvidence: (citations: CitationDto[]) => void;
   onCreateEscalationDraft?: (messageId: string) => void;
+  onSubmitFeedback?: (messageId: string, request: SubmitFeedbackRequest) => Promise<void>;
   metaMap: Map<string, AssistantMeta>;
+  feedbackMap?: Map<string, FeedbackState>;
 }
 
 function CitationInline({
@@ -76,7 +84,7 @@ function EscalationBanner({
   );
 }
 
-export function ChatThread({ messages, loading, onShowEvidence, onCreateEscalationDraft, metaMap }: ChatThreadProps) {
+export function ChatThread({ messages, loading, onShowEvidence, onCreateEscalationDraft, onSubmitFeedback, metaMap, feedbackMap }: ChatThreadProps) {
   return (
     <div className="chat-thread" data-testid="chat-thread" role="log" aria-live="polite">
       {messages.length === 0 && !loading && (
@@ -125,6 +133,13 @@ export function ChatThread({ messages, loading, onShowEvidence, onCreateEscalati
                         ? () => onCreateEscalationDraft(msg.messageId)
                         : undefined
                     }
+                  />
+                )}
+                {onSubmitFeedback && (
+                  <FeedbackWidget
+                    messageId={msg.messageId}
+                    existingFeedback={feedbackMap?.get(msg.messageId) ?? null}
+                    onSubmit={onSubmitFeedback}
                   />
                 )}
               </div>

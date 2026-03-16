@@ -152,3 +152,37 @@ export interface EscalationDraftExportResponse {
   markdown: string;
   exportedAt: string;
 }
+
+// ── Feedback types ──
+
+export type FeedbackType = 'ThumbsUp' | 'ThumbsDown';
+
+export type FeedbackReasonCode =
+  | 'WrongAnswer'
+  | 'OutdatedInfo'
+  | 'MissingContext'
+  | 'WrongSource'
+  | 'TooVague'
+  | 'WrongEscalation'
+  | 'Other';
+
+export interface SubmitFeedbackRequest {
+  type: FeedbackType;
+  reasonCodes: FeedbackReasonCode[];
+  comment?: string;
+  correctionText?: string;
+  correctedAnswer?: string;
+}
+
+export interface FeedbackResponse {
+  feedbackId: string;
+  messageId: string;
+  sessionId: string;
+  type: string;
+  reasonCodes: string[];
+  comment: string | null;
+  correctionText: string | null;
+  correctedAnswer: string | null;
+  traceId: string | null;
+  createdAt: string;
+}

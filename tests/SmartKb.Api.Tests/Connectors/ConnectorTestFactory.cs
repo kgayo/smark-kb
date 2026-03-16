@@ -66,6 +66,7 @@ public sealed class ConnectorTestFactory : WebApplicationFactory<Program>, IAsyn
             services.AddSingleton(new SessionSettings());
             services.AddSingleton(new EscalationSettings());
             services.AddScoped<IEscalationDraftService, EscalationDraftService>();
+            services.AddScoped<IFeedbackService, FeedbackService>();
             services.AddScoped<ConnectorAdminService>();
             services.AddScoped<AdoWebhookHandler>();
             services.AddScoped<SharePointWebhookHandler>();
