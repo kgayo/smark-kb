@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-16 (Asia/Manila) — iteration 32 (P0-015 complete)
-Status: Active backlog (P0-001 through P0-015 complete; 0 bugs blocking, 0 tech-debt blocking; next up P0-016)
+Last updated: 2026-03-16 (Asia/Manila) — iteration 33 (P0-016 complete)
+Status: Active backlog (P0-001 through P0-016 complete; 0 bugs blocking, 0 tech-debt blocking; next up P0-017)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -165,11 +165,10 @@ Status: Active backlog (P0-001 through P0-015 complete; 0 bugs blocking, 0 tech-
 
 ### P0 Frontend MVP
 
-- [ ] P0-016: Implement React agent chat with session continuity, confidence badge, citations, and Evidence Drawer.
+- [x] P0-016: Implement React agent chat with session continuity, confidence badge, citations, and Evidence Drawer.
   - Specs: jtbd-05
   - Dependencies: P0-013A (session API), P0-013 (complete)
-  - Exit criteria: user can ask questions and follow up within a session; Evidence Drawer shows snippet, source location, timestamp, and access label per citation; confidence badge displayed on each response.
-  - Implementation notes: Need MSAL React integration for Entra auth. Chat thread component, message input, Evidence Drawer panel. Confidence badge rendering depends on D-003 resolution (propose colored label: green/yellow/red). Streaming response support not in spec but should add typing indicator for P95 <= 8s SLO UX.
+  - Completed: Full React chat UI with MSAL Entra ID authentication (conditional — bypassed in local dev when `VITE_ENTRA_CLIENT_ID` not set). `AuthProvider` wraps app with `MsalProvider` + `AuthGate` (login redirect flow, silent token acquisition with `InteractionRequiredAuthError` fallback). API client layer (`api/client.ts`) with bearer token injection, `ApiResponse<T>` unwrapping, typed fetch for all session and chat endpoints. `SessionSidebar` component: session list with title, message count, time-ago display, create/select/delete actions, active highlight. `ChatThread` component: user and assistant message rendering, `ConfidenceBadge` (green High >=0.7, yellow Medium 0.4-0.7, red Low <0.4 per D-003), inline citation count button, next-steps list, escalation banner (purple, target team + reason). `EvidenceDrawer` slide-out panel: citation cards with title, snippet (4-line clamp), source system, formatted date, access label (colored: green Public, yellow Internal, red Restricted), external source link. `MessageInput` with Enter-to-send (Shift+Enter for newline), disabled state with "Thinking..." indicator. Typing dots animation during API call. `ChatPage` orchestrates: session CRUD via API, message send with response meta (nextSteps, escalation) stored in `metaMap`, auto-scroll, error banner, drawer state. `index.css` with CSS variables, responsive layout (sidebar 260px + main + drawer 340px). TypeScript strict mode, Vite env types for MSAL config. ESLint config (`.eslintrc.cjs`) with TS parser. 44 new frontend tests (3 App, 5 ConfidenceBadge, 9 EvidenceDrawer, 9 MessageInput, 9 ChatThread, 7 SessionSidebar, 2 API client); all passing. Build clean (191 modules, 7.3KB CSS + 440KB JS gzipped). All 644 backend tests still passing.
 
 - [ ] P0-017: Implement next-steps and escalation UX (CTA + handoff draft review/edit + copy/export).
   - Specs: jtbd-04, jtbd-05, jtbd-08
