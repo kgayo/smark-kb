@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-16 (Asia/Manila) — iteration 16 (BUG-001 fixed; TenantIsolation tests rewritten)
-Status: Active backlog (P0-001 through P0-007 complete; 2 bugs, 6 tech-debt items; remaining items re-prioritized)
+Last updated: 2026-03-16 (Asia/Manila) — iteration 17 (BUG-002 fixed; TECH-006 complete)
+Status: Active backlog (P0-001 through P0-007 complete; 1 bug, 5 tech-debt items; remaining items re-prioritized)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -67,10 +67,9 @@ Status: Active backlog (P0-001 through P0-007 complete; 2 bugs, 6 tech-debt item
 - [x] BUG-001: Fix 5 pre-existing TenantIsolation test failures (cross-tenant route design issue).
   - Completed: Rewrote 8 tests into 11 well-scoped tests. Replaced path-based tenant ID tests with connector-seeding approach (create in tenant A, access from tenant B JWT → 404). Fixed `AuthTestFactory` to register `InMemoryAuditEventWriter` as singleton for both `IAuditEventWriter` and concrete type. Fixed `AdminConnectors_ReturnsTenantId` to validate `ApiResponse` structure. Added `CrossTenantConnectorAccess_DoesNotLeakExistence` test. All 233 tests passing.
 
-- [ ] BUG-002: ARM/Terraform misalignment — ARM missing Entra administrator for SQL Server.
-  - Root cause: `infra/terraform/sql.tf` has `azuread_administrator {}` block wiring the App Service managed identity as SQL admin. `infra/arm/main.json` has no corresponding `Microsoft.Sql/servers/administrators` resource.
-  - Fix: Add `Microsoft.Sql/servers/administrators` resource to ARM template matching Terraform behavior.
-  - Priority: HIGH — violates IaC parity policy (AGENTS.md).
+- [x] BUG-002: ARM/Terraform misalignment — ARM missing Entra administrator for SQL Server.
+  - Root cause: `infra/terraform/sql.tf` has `azuread_administrator {}` block wiring the App Service managed identity as SQL admin. `infra/arm/main.json` had no corresponding `Microsoft.Sql/servers/administrators` resource.
+  - Completed: Added `Microsoft.Sql/servers/administrators/ActiveDirectory` resource to ARM template matching Terraform behavior (login=smartkb-admin, sid=App Service managed identity principal, tenantId=entraTenantId). JSON validated.
 
 - [ ] BUG-003: `ConnectorSecretReference` model is orphaned.
   - Root cause: Model defined in `SmartKb.Contracts/Models/ConnectorSecretReference.cs` with fields for ConnectorId, TenantId, AuthType, KeyVaultSecretName, CreatedAt, RotatedAt. But no SQL entity, migration column, repository, or API surface references it.
@@ -100,10 +99,8 @@ Status: Active backlog (P0-001 through P0-007 complete; 2 bugs, 6 tech-debt item
   - Fix: Remove `SetStatusAsync` (dead code cleanup).
   - Priority: LOW — internal code quality, no runtime impact.
 
-- [ ] TECH-006: No CI pipeline for .NET build/test or frontend build.
-  - Root cause: Only `infra-validate.yml` exists in `.github/workflows/`. No workflow runs `dotnet build`, `dotnet test`, `npm ci`, or `npm run build`. The 228 tests have no CI enforcement — regressions can merge undetected.
-  - Fix: Add a `ci.yml` workflow that builds and tests both .NET solution and React frontend on PRs and pushes to main.
-  - Priority: HIGH — foundational CI gap; broken tests (BUG-001) already demonstrate the risk.
+- [x] TECH-006: No CI pipeline for .NET build/test or frontend build.
+  - Completed: Added `.github/workflows/ci.yml` with two jobs — `dotnet` (restore/build/test in Release) and `frontend` (npm ci/lint/build). Triggers on PRs to main and pushes to main.
 
 - [ ] TECH-007: Stale `src/src.sln` file in repo root.
   - Root cause: An untracked `src/src.sln` file exists alongside the main solution file. May confuse IDE auto-discovery or build tooling.
@@ -334,7 +331,7 @@ Status: Active backlog (P0-001 through P0-007 complete; 2 bugs, 6 tech-debt item
 - [ ] R-006: PII leakage into model context before redaction rules are mature; baseline detection in Phase 1 mitigates but does not eliminate.
 - [ ] R-007: Service Bus message ordering under high load; design for idempotency.
 - [x] R-008: Embedding model and chunking parameters — resolved in P0-005C.
-- [ ] R-009: Dual Terraform + ARM maintenance burden. **Active divergence found: ARM missing SQL Entra admin (BUG-002).**
+- [ ] R-009: Dual Terraform + ARM maintenance burden. ~~Active divergence found: ARM missing SQL Entra admin (BUG-002)~~ — fixed.
 - [ ] R-010: Confidence/escalation thresholds undefined; treat as tunable config informed by eval runs.
 - [ ] R-011: Phase 1 escalation drafts — copy/export only. Must communicate in UX.
 - [ ] R-012: ACL metadata models differ per source. Each connector must document its ACL mapping.
@@ -345,7 +342,7 @@ Status: Active backlog (P0-001 through P0-007 complete; 2 bugs, 6 tech-debt item
 - [ ] R-017: jtbd-06 has no numeric SLO thresholds — eval harness (P0-021) cannot gate without agreed values.
 - [ ] R-018: Entra ID config optional with silent fallback — misconfiguration risk in production.
 - [ ] R-019: jtbd-03 spec very thin (33 lines) — all detail in PRD. Risk of divergence.
-- [ ] R-020: No .NET or frontend CI pipeline — only infra validation runs in GitHub Actions. Test regressions can merge undetected (TECH-006).
+- [x] R-020: ~~No .NET or frontend CI pipeline~~ — resolved (TECH-006 complete; `ci.yml` added).
 
 ## Open Design Decisions (must resolve before dependent items)
 

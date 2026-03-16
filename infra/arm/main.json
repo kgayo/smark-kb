@@ -194,6 +194,21 @@
       ]
     },
     {
+      "type": "Microsoft.Sql/servers/administrators",
+      "apiVersion": "2023-08-01-preview",
+      "name": "[format('{0}/ActiveDirectory', variables('sqlServerName'))]",
+      "properties": {
+        "administratorType": "ActiveDirectory",
+        "login": "smartkb-admin",
+        "sid": "[reference(resourceId('Microsoft.Web/sites', variables('webAppName')), '2023-12-01', 'Full').identity.principalId]",
+        "tenantId": "[parameters('entraTenantId')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Sql/servers', variables('sqlServerName'))]",
+        "[resourceId('Microsoft.Web/sites', variables('webAppName'))]"
+      ]
+    },
+    {
       "type": "Microsoft.Sql/servers/firewallRules",
       "apiVersion": "2023-08-01-preview",
       "name": "[format('{0}/AllowAzureServices', variables('sqlServerName'))]",
