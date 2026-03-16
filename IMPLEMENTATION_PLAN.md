@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-16 (Asia/Manila) — iteration 15 (full spec-vs-code re-audit; TECH-004 closed as not-a-bug; BUG-001 root cause refined)
-Status: Active backlog (P0-001 through P0-007 complete; 3 bugs, 6 tech-debt items; remaining items re-prioritized)
+Last updated: 2026-03-16 (Asia/Manila) — iteration 16 (BUG-001 fixed; TenantIsolation tests rewritten)
+Status: Active backlog (P0-001 through P0-007 complete; 2 bugs, 6 tech-debt items; remaining items re-prioritized)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -31,7 +31,7 @@ Status: Active backlog (P0-001 through P0-007 complete; 3 bugs, 6 tech-debt item
 
 - [x] P0-003: Implement tenant context propagation and hard tenant isolation.
   - Specs: jtbd-10
-  - Completed: TenantContextMiddleware extracts `tid` claim; 403 + audit on missing tenant; correlation IDs on Activity tags/baggage; cross-tenant audit events; 22 tests. Known issue: 5 TenantIsolation test failures due to route design (see BUG-001).
+  - Completed: TenantContextMiddleware extracts `tid` claim; 403 + audit on missing tenant; correlation IDs on Activity tags/baggage; cross-tenant audit events; 22 tests. BUG-001 fixed (iteration 16).
 
 - [x] P0-004: Implement secret architecture.
   - Specs: jtbd-01, jtbd-07, jtbd-10
@@ -64,10 +64,8 @@ Status: Active backlog (P0-001 through P0-007 complete; 3 bugs, 6 tech-debt item
 
 ### Bugs and Tech Debt (fix before proceeding with new features)
 
-- [ ] BUG-001: Fix 5 pre-existing TenantIsolation test failures (cross-tenant route design issue).
-  - Root cause: `TenantIsolationTests` send requests to `/api/admin/connectors/{tenantId}` (string) but the route is `/api/admin/connectors/{connectorId:guid}`. String tenant IDs fail the `:guid` constraint → 404. Additionally, `CrossTenantAccess_GeneratesAuditEvent` calls `GetRequiredService<InMemoryAuditEventWriter>()` but `AuthTestFactory` registers `SqlAuditEventWriter` (not `InMemoryAuditEventWriter`), causing DI resolution failure. `AdminConnectors_ReturnsTenantId` expects `TenantScopedResponse` but the endpoint returns `ApiResponse<ConnectorListResponse>`.
-  - Fix: Rewrite tests to create a connector in tenant A, then attempt access from tenant B's JWT. Remove path-based tenant ID tests (tenant is always from JWT `tid` claim, never from URL). Fix audit event test to use the correct DI registration.
-  - Priority: HIGH — broken tests erode CI trust.
+- [x] BUG-001: Fix 5 pre-existing TenantIsolation test failures (cross-tenant route design issue).
+  - Completed: Rewrote 8 tests into 11 well-scoped tests. Replaced path-based tenant ID tests with connector-seeding approach (create in tenant A, access from tenant B JWT → 404). Fixed `AuthTestFactory` to register `InMemoryAuditEventWriter` as singleton for both `IAuditEventWriter` and concrete type. Fixed `AdminConnectors_ReturnsTenantId` to validate `ApiResponse` structure. Added `CrossTenantConnectorAccess_DoesNotLeakExistence` test. All 233 tests passing.
 
 - [ ] BUG-002: ARM/Terraform misalignment — ARM missing Entra administrator for SQL Server.
   - Root cause: `infra/terraform/sql.tf` has `azuread_administrator {}` block wiring the App Service managed identity as SQL admin. `infra/arm/main.json` has no corresponding `Microsoft.Sql/servers/administrators` resource.

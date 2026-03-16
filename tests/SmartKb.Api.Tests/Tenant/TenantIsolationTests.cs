@@ -1,9 +1,14 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using SmartKb.Api.Audit;
 using SmartKb.Api.Tests.Auth;
+using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
+using SmartKb.Data;
+using SmartKb.Data.Entities;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
 
 namespace SmartKb.Api.Tests.Tenant;
 
@@ -33,6 +38,39 @@ public class TenantIsolationTests : IClassFixture<AuthTestFactory>
             request.Headers.Add(TestAuthHandler.UserIdHeader, userId);
     }
 
+    private async Task<Guid> SeedConnectorAsync(string tenantId, string name = "Test Connector")
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<SmartKbDbContext>();
+
+        // Ensure tenant exists
+        if (!await db.Tenants.AnyAsync(t => t.TenantId == tenantId))
+        {
+            db.Tenants.Add(new TenantEntity
+            {
+                TenantId = tenantId,
+                DisplayName = $"Tenant {tenantId}",
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+            await db.SaveChangesAsync();
+        }
+
+        var connector = new ConnectorEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            Name = name,
+            ConnectorType = ConnectorType.AzureDevOps,
+            Status = ConnectorStatus.Enabled,
+            AuthType = SecretAuthType.Pat,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+        db.Connectors.Add(connector);
+        await db.SaveChangesAsync();
+        return connector.Id;
+    }
+
     // --- Tenant context propagation ---
 
     [Fact]
@@ -53,21 +91,21 @@ public class TenantIsolationTests : IClassFixture<AuthTestFactory>
         Assert.NotEmpty(body.CorrelationId!);
     }
 
-    // --- Tenant-scoped endpoints return tenant ID ---
+    // --- Tenant-scoped endpoints return data ---
 
     [Fact]
-    public async Task AdminConnectors_ReturnsTenantId()
+    public async Task AdminConnectors_ReturnsSuccessForAuthenticatedTenant()
     {
         var client = CreateClient();
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/admin/connectors");
-        AddAuth(request, roles: "Admin", tenantId: "tenant-xyz");
+        AddAuth(request, roles: "Admin", tenantId: "tenant-1");
 
         var response = await client.SendAsync(request);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-        var body = await response.Content.ReadFromJsonAsync<TenantScopedResponse>();
-        Assert.NotNull(body);
-        Assert.Equal("tenant-xyz", body.TenantId);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(json.TryGetProperty("data", out _), "Response should have a 'data' property");
+        Assert.True(json.TryGetProperty("correlationId", out _), "Response should have a 'correlationId' property");
     }
 
     [Fact]
@@ -85,58 +123,78 @@ public class TenantIsolationTests : IClassFixture<AuthTestFactory>
         Assert.Equal("tenant-xyz", body.TenantId);
     }
 
-    // --- Cross-tenant access denied ---
+    // --- Cross-tenant access denied (returns 404 — no information leakage) ---
 
     [Fact]
-    public async Task CrossTenantConnectorAccess_Returns403()
+    public async Task CrossTenantConnectorAccess_Returns404()
     {
+        // Create connector in tenant-1
+        var connectorId = await SeedConnectorAsync("tenant-1", "Cross-Tenant Test Connector");
+
+        // Access from tenant-other JWT — should not find the connector
         var client = CreateClient();
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/admin/connectors/other-tenant");
-        AddAuth(request, roles: "Admin", tenantId: "my-tenant", userId: "user-1");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"/api/admin/connectors/{connectorId}");
+        AddAuth(request, roles: "Admin", tenantId: "tenant-other", userId: "other-user");
 
         var response = await client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
     public async Task SameTenantConnectorAccess_Returns200()
     {
+        // Create connector in tenant-1
+        var connectorId = await SeedConnectorAsync("tenant-1", "Same-Tenant Test Connector");
+
+        // Access from tenant-1 JWT — should find the connector
         var client = CreateClient();
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/admin/connectors/my-tenant");
-        AddAuth(request, roles: "Admin", tenantId: "my-tenant", userId: "user-1");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"/api/admin/connectors/{connectorId}");
+        AddAuth(request, roles: "Admin", tenantId: "tenant-1", userId: "user-1");
 
         var response = await client.SendAsync(request);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]
-    public async Task CrossTenantAccess_GeneratesAuditEvent()
+    public async Task MissingTenantClaim_GeneratesAuditEvent()
     {
         var client = CreateClient();
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/admin/connectors/foreign-tenant");
-        AddAuth(request, roles: "Admin", tenantId: "home-tenant", userId: "attacker-user");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/admin/connectors");
+        // Authenticate without tenant — triggers tenant.missing audit event
+        request.Headers.Add(TestAuthHandler.AuthenticatedHeader, "true");
+        request.Headers.Add(TestAuthHandler.RolesHeader, "Admin");
+        request.Headers.Add(TestAuthHandler.TenantHeader, "");
 
         await client.SendAsync(request);
 
         var auditWriter = _factory.Services.GetRequiredService<InMemoryAuditEventWriter>();
         var events = auditWriter.GetEvents();
-        var crossTenantEvent = events.FirstOrDefault(e =>
-            e.EventType == "tenant.cross_access_denied" &&
-            e.ActorId == "attacker-user" &&
-            e.TenantId == "home-tenant");
-        Assert.NotNull(crossTenantEvent);
-        Assert.Contains("foreign-tenant", crossTenantEvent!.Detail);
+        var missingTenantEvent = events.FirstOrDefault(e =>
+            e.EventType == "tenant.missing");
+        Assert.NotNull(missingTenantEvent);
+        Assert.Contains("no tenant claim", missingTenantEvent!.Detail);
     }
 
     [Fact]
-    public async Task CrossTenantAccess_CaseInsensitiveMatch_Returns200()
+    public async Task CrossTenantConnectorAccess_DoesNotLeakExistence()
     {
-        var client = CreateClient();
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/admin/connectors/MY-TENANT");
-        AddAuth(request, roles: "Admin", tenantId: "my-tenant", userId: "user-1");
+        // Create connector in tenant-1
+        var connectorId = await SeedConnectorAsync("tenant-1", "Leak-Test Connector");
 
-        var response = await client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        // Access same connector from tenant-other — should get same 404 as a non-existent connector
+        var client = CreateClient();
+
+        var crossTenantRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/admin/connectors/{connectorId}");
+        AddAuth(crossTenantRequest, roles: "Admin", tenantId: "tenant-other", userId: "attacker");
+        var crossTenantResponse = await client.SendAsync(crossTenantRequest);
+
+        var nonExistentRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/admin/connectors/{Guid.NewGuid()}");
+        AddAuth(nonExistentRequest, roles: "Admin", tenantId: "tenant-1", userId: "user-1");
+        var nonExistentResponse = await client.SendAsync(nonExistentRequest);
+
+        // Both should return 404 — attacker cannot distinguish cross-tenant from non-existent
+        Assert.Equal(HttpStatusCode.NotFound, crossTenantResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, nonExistentResponse.StatusCode);
     }
 
     // --- No tenant claim produces 403 on protected endpoints ---

@@ -4,11 +4,11 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using SmartKb.Api.Audit;
 using SmartKb.Api.Tests.Connectors;
 using SmartKb.Contracts.Services;
 using SmartKb.Data;
 using SmartKb.Data.Entities;
-using SmartKb.Data.Repositories;
 
 namespace SmartKb.Api.Tests.Auth;
 
@@ -31,7 +31,9 @@ public sealed class AuthTestFactory : WebApplicationFactory<Program>, IAsyncLife
 
         if (!await db.Tenants.AnyAsync(t => t.TenantId == "tenant-1"))
         {
-            db.Tenants.Add(new TenantEntity { TenantId = "tenant-1", DisplayName = "Test Tenant 1", CreatedAt = DateTimeOffset.UtcNow });
+            db.Tenants.AddRange(
+                new TenantEntity { TenantId = "tenant-1", DisplayName = "Test Tenant 1", CreatedAt = DateTimeOffset.UtcNow },
+                new TenantEntity { TenantId = "tenant-other", DisplayName = "Test Tenant Other", CreatedAt = DateTimeOffset.UtcNow });
             await db.SaveChangesAsync();
         }
     }
@@ -65,7 +67,8 @@ public sealed class AuthTestFactory : WebApplicationFactory<Program>, IAsyncLife
 
             services.AddDbContext<SmartKbDbContext>(options =>
                 options.UseSqlite(_connection));
-            services.AddScoped<IAuditEventWriter, SqlAuditEventWriter>();
+            services.AddSingleton<InMemoryAuditEventWriter>();
+            services.AddSingleton<IAuditEventWriter>(sp => sp.GetRequiredService<InMemoryAuditEventWriter>());
             services.AddSingleton<ISyncJobPublisher, TestSyncJobPublisher>();
             services.AddScoped<SmartKb.Api.Connectors.ConnectorAdminService>();
         });
