@@ -306,6 +306,7 @@ public class AzureSearchRetrievalServiceTests
         SourceType = "WorkItem",
         UpdatedAt = DateTimeOffset.UtcNow,
         AccessLabel = "Internal",
+        Visibility = "Internal",
         RrfScore = rrfScore,
     };
 

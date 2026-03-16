@@ -87,8 +87,10 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         }
 
         _logger.LogInformation(
-            "Retrieval complete. TraceId={TraceId}, HasEvidence={HasEvidence}, ChunkCount={ChunkCount}, AclFiltered={AclFiltered}",
-            traceId, retrievalResult.HasEvidence, retrievalResult.Chunks.Count, retrievalResult.AclFilteredOutCount);
+            "Retrieval complete. TraceId={TraceId}, HasEvidence={HasEvidence}, ChunkCount={ChunkCount}, " +
+            "AclFiltered={AclFiltered}",
+            traceId, retrievalResult.HasEvidence, retrievalResult.Chunks.Count,
+            retrievalResult.AclFilteredOutCount);
 
         // Step 3: If no evidence, produce degraded response (D-013).
         if (!retrievalResult.HasEvidence)
@@ -97,8 +99,22 @@ public sealed class ChatOrchestrator : IChatOrchestrator
             return BuildNoEvidenceResponse(traceId);
         }
 
+        // Step 3.5 (P0-014): Defense-in-depth — enforce restricted content exclusion before prompt assembly.
+        // The retrieval layer already applies ACL filtering, but this guard prevents any Restricted
+        // content from reaching the model if the retrieval layer has a bug or is bypassed.
+        var (safeChunks, restrictedRemovedCount) = EnforceRestrictedContentExclusion(
+            retrievalResult.Chunks, request.UserGroups);
+
+        if (restrictedRemovedCount > 0)
+        {
+            _logger.LogCritical(
+                "SECURITY: Restricted content detected in orchestration layer after retrieval ACL filter. " +
+                "RemovedCount={RemovedCount}, TraceId={TraceId}. This indicates a bug in the retrieval layer.",
+                restrictedRemovedCount, traceId);
+        }
+
         // Step 4: Assemble prompt with evidence context and session history (D-010 token budget).
-        var evidenceChunks = retrievalResult.Chunks
+        var evidenceChunks = safeChunks
             .Take(_settings.MaxEvidenceChunksInPrompt)
             .ToList();
 
@@ -420,6 +436,46 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         }
 
         return citations;
+    }
+
+    /// <summary>
+    /// P0-014: Defense-in-depth ACL enforcement. Removes any Restricted chunks where the user
+    /// is not in the allowed groups. This should never find anything (retrieval already filters),
+    /// but guarantees restricted content never reaches the model even if retrieval has a bug.
+    /// </summary>
+    internal static (IReadOnlyList<RetrievedChunk> Safe, int RemovedCount) EnforceRestrictedContentExclusion(
+        IReadOnlyList<RetrievedChunk> chunks,
+        IReadOnlyList<string>? userGroups)
+    {
+        var groupSet = userGroups is { Count: > 0 }
+            ? new HashSet<string>(userGroups, StringComparer.OrdinalIgnoreCase)
+            : null;
+
+        var safe = new List<RetrievedChunk>();
+        var removed = 0;
+
+        foreach (var chunk in chunks)
+        {
+            if (string.Equals(chunk.Visibility, "Restricted", StringComparison.OrdinalIgnoreCase))
+            {
+                // Restricted: user must be in at least one allowed group.
+                if (groupSet is not null && chunk.AllowedGroups.Any(g => groupSet.Contains(g)))
+                {
+                    safe.Add(chunk);
+                }
+                else
+                {
+                    removed++;
+                }
+            }
+            else
+            {
+                // Public and Internal: always safe for authenticated users.
+                safe.Add(chunk);
+            }
+        }
+
+        return (safe, removed);
     }
 
     /// <summary>Approximate token count using chars/4 heuristic for English text.</summary>

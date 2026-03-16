@@ -45,7 +45,15 @@ public sealed class TenantContextMiddleware
             return;
         }
 
-        var tenantContext = new TenantContext(tenantId, userId ?? "unknown", correlationId);
+        // Extract user group memberships from JWT claims for ACL security trimming (P0-014).
+        // Entra ID sends groups in "groups" claim; roles in "roles" claim.
+        var userGroups = context.User.Claims
+            .Where(c => c.Type == "groups" || c.Type == "roles")
+            .Select(c => c.Value)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var tenantContext = new TenantContext(tenantId, userId ?? "unknown", correlationId, userGroups);
         tenantAccessor.Current = tenantContext;
 
         // Attach tenant ID to Activity baggage for downstream correlation

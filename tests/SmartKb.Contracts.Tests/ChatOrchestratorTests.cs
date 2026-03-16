@@ -364,7 +364,9 @@ public class ChatOrchestratorTests
         string text = "Content",
         string title = "Title",
         double rrfScore = 0.5,
-        string? productArea = null) => new()
+        string? productArea = null,
+        string visibility = "Internal",
+        IReadOnlyList<string>? allowedGroups = null) => new()
     {
         ChunkId = chunkId,
         EvidenceId = $"ev-{chunkId}",
@@ -374,7 +376,9 @@ public class ChatOrchestratorTests
         SourceSystem = "AzureDevOps",
         SourceType = "WorkItem",
         UpdatedAt = DateTimeOffset.UtcNow,
-        AccessLabel = "Internal",
+        AccessLabel = visibility == "Restricted" ? "Restricted" : "Internal",
+        Visibility = visibility,
+        AllowedGroups = allowedGroups ?? [],
         RrfScore = rrfScore,
         ProductArea = productArea,
     };
@@ -384,3 +388,191 @@ public class ChatOrchestratorTests
 
     #endregion
 }
+
+#region P0-014: EnforceRestrictedContentExclusion Tests
+
+public class RestrictedContentExclusionTests
+{
+    [Fact]
+    public void PublicAndInternalChunks_AlwaysPassThrough()
+    {
+        var chunks = new List<RetrievedChunk>
+        {
+            MakeChunk("c1", "Public"),
+            MakeChunk("c2", "Internal"),
+        };
+
+        var (safe, removed) = ChatOrchestrator.EnforceRestrictedContentExclusion(chunks, null);
+
+        Assert.Equal(2, safe.Count);
+        Assert.Equal(0, removed);
+    }
+
+    [Fact]
+    public void RestrictedChunk_RemovedWhenNoUserGroups()
+    {
+        var chunks = new List<RetrievedChunk>
+        {
+            MakeChunk("c1", "Internal"),
+            MakeChunk("c2", "Restricted", ["TeamAlpha"]),
+        };
+
+        var (safe, removed) = ChatOrchestrator.EnforceRestrictedContentExclusion(chunks, null);
+
+        Assert.Single(safe);
+        Assert.Equal("c1", safe[0].ChunkId);
+        Assert.Equal(1, removed);
+    }
+
+    [Fact]
+    public void RestrictedChunk_RemovedWhenUserNotInAllowedGroups()
+    {
+        var chunks = new List<RetrievedChunk>
+        {
+            MakeChunk("c1", "Restricted", ["TeamAlpha", "TeamBeta"]),
+        };
+
+        var (safe, removed) = ChatOrchestrator.EnforceRestrictedContentExclusion(
+            chunks, new[] { "TeamGamma" });
+
+        Assert.Empty(safe);
+        Assert.Equal(1, removed);
+    }
+
+    [Fact]
+    public void RestrictedChunk_PassesWhenUserInAllowedGroup()
+    {
+        var chunks = new List<RetrievedChunk>
+        {
+            MakeChunk("c1", "Restricted", ["TeamAlpha", "TeamBeta"]),
+        };
+
+        var (safe, removed) = ChatOrchestrator.EnforceRestrictedContentExclusion(
+            chunks, new[] { "TeamBeta" });
+
+        Assert.Single(safe);
+        Assert.Equal(0, removed);
+    }
+
+    [Fact]
+    public void RestrictedChunk_CaseInsensitiveGroupMatching()
+    {
+        var chunks = new List<RetrievedChunk>
+        {
+            MakeChunk("c1", "Restricted", ["TeamAlpha"]),
+        };
+
+        var (safe, removed) = ChatOrchestrator.EnforceRestrictedContentExclusion(
+            chunks, new[] { "teamalpha" });
+
+        Assert.Single(safe);
+        Assert.Equal(0, removed);
+    }
+
+    [Fact]
+    public void RestrictedChunk_CaseInsensitiveVisibility()
+    {
+        var chunks = new List<RetrievedChunk>
+        {
+            MakeChunk("c1", "restricted", ["TeamAlpha"]),
+        };
+
+        var (safe, removed) = ChatOrchestrator.EnforceRestrictedContentExclusion(chunks, null);
+
+        Assert.Empty(safe);
+        Assert.Equal(1, removed);
+    }
+
+    [Fact]
+    public void MixedVisibility_OnlyRestrictedFiltered()
+    {
+        var chunks = new List<RetrievedChunk>
+        {
+            MakeChunk("c1", "Public"),
+            MakeChunk("c2", "Restricted", ["TeamAlpha"]),
+            MakeChunk("c3", "Internal"),
+            MakeChunk("c4", "Restricted", ["TeamBeta"]),
+        };
+
+        var (safe, removed) = ChatOrchestrator.EnforceRestrictedContentExclusion(
+            chunks, new[] { "TeamBeta" });
+
+        Assert.Equal(3, safe.Count);
+        Assert.Equal(1, removed);
+        Assert.Contains(safe, c => c.ChunkId == "c1");
+        Assert.Contains(safe, c => c.ChunkId == "c3");
+        Assert.Contains(safe, c => c.ChunkId == "c4");
+        Assert.DoesNotContain(safe, c => c.ChunkId == "c2");
+    }
+
+    [Fact]
+    public void EmptyChunks_ReturnsEmpty()
+    {
+        var (safe, removed) = ChatOrchestrator.EnforceRestrictedContentExclusion([], null);
+
+        Assert.Empty(safe);
+        Assert.Equal(0, removed);
+    }
+
+    [Fact]
+    public void RestrictedChunk_EmptyAllowedGroups_AlwaysRemoved()
+    {
+        var chunks = new List<RetrievedChunk>
+        {
+            MakeChunk("c1", "Restricted", []),
+        };
+
+        var (safe, removed) = ChatOrchestrator.EnforceRestrictedContentExclusion(
+            chunks, new[] { "TeamAlpha" });
+
+        Assert.Empty(safe);
+        Assert.Equal(1, removed);
+    }
+
+    [Fact]
+    public void RestrictedContentNeverReachesPrompt_IntegrationProof()
+    {
+        // Simulate a scenario where retrieval "accidentally" returns restricted content
+        // that the user should not see. Verify the orchestration guard catches it.
+        var chunks = new List<RetrievedChunk>
+        {
+            MakeChunk("safe-1", "Internal"),
+            MakeChunk("restricted-secret", "Restricted", ["SecretTeam"]),
+            MakeChunk("safe-2", "Public"),
+        };
+
+        // User is NOT in SecretTeam — restricted chunk must be excluded.
+        var (safe, removed) = ChatOrchestrator.EnforceRestrictedContentExclusion(
+            chunks, new[] { "SupportTeam" });
+
+        Assert.Equal(2, safe.Count);
+        Assert.Equal(1, removed);
+
+        // Verify that building the system prompt from safe chunks does NOT contain restricted content.
+        var prompt = ChatOrchestrator.BuildSystemPrompt(safe);
+        Assert.DoesNotContain("restricted-secret", prompt);
+        Assert.Contains("safe-1", prompt);
+        Assert.Contains("safe-2", prompt);
+    }
+
+    private static RetrievedChunk MakeChunk(
+        string chunkId,
+        string visibility,
+        IReadOnlyList<string>? allowedGroups = null) => new()
+    {
+        ChunkId = chunkId,
+        EvidenceId = $"ev-{chunkId}",
+        ChunkText = $"Content for {chunkId}",
+        Title = $"Title {chunkId}",
+        SourceUrl = $"https://example.com/{chunkId}",
+        SourceSystem = "AzureDevOps",
+        SourceType = "WorkItem",
+        UpdatedAt = DateTimeOffset.UtcNow,
+        AccessLabel = visibility == "Restricted" ? "Restricted" : visibility,
+        Visibility = visibility,
+        AllowedGroups = allowedGroups ?? [],
+        RrfScore = 0.5,
+    };
+}
+
+#endregion

@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-16 (Asia/Manila) — iteration 29 (P0-013A complete)
-Status: Active backlog (P0-001 through P0-013A complete; 0 bugs blocking, 0 tech-debt blocking; next up P0-014)
+Last updated: 2026-03-16 (Asia/Manila) — iteration 30 (P0-014 complete)
+Status: Active backlog (P0-001 through P0-014 complete; 0 bugs blocking, 0 tech-debt blocking; next up P0-014A)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -146,12 +146,12 @@ Status: Active backlog (P0-001 through P0-013A complete; 0 bugs blocking, 0 tech
 - [x] P0-013A: Implement session and message persistence API for chat continuity.
   - Specs: jtbd-05
   - Dependencies: P0-013 (complete)
-  - Completed: `SessionSettings` config class (default 24h expiry, max 200 messages/session, max 50 active sessions/user — all configurable via `Session:*` app settings). `SessionEntity` extended with `Title`, `CustomerRef`, `ExpiresAt` fields. `MessageEntity` extended with `CitationsJson` (JSON column for citation persistence), `Confidence`, `ConfidenceLabel`, `ResponseType` fields. `AddSessionPersistence` migration. `ISessionService` interface + `SessionService` implementation in `SmartKb.Data.Repositories`. Session CRUD: `POST /api/sessions` (create), `GET /api/sessions` (list user's sessions), `GET /api/sessions/{id}` (get detail), `DELETE /api/sessions/{id}` (soft-delete). Message endpoints: `GET /api/sessions/{id}/messages` (chronological history with persisted citations), `POST /api/sessions/{id}/messages` (orchestrate chat + persist user and assistant messages). Follow-up messages carry full session history to `ChatOrchestrator` for multi-turn context (D-010 token budget applies). Auto-title sessions from first user query when no title set. Session expiry extended on each message activity. Expired/over-limit sessions return 404. Tenant isolation + user ownership enforced on all operations. All endpoints require `chat:query` permission (SupportAgent, SupportLead, Admin). Stateless `POST /api/chat` endpoint preserved for backward compatibility. Registered in API DI via `DataServiceExtensions`. 35 new tests (4 settings, 14 service unit, 17 endpoint integration); all 567 tests passing.
+  - Completed: `SessionSettings` config class (default 24h expiry, max 200 messages/session, max 50 active sessions/user — all configurable via `Session:*` app settings). `SessionEntity` extended with `Title`, `CustomerRef`, `ExpiresAt` fields. `MessageEntity` extended with `CitationsJson` (JSON column for citation persistence), `Confidence`, `ConfidenceLabel`, `ResponseType` fields. `AddSessionPersistence` migration. `ISessionService` interface + `SessionService` implementation in `SmartKb.Data.Repositories`. Session CRUD: `POST /api/sessions` (create), `GET /api/sessions` (list user's sessions), `GET /api/sessions/{id}` (get detail), `DELETE /api/sessions/{id}` (soft-delete). Message endpoints: `GET /api/sessions/{id}/messages` (chronological history with persisted citations), `POST /api/sessions/{id}/messages` (orchestrate chat + persist user and assistant messages). Follow-up messages carry full session history to `ChatOrchestrator` for multi-turn context (D-010 token budget applies). Auto-title sessions from first user query when no title set. Session expiry extended on each message activity. Expired/over-limit sessions return 404. Tenant isolation + user ownership enforced on all operations. All endpoints require `chat:query` permission (SupportAgent, SupportLead, Admin). Stateless `POST /api/chat` endpoint preserved for backward compatibility. Registered in API DI via `DataServiceExtensions`. 35 new tests (4 settings, 14 service unit, 17 endpoint integration).
 
-- [ ] P0-014: Enforce "never pass restricted content to model" check in orchestration path.
+- [x] P0-014: Enforce "never pass restricted content to model" check in orchestration path.
   - Specs: jtbd-03, jtbd-10
   - Dependencies: P0-012 (complete), P0-013 (complete)
-  - Exit criteria: ACL trimming occurs before prompt assembly; restricted documents excluded from model context; integration test proves restricted content never reaches generation layer.
+  - Completed: Defense-in-depth ACL enforcement in `ChatOrchestrator.EnforceRestrictedContentExclusion` — second ACL check between retrieval and prompt assembly. `RetrievedChunk` extended with `Visibility` and `AllowedGroups` fields for orchestration-layer verification. `TenantContext` extended with `UserGroups` (backward-compatible). `TenantContextMiddleware` extracts `groups` and `roles` claims from Entra ID JWT and populates `UserGroups`. API endpoints (`/api/chat`, `/api/sessions/{id}/messages`) inject JWT-extracted groups into requests (server-side groups take precedence over client-provided). Critical security log emitted if restricted content bypasses retrieval layer. Integration test proves restricted content never reaches `BuildSystemPrompt`. 13 new tests (10 restricted content exclusion unit + 3 middleware group extraction); all 580 tests passing.
 
 - [ ] P0-014A: Implement baseline PII detection and redaction in orchestration path.
   - Specs: jtbd-10

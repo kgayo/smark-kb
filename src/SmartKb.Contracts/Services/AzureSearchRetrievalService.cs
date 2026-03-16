@@ -150,6 +150,8 @@ public sealed class AzureSearchRetrievalService : IRetrievalService
             ProductArea = r.ProductArea,
             AccessLabel = r.AccessLabel,
             Tags = r.Tags,
+            Visibility = r.Visibility,
+            AllowedGroups = r.AllowedGroups,
             RrfScore = r.Score,
             SemanticScore = r.SemanticScore,
         }).ToList();

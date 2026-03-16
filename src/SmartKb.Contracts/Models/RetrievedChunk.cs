@@ -18,6 +18,12 @@ public sealed record RetrievedChunk
     public required string AccessLabel { get; init; }
     public IReadOnlyList<string> Tags { get; init; } = [];
 
+    /// <summary>Visibility level for defense-in-depth ACL enforcement in orchestration (P0-014).</summary>
+    public required string Visibility { get; init; }
+
+    /// <summary>Allowed groups for Restricted visibility. Used by orchestration-layer ACL guard (P0-014).</summary>
+    public IReadOnlyList<string> AllowedGroups { get; init; } = [];
+
     /// <summary>Combined RRF-fused score (primary ranking score).</summary>
     public required double RrfScore { get; init; }
 

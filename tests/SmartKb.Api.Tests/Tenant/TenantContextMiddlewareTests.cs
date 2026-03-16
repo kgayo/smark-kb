@@ -104,6 +104,66 @@ public class TenantContextMiddlewareTests
         Assert.Equal("sub-user", _accessor.Current!.UserId);
     }
 
+    [Fact]
+    public async Task ExtractsUserGroups_FromGroupsAndRolesClaims()
+    {
+        var middleware = CreateMiddleware(_ => Task.CompletedTask);
+        var claims = new[]
+        {
+            new Claim("tid", "tenant-1"),
+            new Claim("oid", "user-1"),
+            new Claim("groups", "TeamAlpha"),
+            new Claim("groups", "TeamBeta"),
+            new Claim("roles", "SupportAgent"),
+        };
+        var ctx = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity(claims, "test")),
+        };
+
+        await middleware.InvokeAsync(ctx, _accessor, _auditWriter);
+
+        Assert.NotNull(_accessor.Current);
+        Assert.Equal(3, _accessor.Current!.UserGroups.Count);
+        Assert.Contains("TeamAlpha", _accessor.Current.UserGroups);
+        Assert.Contains("TeamBeta", _accessor.Current.UserGroups);
+        Assert.Contains("SupportAgent", _accessor.Current.UserGroups);
+    }
+
+    [Fact]
+    public async Task UserGroups_Empty_WhenNoGroupOrRoleClaims()
+    {
+        var middleware = CreateMiddleware(_ => Task.CompletedTask);
+        var ctx = CreateAuthenticatedContext("tenant-1", "user-1");
+
+        await middleware.InvokeAsync(ctx, _accessor, _auditWriter);
+
+        Assert.NotNull(_accessor.Current);
+        Assert.Empty(_accessor.Current!.UserGroups);
+    }
+
+    [Fact]
+    public async Task UserGroups_DeduplicatesCaseInsensitive()
+    {
+        var middleware = CreateMiddleware(_ => Task.CompletedTask);
+        var claims = new[]
+        {
+            new Claim("tid", "tenant-1"),
+            new Claim("oid", "user-1"),
+            new Claim("groups", "TeamAlpha"),
+            new Claim("roles", "teamalpha"),
+        };
+        var ctx = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity(claims, "test")),
+        };
+
+        await middleware.InvokeAsync(ctx, _accessor, _auditWriter);
+
+        Assert.NotNull(_accessor.Current);
+        Assert.Single(_accessor.Current!.UserGroups);
+    }
+
     private static DefaultHttpContext CreateAuthenticatedContext(string? tenantId, string? userId)
     {
         var claims = new List<Claim>();

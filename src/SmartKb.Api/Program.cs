@@ -491,8 +491,13 @@ app.MapPost("/api/sessions/{sessionId:guid}/messages", async (
     ISessionService sessionService) =>
 {
     var tenant = tenantAccessor.Current!;
+    // P0-014: Inject JWT-extracted user groups for ACL enforcement.
+    var effectiveRequest = request with
+    {
+        UserGroups = tenant.UserGroups.Count > 0 ? tenant.UserGroups : request.UserGroups,
+    };
     var response = await sessionService.SendMessageAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, sessionId, request);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, sessionId, effectiveRequest);
     return response is null
         ? Results.NotFound(ApiResponse<object>.Failure("Session not found or expired.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<SessionChatResponse>.Success(response, tenant.CorrelationId));
@@ -512,8 +517,15 @@ app.MapPost("/api/chat", async (
             ApiResponse<object>.Failure("Chat orchestration is not configured. Ensure OpenAI and Search Service are set up.", tenant.CorrelationId),
             statusCode: 503);
 
+    // P0-014: Inject JWT-extracted user groups for ACL enforcement.
+    // Merge with any groups provided in the request body (server-side groups take precedence).
+    var effectiveRequest = request with
+    {
+        UserGroups = tenant.UserGroups.Count > 0 ? tenant.UserGroups : request.UserGroups,
+    };
+
     var response = await orchestrator.OrchestrateAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, request);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, effectiveRequest);
     return Results.Ok(ApiResponse<ChatResponse>.Success(response, tenant.CorrelationId));
 }).RequirePermission("chat:query");
 
