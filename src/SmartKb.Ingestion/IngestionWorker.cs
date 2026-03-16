@@ -1,21 +1,130 @@
+using System.Text.Json;
+using Azure.Messaging.ServiceBus;
+using SmartKb.Contracts.Configuration;
+using SmartKb.Contracts.Models;
+using SmartKb.Ingestion.Processing;
+
 namespace SmartKb.Ingestion;
 
 public sealed class IngestionWorker : BackgroundService
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
+
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ServiceBusClient? _serviceBusClient;
+    private readonly ServiceBusSettings _settings;
     private readonly ILogger<IngestionWorker> _logger;
 
-    public IngestionWorker(ILogger<IngestionWorker> logger)
+    public IngestionWorker(
+        IServiceScopeFactory scopeFactory,
+        ServiceBusSettings settings,
+        ILogger<IngestionWorker> logger,
+        ServiceBusClient? serviceBusClient = null)
     {
+        _scopeFactory = scopeFactory;
+        _settings = settings;
         _logger = logger;
+        _serviceBusClient = serviceBusClient;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("Ingestion worker started at {Time}", DateTimeOffset.UtcNow);
 
-        while (!stoppingToken.IsCancellationRequested)
+        if (_serviceBusClient is null)
         {
-            await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+            _logger.LogWarning(
+                "Service Bus not configured. Ingestion worker running in idle mode. " +
+                "Configure ServiceBus:ConnectionString to enable queue processing.");
+
+            // Idle loop for environments without Service Bus.
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+            }
+            return;
         }
+
+        var processor = _serviceBusClient.CreateProcessor(_settings.QueueName, new ServiceBusProcessorOptions
+        {
+            MaxConcurrentCalls = _settings.MaxConcurrentCalls,
+            AutoCompleteMessages = false,
+            PrefetchCount = _settings.MaxConcurrentCalls * 2,
+        });
+
+        processor.ProcessMessageAsync += ProcessMessageAsync;
+        processor.ProcessErrorAsync += ProcessErrorAsync;
+
+        await processor.StartProcessingAsync(stoppingToken);
+
+        _logger.LogInformation("Service Bus processor started on queue '{Queue}'", _settings.QueueName);
+
+        try
+        {
+            await Task.Delay(Timeout.Infinite, stoppingToken);
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected on shutdown.
+        }
+
+        _logger.LogInformation("Ingestion worker stopping...");
+        await processor.StopProcessingAsync(CancellationToken.None);
+        await processor.DisposeAsync();
+    }
+
+    private async Task ProcessMessageAsync(ProcessMessageEventArgs args)
+    {
+        SyncJobMessage? message = null;
+        try
+        {
+            message = JsonSerializer.Deserialize<SyncJobMessage>(args.Message.Body.ToString(), JsonOptions);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Failed to deserialize sync job message {MessageId}. Dead-lettering.",
+                args.Message.MessageId);
+            await args.DeadLetterMessageAsync(args.Message, "DeserializationFailed",
+                $"Could not deserialize message body: {ex.Message}", args.CancellationToken);
+            return;
+        }
+
+        if (message is null)
+        {
+            _logger.LogError("Deserialized message {MessageId} was null. Dead-lettering.", args.Message.MessageId);
+            await args.DeadLetterMessageAsync(args.Message, "NullMessage",
+                "Deserialized message was null.", args.CancellationToken);
+            return;
+        }
+
+        _logger.LogInformation(
+            "Processing sync job {SyncRunId} for connector {ConnectorId} (delivery {DeliveryCount})",
+            message.SyncRunId, message.ConnectorId, args.Message.DeliveryCount);
+
+        using var scope = _scopeFactory.CreateScope();
+        var processor = scope.ServiceProvider.GetRequiredService<SyncJobProcessor>();
+
+        var success = await processor.ProcessAsync(message, args.CancellationToken);
+
+        if (success)
+        {
+            await args.CompleteMessageAsync(args.Message, args.CancellationToken);
+        }
+        else
+        {
+            // Let Service Bus handle retry via delivery count / dead-letter after max attempts.
+            await args.AbandonMessageAsync(args.Message, cancellationToken: args.CancellationToken);
+        }
+    }
+
+    private Task ProcessErrorAsync(ProcessErrorEventArgs args)
+    {
+        _logger.LogError(args.Exception,
+            "Service Bus processing error. Source={Source}, Namespace={Namespace}, EntityPath={EntityPath}",
+            args.ErrorSource, args.FullyQualifiedNamespace, args.EntityPath);
+        return Task.CompletedTask;
     }
 }

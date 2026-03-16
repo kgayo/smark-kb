@@ -57,6 +57,7 @@ public sealed class ConnectorTestFactory : WebApplicationFactory<Program>, IAsyn
             services.AddDbContext<SmartKbDbContext>(options =>
                 options.UseSqlite(_connection));
             services.AddScoped<IAuditEventWriter, SqlAuditEventWriter>();
+            services.AddSingleton<ISyncJobPublisher, TestSyncJobPublisher>();
             services.AddScoped<ConnectorAdminService>();
         });
     }

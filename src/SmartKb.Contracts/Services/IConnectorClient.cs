@@ -24,4 +24,17 @@ public interface IConnectorClient
         string? secretValue,
         int sampleSize,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Fetches records from the source system for ingestion. Supports incremental sync via checkpoint.
+    /// Returns a batch of records, any per-record errors, and an updated checkpoint for the next fetch.
+    /// </summary>
+    Task<FetchResult> FetchAsync(
+        string tenantId,
+        string? sourceConfig,
+        FieldMappingConfig? fieldMapping,
+        string? secretValue,
+        string? checkpoint,
+        bool isBackfill,
+        CancellationToken cancellationToken = default);
 }

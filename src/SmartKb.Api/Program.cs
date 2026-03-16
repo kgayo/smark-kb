@@ -1,4 +1,5 @@
 using System.Reflection;
+using Azure.Messaging.ServiceBus;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Identity.Web;
 using SmartKb.Api.Audit;
@@ -6,6 +7,7 @@ using SmartKb.Api.Auth;
 using SmartKb.Api.Connectors;
 using SmartKb.Api.Secrets;
 using SmartKb.Api.Tenant;
+using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
@@ -34,6 +36,23 @@ builder.Services.AddAuthorizationBuilder()
 builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
 builder.Services.AddScoped<ITenantContextAccessor, TenantContextAccessor>();
 builder.Services.AddSecretArchitecture(builder.Configuration);
+
+// Service Bus registration.
+var serviceBusSettings = new ServiceBusSettings();
+builder.Configuration.GetSection(ServiceBusSettings.SectionName).Bind(serviceBusSettings);
+builder.Services.AddSingleton(serviceBusSettings);
+
+var sbConnectionString = serviceBusSettings.ConnectionString;
+if (!string.IsNullOrEmpty(sbConnectionString))
+{
+    builder.Services.AddSingleton(new ServiceBusClient(sbConnectionString));
+    builder.Services.AddSingleton<ISyncJobPublisher, ServiceBusSyncJobPublisher>();
+    builder.Services.AddSingleton<DeadLetterService>();
+}
+else
+{
+    builder.Services.AddSingleton<ISyncJobPublisher, InMemorySyncJobPublisher>();
+}
 
 var connectionString = builder.Configuration.GetConnectionString("SmartKbDb");
 if (!string.IsNullOrEmpty(connectionString))
@@ -306,6 +325,25 @@ app.MapGet("/api/admin/secrets/status", (
         openAiKeyConfigured = openAiConfigured,
         openAiModel = openAiKeyProvider.GetModel(),
     });
+}).RequirePermission("connector:manage");
+
+// --- Dead-Letter Queue Inspection ---
+
+app.MapGet("/api/admin/ingestion/dead-letters", async (
+    ITenantContextAccessor tenantAccessor,
+    HttpContext httpContext) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var dlService = httpContext.RequestServices.GetService<DeadLetterService>();
+    if (dlService is null)
+        return Results.Ok(ApiResponse<object>.Success(
+            new { messages = Array.Empty<object>(), count = 0, serviceBusConfigured = false },
+            tenant.CorrelationId));
+
+    var maxParam = httpContext.Request.Query["maxMessages"].FirstOrDefault();
+    var maxMessages = int.TryParse(maxParam, out var m) ? m : 20;
+    var result = await dlService.PeekAsync(maxMessages);
+    return Results.Ok(ApiResponse<DeadLetterListResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.Run();

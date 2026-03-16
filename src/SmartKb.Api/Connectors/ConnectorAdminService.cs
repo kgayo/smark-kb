@@ -28,17 +28,20 @@ public sealed class ConnectorAdminService
     private readonly IAuditEventWriter _auditWriter;
     private readonly ISecretProvider? _secretProvider;
     private readonly IEnumerable<IConnectorClient> _connectorClients;
+    private readonly ISyncJobPublisher _syncJobPublisher;
 
     public ConnectorAdminService(
         SmartKbDbContext db,
         IAuditEventWriter auditWriter,
         IEnumerable<IConnectorClient> connectorClients,
+        ISyncJobPublisher syncJobPublisher,
         ISecretProvider? secretProvider = null)
     {
         _db = db;
         _auditWriter = auditWriter;
         _secretProvider = secretProvider;
         _connectorClients = connectorClients;
+        _syncJobPublisher = syncJobPublisher;
     }
 
     public async Task<ConnectorListResponse> ListAsync(string tenantId, CancellationToken ct = default)
@@ -262,6 +265,17 @@ public sealed class ConnectorAdminService
         var entity = await FindConnectorAsync(tenantId, connectorId, ct);
         if (entity is null) return (null, true);
 
+        // Retrieve last checkpoint for incremental syncs.
+        string? lastCheckpoint = null;
+        if (!request.IsBackfill)
+        {
+            var lastCompleted = entity.SyncRuns?
+                .Where(r => r.Status == SyncRunStatus.Completed && r.Checkpoint is not null)
+                .OrderByDescending(r => r.CompletedAt)
+                .FirstOrDefault();
+            lastCheckpoint = lastCompleted?.Checkpoint;
+        }
+
         var syncRun = new SyncRunEntity
         {
             Id = Guid.NewGuid(),
@@ -275,6 +289,24 @@ public sealed class ConnectorAdminService
 
         _db.SyncRuns.Add(syncRun);
         await _db.SaveChangesAsync(ct);
+
+        var message = new SyncJobMessage
+        {
+            SyncRunId = syncRun.Id,
+            ConnectorId = entity.Id,
+            TenantId = tenantId,
+            ConnectorType = entity.ConnectorType,
+            IsBackfill = request.IsBackfill,
+            SourceConfig = entity.SourceConfig,
+            FieldMapping = entity.FieldMapping,
+            KeyVaultSecretName = entity.KeyVaultSecretName,
+            AuthType = entity.AuthType,
+            Checkpoint = lastCheckpoint,
+            CorrelationId = correlationId,
+            EnqueuedAt = DateTimeOffset.UtcNow,
+        };
+
+        await _syncJobPublisher.PublishAsync(message, ct);
 
         await WriteAuditAsync(tenantId, actorId, correlationId, "connector.sync_triggered",
             $"Sync triggered for connector '{entity.Name}' (id={entity.Id}, runId={syncRun.Id}, backfill={request.IsBackfill}).");
