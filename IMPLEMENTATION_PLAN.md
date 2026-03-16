@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-13 (Asia/Manila) — iteration 9 (P0-005B implemented)
-Status: Active backlog (P0-001 through P0-005B complete; remaining items pending)
+Last updated: 2026-03-16 (Asia/Manila) — iteration 10 (P0-005C implemented)
+Status: Active backlog (P0-001 through P0-005C complete; remaining items pending)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -56,10 +56,11 @@ Status: Active backlog (P0-001 through P0-005B complete; remaining items pending
   - Exit criteria: pipeline runs `terraform fmt -check`, `terraform validate`, and `az deployment group validate` for ARM on every infra-affecting PR.
   - Completed: GitHub Actions workflow `.github/workflows/infra-validate.yml` with two parallel jobs triggered on PRs and pushes to main affecting `infra/` paths; `terraform-validate` job runs `terraform fmt -check -recursive -diff`, `terraform init -backend=false`, and `terraform validate` using hashicorp/setup-terraform@v3; `arm-validate` job validates JSON syntax for all ARM files (main.json + parameter files), validates ARM template structure (required keys, schema URL, resource completeness, parameter file consistency), and conditionally runs `az deployment group validate` when Azure credentials are configured; all validation scripts tested locally against current templates; all 139 existing tests passing.
 
-- [ ] P0-005C: Define canonical record schema, ACL filter schema, and select embedding model + chunking parameters.
+- [x] P0-005C: Define canonical record schema, ACL filter schema, and select embedding model + chunking parameters.
   - Specs: jtbd-02, jtbd-03, jtbd-10
   - Exit criteria: canonical schema documented (tenant, source, ACL, business metadata, access label fields); ACL filter field names and types defined for Azure AI Search index; embedding model and dimensions selected; chunking size/overlap parameters set; decisions recorded in shared contracts project.
   - Note: Blocking dependency for P0-010, P0-011, P0-012. Must be resolved before ingestion pipeline work begins. Access label must be part of schema so P0-016 Evidence Drawer can display it.
+  - Completed: New enums SourceType (WikiPage/WorkItem/Ticket/Task/Document/Comment/Attachment), EvidenceStatus (Open/Closed/Draft/Archived/Deleted), AccessVisibility (Internal/Restricted/Public) in Contracts; CanonicalRecord model with all required fields (TenantId, EvidenceId, SourceSystem, SourceType, SourceLocator, Title, timestamps, Status, TextContent, Permissions with ACL, ContentHash, AccessLabel) plus optional business metadata (Tags, ProductArea, Severity, Author, CustomerRefs, ParentEvidenceId, ThreadId, PiiFlags, SensitivityLabel); EvidenceChunk model with denormalized filterable metadata and ACL fields for Azure AI Search; SourceLocator (ObjectId, Url, PipelineId) and RecordPermissions (Visibility, AllowedGroups) value objects; SearchFieldNames static class defining all Azure AI Search field names in snake_case (ACL: tenant_id, visibility, allowed_groups, access_label; metadata: source_system, source_type, status, updated_at, product_area, tags; text: chunk_text, chunk_context, title; vector: embedding_vector at 1536 dims); EmbeddingSettings (D-001 resolved: text-embedding-3-large at 1536 dimensions via native reduction from 3072, max 8191 input tokens); ChunkingSettings (D-002 resolved: 512 tokens/chunk, 64 token overlap ~12.5%, structural boundary detection enabled); settings wired in appsettings.json; 23 new tests (3 enum + 5 CanonicalRecord + 5 EvidenceChunk + 4 EmbeddingAndChunkingSettings + 6 SearchFieldNames); all 162 tests passing (56 Contracts + 87 API + 18 Data + 1 Ingestion).
 
 ### P0 Ingestion + Evidence Store MVP
 - [ ] P0-006: Build connector admin backend endpoints (list/create/edit/enable-disable/test/sync-now) with field mapping, preview/validation, and audit logging.
@@ -239,7 +240,7 @@ Status: Active backlog (P0-001 through P0-005B complete; remaining items pending
 - [ ] R-005: Terraform/ARM drift risk if infra updates bypass IaC workflows.
 - [ ] R-006: PII leakage into model context before redaction rules are fully mature; baseline detection in Phase 1 mitigates but does not eliminate.
 - [ ] R-007: Service Bus message ordering and exactly-once delivery guarantees under high ingestion load; design for idempotency rather than relying on ordering.
-- [ ] R-008: Embedding model and chunking parameters unspecified in specs; wrong choice degrades retrieval quality and requires full re-index. Mitigate by benchmarking candidates in P0-005C before committing.
+- [x] R-008: Embedding model and chunking parameters — resolved in P0-005C. text-embedding-3-large@1536 dims, 512 tokens/chunk, 64 overlap. Parameters configurable via EmbeddingSettings/ChunkingSettings for future tuning.
 - [ ] R-009: Dual Terraform + ARM maintenance burden; templates may diverge over time. Mitigate with CI validation (P0-005B) and drift checks (P1-010).
 - [ ] R-010: Confidence scoring and escalation threshold design not defined in specs; ad-hoc values risk over/under-triggering. Mitigate by treating initial thresholds as tunable config, informed by P0-021 eval runs.
 - [ ] R-011: Phase 1 escalation drafts cannot be submitted to external systems (ADO/ClickUp) — only copy/export. Agents must manually create tickets. Communicate this limitation in UX. Mitigate with P1-003.
@@ -249,8 +250,8 @@ Status: Active backlog (P0-001 through P0-005B complete; remaining items pending
 ## Open Design Decisions (must resolve before dependent items)
 These are ambiguities surfaced during spec review that require explicit decisions before implementation:
 
-- [ ] D-001: Embedding model selection (e.g., text-embedding-3-large dimensions, ada-002) — blocks P0-005C, P0-010, P0-011.
-- [ ] D-002: Chunking strategy parameters (token count, overlap, semantic boundary detection) — blocks P0-005C, P0-010.
+- [x] D-001: Embedding model selection — resolved: text-embedding-3-large at 1536 dimensions (native reduction from 3072). Superior retrieval quality at manageable index size.
+- [x] D-002: Chunking strategy parameters — resolved: 512 tokens/chunk, 64 token overlap (~12.5%), structural boundary detection (markdown headers, code blocks, lists) with token-based fallback.
 - [ ] D-003: Confidence scoring methodology (0–1 float, categorical, model self-reported + heuristic blend) — blocks P0-013.
 - [ ] D-004: Escalation policy schema and trigger thresholds (confidence threshold, policy rule format, per-tenant vs global) — blocks P0-015.
 - [ ] D-005: Top-k value for retrieval and RRF fusion weights — blocks P0-012.
