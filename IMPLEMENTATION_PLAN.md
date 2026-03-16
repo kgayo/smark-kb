@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-13 (Asia/Manila) — iteration 8 (P0-005A implemented)
-Status: Active backlog (P0-001 through P0-005A complete; remaining items pending)
+Last updated: 2026-03-13 (Asia/Manila) — iteration 9 (P0-005B implemented)
+Status: Active backlog (P0-001 through P0-005B complete; remaining items pending)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -51,9 +51,10 @@ Status: Active backlog (P0-001 through P0-005A complete; remaining items pending
   - Exit criteria: App Service/Container Apps, Azure AI Search, Azure SQL, Azure Blob Storage, Azure Key Vault, Service Bus, and Application Insights resources exist in both Terraform and ARM; environment parameter files for dev/staging/prod created; templates validate cleanly.
   - Completed: Terraform templates in `infra/terraform/` with modular files (main.tf, variables.tf, outputs.tf, app-service.tf, sql.tf, search.tf, storage.tf, keyvault.tf, servicebus.tf, appinsights.tf) and environment tfvars (dev.tfvars, staging.tfvars, prod.tfvars); ARM template in `infra/arm/main.json` with environment parameter files (parameters.dev.json, parameters.staging.json, parameters.prod.json); full resource parity between Terraform and ARM covering: Linux App Service Plan + Web App (SystemAssigned identity, Managed Identity for Key Vault/SQL), Azure SQL Server + Database + firewall rule, Azure AI Search (SystemAssigned identity), Azure Blob Storage + raw-content container, Azure Key Vault (RBAC authorization, purge protection in prod), Service Bus namespace + ingestion-jobs queue (dead-letter enabled), Log Analytics workspace + Application Insights; Web App wired with App Insights connection string, Key Vault URI, and SQL connection string using Active Directory Default auth; Key Vault Secrets User role assignment for Web App identity; environment-specific SKU scaling (dev: B1/Basic, staging: S1/S0/Standard, prod: P1v3/S1/standard); all JSON validates cleanly; all 139 existing tests passing.
 
-- [ ] P0-005B: Add CI validation for Terraform and ARM templates.
+- [x] P0-005B: Add CI validation for Terraform and ARM templates.
   - Specs: jtbd-11
   - Exit criteria: pipeline runs `terraform fmt -check`, `terraform validate`, and `az deployment group validate` for ARM on every infra-affecting PR.
+  - Completed: GitHub Actions workflow `.github/workflows/infra-validate.yml` with two parallel jobs triggered on PRs and pushes to main affecting `infra/` paths; `terraform-validate` job runs `terraform fmt -check -recursive -diff`, `terraform init -backend=false`, and `terraform validate` using hashicorp/setup-terraform@v3; `arm-validate` job validates JSON syntax for all ARM files (main.json + parameter files), validates ARM template structure (required keys, schema URL, resource completeness, parameter file consistency), and conditionally runs `az deployment group validate` when Azure credentials are configured; all validation scripts tested locally against current templates; all 139 existing tests passing.
 
 - [ ] P0-005C: Define canonical record schema, ACL filter schema, and select embedding model + chunking parameters.
   - Specs: jtbd-02, jtbd-03, jtbd-10

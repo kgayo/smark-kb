@@ -1,0 +1,118 @@
+name: Validate Infrastructure
+
+on:
+  pull_request:
+    paths:
+      - 'infra/**'
+  push:
+    branches: [main]
+    paths:
+      - 'infra/**'
+
+permissions:
+  contents: read
+
+jobs:
+  terraform-validate:
+    name: Terraform Validate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.5"
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive -diff
+
+      - name: Terraform Init
+        run: terraform init -backend=false
+
+      - name: Terraform Validate
+        run: terraform validate
+
+  arm-validate:
+    name: ARM Template Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate ARM JSON syntax
+        run: |
+          echo "Validating ARM template JSON syntax..."
+          python3 -c "
+          import json, sys
+          for f in sys.argv[1:]:
+              try:
+                  with open(f) as fh:
+                      json.load(fh)
+                  print(f'  OK: {f}')
+              except json.JSONDecodeError as e:
+                  print(f'  FAIL: {f}: {e}')
+                  sys.exit(1)
+          " infra/arm/main.json infra/arm/parameters.*.json
+
+      - name: Validate ARM template structure
+        run: |
+          python3 -c "
+          import json, sys
+
+          with open('infra/arm/main.json') as f:
+              template = json.load(f)
+
+          errors = []
+
+          # Verify required top-level keys
+          for key in ['\$schema', 'contentVersion', 'parameters', 'resources']:
+              if key not in template:
+                  errors.append(f'Missing required key: {key}')
+
+          # Verify schema URL
+          expected_schema = 'https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#'
+          if template.get('\$schema') != expected_schema:
+              errors.append(f'Unexpected schema: {template.get(\"\$schema\")}')
+
+          # Verify all resources have type and apiVersion
+          for i, resource in enumerate(template.get('resources', [])):
+              if 'type' not in resource:
+                  errors.append(f'Resource [{i}] missing type')
+              if 'apiVersion' not in resource:
+                  errors.append(f'Resource [{i}] missing apiVersion')
+              if 'name' not in resource:
+                  errors.append(f'Resource [{i}] missing name')
+
+          # Verify parameter files reference correct parameters
+          import glob
+          template_params = set(template.get('parameters', {}).keys())
+          for pf in glob.glob('infra/arm/parameters.*.json'):
+              with open(pf) as f:
+                  params = json.load(f)
+              param_values = set(params.get('parameters', {}).keys())
+              unknown = param_values - template_params
+              if unknown:
+                  errors.append(f'{pf}: unknown parameters {unknown}')
+
+          if errors:
+              for e in errors:
+                  print(f'  FAIL: {e}')
+              sys.exit(1)
+          else:
+              print('  ARM template structure: OK')
+              print(f'  Resources: {len(template.get(\"resources\", []))}')
+              print(f'  Parameters: {len(template_params)}')
+          "
+
+      - name: Validate ARM with Azure CLI
+        if: env.AZURE_CREDENTIALS != '' || env.ARM_CLIENT_ID != ''
+        env:
+          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+        run: |
+          az deployment group validate \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP || 'rg-smartkb-dev' }}" \
+            --template-file infra/arm/main.json \
+            --parameters @infra/arm/parameters.dev.json
