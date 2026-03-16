@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-16 (Asia/Manila) — iteration 30 (P0-014 complete)
-Status: Active backlog (P0-001 through P0-014 complete; 0 bugs blocking, 0 tech-debt blocking; next up P0-014A)
+Last updated: 2026-03-16 (Asia/Manila) — iteration 31 (P0-014A complete)
+Status: Active backlog (P0-001 through P0-014A complete; 0 bugs blocking, 0 tech-debt blocking; next up P0-015)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -153,11 +153,10 @@ Status: Active backlog (P0-001 through P0-014 complete; 0 bugs blocking, 0 tech-
   - Dependencies: P0-012 (complete), P0-013 (complete)
   - Completed: Defense-in-depth ACL enforcement in `ChatOrchestrator.EnforceRestrictedContentExclusion` — second ACL check between retrieval and prompt assembly. `RetrievedChunk` extended with `Visibility` and `AllowedGroups` fields for orchestration-layer verification. `TenantContext` extended with `UserGroups` (backward-compatible). `TenantContextMiddleware` extracts `groups` and `roles` claims from Entra ID JWT and populates `UserGroups`. API endpoints (`/api/chat`, `/api/sessions/{id}/messages`) inject JWT-extracted groups into requests (server-side groups take precedence over client-provided). Critical security log emitted if restricted content bypasses retrieval layer. Integration test proves restricted content never reaches `BuildSystemPrompt`. 13 new tests (10 restricted content exclusion unit + 3 middleware group extraction); all 580 tests passing.
 
-- [ ] P0-014A: Implement baseline PII detection and redaction in orchestration path.
+- [x] P0-014A: Implement baseline PII detection and redaction in orchestration path.
   - Specs: jtbd-10
   - Dependencies: P0-013 (complete)
-  - Exit criteria: PII patterns (emails, phone numbers, SSNs, credit cards) detected and redacted/masked before model context assembly; redaction events written to immutable audit event store; redaction rules test-covered.
-  - Implementation notes: Baseline scope — regex-based detection for common PII patterns. `PiiFlags` field on `CanonicalRecord` populated during enrichment (P0-010). Advanced policy controls deferred to P2-001. Tooling choice: start with custom regex; evaluate Azure AI Language PII or Presidio for Phase 2.
+  - Completed: `IPiiRedactionService` interface + `PiiRedactionService` implementation in `SmartKb.Contracts.Services`. Regex-based redaction of 4 PII categories: emails → `[REDACTED-EMAIL]`, phone numbers → `[REDACTED-PHONE]`, SSNs → `[REDACTED-SSN]`, credit card numbers → `[REDACTED-CREDIT-CARD]`. Same regex patterns as `BaselineEnrichmentService.DetectPii` (kept in sync). `ChatOrchestrator.RedactPiiInChunks` static method applies redaction to both `ChunkText` and `ChunkContext` of retrieved chunks. Defense-in-depth: runs after ACL enforcement (step 3.5) and before prompt assembly (step 4), ensuring no PII reaches model context regardless of indexing pipeline behavior. Audit events: `pii.redaction` event written to immutable audit store via `IAuditEventWriter` when PII is redacted, with tenant/user/correlation context. `PiiRedactedCount` field added to `ChatResponse` for client transparency. `ChatOrchestrator` constructor now accepts `IPiiRedactionService` and `IAuditEventWriter` dependencies. `PiiRedactionService` registered as singleton in API DI. 17 new tests (10 PII redaction service unit + 7 RedactPiiInChunks integration including end-to-end proof that PII never reaches `BuildSystemPrompt`); all 597 tests passing. Advanced policy controls deferred to P2-001.
 
 - [ ] P0-015: Implement escalation recommendation + structured handoff draft object.
   - Specs: jtbd-08
@@ -362,7 +361,7 @@ Items where specs are ambiguous, inconsistent, or missing detail. Patch before o
 - [ ] SPEC-011: jtbd-08 — Define severity classification ownership (LLM, classification, agent, source ticket).
 - [ ] SPEC-012: jtbd-09 — Resolve trust state mismatch: spec 3 states vs PRD 4 states. Propose 4.
 - [ ] SPEC-013: jtbd-09 — Define pattern usage/reuse metrics schema.
-- [ ] SPEC-014: jtbd-10 — Specify PII detection tooling and category list.
+- [x] SPEC-014: jtbd-10 — Specify PII detection tooling and category list. Resolved: Phase 1 uses custom regex for 4 categories: email, phone, ssn, credit_card. Azure AI Language PII / Presidio evaluation deferred to Phase 2 (P2-001).
 - [ ] SPEC-015: jtbd-10 — Define default retention window values and entity-to-window mapping.
 - [ ] SPEC-016: jtbd-10 — Define cross-tenant access detection beyond missing-tid.
 - [x] SPEC-017: jtbd-11 — Add Ingestion Worker to IaC resource inventory. Resolved: TECH-001 complete.

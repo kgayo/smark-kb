@@ -126,6 +126,8 @@ builder.Services.AddSingleton(embeddingSettings);
 
 builder.Services.AddHttpClient("OpenAi");
 
+builder.Services.AddSingleton<IPiiRedactionService, PiiRedactionService>();
+
 if (!string.IsNullOrEmpty(openAiSettings.ApiKey) && searchSettings.IsConfigured)
 {
     builder.Services.AddSingleton<IEmbeddingService, OpenAiEmbeddingService>();

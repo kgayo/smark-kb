@@ -18,6 +18,8 @@ public sealed class ChatOrchestrator : IChatOrchestrator
     private readonly IEmbeddingService _embeddingService;
     private readonly IRetrievalService _retrievalService;
     private readonly IAnswerTraceWriter _traceWriter;
+    private readonly IPiiRedactionService _piiRedactionService;
+    private readonly IAuditEventWriter _auditEventWriter;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly OpenAiSettings _openAiSettings;
     private readonly ChatOrchestrationSettings _settings;
@@ -33,6 +35,8 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         IEmbeddingService embeddingService,
         IRetrievalService retrievalService,
         IAnswerTraceWriter traceWriter,
+        IPiiRedactionService piiRedactionService,
+        IAuditEventWriter auditEventWriter,
         IHttpClientFactory httpClientFactory,
         OpenAiSettings openAiSettings,
         ChatOrchestrationSettings settings,
@@ -41,6 +45,8 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         _embeddingService = embeddingService;
         _retrievalService = retrievalService;
         _traceWriter = traceWriter;
+        _piiRedactionService = piiRedactionService;
+        _auditEventWriter = auditEventWriter;
         _httpClientFactory = httpClientFactory;
         _openAiSettings = openAiSettings;
         _settings = settings;
@@ -113,8 +119,37 @@ public sealed class ChatOrchestrator : IChatOrchestrator
                 restrictedRemovedCount, traceId);
         }
 
+        // Step 3.75 (P0-014A): PII redaction — detect and mask PII in chunk text before prompt assembly.
+        // Defense-in-depth: even if PII was flagged during enrichment, redact at orchestration time
+        // to ensure no PII reaches the model context regardless of indexing pipeline behavior.
+        var (redactedChunks, piiRedactedCount) = RedactPiiInChunks(safeChunks, _piiRedactionService);
+
+        if (piiRedactedCount > 0)
+        {
+            _logger.LogWarning(
+                "PII redacted in {RedactedCount} chunk(s) before model context assembly. TraceId={TraceId}",
+                piiRedactedCount, traceId);
+
+            try
+            {
+                await _auditEventWriter.WriteAsync(new AuditEvent(
+                    EventId: Guid.NewGuid().ToString(),
+                    EventType: "pii.redaction",
+                    TenantId: tenantId,
+                    ActorId: userId,
+                    CorrelationId: correlationId,
+                    Timestamp: DateTimeOffset.UtcNow,
+                    Detail: $"PII redacted in {piiRedactedCount} chunk(s) before model context assembly."),
+                    cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to persist PII redaction audit event. TraceId={TraceId}", traceId);
+            }
+        }
+
         // Step 4: Assemble prompt with evidence context and session history (D-010 token budget).
-        var evidenceChunks = safeChunks
+        var evidenceChunks = redactedChunks
             .Take(_settings.MaxEvidenceChunksInPrompt)
             .ToList();
 
@@ -227,6 +262,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
             TraceId = traceId,
             HasEvidence = true,
             SystemPromptVersion = _settings.SystemPromptVersion,
+            PiiRedactedCount = piiRedactedCount,
         };
     }
 
@@ -476,6 +512,42 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         }
 
         return (safe, removed);
+    }
+
+    /// <summary>
+    /// P0-014A: Redacts PII in retrieved chunk text before model context assembly.
+    /// Returns new chunk instances with redacted text and a count of chunks that had PII redacted.
+    /// </summary>
+    internal static (IReadOnlyList<RetrievedChunk> Redacted, int RedactedChunkCount) RedactPiiInChunks(
+        IReadOnlyList<RetrievedChunk> chunks,
+        IPiiRedactionService piiRedactionService)
+    {
+        var result = new List<RetrievedChunk>(chunks.Count);
+        var redactedCount = 0;
+
+        foreach (var chunk in chunks)
+        {
+            var textResult = piiRedactionService.Redact(chunk.ChunkText);
+            var contextResult = !string.IsNullOrEmpty(chunk.ChunkContext)
+                ? piiRedactionService.Redact(chunk.ChunkContext)
+                : null;
+
+            if (textResult.TotalRedactions > 0 || (contextResult?.TotalRedactions ?? 0) > 0)
+            {
+                redactedCount++;
+                result.Add(chunk with
+                {
+                    ChunkText = textResult.RedactedText,
+                    ChunkContext = contextResult?.RedactedText ?? chunk.ChunkContext,
+                });
+            }
+            else
+            {
+                result.Add(chunk);
+            }
+        }
+
+        return (result, redactedCount);
     }
 
     /// <summary>Approximate token count using chars/4 heuristic for English text.</summary>

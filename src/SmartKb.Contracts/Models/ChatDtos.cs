@@ -55,6 +55,9 @@ public sealed record ChatResponse
 
     /// <summary>System prompt version used for this response.</summary>
     public required string SystemPromptVersion { get; init; }
+
+    /// <summary>Number of evidence chunks that had PII redacted before model context assembly (P0-014A).</summary>
+    public int PiiRedactedCount { get; init; }
 }
 
 /// <summary>
