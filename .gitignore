@@ -1,35 +1,130 @@
-# .NET
+# =========================
+# .NET / C#
+# =========================
 bin/
 obj/
+publish/
+out/
 *.user
 *.suo
 *.cache
-*.vs/
-.vs/
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.nupkg
+*.snupkg
+project.lock.json
+*.nuget.props
+*.nuget.targets
+BundleArtifacts/
+TestResults/
+coveragereport/
+coverage/
+*.coverage
+*.coveragexml
+*.opencover.xml
 
+# NuGet
+packages/
+!packages/repositories.config
+
+# =========================
+# Visual Studio / Rider
+# =========================
+.vs/
+*.vs/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.DotSettings.user
+*.resharper
+_ReSharper*/
+
+# =========================
 # Node / Frontend
+# =========================
 node_modules/
 frontend/dist/
 frontend/.vite/
+frontend/coverage/
+*.tsbuildinfo
+.eslintcache
 
-# IDE
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Environment
-.env
-.env.*
-!.env.example
-
+# =========================
 # Terraform
+# =========================
 .terraform/
 *.tfstate
 *.tfstate.backup
+*.tfplan
 *.tfvars
 !*.tfvars.example
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+# Keep the lock file committed for reproducible builds
+!.terraform.lock.hcl
+
+# =========================
+# Azure
+# =========================
+*.azureauth
+servicedefinition.*.rd
+
+# =========================
+# Environment / Secrets
+# =========================
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.key
+*.pem
+secrets.json
+appsettings.Local.json
+
+# =========================
+# OS
+# =========================
+.DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+ehthumbs_vista.db
+
+# =========================
+# Editor swap / backup
+# =========================
+*.swp
+*.swo
+*~
+\#*\#
+.#*
+
+# =========================
+# Logs
+# =========================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# =========================
+# Docker (dev artifacts)
+# =========================
+docker-compose.override.yml
+
+# =========================
+# Misc
+# =========================
+*.tmp
+*.bak
+*.orig
