@@ -63,6 +63,7 @@ public sealed class ConnectorTestFactory : WebApplicationFactory<Program>, IAsyn
             services.AddSingleton(new WebhookSettings());
             services.AddScoped<ConnectorAdminService>();
             services.AddScoped<AdoWebhookHandler>();
+            services.AddScoped<SharePointWebhookHandler>();
         });
     }
 

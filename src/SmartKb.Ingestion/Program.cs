@@ -37,7 +37,9 @@ if (!string.IsNullOrEmpty(connectionString))
 
 // Connector clients — register all IConnectorClient implementations.
 builder.Services.AddHttpClient("AzureDevOps");
+builder.Services.AddHttpClient("SharePoint");
 builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.AzureDevOpsConnectorClient>();
+builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.SharePointConnectorClient>();
 
 // Sync job processor (scoped — uses DbContext).
 builder.Services.AddScoped<SyncJobProcessor>();

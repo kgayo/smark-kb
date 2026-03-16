@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-16 (Asia/Manila) — iteration 22 (P0-008A complete)
-Status: Active backlog (P0-001 through P0-008A complete; 0 bugs blocking, 0 tech-debt blocking; next up P0-009)
+Last updated: 2026-03-16 (Asia/Manila) — iteration 23 (P0-009 complete)
+Status: Active backlog (P0-001 through P0-009 complete; 0 bugs blocking, 0 tech-debt blocking; next up P0-010)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -111,11 +111,10 @@ Status: Active backlog (P0-001 through P0-008A complete; 0 bugs blocking, 0 tech
   - Dependencies: P0-008 (complete)
   - Completed: `WebhookSubscriptionEntity` with SQL table, unique index on (ConnectorId, EventType). `IWebhookManager` interface with `AdoWebhookManager` implementation — registers `workitem.created` and `workitem.updated` service hooks via ADO REST API (v7.1). Webhook secret generated (32-byte random), stored in Key Vault via `ISecretProvider.SetSecretAsync`. `AdoWebhookHandler` processes incoming payloads: validates HMAC signature (Basic auth shared secret), deduplicates via idempotency key, triggers incremental sync via Service Bus. Anonymous endpoint `POST /api/webhooks/ado/{connectorId}`. Webhook lifecycle managed in `ConnectorAdminService`: register on enable, deregister on disable. `WebhookPollingFallbackService` (BackgroundService) checks every 30s for subscriptions in fallback mode; triggers incremental syncs at 5-minute intervals with 0-60s jitter. Failure threshold: 3 consecutive failures activates fallback. `WebhookSettings` configurable via `Webhook:*` app settings. EF Core migration `AddWebhookSubscriptions`. 36 new tests (8 signature, 11 handler, 4 endpoint, 9 webhook manager, 4 polling fallback); all 309 tests passing.
 
-- [ ] P0-009: Implement SharePoint ingestion (Graph delta queries + change notifications + fallback polling).
+- [x] P0-009: Implement SharePoint ingestion (Graph delta queries + change notifications + fallback polling).
   - Specs: jtbd-01
   - Dependencies: P0-007 (complete)
-  - Exit criteria: delta checkpoint sync works, avoids duplicates, and handles token expiry/renewal; change notification subscription managed with lifecycle renewal; polling fallback activates on notification failure.
-  - Implementation notes: SharePoint ACL mapping (permission groups -> allowed_groups) must be documented per R-012. Delta token expiry/renewal is a hard requirement per P0-009 exit criteria but absent from jtbd-01 spec.
+  - Completed: Second `IConnectorClient` implementation — `SharePointConnectorClient` in `SmartKb.Contracts.Connectors`. Uses Microsoft Graph REST API (no SDK dependency) with OAuth2 client credentials flow for authentication. Ingests document library files via delta queries (`/drives/{id}/root/delta`). Delta token checkpoint tracks multi-drive incremental sync position. Handles delta token expiry (410 Gone) by falling back to full sync automatically. File extension filtering (supported: .txt, .md, .pdf, .docx, .pptx, .xlsx, etc.) and folder exclusion. ACL mapping: drive name → `AllowedGroups` with `Restricted` visibility. Content hash for dedup based on item metadata (full text extraction deferred to P0-010). `SharePointSourceConfig` model with site URL, Entra ID tenant ID, client ID, drive IDs, extension/folder filters, batch size. `SharePointWebhookManager` registers Graph change notification subscriptions per drive (max 4230-minute lifetime). `SharePointWebhookHandler` processes Graph change notifications with clientState validation (constant-time comparison) and validation handshake support. Anonymous endpoint `POST /api/webhooks/msgraph/{connectorId}` with `?validationToken=` handshake. Webhook lifecycle managed in `ConnectorAdminService`: register on enable, deregister on disable. Reuses existing `WebhookPollingFallbackService` for failure recovery (3 consecutive failures threshold). `GraphChangeNotificationPayload`, `GraphSubscriptionRequest/Response` models for Graph webhook protocol. Registered in both API and Ingestion DI. 55 new tests (27 connector client unit + 8 webhook manager + 13 webhook handler + 5 endpoint integration + 2 checkpoint); all 364 tests passing.
 
 - [ ] P0-010: Implement canonical normalization + chunking + baseline enrichment.
   - Specs: jtbd-02
@@ -330,7 +329,7 @@ Status: Active backlog (P0-001 through P0-008A complete; 0 bugs blocking, 0 tech
 - [ ] R-009: Dual Terraform + ARM maintenance burden. ~~Active divergence found: ARM missing SQL Entra admin (BUG-002)~~ — fixed.
 - [ ] R-010: Confidence/escalation thresholds undefined; treat as tunable config informed by eval runs.
 - [ ] R-011: Phase 1 escalation drafts — copy/export only. Must communicate in UX.
-- [ ] R-012: ACL metadata models differ per source. Each connector must document its ACL mapping.
+- [x] R-012: ACL metadata models differ per source. Each connector must document its ACL mapping. ADO: area paths → Restricted groups. SharePoint: drive name → Restricted groups.
 - [ ] R-013: Session context may exceed token limits in long conversations.
 - [x] R-014: ~~No Ingestion Worker resource in IaC~~ — resolved (TECH-001 complete).
 - [x] R-015: ~~Service Bus uses connection string not Managed Identity~~ — resolved (TECH-002 complete).

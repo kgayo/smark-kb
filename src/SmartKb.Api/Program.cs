@@ -66,10 +66,13 @@ builder.Services.AddSingleton(webhookSettings);
 
 // Connector clients — register all IConnectorClient implementations.
 builder.Services.AddHttpClient("AzureDevOps");
+builder.Services.AddHttpClient("SharePoint");
 builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.AzureDevOpsConnectorClient>();
+builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.SharePointConnectorClient>();
 
 // Webhook managers — register all IWebhookManager implementations.
 builder.Services.AddSingleton<IWebhookManager, SmartKb.Contracts.Connectors.AdoWebhookManager>();
+builder.Services.AddSingleton<IWebhookManager, SmartKb.Contracts.Connectors.SharePointWebhookManager>();
 
 var connectionString = builder.Configuration.GetConnectionString("SmartKbDb");
 if (!string.IsNullOrEmpty(connectionString))
@@ -77,6 +80,7 @@ if (!string.IsNullOrEmpty(connectionString))
     builder.Services.AddSmartKbData(connectionString);
     builder.Services.AddScoped<ConnectorAdminService>();
     builder.Services.AddScoped<AdoWebhookHandler>();
+    builder.Services.AddScoped<SharePointWebhookHandler>();
     builder.Services.AddHostedService<WebhookPollingFallbackService>();
 }
 else
@@ -321,6 +325,29 @@ app.MapPost("/api/webhooks/ado/{connectorId:guid}", async (
     var authHeader = httpContext.Request.Headers.Authorization.FirstOrDefault();
 
     var (statusCode, message) = await handler.HandleAsync(connectorId, body, authHeader);
+    return Results.Json(new { message }, statusCode: statusCode);
+}).AllowAnonymous();
+
+// Graph change notification endpoint — supports validation handshake (POST with validationToken query param)
+// and change notification processing. Anonymous because Graph validates via clientState.
+app.MapPost("/api/webhooks/msgraph/{connectorId:guid}", async (
+    Guid connectorId,
+    HttpContext httpContext,
+    SharePointWebhookHandler handler) =>
+{
+    // Graph subscription validation handshake: POST with ?validationToken=...
+    var validationToken = httpContext.Request.Query["validationToken"].FirstOrDefault();
+    if (!string.IsNullOrEmpty(validationToken))
+    {
+        var (code, contentType, body) = handler.HandleValidation(validationToken);
+        return Results.Content(body, contentType, statusCode: code);
+    }
+
+    // Normal change notification.
+    using var reader = new StreamReader(httpContext.Request.Body);
+    var requestBody = await reader.ReadToEndAsync();
+
+    var (statusCode, message) = await handler.HandleNotificationAsync(connectorId, requestBody);
     return Results.Json(new { message }, statusCode: statusCode);
 }).AllowAnonymous();
 
