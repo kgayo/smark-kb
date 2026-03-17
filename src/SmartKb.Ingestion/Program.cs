@@ -1,9 +1,14 @@
 using Azure;
 using Azure.Identity;
 using Azure.Messaging.ServiceBus;
+using Azure.Monitor.OpenTelemetry.Exporter;
 using Azure.Search.Documents.Indexes;
 using Azure.Security.KeyVault.Secrets;
 using Azure.Storage.Blobs;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Connectors;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Services;
@@ -14,6 +19,45 @@ var builder = Host.CreateApplicationBuilder(args);
 
 builder.Services.AddHostedService<IngestionWorker>();
 builder.Services.AddHealthChecks();
+
+// --- OpenTelemetry ---
+var otelServiceName = "SmartKb.Ingestion";
+var appInsightsConnStr = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(r => r.AddService(otelServiceName))
+    .WithTracing(t =>
+    {
+        t.AddSource(Diagnostics.IngestionSourceName)
+         .AddHttpClientInstrumentation()
+         .AddSqlClientInstrumentation();
+
+        if (!string.IsNullOrEmpty(appInsightsConnStr))
+        {
+            t.AddAzureMonitorTraceExporter(o => o.ConnectionString = appInsightsConnStr);
+        }
+    })
+    .WithMetrics(m =>
+    {
+        m.AddHttpClientInstrumentation()
+         .AddMeter(Diagnostics.MeterName);
+
+        if (!string.IsNullOrEmpty(appInsightsConnStr))
+        {
+            m.AddAzureMonitorMetricExporter(o => o.ConnectionString = appInsightsConnStr);
+        }
+    });
+
+builder.Logging.AddOpenTelemetry(o =>
+{
+    o.IncludeScopes = true;
+    o.IncludeFormattedMessage = true;
+
+    if (!string.IsNullOrEmpty(appInsightsConnStr))
+    {
+        o.AddAzureMonitorLogExporter(opts => opts.ConnectionString = appInsightsConnStr);
+    }
+});
 
 builder.Services.Configure<KeyVaultSettings>(builder.Configuration.GetSection(KeyVaultSettings.SectionName));
 

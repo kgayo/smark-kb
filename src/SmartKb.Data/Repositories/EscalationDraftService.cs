@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
@@ -86,7 +87,7 @@ public sealed class EscalationDraftService : IEscalationDraftService
 
         await _auditWriter.WriteAsync(new AuditEvent(
             EventId: Guid.NewGuid().ToString(),
-            EventType: "escalation.draft.created",
+            EventType: AuditEventTypes.EscalationDraftCreated,
             TenantId: tenantId,
             ActorId: userId,
             CorrelationId: correlationId,

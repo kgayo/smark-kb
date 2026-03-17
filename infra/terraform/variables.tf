@@ -58,3 +58,35 @@ variable "servicebus_sku" {
   type        = string
   default     = "Basic"
 }
+
+# --- SLO Alert Thresholds (P0-022) ---
+
+variable "chat_latency_p95_threshold_ms" {
+  description = "P95 chat latency threshold in milliseconds for alert."
+  type        = number
+  default     = 8000
+}
+
+variable "availability_threshold_percent" {
+  description = "Availability percentage threshold for alert."
+  type        = number
+  default     = 99.5
+}
+
+variable "dead_letter_threshold" {
+  description = "Dead-letter message count threshold for alert."
+  type        = number
+  default     = 10
+}
+
+variable "http_5xx_threshold" {
+  description = "HTTP 5xx error count threshold per 5-minute window."
+  type        = number
+  default     = 5
+}
+
+variable "queue_backlog_threshold" {
+  description = "Service Bus active message backlog threshold."
+  type        = number
+  default     = 100
+}

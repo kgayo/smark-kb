@@ -1,16 +1,28 @@
 import type {
   ApiResponse,
+  ConnectorListResponse,
+  ConnectorResponse,
+  ConnectorValidationResult,
+  CreateConnectorRequest,
   CreateEscalationDraftRequest,
   CreateSessionRequest,
   EscalationDraftExportResponse,
   EscalationDraftResponse,
   FeedbackResponse,
   MessageListResponse,
+  OutcomeListResponse,
+  OutcomeResponse,
+  RecordOutcomeRequest,
   SendMessageRequest,
   SessionChatResponse,
   SessionListResponse,
   SessionResponse,
   SubmitFeedbackRequest,
+  SyncNowRequest,
+  SyncRunListResponse,
+  SyncRunSummary,
+  TestConnectionResponse,
+  UpdateConnectorRequest,
   UpdateEscalationDraftRequest,
 } from './types';
 
@@ -188,4 +200,158 @@ export async function getFeedback(
     if (e instanceof ApiError && e.status === 404) return null;
     throw e;
   }
+}
+
+// ── Outcome endpoints ──
+
+export async function recordOutcome(
+  sessionId: string,
+  req: RecordOutcomeRequest,
+): Promise<OutcomeResponse> {
+  const res = await apiFetch<ApiResponse<OutcomeResponse>>(
+    `/api/sessions/${sessionId}/outcome`,
+    {
+      method: 'POST',
+      body: JSON.stringify(req),
+    },
+  );
+  return unwrap(res);
+}
+
+export async function getOutcomes(
+  sessionId: string,
+): Promise<OutcomeListResponse> {
+  const res = await apiFetch<ApiResponse<OutcomeListResponse>>(
+    `/api/sessions/${sessionId}/outcome`,
+  );
+  return unwrap(res);
+}
+
+// ── Connector admin endpoints ──
+
+export async function listConnectors(): Promise<ConnectorListResponse> {
+  const res = await apiFetch<ApiResponse<ConnectorListResponse>>('/api/admin/connectors');
+  return unwrap(res);
+}
+
+export async function getConnector(connectorId: string): Promise<ConnectorResponse> {
+  const res = await apiFetch<ApiResponse<ConnectorResponse>>(
+    `/api/admin/connectors/${connectorId}`,
+  );
+  return unwrap(res);
+}
+
+export async function createConnector(
+  req: CreateConnectorRequest,
+): Promise<ConnectorResponse> {
+  const res = await apiFetch<ApiResponse<ConnectorResponse>>('/api/admin/connectors', {
+    method: 'POST',
+    body: JSON.stringify(req),
+  });
+  return unwrap(res);
+}
+
+export async function updateConnector(
+  connectorId: string,
+  req: UpdateConnectorRequest,
+): Promise<ConnectorResponse> {
+  const res = await apiFetch<ApiResponse<ConnectorResponse>>(
+    `/api/admin/connectors/${connectorId}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(req),
+    },
+  );
+  return unwrap(res);
+}
+
+export async function deleteConnector(connectorId: string): Promise<void> {
+  await apiFetch<ApiResponse<unknown>>(`/api/admin/connectors/${connectorId}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function enableConnector(connectorId: string): Promise<ConnectorResponse> {
+  const res = await apiFetch<ApiResponse<ConnectorResponse>>(
+    `/api/admin/connectors/${connectorId}/enable`,
+    { method: 'POST' },
+  );
+  return unwrap(res);
+}
+
+export async function disableConnector(connectorId: string): Promise<ConnectorResponse> {
+  const res = await apiFetch<ApiResponse<ConnectorResponse>>(
+    `/api/admin/connectors/${connectorId}/disable`,
+    { method: 'POST' },
+  );
+  return unwrap(res);
+}
+
+export async function testConnection(
+  connectorId: string,
+): Promise<TestConnectionResponse> {
+  const res = await apiFetch<ApiResponse<TestConnectionResponse>>(
+    `/api/admin/connectors/${connectorId}/test`,
+    { method: 'POST' },
+  );
+  return unwrap(res);
+}
+
+export async function syncNow(
+  connectorId: string,
+  req: SyncNowRequest,
+): Promise<{ syncRunId: string; status: string }> {
+  const res = await apiFetch<ApiResponse<{ syncRunId: string; status: string }>>(
+    `/api/admin/connectors/${connectorId}/sync-now`,
+    {
+      method: 'POST',
+      body: JSON.stringify(req),
+    },
+  );
+  return unwrap(res);
+}
+
+export async function listSyncRuns(connectorId: string): Promise<SyncRunListResponse> {
+  const res = await apiFetch<ApiResponse<SyncRunListResponse>>(
+    `/api/admin/connectors/${connectorId}/sync-runs`,
+  );
+  return unwrap(res);
+}
+
+export async function getSyncRun(
+  connectorId: string,
+  syncRunId: string,
+): Promise<SyncRunSummary> {
+  const res = await apiFetch<ApiResponse<SyncRunSummary>>(
+    `/api/admin/connectors/${connectorId}/sync-runs/${syncRunId}`,
+  );
+  return unwrap(res);
+}
+
+export async function validateMapping(
+  connectorId: string,
+  mapping: { rules: Array<{ sourceField: string; targetField: string; transform: string; transformExpression: string | null; isRequired: boolean; defaultValue: string | null }> },
+): Promise<ConnectorValidationResult> {
+  const res = await apiFetch<ApiResponse<ConnectorValidationResult>>(
+    `/api/admin/connectors/${connectorId}/validate-mapping`,
+    {
+      method: 'POST',
+      body: JSON.stringify(mapping),
+    },
+  );
+  return unwrap(res);
+}
+
+// ── User info endpoint ──
+
+export interface UserInfo {
+  userId: string | null;
+  name: string | null;
+  tenantId: string | null;
+  correlationId: string | null;
+  roles: string[];
+}
+
+export async function getMe(): Promise<UserInfo> {
+  return apiFetch<UserInfo>('/api/me');
 }

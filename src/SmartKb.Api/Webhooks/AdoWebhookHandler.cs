@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
@@ -96,7 +97,7 @@ public sealed class AdoWebhookHandler
 
                     await _auditWriter.WriteAsync(new AuditEvent(
                         EventId: Guid.NewGuid().ToString(),
-                        EventType: "webhook.signature_failed",
+                        EventType: AuditEventTypes.WebhookSignatureFailed,
                         TenantId: connector.TenantId,
                         ActorId: "system",
                         CorrelationId: Guid.NewGuid().ToString(),
@@ -186,7 +187,7 @@ public sealed class AdoWebhookHandler
 
         await _auditWriter.WriteAsync(new AuditEvent(
             EventId: Guid.NewGuid().ToString(),
-            EventType: "webhook.received",
+            EventType: AuditEventTypes.WebhookReceived,
             TenantId: connector.TenantId,
             ActorId: "system",
             CorrelationId: correlationId,

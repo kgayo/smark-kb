@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
@@ -144,7 +145,7 @@ public sealed class WebhookPollingFallbackService : BackgroundService
 
                 await auditWriter.WriteAsync(new AuditEvent(
                     EventId: Guid.NewGuid().ToString(),
-                    EventType: "webhook.poll_fallback",
+                    EventType: AuditEventTypes.WebhookPollFallback,
                     TenantId: connector.TenantId,
                     ActorId: "system",
                     CorrelationId: correlationId,

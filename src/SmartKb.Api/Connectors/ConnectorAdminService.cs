@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
@@ -113,7 +114,7 @@ public sealed class ConnectorAdminService
         _db.Connectors.Add(entity);
         await _db.SaveChangesAsync(ct);
 
-        await WriteAuditAsync(tenantId, actorId, correlationId, "connector.created",
+        await WriteAuditAsync(tenantId, actorId, correlationId, AuditEventTypes.ConnectorCreated,
             $"Connector '{entity.Name}' (id={entity.Id}, type={entity.ConnectorType}) created.");
 
         return (ToResponse(entity), null);
@@ -147,7 +148,7 @@ public sealed class ConnectorAdminService
         entity.UpdatedAt = DateTimeOffset.UtcNow;
         await _db.SaveChangesAsync(ct);
 
-        await WriteAuditAsync(tenantId, actorId, correlationId, "connector.updated",
+        await WriteAuditAsync(tenantId, actorId, correlationId, AuditEventTypes.ConnectorUpdated,
             $"Connector '{entity.Name}' (id={entity.Id}) updated.");
 
         return (ToResponse(entity), null, false);
@@ -164,7 +165,7 @@ public sealed class ConnectorAdminService
         entity.UpdatedAt = entity.DeletedAt.Value;
         await _db.SaveChangesAsync(ct);
 
-        await WriteAuditAsync(tenantId, actorId, correlationId, "connector.deleted",
+        await WriteAuditAsync(tenantId, actorId, correlationId, AuditEventTypes.ConnectorDeleted,
             $"Connector '{entity.Name}' (id={entity.Id}) soft-deleted.");
 
         return true;
@@ -184,7 +185,7 @@ public sealed class ConnectorAdminService
         entity.UpdatedAt = DateTimeOffset.UtcNow;
         await _db.SaveChangesAsync(ct);
 
-        await WriteAuditAsync(tenantId, actorId, correlationId, "connector.disabled",
+        await WriteAuditAsync(tenantId, actorId, correlationId, AuditEventTypes.ConnectorDisabled,
             $"Connector '{entity.Name}' (id={entity.Id}) disabled.");
 
         return (true, ToResponse(entity));
@@ -208,7 +209,7 @@ public sealed class ConnectorAdminService
         // Register webhooks on enable.
         await RegisterWebhooksAsync(entity, correlationId, ct);
 
-        await WriteAuditAsync(tenantId, actorId, correlationId, "connector.enabled",
+        await WriteAuditAsync(tenantId, actorId, correlationId, AuditEventTypes.ConnectorEnabled,
             $"Connector '{entity.Name}' (id={entity.Id}) enabled.");
 
         return (true, null, ToResponse(entity));
@@ -249,7 +250,7 @@ public sealed class ConnectorAdminService
                         Message = "Failed to retrieve credentials from Key Vault.",
                         DiagnosticDetail = ex.Message,
                     };
-                    await WriteAuditAsync(tenantId, actorId, correlationId, "connector.test_failed",
+                    await WriteAuditAsync(tenantId, actorId, correlationId, AuditEventTypes.ConnectorTestFailed,
                         $"Connector '{entity.Name}' (id={entity.Id}) test failed: credential retrieval error.");
                     return result;
                 }
@@ -258,7 +259,7 @@ public sealed class ConnectorAdminService
             result = await client.TestConnectionAsync(tenantId, entity.SourceConfig, secretValue, ct);
         }
 
-        var eventType = result.Success ? "connector.test_passed" : "connector.test_failed";
+        var eventType = result.Success ? AuditEventTypes.ConnectorTestPassed : AuditEventTypes.ConnectorTestFailed;
         await WriteAuditAsync(tenantId, actorId, correlationId, eventType,
             $"Connector '{entity.Name}' (id={entity.Id}) test: {result.Message}");
 
@@ -315,7 +316,7 @@ public sealed class ConnectorAdminService
 
         await _syncJobPublisher.PublishAsync(message, ct);
 
-        await WriteAuditAsync(tenantId, actorId, correlationId, "connector.sync_triggered",
+        await WriteAuditAsync(tenantId, actorId, correlationId, AuditEventTypes.ConnectorSyncTriggered,
             $"Sync triggered for connector '{entity.Name}' (id={entity.Id}, runId={syncRun.Id}, backfill={request.IsBackfill}).");
 
         return (syncRun.Id, false);
@@ -368,7 +369,7 @@ public sealed class ConnectorAdminService
                 errors.Add($"Record '{record.EvidenceId}': missing required field 'TextContent'.");
         }
 
-        await WriteAuditAsync(tenantId, actorId, correlationId, "connector.preview",
+        await WriteAuditAsync(tenantId, actorId, correlationId, AuditEventTypes.ConnectorPreview,
             $"Preview for connector '{entity.Name}' (id={entity.Id}): {records.Count} records, {errors.Count} errors.");
 
         return new PreviewResponse { Records = records.ToList(), ValidationErrors = errors };

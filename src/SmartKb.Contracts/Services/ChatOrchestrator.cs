@@ -5,6 +5,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Models;
+using DiagnosticsHelper = SmartKb.Contracts.Diagnostics;
 
 namespace SmartKb.Contracts.Services;
 
@@ -60,6 +61,12 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         ChatRequest request,
         CancellationToken cancellationToken = default)
     {
+        using var orchestrationActivity = DiagnosticsHelper.OrchestrationSource.StartActivity(
+            "ChatOrchestrate", ActivityKind.Internal);
+        orchestrationActivity?.SetTag("smartkb.tenant_id", tenantId);
+        orchestrationActivity?.SetTag("smartkb.user_id", userId);
+        orchestrationActivity?.SetTag("smartkb.correlation_id", correlationId);
+
         var sw = Stopwatch.StartNew();
         var traceId = correlationId;
 
@@ -71,11 +78,14 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         float[] queryEmbedding;
         try
         {
+            using var embeddingActivity = DiagnosticsHelper.OrchestrationSource.StartActivity("EmbedQuery");
             queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(request.Query, cancellationToken);
+            embeddingActivity?.SetTag("smartkb.embedding_dims", queryEmbedding.Length);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Embedding generation failed. TraceId={TraceId}", traceId);
+            orchestrationActivity?.SetStatus(ActivityStatusCode.Error, "Embedding failed");
             return BuildNoEvidenceResponse(traceId, "Unable to process your query at this time. Please try again.");
         }
 
@@ -83,12 +93,17 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         RetrievalResult retrievalResult;
         try
         {
+            using var retrievalActivity = DiagnosticsHelper.OrchestrationSource.StartActivity("RetrieveEvidence");
             retrievalResult = await _retrievalService.RetrieveAsync(
                 tenantId, request.Query, queryEmbedding, request.UserGroups, correlationId, cancellationToken);
+            retrievalActivity?.SetTag("smartkb.chunk_count", retrievalResult.Chunks.Count);
+            retrievalActivity?.SetTag("smartkb.has_evidence", retrievalResult.HasEvidence);
+            retrievalActivity?.SetTag("smartkb.acl_filtered", retrievalResult.AclFilteredOutCount);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Retrieval failed. TraceId={TraceId}", traceId);
+            orchestrationActivity?.SetStatus(ActivityStatusCode.Error, "Retrieval failed");
             return BuildNoEvidenceResponse(traceId, "Unable to search the knowledge base at this time. Please try again.");
         }
 
@@ -102,6 +117,14 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         if (!retrievalResult.HasEvidence)
         {
             _logger.LogInformation("No evidence path triggered. TraceId={TraceId}", traceId);
+            DiagnosticsHelper.ChatRequestsTotal.Add(1,
+                new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId),
+                new KeyValuePair<string, object?>("smartkb.response_type", "next_steps_only"));
+            DiagnosticsHelper.ChatNoEvidenceTotal.Add(1,
+                new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId));
+            DiagnosticsHelper.ChatLatencyMs.Record(sw.ElapsedMilliseconds,
+                new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId),
+                new KeyValuePair<string, object?>("smartkb.response_type", "next_steps_only"));
             return BuildNoEvidenceResponse(traceId);
         }
 
@@ -134,7 +157,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
             {
                 await _auditEventWriter.WriteAsync(new AuditEvent(
                     EventId: Guid.NewGuid().ToString(),
-                    EventType: "pii.redaction",
+                    EventType: AuditEventTypes.PiiRedaction,
                     TenantId: tenantId,
                     ActorId: userId,
                     CorrelationId: correlationId,
@@ -160,11 +183,15 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         OpenAiStructuredResponse? modelResponse;
         try
         {
+            using var generationActivity = DiagnosticsHelper.OrchestrationSource.StartActivity("GenerateAnswer");
+            generationActivity?.SetTag("smartkb.model", _openAiSettings.Model);
             modelResponse = await CallOpenAiStructuredAsync(messages, cancellationToken);
+            generationActivity?.SetTag("smartkb.response_type", modelResponse?.ResponseType);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "OpenAI generation failed. TraceId={TraceId}", traceId);
+            orchestrationActivity?.SetStatus(ActivityStatusCode.Error, "Generation failed");
             return BuildNoEvidenceResponse(traceId, "Unable to generate a response at this time. Please try again.");
         }
 
@@ -225,6 +252,28 @@ public sealed class ChatOrchestrator : IChatOrchestrator
             : null;
 
         sw.Stop();
+
+        // P0-022: Record SLO metrics.
+        DiagnosticsHelper.ChatLatencyMs.Record(sw.ElapsedMilliseconds,
+            new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId),
+            new KeyValuePair<string, object?>("smartkb.response_type", responseType));
+        DiagnosticsHelper.ChatRequestsTotal.Add(1,
+            new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId),
+            new KeyValuePair<string, object?>("smartkb.response_type", responseType));
+        DiagnosticsHelper.ChatConfidence.Record(blendedConfidence,
+            new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId));
+        if (piiRedactedCount > 0)
+            DiagnosticsHelper.PiiRedactionsTotal.Add(piiRedactedCount,
+                new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId));
+        if (restrictedRemovedCount > 0)
+            DiagnosticsHelper.RestrictedContentBlockedTotal.Add(restrictedRemovedCount,
+                new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId));
+
+        orchestrationActivity?.SetTag("smartkb.response_type", responseType);
+        orchestrationActivity?.SetTag("smartkb.blended_confidence", blendedConfidence);
+        orchestrationActivity?.SetTag("smartkb.citation_count", citations.Count);
+        orchestrationActivity?.SetTag("smartkb.duration_ms", sw.ElapsedMilliseconds);
+        orchestrationActivity?.SetStatus(ActivityStatusCode.Ok);
 
         _logger.LogInformation(
             "Chat orchestration complete. TraceId={TraceId}, ResponseType={ResponseType}, " +

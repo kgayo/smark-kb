@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using SmartKb.Api.Webhooks;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
@@ -120,7 +121,7 @@ public sealed class AdoWebhookHandlerTests : IAsyncLifetime
         Assert.Empty(_publisher.PublishedMessages);
 
         // Verify audit event for failed signature.
-        Assert.Contains(_auditWriter.Events, e => e.EventType == "webhook.signature_failed");
+        Assert.Contains(_auditWriter.Events, e => e.EventType == AuditEventTypes.WebhookSignatureFailed);
     }
 
     [Fact]
@@ -147,7 +148,7 @@ public sealed class AdoWebhookHandlerTests : IAsyncLifetime
         Assert.StartsWith("webhook-", syncRun.IdempotencyKey);
 
         // Verify audit event.
-        Assert.Contains(_auditWriter.Events, e => e.EventType == "webhook.received");
+        Assert.Contains(_auditWriter.Events, e => e.EventType == AuditEventTypes.WebhookReceived);
     }
 
     [Fact]

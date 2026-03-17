@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Connectors;
 using SmartKb.Contracts.Enums;
@@ -90,7 +91,7 @@ public class AdoSyncJobProcessorIntegrationTests : IDisposable
         Assert.NotNull(updated.Checkpoint);
         Assert.NotNull(updated.CompletedAt);
 
-        Assert.Contains(_auditWriter.Events, e => e.EventType == "sync.completed");
+        Assert.Contains(_auditWriter.Events, e => e.EventType == AuditEventTypes.SyncCompleted);
     }
 
     [Fact]

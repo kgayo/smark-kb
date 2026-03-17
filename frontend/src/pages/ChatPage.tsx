@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { CitationDto, EscalationSignal, MessageResponse, SessionResponse, SubmitFeedbackRequest } from '../api/types';
+import { Link } from 'react-router-dom';
+import type { CitationDto, EscalationSignal, MessageResponse, RecordOutcomeRequest, SessionResponse, SubmitFeedbackRequest } from '../api/types';
 import type { AssistantMeta, FeedbackState } from '../components/ChatThread';
 import * as api from '../api/client';
 import { SessionSidebar } from '../components/SessionSidebar';
@@ -7,6 +8,7 @@ import { ChatThread } from '../components/ChatThread';
 import { MessageInput } from '../components/MessageInput';
 import { EvidenceDrawer } from '../components/EvidenceDrawer';
 import { EscalationDraftModal } from '../components/EscalationDraftModal';
+import { OutcomeWidget } from '../components/OutcomeWidget';
 
 export function ChatPage() {
   const [sessions, setSessions] = useState<SessionResponse[]>([]);
@@ -22,6 +24,7 @@ export function ChatPage() {
   const [draftEscalation, setDraftEscalation] = useState<EscalationSignal | null>(null);
   const [draftCitations, setDraftCitations] = useState<CitationDto[]>([]);
   const [feedbackMap, setFeedbackMap] = useState<Map<string, FeedbackState>>(() => new Map());
+  const [outcomeRecorded, setOutcomeRecorded] = useState<{ resolutionType: string } | null>(null);
   const threadEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -56,6 +59,7 @@ export function ChatPage() {
     setDrawerOpen(false);
     setMetaMap(new Map());
     setFeedbackMap(new Map());
+    setOutcomeRecorded(null);
     await loadMessages(sessionId);
   }, []);
 
@@ -68,6 +72,7 @@ export function ChatPage() {
       setMessages([]);
       setMetaMap(new Map());
       setFeedbackMap(new Map());
+      setOutcomeRecorded(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create session');
     }
@@ -83,6 +88,7 @@ export function ChatPage() {
           setMessages([]);
           setMetaMap(new Map());
           setFeedbackMap(new Map());
+          setOutcomeRecorded(null);
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to delete session');
@@ -154,6 +160,19 @@ export function ChatPage() {
     [activeSessionId],
   );
 
+  const handleRecordOutcome = useCallback(
+    async (_sessionId: string, request: RecordOutcomeRequest) => {
+      if (!activeSessionId) return;
+      try {
+        const result = await api.recordOutcome(activeSessionId, request);
+        setOutcomeRecorded({ resolutionType: result.resolutionType });
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to record outcome');
+      }
+    },
+    [activeSessionId],
+  );
+
   const handleCreateEscalationDraft = useCallback(
     (messageId: string) => {
       const meta = metaMap.get(messageId);
@@ -185,6 +204,9 @@ export function ChatPage() {
                 'New session'}
             </span>
           )}
+          <Link to="/admin" className="nav-admin-link" data-testid="admin-link">
+            Admin
+          </Link>
         </header>
         {error && (
           <div className="error-banner" role="alert" data-testid="error-banner">
@@ -211,6 +233,13 @@ export function ChatPage() {
             />
             <div ref={threadEndRef} />
             <MessageInput onSend={handleSend} disabled={loading} />
+            {messages.length > 0 && (
+              <OutcomeWidget
+                sessionId={activeSessionId}
+                existingOutcome={outcomeRecorded}
+                onSubmit={handleRecordOutcome}
+              />
+            )}
           </>
         )}
       </main>

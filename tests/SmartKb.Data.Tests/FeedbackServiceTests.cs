@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging.Abstractions;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
@@ -125,7 +126,7 @@ public class FeedbackServiceTests : IDisposable
         await _service.SubmitFeedbackAsync("t1", "u1", "corr-4", SessionId, MessageId, request);
 
         Assert.Single(_auditWriter.Events);
-        Assert.Equal("chat.feedback", _auditWriter.Events[0].EventType);
+        Assert.Equal(AuditEventTypes.ChatFeedback, _auditWriter.Events[0].EventType);
         Assert.Equal("t1", _auditWriter.Events[0].TenantId);
         Assert.Equal("u1", _auditWriter.Events[0].ActorId);
     }

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging.Abstractions;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
@@ -109,7 +110,7 @@ public class EscalationDraftServiceTests : IDisposable
     {
         await _service.CreateDraftAsync("t1", "u1", "corr-1", MakeRequest());
         Assert.Single(_auditWriter.Events);
-        Assert.Equal("escalation.draft.created", _auditWriter.Events[0].EventType);
+        Assert.Equal(AuditEventTypes.EscalationDraftCreated, _auditWriter.Events[0].EventType);
     }
 
     [Fact]

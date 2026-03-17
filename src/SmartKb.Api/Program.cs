@@ -41,7 +41,8 @@ var otelBuilder = builder.Services.AddOpenTelemetry()
         .AddSqlClientInstrumentation())
     .WithMetrics(m => m
         .AddAspNetCoreInstrumentation()
-        .AddHttpClientInstrumentation());
+        .AddHttpClientInstrumentation()
+        .AddMeter(Diagnostics.MeterName));
 
 if (!string.IsNullOrEmpty(appInsightsConnStr))
 {
@@ -136,6 +137,11 @@ if (searchSettings.IsConfigured)
     builder.Services.AddSingleton<IIndexingService, AzureSearchIndexingService>();
     builder.Services.AddSingleton<IRetrievalService, AzureSearchRetrievalService>();
 }
+
+// SLO settings (P0-022).
+var sloSettings = new SloSettings();
+builder.Configuration.GetSection(SloSettings.SectionName).Bind(sloSettings);
+builder.Services.AddSingleton(sloSettings);
 
 // Session settings.
 var sessionSettings = new SessionSettings();
@@ -825,6 +831,40 @@ app.MapGet("/api/audit/events/export", async (
         await httpContext.Response.WriteAsync(cursorJson + "\n", ct);
     }
 }).RequirePermission("audit:export");
+
+// --- SLO Status Endpoint (P0-022) ---
+
+app.MapGet("/api/admin/slo/status", (
+    ITenantContextAccessor tenantAccessor,
+    SloSettings sloSettingsInstance) =>
+{
+    var tenant = tenantAccessor.Current!;
+    return Results.Ok(ApiResponse<object>.Success(new
+    {
+        targets = new
+        {
+            answerLatencyP95TargetMs = sloSettingsInstance.AnswerLatencyP95TargetMs,
+            availabilityTargetPercent = sloSettingsInstance.AvailabilityTargetPercent,
+            syncLagP95TargetMinutes = sloSettingsInstance.SyncLagP95TargetMinutes,
+            noEvidenceRateThreshold = sloSettingsInstance.NoEvidenceRateThreshold,
+            deadLetterDepthThreshold = sloSettingsInstance.DeadLetterDepthThreshold,
+        },
+        metrics = new
+        {
+            chatLatencyMetric = "smartkb.chat.latency_ms",
+            chatRequestsMetric = "smartkb.chat.requests_total",
+            chatNoEvidenceMetric = "smartkb.chat.no_evidence_total",
+            syncDurationMetric = "smartkb.ingestion.sync_duration_ms",
+            syncCompletedMetric = "smartkb.ingestion.sync_completed_total",
+            syncFailedMetric = "smartkb.ingestion.sync_failed_total",
+            deadLetterMetric = "smartkb.ingestion.dead_letter_total",
+            recordsProcessedMetric = "smartkb.ingestion.records_processed_total",
+            piiRedactionsMetric = "smartkb.security.pii_redactions_total",
+            confidenceMetric = "smartkb.chat.confidence",
+        },
+        dashboardHint = "Query these metrics in Azure Monitor / Application Insights customMetrics table.",
+    }, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
 
 // --- Secrets Status Endpoint ---
 

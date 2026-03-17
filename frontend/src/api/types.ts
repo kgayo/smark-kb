@@ -174,6 +174,129 @@ export interface SubmitFeedbackRequest {
   correctedAnswer?: string;
 }
 
+// ── Outcome types ──
+
+export type ResolutionType = 'ResolvedWithoutEscalation' | 'Escalated' | 'Rerouted';
+
+export interface RecordOutcomeRequest {
+  resolutionType: ResolutionType;
+  targetTeam?: string;
+  acceptance?: boolean;
+  timeToAssign?: string;
+  timeToResolve?: string;
+  escalationTraceId?: string;
+}
+
+export interface OutcomeResponse {
+  outcomeId: string;
+  sessionId: string;
+  resolutionType: string;
+  targetTeam: string | null;
+  acceptance: boolean | null;
+  timeToAssign: string | null;
+  timeToResolve: string | null;
+  escalationTraceId: string | null;
+  createdAt: string;
+}
+
+export interface OutcomeListResponse {
+  sessionId: string;
+  outcomes: OutcomeResponse[];
+  totalCount: number;
+}
+
+// ── Connector admin types ──
+
+export type ConnectorType = 'AzureDevOps' | 'SharePoint' | 'HubSpot' | 'ClickUp';
+export type ConnectorStatus = 'Enabled' | 'Disabled';
+export type SyncRunStatus = 'Pending' | 'Running' | 'Completed' | 'Failed';
+export type SecretAuthType = 'OAuth' | 'Pat' | 'PrivateKey' | 'ServiceAccount';
+export type FieldTransformType = 'Direct' | 'Template' | 'Regex' | 'Lookup' | 'Constant';
+
+export interface FieldMappingRule {
+  sourceField: string;
+  targetField: string;
+  transform: FieldTransformType;
+  transformExpression: string | null;
+  isRequired: boolean;
+  defaultValue: string | null;
+}
+
+export interface FieldMappingConfig {
+  rules: FieldMappingRule[];
+}
+
+export interface SyncRunSummary {
+  id: string;
+  status: SyncRunStatus;
+  isBackfill: boolean;
+  startedAt: string;
+  completedAt: string | null;
+  recordsProcessed: number;
+  recordsFailed: number;
+  errorDetail: string | null;
+}
+
+export interface ConnectorResponse {
+  id: string;
+  name: string;
+  connectorType: ConnectorType;
+  status: ConnectorStatus;
+  authType: SecretAuthType;
+  hasSecret: boolean;
+  sourceConfig: string | null;
+  fieldMapping: FieldMappingConfig | null;
+  scheduleCron: string | null;
+  createdAt: string;
+  updatedAt: string;
+  lastSyncRun: SyncRunSummary | null;
+}
+
+export interface ConnectorListResponse {
+  connectors: ConnectorResponse[];
+  totalCount: number;
+}
+
+export interface SyncRunListResponse {
+  syncRuns: SyncRunSummary[];
+  totalCount: number;
+}
+
+export interface CreateConnectorRequest {
+  name: string;
+  connectorType: ConnectorType;
+  authType: SecretAuthType;
+  keyVaultSecretName?: string;
+  sourceConfig?: string;
+  fieldMapping?: FieldMappingConfig;
+  scheduleCron?: string;
+}
+
+export interface UpdateConnectorRequest {
+  name?: string;
+  sourceConfig?: string;
+  fieldMapping?: FieldMappingConfig;
+  scheduleCron?: string;
+  keyVaultSecretName?: string;
+  authType?: SecretAuthType;
+}
+
+export interface SyncNowRequest {
+  isBackfill: boolean;
+  idempotencyKey?: string;
+}
+
+export interface TestConnectionResponse {
+  success: boolean;
+  message: string;
+  diagnosticDetail: string | null;
+}
+
+export interface ConnectorValidationResult {
+  isValid: boolean;
+  errors: string[];
+}
+
 export interface FeedbackResponse {
   feedbackId: string;
   messageId: string;

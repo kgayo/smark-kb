@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using SmartKb.Api.Webhooks;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
@@ -132,7 +133,7 @@ public sealed class SharePointWebhookHandlerTests : IAsyncLifetime
         Assert.Empty(_publisher.PublishedMessages);
 
         // Verify audit event.
-        Assert.Contains(_auditWriter.Events, e => e.EventType == "webhook.clientstate_mismatch");
+        Assert.Contains(_auditWriter.Events, e => e.EventType == AuditEventTypes.WebhookClientStateMismatch);
     }
 
     [Fact]
@@ -159,7 +160,7 @@ public sealed class SharePointWebhookHandlerTests : IAsyncLifetime
         Assert.StartsWith("msgraph-", syncRun.IdempotencyKey);
 
         // Verify audit event.
-        Assert.Contains(_auditWriter.Events, e => e.EventType == "webhook.received");
+        Assert.Contains(_auditWriter.Events, e => e.EventType == AuditEventTypes.WebhookReceived);
     }
 
     [Fact]

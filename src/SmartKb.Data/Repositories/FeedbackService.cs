@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
 using SmartKb.Data.Entities;
@@ -99,7 +100,7 @@ public sealed class FeedbackService : IFeedbackService
         // Write audit event.
         await _auditWriter.WriteAsync(new AuditEvent(
             EventId: feedback.Id.ToString(),
-            EventType: "chat.feedback",
+            EventType: AuditEventTypes.ChatFeedback,
             TenantId: tenantId,
             ActorId: userId,
             CorrelationId: correlationId,

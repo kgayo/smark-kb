@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Azure.Messaging.ServiceBus;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Models;
 using SmartKb.Ingestion.Processing;
@@ -87,6 +89,8 @@ public sealed class IngestionWorker : BackgroundService
         {
             _logger.LogError(ex, "Failed to deserialize sync job message {MessageId}. Dead-lettering.",
                 args.Message.MessageId);
+            Diagnostics.DeadLetterTotal.Add(1,
+                new KeyValuePair<string, object?>("smartkb.reason", "DeserializationFailed"));
             await args.DeadLetterMessageAsync(args.Message, "DeserializationFailed",
                 $"Could not deserialize message body: {ex.Message}", args.CancellationToken);
             return;
@@ -95,10 +99,27 @@ public sealed class IngestionWorker : BackgroundService
         if (message is null)
         {
             _logger.LogError("Deserialized message {MessageId} was null. Dead-lettering.", args.Message.MessageId);
+            Diagnostics.DeadLetterTotal.Add(1,
+                new KeyValuePair<string, object?>("smartkb.reason", "NullMessage"));
             await args.DeadLetterMessageAsync(args.Message, "NullMessage",
                 "Deserialized message was null.", args.CancellationToken);
             return;
         }
+
+        // Propagate distributed trace context from Service Bus message.
+        using var activity = Diagnostics.IngestionSource.StartActivity(
+            "ProcessSyncJob", ActivityKind.Consumer);
+
+        if (!string.IsNullOrEmpty(args.Message.CorrelationId))
+        {
+            activity?.SetTag("messaging.correlation_id", args.Message.CorrelationId);
+        }
+
+        activity?.SetTag("messaging.message_id", args.Message.MessageId);
+        activity?.SetTag("messaging.delivery_count", args.Message.DeliveryCount);
+        activity?.SetTag("smartkb.sync_run_id", message.SyncRunId.ToString());
+        activity?.SetTag("smartkb.connector_id", message.ConnectorId.ToString());
+        activity?.SetTag("smartkb.tenant_id", message.TenantId);
 
         _logger.LogInformation(
             "Processing sync job {SyncRunId} for connector {ConnectorId} (delivery {DeliveryCount})",
@@ -111,10 +132,12 @@ public sealed class IngestionWorker : BackgroundService
 
         if (success)
         {
+            activity?.SetStatus(ActivityStatusCode.Ok);
             await args.CompleteMessageAsync(args.Message, args.CancellationToken);
         }
         else
         {
+            activity?.SetStatus(ActivityStatusCode.Error, "Sync job processing failed");
             // Let Service Bus handle retry via delivery count / dead-letter after max attempts.
             await args.AbandonMessageAsync(args.Message, cancellationToken: args.CancellationToken);
         }

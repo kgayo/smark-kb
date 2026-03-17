@@ -1,6 +1,7 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
@@ -260,7 +261,7 @@ public class SyncJobProcessorTests : IDisposable
 
         await processor.ProcessAsync(message, CancellationToken.None);
 
-        Assert.Contains(_auditWriter.Events, e => e.EventType == "sync.completed");
+        Assert.Contains(_auditWriter.Events, e => e.EventType == AuditEventTypes.SyncCompleted);
     }
 
     [Fact]
@@ -276,7 +277,7 @@ public class SyncJobProcessorTests : IDisposable
 
         await processor.ProcessAsync(message, CancellationToken.None);
 
-        Assert.Contains(_auditWriter.Events, e => e.EventType == "sync.failed");
+        Assert.Contains(_auditWriter.Events, e => e.EventType == AuditEventTypes.SyncFailed);
     }
 
     [Fact]

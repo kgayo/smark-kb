@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
 
@@ -26,7 +27,12 @@ public sealed class TenantContextMiddleware
         var tenantId = context.User.FindFirst("tid")?.Value;
         var userId = context.User.FindFirst("oid")?.Value
                      ?? context.User.FindFirst("sub")?.Value;
-        var correlationId = Activity.Current?.Id ?? context.TraceIdentifier;
+
+        // Prefer inbound X-Correlation-Id header, fall back to W3C trace context, then TraceIdentifier.
+        var inboundCorrelationId = context.Request.Headers["X-Correlation-Id"].FirstOrDefault();
+        var correlationId = !string.IsNullOrEmpty(inboundCorrelationId)
+            ? inboundCorrelationId
+            : Activity.Current?.Id ?? context.TraceIdentifier;
 
         if (string.IsNullOrEmpty(tenantId))
         {
@@ -34,7 +40,7 @@ public sealed class TenantContextMiddleware
 
             await auditWriter.WriteAsync(new AuditEvent(
                 EventId: Guid.NewGuid().ToString(),
-                EventType: "tenant.missing",
+                EventType: AuditEventTypes.TenantMissing,
                 TenantId: "",
                 ActorId: userId ?? "unknown",
                 CorrelationId: correlationId,
@@ -60,6 +66,13 @@ public sealed class TenantContextMiddleware
         Activity.Current?.SetTag("tenant.id", tenantId);
         Activity.Current?.SetTag("user.id", userId);
         Activity.Current?.SetBaggage("tenantId", tenantId);
+
+        // Echo correlation ID in response headers for client-side tracing.
+        context.Response.OnStarting(() =>
+        {
+            context.Response.Headers["X-Correlation-Id"] = correlationId;
+            return Task.CompletedTask;
+        });
 
         using (_logger.BeginScope(new Dictionary<string, object?>
         {

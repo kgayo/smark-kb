@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 using SmartKb.Api.Audit;
 using SmartKb.Api.Tenant;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Services;
 
 namespace SmartKb.Api.Tests.Tenant;
@@ -68,7 +69,7 @@ public class TenantContextMiddlewareTests
 
         var events = _auditWriter.GetEvents();
         Assert.Single(events);
-        Assert.Equal("tenant.missing", events[0].EventType);
+        Assert.Equal(AuditEventTypes.TenantMissing, events[0].EventType);
         Assert.Equal("user-1", events[0].ActorId);
         Assert.Contains("no tenant claim", events[0].Detail);
     }
@@ -164,6 +165,53 @@ public class TenantContextMiddlewareTests
         Assert.Single(_accessor.Current!.UserGroups);
     }
 
+    [Fact]
+    public async Task UsesInboundCorrelationIdHeader_WhenPresent()
+    {
+        var middleware = CreateMiddleware(_ => Task.CompletedTask);
+        var ctx = CreateAuthenticatedContext("tenant-1", "user-1");
+        ctx.Request.Headers["X-Correlation-Id"] = "custom-corr-123";
+
+        await middleware.InvokeAsync(ctx, _accessor, _auditWriter);
+
+        Assert.NotNull(_accessor.Current);
+        Assert.Equal("custom-corr-123", _accessor.Current!.CorrelationId);
+    }
+
+    [Fact]
+    public async Task FallsBackToActivityId_WhenNoCorrelationHeader()
+    {
+        var middleware = CreateMiddleware(_ => Task.CompletedTask);
+        var ctx = CreateAuthenticatedContext("tenant-1", "user-1");
+        // No X-Correlation-Id header set.
+
+        await middleware.InvokeAsync(ctx, _accessor, _auditWriter);
+
+        Assert.NotNull(_accessor.Current);
+        Assert.NotEmpty(_accessor.Current!.CorrelationId);
+        Assert.NotEqual("custom-corr-123", _accessor.Current.CorrelationId);
+    }
+
+    [Fact]
+    public async Task EchoesCorrelationId_InResponseHeader()
+    {
+        var middleware = CreateMiddleware(_ => Task.CompletedTask);
+        var ctx = CreateAuthenticatedContext("tenant-1", "user-1");
+        ctx.Request.Headers["X-Correlation-Id"] = "echo-test-456";
+
+        // Use a custom response feature to capture OnStarting callbacks.
+        var responseFeature = new TestHttpResponseFeature();
+        ctx.Features.Set<Microsoft.AspNetCore.Http.Features.IHttpResponseFeature>(responseFeature);
+
+        await middleware.InvokeAsync(ctx, _accessor, _auditWriter);
+
+        // Fire OnStarting callbacks.
+        await responseFeature.FireOnStarting();
+
+        Assert.True(ctx.Response.Headers.ContainsKey("X-Correlation-Id"));
+        Assert.Equal("echo-test-456", ctx.Response.Headers["X-Correlation-Id"].ToString());
+    }
+
     private static DefaultHttpContext CreateAuthenticatedContext(string? tenantId, string? userId)
     {
         var claims = new List<Claim>();
@@ -180,5 +228,30 @@ public class TenantContextMiddlewareTests
         {
             User = new ClaimsPrincipal(new ClaimsIdentity(claims, "test")),
         };
+    }
+
+    /// <summary>
+    /// Minimal IHttpResponseFeature that allows capturing and firing OnStarting callbacks.
+    /// </summary>
+    private sealed class TestHttpResponseFeature : Microsoft.AspNetCore.Http.Features.IHttpResponseFeature
+    {
+        private readonly List<(Func<object, Task> Callback, object State)> _onStarting = [];
+
+        public int StatusCode { get; set; } = 200;
+        public string? ReasonPhrase { get; set; }
+        public IHeaderDictionary Headers { get; set; } = new HeaderDictionary();
+        public Stream Body { get; set; } = Stream.Null;
+        public bool HasStarted => false;
+
+        public void OnStarting(Func<object, Task> callback, object state) =>
+            _onStarting.Add((callback, state));
+
+        public void OnCompleted(Func<object, Task> callback, object state) { }
+
+        public async Task FireOnStarting()
+        {
+            foreach (var (callback, state) in _onStarting)
+                await callback(state);
+        }
     }
 }
