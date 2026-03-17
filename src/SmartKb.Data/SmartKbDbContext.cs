@@ -26,6 +26,8 @@ public class SmartKbDbContext : DbContext
     public DbSet<CasePatternEntity> CasePatterns => Set<CasePatternEntity>();
     public DbSet<TenantRetrievalSettingsEntity> TenantRetrievalSettings => Set<TenantRetrievalSettingsEntity>();
     public DbSet<RoutingRecommendationEntity> RoutingRecommendations => Set<RoutingRecommendationEntity>();
+    public DbSet<PiiPolicyEntity> PiiPolicies => Set<PiiPolicyEntity>();
+    public DbSet<DataSubjectDeletionRequestEntity> DataSubjectDeletionRequests => Set<DataSubjectDeletionRequestEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -50,6 +52,8 @@ public class SmartKbDbContext : DbContext
         ConfigureCasePattern(modelBuilder);
         ConfigureTenantRetrievalSettings(modelBuilder);
         ConfigureRoutingRecommendation(modelBuilder);
+        ConfigurePiiPolicy(modelBuilder);
+        ConfigureDataSubjectDeletionRequest(modelBuilder);
     }
 
     private static void ConfigureTenant(ModelBuilder modelBuilder)
@@ -435,6 +439,40 @@ public class SmartKbDbContext : DbContext
             e.HasIndex(r => new { r.TenantId, r.Status });
             e.HasIndex(r => new { r.TenantId, r.ProductArea });
             e.HasOne(r => r.Tenant).WithMany().HasForeignKey(r => r.TenantId);
+        });
+    }
+
+    private static void ConfigurePiiPolicy(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<PiiPolicyEntity>(e =>
+        {
+            e.ToTable("PiiPolicies");
+            e.HasKey(p => p.Id);
+            e.Property(p => p.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(p => p.EnforcementMode).HasMaxLength(32).IsRequired();
+            e.Property(p => p.EnabledPiiTypes).HasMaxLength(512).IsRequired();
+            e.Property(p => p.CustomPatternsJson).IsRequired();
+            e.HasIndex(p => p.TenantId).IsUnique();
+            e.HasOne(p => p.Tenant).WithMany().HasForeignKey(p => p.TenantId);
+        });
+    }
+
+    private static void ConfigureDataSubjectDeletionRequest(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<DataSubjectDeletionRequestEntity>(e =>
+        {
+            e.ToTable("DataSubjectDeletionRequests");
+            e.HasKey(d => d.Id);
+            e.Property(d => d.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(d => d.SubjectId).HasMaxLength(128).IsRequired();
+            e.Property(d => d.RequestedBy).HasMaxLength(128).IsRequired();
+            e.Property(d => d.Status).HasMaxLength(32).IsRequired();
+            e.Property(d => d.DeletionSummaryJson).IsRequired();
+            e.Property(d => d.ErrorDetail);
+            e.HasIndex(d => d.TenantId);
+            e.HasIndex(d => new { d.TenantId, d.SubjectId });
+            e.HasIndex(d => new { d.TenantId, d.Status });
+            e.HasOne(d => d.Tenant).WithMany().HasForeignKey(d => d.TenantId);
         });
     }
 }

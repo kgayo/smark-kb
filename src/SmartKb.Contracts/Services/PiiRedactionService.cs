@@ -1,14 +1,26 @@
 using System.Text.RegularExpressions;
+using SmartKb.Contracts.Models;
 
 namespace SmartKb.Contracts.Services;
 
 /// <summary>
-/// Phase 1 baseline PII redaction: regex-based replacement of emails, phone numbers,
-/// SSNs, and credit card numbers with type-specific placeholders (P0-014A, jtbd-10).
-/// Reuses the same regex patterns as <see cref="BaselineEnrichmentService.DetectPii"/>.
+/// PII redaction with policy-aware configuration (P0-014A baseline + P2-001 policy controls).
+/// Supports built-in patterns (email, phone, SSN, credit card) and custom tenant-defined patterns.
+/// Enforcement modes: "redact" (replace), "detect" (count only), "disabled" (skip).
 /// </summary>
 public sealed partial class PiiRedactionService : IPiiRedactionService
 {
+    private static readonly Dictionary<string, (Func<Regex> Regex, string Placeholder)> BuiltInPatterns = new()
+    {
+        ["email"] = (EmailRegex, "[REDACTED-EMAIL]"),
+        ["phone"] = (PhoneRegex, "[REDACTED-PHONE]"),
+        ["ssn"] = (SsnRegex, "[REDACTED-SSN]"),
+        ["credit_card"] = (CreditCardRegex, "[REDACTED-CREDIT-CARD]"),
+    };
+
+    /// <summary>
+    /// Default redaction: all built-in patterns enabled, redact mode (backward-compatible).
+    /// </summary>
     public PiiRedactionResult Redact(string text)
     {
         if (string.IsNullOrEmpty(text))
@@ -36,6 +48,61 @@ public sealed partial class PiiRedactionService : IPiiRedactionService
         };
     }
 
+    /// <summary>
+    /// Policy-aware redaction (P2-001). Respects enforcement mode, enabled types, and custom patterns.
+    /// </summary>
+    public PiiRedactionResult Redact(string text, PiiPolicyResponse policy)
+    {
+        if (string.IsNullOrEmpty(text) || policy.EnforcementMode == "disabled")
+        {
+            return new PiiRedactionResult
+            {
+                RedactedText = text ?? string.Empty,
+                RedactionCounts = new Dictionary<string, int>(),
+            };
+        }
+
+        var counts = new Dictionary<string, int>();
+        var result = text;
+        var detectOnly = policy.EnforcementMode == "detect";
+
+        // Apply built-in patterns in priority order (credit_card first to avoid partial phone matches).
+        string[] orderedTypes = ["credit_card", "ssn", "email", "phone"];
+        foreach (var piiType in orderedTypes)
+        {
+            if (!policy.EnabledPiiTypes.Contains(piiType)) continue;
+            if (!BuiltInPatterns.TryGetValue(piiType, out var pattern)) continue;
+
+            if (detectOnly)
+                DetectAndCount(result, pattern.Regex(), piiType, counts);
+            else
+                result = ReplaceAndCount(result, pattern.Regex(), pattern.Placeholder, piiType, counts);
+        }
+
+        // Apply custom patterns.
+        foreach (var custom in policy.CustomPatterns)
+        {
+            try
+            {
+                var regex = new Regex(custom.Pattern, RegexOptions.Compiled, TimeSpan.FromSeconds(1));
+                if (detectOnly)
+                    DetectAndCount(result, regex, custom.Name, counts);
+                else
+                    result = ReplaceAndCount(result, regex, custom.Placeholder, custom.Name, counts);
+            }
+            catch (RegexMatchTimeoutException)
+            {
+                // Skip patterns that time out — don't fail the entire redaction.
+            }
+        }
+
+        return new PiiRedactionResult
+        {
+            RedactedText = detectOnly ? text : result,
+            RedactionCounts = counts,
+        };
+    }
+
     private static string ReplaceAndCount(
         string input, Regex regex, string replacement, string piiType, Dictionary<string, int> counts)
     {
@@ -46,6 +113,14 @@ public sealed partial class PiiRedactionService : IPiiRedactionService
             return regex.Replace(input, replacement);
         }
         return input;
+    }
+
+    private static void DetectAndCount(
+        string input, Regex regex, string piiType, Dictionary<string, int> counts)
+    {
+        var matches = regex.Matches(input);
+        if (matches.Count > 0)
+            counts[piiType] = matches.Count;
     }
 
     // Same patterns as BaselineEnrichmentService — keep in sync.

@@ -90,6 +90,18 @@ public static class Diagnostics
             "smartkb.chat.confidence",
             description: "Blended confidence score distribution for chat responses.");
 
+    /// <summary>Retention cleanup records deleted (counter).</summary>
+    public static readonly Counter<long> RetentionCleanupDeletedTotal =
+        Meter.CreateCounter<long>(
+            "smartkb.privacy.retention_cleanup_deleted_total",
+            description: "Total records deleted by retention cleanup.");
+
+    /// <summary>Data subject deletion requests processed (counter).</summary>
+    public static readonly Counter<long> DataSubjectDeletionsTotal =
+        Meter.CreateCounter<long>(
+            "smartkb.privacy.data_subject_deletions_total",
+            description: "Total data subject deletion requests processed.");
+
     /// <summary>Source API rate-limit hits (HTTP 429) during connector sync (counter).</summary>
     public static readonly Counter<long> SourceRateLimitTotal =
         Meter.CreateCounter<long>(

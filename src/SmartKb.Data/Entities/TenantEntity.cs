@@ -12,4 +12,5 @@ public sealed class TenantEntity
     public ICollection<ConnectorEntity> Connectors { get; set; } = [];
     public ICollection<SessionEntity> Sessions { get; set; } = [];
     public ICollection<RetentionConfigEntity> RetentionConfigs { get; set; } = [];
+    public PiiPolicyEntity? PiiPolicy { get; set; }
 }

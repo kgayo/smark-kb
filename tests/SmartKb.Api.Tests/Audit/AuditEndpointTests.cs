@@ -252,6 +252,9 @@ internal sealed class AuditTestFactory : WebApplicationFactory<Program>, IAsyncL
             services.AddScoped<IRoutingRuleService, SmartKb.Data.Repositories.RoutingRuleService>();
             services.AddScoped<IRoutingAnalyticsService, SmartKb.Data.Repositories.RoutingAnalyticsService>();
             services.AddScoped<IRoutingImprovementService, SmartKb.Data.Repositories.RoutingImprovementService>();
+            services.AddScoped<IPiiPolicyService, SmartKb.Data.Repositories.PiiPolicyService>();
+            services.AddScoped<IRetentionCleanupService, SmartKb.Data.Repositories.RetentionCleanupService>();
+            services.AddScoped<IDataSubjectDeletionService, SmartKb.Data.Repositories.DataSubjectDeletionService>();
         });
     }
 

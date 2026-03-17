@@ -40,6 +40,7 @@ public static class RolePermissions
                 "audit:read",
                 "audit:export",
                 "tenant:manage",
+                "privacy:manage",
             },
             [AppRole.EngineeringViewer] = new HashSet<string>
             {

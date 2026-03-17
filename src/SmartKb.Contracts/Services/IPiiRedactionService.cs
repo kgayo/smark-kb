@@ -1,3 +1,5 @@
+using SmartKb.Contracts.Models;
+
 namespace SmartKb.Contracts.Services;
 
 /// <summary>
@@ -7,9 +9,16 @@ namespace SmartKb.Contracts.Services;
 public interface IPiiRedactionService
 {
     /// <summary>
-    /// Redacts PII patterns in the given text, returning the redacted text and a summary of what was redacted.
+    /// Redacts PII patterns in the given text using all built-in patterns (default behavior).
     /// </summary>
     PiiRedactionResult Redact(string text);
+
+    /// <summary>
+    /// Redacts PII patterns according to a tenant's PII policy configuration (P2-001).
+    /// When enforcementMode is "detect", returns counts but does not modify text.
+    /// When enforcementMode is "disabled", returns original text with no redactions.
+    /// </summary>
+    PiiRedactionResult Redact(string text, PiiPolicyResponse policy);
 }
 
 /// <summary>

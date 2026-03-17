@@ -599,6 +599,54 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         return (result, redactedCount);
     }
 
+    /// <summary>
+    /// P2-001: Policy-aware PII redaction in chunks. Respects tenant PII policy configuration.
+    /// Returns redacted chunks, count, aggregated redaction counts by type, and affected chunk IDs.
+    /// </summary>
+    internal static (IReadOnlyList<RetrievedChunk> Redacted, int RedactedChunkCount, Dictionary<string, int> AggregatedCounts, List<string> AffectedChunkIds) RedactPiiInChunksWithPolicy(
+        IReadOnlyList<RetrievedChunk> chunks,
+        IPiiRedactionService piiRedactionService,
+        PiiPolicyResponse policy)
+    {
+        var result = new List<RetrievedChunk>(chunks.Count);
+        var redactedCount = 0;
+        var aggregatedCounts = new Dictionary<string, int>();
+        var affectedChunkIds = new List<string>();
+
+        foreach (var chunk in chunks)
+        {
+            var textResult = piiRedactionService.Redact(chunk.ChunkText, policy);
+            var contextResult = !string.IsNullOrEmpty(chunk.ChunkContext)
+                ? piiRedactionService.Redact(chunk.ChunkContext, policy)
+                : null;
+
+            if (textResult.TotalRedactions > 0 || (contextResult?.TotalRedactions ?? 0) > 0)
+            {
+                redactedCount++;
+                affectedChunkIds.Add(chunk.ChunkId);
+
+                // Aggregate counts.
+                foreach (var kvp in textResult.RedactionCounts)
+                    aggregatedCounts[kvp.Key] = aggregatedCounts.GetValueOrDefault(kvp.Key) + kvp.Value;
+                if (contextResult is not null)
+                    foreach (var kvp in contextResult.RedactionCounts)
+                        aggregatedCounts[kvp.Key] = aggregatedCounts.GetValueOrDefault(kvp.Key) + kvp.Value;
+
+                result.Add(chunk with
+                {
+                    ChunkText = textResult.RedactedText,
+                    ChunkContext = contextResult?.RedactedText ?? chunk.ChunkContext,
+                });
+            }
+            else
+            {
+                result.Add(chunk);
+            }
+        }
+
+        return (result, redactedCount, aggregatedCounts, affectedChunkIds);
+    }
+
     /// <summary>Approximate token count using chars/4 heuristic for English text.</summary>
     internal static int EstimateTokens(string text) => (text.Length + 3) / 4;
 

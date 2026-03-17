@@ -42,7 +42,11 @@ public sealed class AuthTestFactory : WebApplicationFactory<Program>, IAsyncLife
                 new TenantEntity { TenantId = "tenant-ret-del", DisplayName = "Retrieval Delete Test", CreatedAt = now },
                 new TenantEntity { TenantId = "tenant-ret-nf", DisplayName = "Retrieval NotFound Test", CreatedAt = now },
                 new TenantEntity { TenantId = "tenant-ret-rbac", DisplayName = "Retrieval RBAC Test", CreatedAt = now },
-                new TenantEntity { TenantId = "tenant-ret-rbac2", DisplayName = "Retrieval RBAC Test 2", CreatedAt = now });
+                new TenantEntity { TenantId = "tenant-ret-rbac2", DisplayName = "Retrieval RBAC Test 2", CreatedAt = now },
+                new TenantEntity { TenantId = "tenant-priv", DisplayName = "Privacy Test", CreatedAt = now },
+                new TenantEntity { TenantId = "tenant-priv-ret", DisplayName = "Privacy Retention Test", CreatedAt = now },
+                new TenantEntity { TenantId = "tenant-priv-del", DisplayName = "Privacy Deletion Test", CreatedAt = now },
+                new TenantEntity { TenantId = "tenant-priv-rbac", DisplayName = "Privacy RBAC Test", CreatedAt = now });
             await db.SaveChangesAsync();
         }
     }
@@ -100,6 +104,9 @@ public sealed class AuthTestFactory : WebApplicationFactory<Program>, IAsyncLife
             services.AddScoped<IRoutingRuleService, SmartKb.Data.Repositories.RoutingRuleService>();
             services.AddScoped<IRoutingAnalyticsService, SmartKb.Data.Repositories.RoutingAnalyticsService>();
             services.AddScoped<IRoutingImprovementService, SmartKb.Data.Repositories.RoutingImprovementService>();
+            services.AddScoped<IPiiPolicyService, SmartKb.Data.Repositories.PiiPolicyService>();
+            services.AddScoped<IRetentionCleanupService, SmartKb.Data.Repositories.RetentionCleanupService>();
+            services.AddScoped<IDataSubjectDeletionService, SmartKb.Data.Repositories.DataSubjectDeletionService>();
         });
     }
 }

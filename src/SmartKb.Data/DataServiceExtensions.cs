@@ -30,6 +30,9 @@ public static class DataServiceExtensions
         services.AddScoped<IRoutingRuleService, RoutingRuleService>();
         services.AddScoped<IRoutingAnalyticsService, RoutingAnalyticsService>();
         services.AddScoped<IRoutingImprovementService, RoutingImprovementService>();
+        services.AddScoped<IPiiPolicyService, PiiPolicyService>();
+        services.AddScoped<IRetentionCleanupService, RetentionCleanupService>();
+        services.AddScoped<IDataSubjectDeletionService, DataSubjectDeletionService>();
 
         return services;
     }

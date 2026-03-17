@@ -54,6 +54,15 @@ public static class AuditEventTypes
     public const string RoutingRecommendationApplied = "routing.recommendation.applied";
     public const string RoutingRecommendationDismissed = "routing.recommendation.dismissed";
 
+    // Privacy and compliance events (P2-001).
+    public const string PiiPolicyUpdated = "privacy.pii_policy_updated";
+    public const string PiiRedactionAudit = "privacy.pii_redaction_audit";
+    public const string RetentionPolicyUpdated = "privacy.retention_policy_updated";
+    public const string RetentionCleanupExecuted = "privacy.retention_cleanup_executed";
+    public const string DataSubjectDeletionRequested = "privacy.deletion_requested";
+    public const string DataSubjectDeletionCompleted = "privacy.deletion_completed";
+    public const string DataSubjectDeletionFailed = "privacy.deletion_failed";
+
     // Webhook events.
     public const string WebhookReceived = "webhook.received";
     public const string WebhookSignatureFailed = "webhook.signature_failed";
