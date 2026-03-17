@@ -85,8 +85,10 @@ if (!string.IsNullOrEmpty(connectionString))
 // Connector clients — register all IConnectorClient implementations.
 builder.Services.AddHttpClient("AzureDevOps");
 builder.Services.AddHttpClient("SharePoint");
+builder.Services.AddHttpClient("HubSpot");
 builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.AzureDevOpsConnectorClient>();
 builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.SharePointConnectorClient>();
+builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.HubSpotConnectorClient>();
 
 // Normalization pipeline (chunking + enrichment).
 var chunkingSettings = new ChunkingSettings();

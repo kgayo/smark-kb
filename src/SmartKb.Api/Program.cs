@@ -111,12 +111,15 @@ builder.Services.AddSingleton<INormalizationPipeline, SmartKb.Contracts.Services
 // Connector clients — register all IConnectorClient implementations.
 builder.Services.AddHttpClient("AzureDevOps");
 builder.Services.AddHttpClient("SharePoint");
+builder.Services.AddHttpClient("HubSpot");
 builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.AzureDevOpsConnectorClient>();
 builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.SharePointConnectorClient>();
+builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.HubSpotConnectorClient>();
 
 // Webhook managers — register all IWebhookManager implementations.
 builder.Services.AddSingleton<IWebhookManager, SmartKb.Contracts.Connectors.AdoWebhookManager>();
 builder.Services.AddSingleton<IWebhookManager, SmartKb.Contracts.Connectors.SharePointWebhookManager>();
+builder.Services.AddSingleton<IWebhookManager, SmartKb.Contracts.Connectors.HubSpotWebhookManager>();
 
 // Azure AI Search — prefer Managed Identity via Endpoint; fall back to admin API key.
 var searchSettings = new SearchServiceSettings();
@@ -201,6 +204,7 @@ if (!string.IsNullOrEmpty(connectionString))
     builder.Services.AddScoped<ConnectorAdminService>();
     builder.Services.AddScoped<AdoWebhookHandler>();
     builder.Services.AddScoped<SharePointWebhookHandler>();
+    builder.Services.AddScoped<HubSpotWebhookHandler>();
     builder.Services.AddHostedService<WebhookPollingFallbackService>();
 }
 else
@@ -470,6 +474,22 @@ app.MapPost("/api/webhooks/msgraph/{connectorId:guid}", async (
     var requestBody = await reader.ReadToEndAsync();
 
     var (statusCode, message) = await handler.HandleNotificationAsync(connectorId, requestBody);
+    return Results.Json(new { message }, statusCode: statusCode);
+}).AllowAnonymous();
+
+// HubSpot webhook endpoint — validates HMAC-SHA256 signature via X-HubSpot-Signature-v3 header.
+app.MapPost("/api/webhooks/hubspot/{connectorId:guid}", async (
+    Guid connectorId,
+    HttpContext httpContext,
+    HubSpotWebhookHandler handler) =>
+{
+    using var reader = new StreamReader(httpContext.Request.Body);
+    var body = await reader.ReadToEndAsync();
+    var signatureHeader = httpContext.Request.Headers["X-HubSpot-Signature-v3"].FirstOrDefault()
+        ?? httpContext.Request.Headers["X-HubSpot-Signature"].FirstOrDefault();
+    var timestampHeader = httpContext.Request.Headers["X-HubSpot-Request-Timestamp"].FirstOrDefault();
+
+    var (statusCode, message) = await handler.HandleAsync(connectorId, body, signatureHeader, timestampHeader);
     return Results.Json(new { message }, statusCode: statusCode);
 }).AllowAnonymous();
 

@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-17 (Asia/Manila) — iteration 43 (P0-022)
-Status: Active backlog (P0-001 through P0-022 complete; 0 bugs blocking, 0 tech-debt blocking; Phase 1 MVP complete)
+Last updated: 2026-03-17 (Asia/Manila) — iteration 44 (P1-001)
+Status: Active backlog (P0-001 through P0-022 + P1-001 complete; 0 bugs blocking, 0 tech-debt blocking; Phase 1 MVP complete, Phase 2 started)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -223,9 +223,9 @@ Status: Active backlog (P0-001 through P0-022 complete; 0 bugs blocking, 0 tech-
 
 ## Phase 2 (V1) Priority Queue
 
-- [ ] P1-001: Add HubSpot connector.
+- [x] P1-001: Add HubSpot connector.
   - Specs: jtbd-01, jtbd-07
-  - Exit criteria: HubSpot tickets ingested with ACL metadata and tenant-scoped checkpoints; webhook signature validation; backfill 3k+; polling fallback.
+  - Completed: Third `IConnectorClient` implementation — `HubSpotConnectorClient` in `SmartKb.Contracts.Connectors`. Uses HubSpot CRM v3 REST API with Bearer token auth (PAT/OAuth). Ingests tickets, contacts, companies, deals via configurable `ObjectTypes`. `HubSpotSourceConfig` model with portalId, baseUrl, objectTypes, customProperties, pipelines, batchSize (max 100). Checkpoint-based multi-object-type sync (`HubSpotCheckpoint` tracks objectTypeIndex + afterCursor + lastModified). Backfill via list API (`GET crm/v3/objects/{type}`); incremental via search API (`POST crm/v3/objects/{type}/search` with `hs_lastmodifieddate >= GTE` filter). HubSpot pagination support (paging.next.after cursor → HasMore). Maps CRM objects to `CanonicalRecord`: tickets→SourceType.Ticket, contacts/companies/deals→SourceType.Document. Deep links to `https://app.hubspot.com/contacts/{portalId}/{type}/{id}`. Priority mapping: HIGH→P1, MEDIUM→P2, LOW→P3. Stage mapping: closed/closedwon/closedlost→EvidenceStatus.Closed. ACL: all objects→Internal visibility (HubSpot CRM has no per-record ACL model). Content hash for dedup. Per-record error isolation. Default properties per object type (subject/content for tickets, firstname/lastname/email for contacts, name/description for companies, dealname/description for deals). `HubSpotWebhookManager` registers webhook subscriptions per object type (creation + propertyChange events) via HubSpot Webhooks API v3. HMAC-SHA256 signature verification (`X-HubSpot-Signature-v3` header, constant-time comparison). `HubSpotWebhookHandler` processes webhook event arrays, deduplicates via eventId idempotency key, triggers incremental sync via Service Bus. Anonymous endpoint `POST /api/webhooks/hubspot/{connectorId}`. Webhook lifecycle managed in `ConnectorAdminService`: register on enable, deregister on disable. Reuses `WebhookPollingFallbackService` for failure recovery (3 consecutive failures threshold). `HubSpotWebhookEvent`, `HubSpotWebhookSubscriptionRequest/Response` models for webhook protocol. Registered in both API and Ingestion DI. 62 new tests (40 connector client unit + 17 webhook manager unit/signature + 5 endpoint integration); all 904 backend + 110 frontend = 1014 tests passing.
 
 - [ ] P1-002: Add ClickUp connector.
   - Specs: jtbd-01, jtbd-07
