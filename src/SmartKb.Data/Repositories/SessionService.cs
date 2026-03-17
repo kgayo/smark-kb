@@ -216,6 +216,7 @@ public sealed class SessionService : ISessionService
                 SessionHistory = priorMessages,
                 UserGroups = request.UserGroups,
                 MaxCitations = request.MaxCitations,
+                Filters = request.Filters,
             };
             chatResponse = await _chatOrchestrator.OrchestrateAsync(
                 tenantId, userId, correlationId, chatRequest, ct);

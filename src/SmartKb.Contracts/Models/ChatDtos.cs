@@ -18,6 +18,9 @@ public sealed record ChatRequest
 
     /// <summary>Max citations to return (overrides settings default if set).</summary>
     public int? MaxCitations { get; init; }
+
+    /// <summary>Optional retrieval filters to narrow search results by metadata (P1-007).</summary>
+    public RetrievalFilter? Filters { get; init; }
 }
 
 /// <summary>

@@ -16,6 +16,7 @@ public interface IRetrievalService
     /// <param name="query">Natural language query text.</param>
     /// <param name="queryEmbedding">Pre-computed embedding vector for the query (1536 dims).</param>
     /// <param name="userGroups">Groups the calling user belongs to, for ACL filtering. Null = no restricted access.</param>
+    /// <param name="filters">Optional metadata filters (source type, product area, time horizon, tags, status).</param>
     /// <param name="correlationId">Optional correlation ID for tracing. Generated if null.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Retrieval result with ranked chunks, ACL-filtered count, and no-evidence indicator.</returns>
@@ -24,6 +25,7 @@ public interface IRetrievalService
         string query,
         float[] queryEmbedding,
         IReadOnlyList<string>? userGroups = null,
+        RetrievalFilter? filters = null,
         string? correlationId = null,
         CancellationToken cancellationToken = default);
 }

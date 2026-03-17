@@ -337,6 +337,8 @@ internal sealed class SessionTestFactory : WebApplicationFactory<Program>, IAsyn
             services.AddScoped<ConnectorAdminService>();
             services.AddScoped<AdoWebhookHandler>();
             services.AddScoped<SharePointWebhookHandler>();
+            services.AddSingleton(new RetrievalSettings());
+            services.AddScoped<ITenantRetrievalSettingsService, TenantRetrievalSettingsService>();
 
             // Use stub orchestrator — no real OpenAI or search calls.
             services.AddScoped<IChatOrchestrator, StubChatOrchestrator>();

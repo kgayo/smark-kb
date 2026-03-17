@@ -95,7 +95,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         {
             using var retrievalActivity = DiagnosticsHelper.OrchestrationSource.StartActivity("RetrieveEvidence");
             retrievalResult = await _retrievalService.RetrieveAsync(
-                tenantId, request.Query, queryEmbedding, request.UserGroups, correlationId, cancellationToken);
+                tenantId, request.Query, queryEmbedding, request.UserGroups, request.Filters, correlationId, cancellationToken);
             retrievalActivity?.SetTag("smartkb.chunk_count", retrievalResult.Chunks.Count);
             retrievalActivity?.SetTag("smartkb.has_evidence", retrievalResult.HasEvidence);
             retrievalActivity?.SetTag("smartkb.acl_filtered", retrievalResult.AclFilteredOutCount);

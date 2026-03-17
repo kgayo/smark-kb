@@ -40,6 +40,7 @@ public sealed class FusedRetrievalService : IRetrievalService
         string query,
         float[] queryEmbedding,
         IReadOnlyList<string>? userGroups = null,
+        RetrievalFilter? filters = null,
         string? correlationId = null,
         CancellationToken cancellationToken = default)
     {
@@ -48,14 +49,15 @@ public sealed class FusedRetrievalService : IRetrievalService
 
         _logger.LogInformation(
             "Fused retrieval started. TraceId={TraceId} TenantId={TenantId} TopK={TopK} PatternTopK={PatternTopK} " +
-            "FusionEnabled={FusionEnabled} SemanticRerank={SemanticRerank}",
+            "FusionEnabled={FusionEnabled} SemanticRerank={SemanticRerank} HasFilters={HasFilters}",
             traceId, tenantId, _retrievalSettings.TopK, _retrievalSettings.PatternTopK,
-            _retrievalSettings.EnablePatternFusion, _retrievalSettings.EnableSemanticReranking);
+            _retrievalSettings.EnablePatternFusion, _retrievalSettings.EnableSemanticReranking,
+            filters is not null && !filters.IsEmpty);
 
         // Query Evidence and Pattern indexes in parallel.
-        var evidenceTask = SearchEvidenceIndexAsync(tenantId, query, queryEmbedding, cancellationToken);
+        var evidenceTask = SearchEvidenceIndexAsync(tenantId, query, queryEmbedding, filters, cancellationToken);
         var patternTask = _retrievalSettings.EnablePatternFusion
-            ? SearchPatternIndexAsync(tenantId, query, queryEmbedding, cancellationToken)
+            ? SearchPatternIndexAsync(tenantId, query, queryEmbedding, filters, cancellationToken)
             : Task.FromResult<List<RankedResult>>(new());
 
         List<RankedResult> evidenceResults;
@@ -163,14 +165,15 @@ public sealed class FusedRetrievalService : IRetrievalService
     }
 
     private async Task<List<RankedResult>> SearchEvidenceIndexAsync(
-        string tenantId, string query, float[] queryEmbedding, CancellationToken cancellationToken)
+        string tenantId, string query, float[] queryEmbedding, RetrievalFilter? filters, CancellationToken cancellationToken)
     {
         var searchClient = _indexClient.GetSearchClient(_searchSettings.EvidenceIndexName);
         var tenantFilter = $"{SearchFieldNames.TenantId} eq '{EscapeODataValue(tenantId)}'";
+        var combinedFilter = ODataFilterBuilder.CombineFilters(tenantFilter, ODataFilterBuilder.BuildEvidenceFilter(filters));
 
         var options = new SearchOptions
         {
-            Filter = tenantFilter,
+            Filter = combinedFilter,
             Size = _retrievalSettings.TopK * 2,
             Select =
             {
@@ -261,17 +264,18 @@ public sealed class FusedRetrievalService : IRetrievalService
     }
 
     private async Task<List<RankedResult>> SearchPatternIndexAsync(
-        string tenantId, string query, float[] queryEmbedding, CancellationToken cancellationToken)
+        string tenantId, string query, float[] queryEmbedding, RetrievalFilter? filters, CancellationToken cancellationToken)
     {
         var searchClient = _indexClient.GetSearchClient(_searchSettings.PatternIndexName);
 
         // Filter: tenant + exclude deprecated patterns from retrieval.
-        var tenantFilter = $"{PatternFieldNames.TenantId} eq '{EscapeODataValue(tenantId)}' " +
-                           $"and {PatternFieldNames.TrustLevel} ne 'Deprecated'";
+        var baseFilter = $"{PatternFieldNames.TenantId} eq '{EscapeODataValue(tenantId)}' " +
+                         $"and {PatternFieldNames.TrustLevel} ne 'Deprecated'";
+        var combinedFilter = ODataFilterBuilder.CombineFilters(baseFilter, ODataFilterBuilder.BuildPatternFilter(filters));
 
         var options = new SearchOptions
         {
-            Filter = tenantFilter,
+            Filter = combinedFilter,
             Size = _retrievalSettings.PatternTopK * 2,
             Select =
             {

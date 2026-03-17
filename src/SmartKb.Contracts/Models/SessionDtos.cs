@@ -32,6 +32,9 @@ public sealed record SendMessageRequest
     public required string Query { get; init; }
     public IReadOnlyList<string>? UserGroups { get; init; }
     public int? MaxCitations { get; init; }
+
+    /// <summary>Optional retrieval filters to narrow search results by metadata (P1-007).</summary>
+    public RetrievalFilter? Filters { get; init; }
 }
 
 public sealed record MessageResponse

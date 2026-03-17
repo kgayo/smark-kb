@@ -29,10 +29,19 @@ export interface CreateSessionRequest {
   customerRef?: string;
 }
 
+export interface RetrievalFilter {
+  sourceTypes?: string[];
+  productAreas?: string[];
+  timeHorizonDays?: number;
+  tags?: string[];
+  statuses?: string[];
+}
+
 export interface SendMessageRequest {
   query: string;
   userGroups?: string[];
   maxCitations?: number;
+  filters?: RetrievalFilter;
 }
 
 export interface MessageResponse {
@@ -427,4 +436,40 @@ export interface FeedbackResponse {
   correctedAnswer: string | null;
   traceId: string | null;
   createdAt: string;
+}
+
+// ── Retrieval tuning types (P1-007) ──
+
+export interface RetrievalSettingsResponse {
+  tenantId: string;
+  topK: number;
+  enableSemanticReranking: boolean;
+  enablePatternFusion: boolean;
+  patternTopK: number;
+  trustBoostApproved: number;
+  trustBoostReviewed: number;
+  trustBoostDraft: number;
+  recencyBoostRecent: number;
+  recencyBoostOld: number;
+  patternAuthorityBoost: number;
+  diversityMaxPerSource: number;
+  noEvidenceScoreThreshold: number;
+  noEvidenceMinResults: number;
+  hasOverrides: boolean;
+}
+
+export interface UpdateRetrievalSettingsRequest {
+  topK?: number;
+  enableSemanticReranking?: boolean;
+  enablePatternFusion?: boolean;
+  patternTopK?: number;
+  trustBoostApproved?: number;
+  trustBoostReviewed?: number;
+  trustBoostDraft?: number;
+  recencyBoostRecent?: number;
+  recencyBoostOld?: number;
+  patternAuthorityBoost?: number;
+  diversityMaxPerSource?: number;
+  noEvidenceScoreThreshold?: number;
+  noEvidenceMinResults?: number;
 }

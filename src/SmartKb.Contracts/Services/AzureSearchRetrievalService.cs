@@ -39,6 +39,7 @@ public sealed class AzureSearchRetrievalService : IRetrievalService
         string query,
         float[] queryEmbedding,
         IReadOnlyList<string>? userGroups = null,
+        RetrievalFilter? filters = null,
         string? correlationId = null,
         CancellationToken cancellationToken = default)
     {
@@ -46,18 +47,23 @@ public sealed class AzureSearchRetrievalService : IRetrievalService
         var stopwatch = Stopwatch.StartNew();
 
         _logger.LogInformation(
-            "Retrieval started. TraceId={TraceId} TenantId={TenantId} TopK={TopK} SemanticRerank={SemanticRerank}",
-            traceId, tenantId, _retrievalSettings.TopK, _retrievalSettings.EnableSemanticReranking);
+            "Retrieval started. TraceId={TraceId} TenantId={TenantId} TopK={TopK} SemanticRerank={SemanticRerank} HasFilters={HasFilters}",
+            traceId, tenantId, _retrievalSettings.TopK, _retrievalSettings.EnableSemanticReranking,
+            filters is not null && !filters.IsEmpty);
 
         var searchClient = _indexClient.GetSearchClient(_searchSettings.EvidenceIndexName);
 
         // Build tenant isolation filter (always applied server-side).
         var tenantFilter = $"{SearchFieldNames.TenantId} eq '{EscapeODataValue(tenantId)}'";
 
+        // Combine with optional metadata filters (P1-007).
+        var additionalFilter = ODataFilterBuilder.BuildEvidenceFilter(filters);
+        var combinedFilter = ODataFilterBuilder.CombineFilters(tenantFilter, additionalFilter);
+
         // Build search options for hybrid query: text (BM25) + vector, with optional semantic reranking.
         var options = new SearchOptions
         {
-            Filter = tenantFilter,
+            Filter = combinedFilter,
             Size = _retrievalSettings.TopK * 2, // Over-fetch to account for ACL filtering post-retrieval.
             Select =
             {

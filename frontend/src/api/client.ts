@@ -20,6 +20,7 @@ import type {
   PatternGovernanceQueueResponse,
   PatternGovernanceResult,
   RecordOutcomeRequest,
+  RetrievalSettingsResponse,
   ReviewPatternRequest,
   SendMessageRequest,
   SessionChatResponse,
@@ -32,6 +33,7 @@ import type {
   TestConnectionResponse,
   UpdateConnectorRequest,
   UpdateEscalationDraftRequest,
+  UpdateRetrievalSettingsRequest,
 } from './types';
 
 let getAccessToken: (() => Promise<string | null>) | null = null;
@@ -436,4 +438,29 @@ export async function deprecatePattern(
     { method: 'POST', body: JSON.stringify(req) },
   );
   return unwrap(res);
+}
+
+// ── Retrieval tuning endpoints (P1-007) ──
+
+export async function getRetrievalSettings(): Promise<RetrievalSettingsResponse> {
+  const res = await apiFetch<ApiResponse<RetrievalSettingsResponse>>(
+    '/api/admin/retrieval-settings',
+  );
+  return unwrap(res);
+}
+
+export async function updateRetrievalSettings(
+  req: UpdateRetrievalSettingsRequest,
+): Promise<RetrievalSettingsResponse> {
+  const res = await apiFetch<ApiResponse<RetrievalSettingsResponse>>(
+    '/api/admin/retrieval-settings',
+    { method: 'PUT', body: JSON.stringify(req) },
+  );
+  return unwrap(res);
+}
+
+export async function resetRetrievalSettings(): Promise<void> {
+  await apiFetch<ApiResponse<unknown>>('/api/admin/retrieval-settings', {
+    method: 'DELETE',
+  });
 }

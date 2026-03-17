@@ -74,6 +74,8 @@ public sealed class ConnectorTestFactory : WebApplicationFactory<Program>, IAsyn
             services.AddScoped<IPatternDistillationService, PatternDistillationService>();
             services.AddScoped<IPatternGovernanceService, PatternGovernanceService>();
             services.AddScoped<ConnectorAdminService>();
+            services.AddSingleton(new RetrievalSettings());
+            services.AddScoped<ITenantRetrievalSettingsService, TenantRetrievalSettingsService>();
             services.AddScoped<AdoWebhookHandler>();
             services.AddScoped<SharePointWebhookHandler>();
             services.AddScoped<HubSpotWebhookHandler>();

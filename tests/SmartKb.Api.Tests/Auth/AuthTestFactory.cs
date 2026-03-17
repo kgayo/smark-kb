@@ -33,9 +33,16 @@ public sealed class AuthTestFactory : WebApplicationFactory<Program>, IAsyncLife
 
         if (!await db.Tenants.AnyAsync(t => t.TenantId == "tenant-1"))
         {
+            var now = DateTimeOffset.UtcNow;
             db.Tenants.AddRange(
-                new TenantEntity { TenantId = "tenant-1", DisplayName = "Test Tenant 1", CreatedAt = DateTimeOffset.UtcNow },
-                new TenantEntity { TenantId = "tenant-other", DisplayName = "Test Tenant Other", CreatedAt = DateTimeOffset.UtcNow });
+                new TenantEntity { TenantId = "tenant-1", DisplayName = "Test Tenant 1", CreatedAt = now },
+                new TenantEntity { TenantId = "tenant-other", DisplayName = "Test Tenant Other", CreatedAt = now },
+                new TenantEntity { TenantId = "tenant-ret", DisplayName = "Retrieval Test", CreatedAt = now },
+                new TenantEntity { TenantId = "tenant-ret-upd", DisplayName = "Retrieval Update Test", CreatedAt = now },
+                new TenantEntity { TenantId = "tenant-ret-del", DisplayName = "Retrieval Delete Test", CreatedAt = now },
+                new TenantEntity { TenantId = "tenant-ret-nf", DisplayName = "Retrieval NotFound Test", CreatedAt = now },
+                new TenantEntity { TenantId = "tenant-ret-rbac", DisplayName = "Retrieval RBAC Test", CreatedAt = now },
+                new TenantEntity { TenantId = "tenant-ret-rbac2", DisplayName = "Retrieval RBAC Test 2", CreatedAt = now });
             await db.SaveChangesAsync();
         }
     }
@@ -86,6 +93,8 @@ public sealed class AuthTestFactory : WebApplicationFactory<Program>, IAsyncLife
             services.AddScoped<IPatternGovernanceService, PatternGovernanceService>();
             services.AddSingleton<IAuditEventQueryService>(sp =>
                 new InMemoryAuditEventQueryService(sp.GetRequiredService<InMemoryAuditEventWriter>()));
+            services.AddSingleton(new RetrievalSettings());
+            services.AddScoped<ITenantRetrievalSettingsService, TenantRetrievalSettingsService>();
         });
     }
 }

@@ -245,6 +245,8 @@ internal sealed class AuditTestFactory : WebApplicationFactory<Program>, IAsyncL
             services.AddScoped<ConnectorAdminService>();
             services.AddScoped<AdoWebhookHandler>();
             services.AddScoped<SharePointWebhookHandler>();
+            services.AddSingleton(new RetrievalSettings());
+            services.AddScoped<ITenantRetrievalSettingsService, TenantRetrievalSettingsService>();
         });
     }
 

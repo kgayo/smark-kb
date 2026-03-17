@@ -24,6 +24,7 @@ public class SmartKbDbContext : DbContext
     public DbSet<EscalationDraftEntity> EscalationDrafts => Set<EscalationDraftEntity>();
     public DbSet<EscalationRoutingRuleEntity> EscalationRoutingRules => Set<EscalationRoutingRuleEntity>();
     public DbSet<CasePatternEntity> CasePatterns => Set<CasePatternEntity>();
+    public DbSet<TenantRetrievalSettingsEntity> TenantRetrievalSettings => Set<TenantRetrievalSettingsEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -46,6 +47,7 @@ public class SmartKbDbContext : DbContext
         ConfigureEscalationDraft(modelBuilder);
         ConfigureEscalationRoutingRule(modelBuilder);
         ConfigureCasePattern(modelBuilder);
+        ConfigureTenantRetrievalSettings(modelBuilder);
     }
 
     private static void ConfigureTenant(ModelBuilder modelBuilder)
@@ -395,6 +397,18 @@ public class SmartKbDbContext : DbContext
 
             e.HasQueryFilter(p => p.DeletedAt == null);
             e.HasOne(p => p.Tenant).WithMany().HasForeignKey(p => p.TenantId).OnDelete(DeleteBehavior.Restrict);
+        });
+    }
+
+    private static void ConfigureTenantRetrievalSettings(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<TenantRetrievalSettingsEntity>(e =>
+        {
+            e.ToTable("TenantRetrievalSettings");
+            e.HasKey(s => s.Id);
+            e.Property(s => s.TenantId).HasMaxLength(128).IsRequired();
+            e.HasIndex(s => s.TenantId).IsUnique();
+            e.HasOne(s => s.Tenant).WithMany().HasForeignKey(s => s.TenantId);
         });
     }
 }

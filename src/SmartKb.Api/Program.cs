@@ -910,6 +910,38 @@ app.MapGet("/api/audit/events/export", async (
     }
 }).RequirePermission("audit:export");
 
+// --- Retrieval Tuning Endpoints (P1-007) ---
+
+app.MapGet("/api/admin/retrieval-settings", async (
+    ITenantContextAccessor tenantAccessor,
+    ITenantRetrievalSettingsService settingsService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await settingsService.GetSettingsAsync(tenant.TenantId);
+    return Results.Ok(ApiResponse<RetrievalSettingsResponse>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapPut("/api/admin/retrieval-settings", async (
+    UpdateRetrievalSettingsRequest request,
+    ITenantContextAccessor tenantAccessor,
+    ITenantRetrievalSettingsService settingsService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await settingsService.UpdateSettingsAsync(tenant.TenantId, request);
+    return Results.Ok(ApiResponse<RetrievalSettingsResponse>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapDelete("/api/admin/retrieval-settings", async (
+    ITenantContextAccessor tenantAccessor,
+    ITenantRetrievalSettingsService settingsService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var deleted = await settingsService.ResetSettingsAsync(tenant.TenantId);
+    return deleted
+        ? Results.Ok(ApiResponse<object>.Success(new { reset = true }, tenant.CorrelationId))
+        : Results.NotFound(ApiResponse<object>.Failure("No tenant overrides found.", tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
 // --- SLO Status Endpoint (P0-022) ---
 
 app.MapGet("/api/admin/slo/status", (

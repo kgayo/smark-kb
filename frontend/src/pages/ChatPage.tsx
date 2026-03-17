@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { CitationDto, EscalationSignal, MessageResponse, RecordOutcomeRequest, SessionResponse, SubmitFeedbackRequest } from '../api/types';
+import type { CitationDto, EscalationSignal, MessageResponse, RecordOutcomeRequest, RetrievalFilter, SessionResponse, SubmitFeedbackRequest } from '../api/types';
 import type { AssistantMeta, FeedbackState } from '../components/ChatThread';
 import * as api from '../api/client';
 import { SessionSidebar } from '../components/SessionSidebar';
@@ -9,6 +9,7 @@ import { MessageInput } from '../components/MessageInput';
 import { EvidenceDrawer } from '../components/EvidenceDrawer';
 import { EscalationDraftModal } from '../components/EscalationDraftModal';
 import { OutcomeWidget } from '../components/OutcomeWidget';
+import { RetrievalFilterPanel } from '../components/RetrievalFilterPanel';
 
 export function ChatPage() {
   const [sessions, setSessions] = useState<SessionResponse[]>([]);
@@ -25,6 +26,7 @@ export function ChatPage() {
   const [draftCitations, setDraftCitations] = useState<CitationDto[]>([]);
   const [feedbackMap, setFeedbackMap] = useState<Map<string, FeedbackState>>(() => new Map());
   const [outcomeRecorded, setOutcomeRecorded] = useState<{ resolutionType: string } | null>(null);
+  const [retrievalFilters, setRetrievalFilters] = useState<RetrievalFilter>({});
   const threadEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -104,7 +106,14 @@ export function ChatPage() {
       setError(null);
 
       try {
-        const result = await api.sendMessage(activeSessionId, { query });
+        const hasFilters = retrievalFilters.sourceTypes?.length ||
+          retrievalFilters.productAreas?.length ||
+          retrievalFilters.timeHorizonDays ||
+          retrievalFilters.tags?.length;
+        const result = await api.sendMessage(activeSessionId, {
+          query,
+          filters: hasFilters ? retrievalFilters : undefined,
+        });
 
         setMessages((prev) => [...prev, result.userMessage, result.assistantMessage]);
 
@@ -135,7 +144,7 @@ export function ChatPage() {
         setLoading(false);
       }
     },
-    [activeSessionId],
+    [activeSessionId, retrievalFilters],
   );
 
   const handleShowEvidence = useCallback((citations: CitationDto[]) => {
@@ -235,6 +244,10 @@ export function ChatPage() {
               feedbackMap={feedbackMap}
             />
             <div ref={threadEndRef} />
+            <RetrievalFilterPanel
+              filters={retrievalFilters}
+              onChange={setRetrievalFilters}
+            />
             <MessageInput onSend={handleSend} disabled={loading} />
             {messages.length > 0 && (
               <OutcomeWidget

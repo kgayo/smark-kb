@@ -25,6 +25,7 @@ public static class DataServiceExtensions
         services.AddScoped<IOutcomeService, OutcomeService>();
         services.AddScoped<IPatternDistillationService, PatternDistillationService>();
         services.AddScoped<IPatternGovernanceService, PatternGovernanceService>();
+        services.AddScoped<ITenantRetrievalSettingsService, TenantRetrievalSettingsService>();
 
         return services;
     }
