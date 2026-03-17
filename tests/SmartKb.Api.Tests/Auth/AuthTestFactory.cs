@@ -83,6 +83,7 @@ public sealed class AuthTestFactory : WebApplicationFactory<Program>, IAsyncLife
             services.AddScoped<SmartKb.Api.Connectors.ConnectorAdminService>();
             services.AddSingleton(new SmartKb.Contracts.Configuration.DistillationSettings());
             services.AddScoped<IPatternDistillationService, SmartKb.Data.Repositories.PatternDistillationService>();
+            services.AddScoped<IPatternGovernanceService, PatternGovernanceService>();
             services.AddSingleton<IAuditEventQueryService>(sp =>
                 new InMemoryAuditEventQueryService(sp.GetRequiredService<InMemoryAuditEventWriter>()));
         });

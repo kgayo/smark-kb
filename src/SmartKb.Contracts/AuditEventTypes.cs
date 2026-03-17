@@ -41,6 +41,11 @@ public static class AuditEventTypes
     public const string PatternDistilled = "pattern.distilled";
     public const string PatternDistillationRun = "pattern.distillation_run";
 
+    // Pattern governance events (P1-006).
+    public const string PatternReviewed = "pattern.reviewed";
+    public const string PatternApproved = "pattern.approved";
+    public const string PatternDeprecated = "pattern.deprecated";
+
     // Webhook events.
     public const string WebhookReceived = "webhook.received";
     public const string WebhookSignatureFailed = "webhook.signature_failed";

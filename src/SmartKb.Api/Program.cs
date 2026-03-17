@@ -965,6 +965,76 @@ app.MapPost("/api/admin/patterns/distill", async (
     return Results.Ok(ApiResponse<DistillationResult>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
+// --- Pattern Governance Endpoints (P1-006) ---
+
+app.MapGet("/api/patterns/governance-queue", async (
+    ITenantContextAccessor tenantAccessor,
+    IPatternGovernanceService governanceService,
+    string? trustLevel,
+    string? productArea,
+    int? page,
+    int? pageSize) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await governanceService.GetGovernanceQueueAsync(
+        tenant.TenantId, trustLevel, productArea, page ?? 1, pageSize ?? 20);
+    return Results.Ok(ApiResponse<PatternGovernanceQueueResponse>.Success(result, tenant.CorrelationId));
+}).RequirePermission("pattern:approve");
+
+app.MapGet("/api/patterns/{patternId}", async (
+    string patternId,
+    ITenantContextAccessor tenantAccessor,
+    IPatternGovernanceService governanceService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await governanceService.GetPatternDetailAsync(tenant.TenantId, patternId);
+    return result is null
+        ? Results.NotFound()
+        : Results.Ok(ApiResponse<PatternDetail>.Success(result, tenant.CorrelationId));
+}).RequirePermission("pattern:approve");
+
+app.MapPost("/api/patterns/{patternId}/review", async (
+    string patternId,
+    ReviewPatternRequest request,
+    ITenantContextAccessor tenantAccessor,
+    IPatternGovernanceService governanceService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await governanceService.ReviewPatternAsync(
+        tenant.TenantId, patternId, tenant.UserId, tenant.CorrelationId, request);
+    return result is null
+        ? Results.NotFound()
+        : Results.Ok(ApiResponse<PatternGovernanceResult>.Success(result, tenant.CorrelationId));
+}).RequirePermission("pattern:approve");
+
+app.MapPost("/api/patterns/{patternId}/approve", async (
+    string patternId,
+    ApprovePatternRequest request,
+    ITenantContextAccessor tenantAccessor,
+    IPatternGovernanceService governanceService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await governanceService.ApprovePatternAsync(
+        tenant.TenantId, patternId, tenant.UserId, tenant.CorrelationId, request);
+    return result is null
+        ? Results.NotFound()
+        : Results.Ok(ApiResponse<PatternGovernanceResult>.Success(result, tenant.CorrelationId));
+}).RequirePermission("pattern:approve");
+
+app.MapPost("/api/patterns/{patternId}/deprecate", async (
+    string patternId,
+    DeprecatePatternRequest request,
+    ITenantContextAccessor tenantAccessor,
+    IPatternGovernanceService governanceService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await governanceService.DeprecatePatternAsync(
+        tenant.TenantId, patternId, tenant.UserId, tenant.CorrelationId, request);
+    return result is null
+        ? Results.NotFound()
+        : Results.Ok(ApiResponse<PatternGovernanceResult>.Success(result, tenant.CorrelationId));
+}).RequirePermission("pattern:deprecate");
+
 // --- Secrets Status Endpoint ---
 
 app.MapGet("/api/admin/secrets/status", (

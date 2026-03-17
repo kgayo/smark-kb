@@ -204,6 +204,9 @@ export function ChatPage() {
                 'New session'}
             </span>
           )}
+          <Link to="/patterns" className="nav-admin-link" data-testid="patterns-link">
+            Patterns
+          </Link>
           <Link to="/admin" className="nav-admin-link" data-testid="admin-link">
             Admin
           </Link>

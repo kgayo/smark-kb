@@ -1,12 +1,14 @@
 import type {
   ApiResponse,
   ApproveEscalationDraftRequest,
+  ApprovePatternRequest,
   ConnectorListResponse,
   ConnectorResponse,
   ConnectorValidationResult,
   CreateConnectorRequest,
   CreateEscalationDraftRequest,
   CreateSessionRequest,
+  DeprecatePatternRequest,
   EscalationDraftExportResponse,
   EscalationDraftResponse,
   ExternalEscalationResult,
@@ -14,7 +16,11 @@ import type {
   MessageListResponse,
   OutcomeListResponse,
   OutcomeResponse,
+  PatternDetail,
+  PatternGovernanceQueueResponse,
+  PatternGovernanceResult,
   RecordOutcomeRequest,
+  ReviewPatternRequest,
   SendMessageRequest,
   SessionChatResponse,
   SessionListResponse,
@@ -370,4 +376,64 @@ export interface UserInfo {
 
 export async function getMe(): Promise<UserInfo> {
   return apiFetch<UserInfo>('/api/me');
+}
+
+// ── Pattern governance endpoints (P1-006) ──
+
+export async function getGovernanceQueue(
+  trustLevel?: string,
+  productArea?: string,
+  page?: number,
+  pageSize?: number,
+): Promise<PatternGovernanceQueueResponse> {
+  const params = new URLSearchParams();
+  if (trustLevel) params.set('trustLevel', trustLevel);
+  if (productArea) params.set('productArea', productArea);
+  if (page) params.set('page', String(page));
+  if (pageSize) params.set('pageSize', String(pageSize));
+  const qs = params.toString();
+  const res = await apiFetch<ApiResponse<PatternGovernanceQueueResponse>>(
+    `/api/patterns/governance-queue${qs ? `?${qs}` : ''}`,
+  );
+  return unwrap(res);
+}
+
+export async function getPatternDetail(patternId: string): Promise<PatternDetail> {
+  const res = await apiFetch<ApiResponse<PatternDetail>>(
+    `/api/patterns/${encodeURIComponent(patternId)}`,
+  );
+  return unwrap(res);
+}
+
+export async function reviewPattern(
+  patternId: string,
+  req: ReviewPatternRequest,
+): Promise<PatternGovernanceResult> {
+  const res = await apiFetch<ApiResponse<PatternGovernanceResult>>(
+    `/api/patterns/${encodeURIComponent(patternId)}/review`,
+    { method: 'POST', body: JSON.stringify(req) },
+  );
+  return unwrap(res);
+}
+
+export async function approvePattern(
+  patternId: string,
+  req: ApprovePatternRequest,
+): Promise<PatternGovernanceResult> {
+  const res = await apiFetch<ApiResponse<PatternGovernanceResult>>(
+    `/api/patterns/${encodeURIComponent(patternId)}/approve`,
+    { method: 'POST', body: JSON.stringify(req) },
+  );
+  return unwrap(res);
+}
+
+export async function deprecatePattern(
+  patternId: string,
+  req: DeprecatePatternRequest,
+): Promise<PatternGovernanceResult> {
+  const res = await apiFetch<ApiResponse<PatternGovernanceResult>>(
+    `/api/patterns/${encodeURIComponent(patternId)}/deprecate`,
+    { method: 'POST', body: JSON.stringify(req) },
+  );
+  return unwrap(res);
 }

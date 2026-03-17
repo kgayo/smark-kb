@@ -101,9 +101,14 @@ export function AdminPage() {
         <div className="admin-header-left">
           <h1>Connector Dashboard</h1>
         </div>
-        <Link to="/" className="btn btn-sm" data-testid="back-to-chat">
-          Back to Chat
-        </Link>
+        <div className="admin-header-right">
+          <Link to="/patterns" className="btn btn-sm" data-testid="patterns-link">
+            Patterns
+          </Link>
+          <Link to="/" className="btn btn-sm" data-testid="back-to-chat">
+            Back to Chat
+          </Link>
+        </div>
       </header>
 
       {error && (

@@ -36,6 +36,17 @@ public sealed class CasePatternEntity
     public DateTimeOffset UpdatedAt { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }
 
+    // Governance tracking fields (P1-006).
+    public DateTimeOffset? ReviewedAt { get; set; }
+    public string? ReviewedBy { get; set; }
+    public string? ReviewNotes { get; set; }
+    public DateTimeOffset? ApprovedAt { get; set; }
+    public string? ApprovedBy { get; set; }
+    public string? ApprovalNotes { get; set; }
+    public DateTimeOffset? DeprecatedAt { get; set; }
+    public string? DeprecatedBy { get; set; }
+    public string? DeprecationReason { get; set; }
+
     // Navigation
     public TenantEntity Tenant { get; set; } = null!;
 }

@@ -321,6 +321,101 @@ export interface ConnectorValidationResult {
   errors: string[];
 }
 
+// ── Pattern governance types (P1-006) ──
+
+export type TrustLevel = 'Draft' | 'Reviewed' | 'Approved' | 'Deprecated';
+
+export interface PatternSummary {
+  id: string;
+  patternId: string;
+  title: string;
+  problemStatement: string;
+  trustLevel: TrustLevel;
+  confidence: number;
+  version: number;
+  productArea: string | null;
+  tags: string[];
+  supersedesPatternId: string | null;
+  sourceUrl: string;
+  relatedEvidenceCount: number;
+  createdAt: string;
+  updatedAt: string;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  deprecatedBy: string | null;
+  deprecatedAt: string | null;
+  deprecationReason: string | null;
+}
+
+export interface PatternDetail {
+  id: string;
+  patternId: string;
+  tenantId: string;
+  title: string;
+  problemStatement: string;
+  symptoms: string[];
+  diagnosisSteps: string[];
+  resolutionSteps: string[];
+  verificationSteps: string[];
+  workaround: string | null;
+  escalationCriteria: string[];
+  escalationTargetTeam: string | null;
+  relatedEvidenceIds: string[];
+  confidence: number;
+  trustLevel: TrustLevel;
+  version: number;
+  supersedesPatternId: string | null;
+  applicabilityConstraints: string[];
+  exclusions: string[];
+  productArea: string | null;
+  tags: string[];
+  visibility: string;
+  accessLabel: string;
+  sourceUrl: string;
+  createdAt: string;
+  updatedAt: string;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  reviewNotes: string | null;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  approvalNotes: string | null;
+  deprecatedBy: string | null;
+  deprecatedAt: string | null;
+  deprecationReason: string | null;
+}
+
+export interface PatternGovernanceQueueResponse {
+  patterns: PatternSummary[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+}
+
+export interface PatternGovernanceResult {
+  patternId: string;
+  previousTrustLevel: string;
+  newTrustLevel: string;
+  transitionedBy: string;
+  transitionedAt: string;
+}
+
+export interface ReviewPatternRequest {
+  notes?: string;
+}
+
+export interface ApprovePatternRequest {
+  notes?: string;
+}
+
+export interface DeprecatePatternRequest {
+  reason?: string;
+  supersedingPatternId?: string;
+}
+
 export interface FeedbackResponse {
   feedbackId: string;
   messageId: string;

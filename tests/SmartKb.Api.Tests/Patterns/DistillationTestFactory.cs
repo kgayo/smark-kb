@@ -67,6 +67,7 @@ internal sealed class DistillationTestFactory : WebApplicationFactory<Program>, 
             services.AddScoped<IFeedbackService, FeedbackService>();
             services.AddScoped<IOutcomeService, OutcomeService>();
             services.AddScoped<IPatternDistillationService, PatternDistillationService>();
+            services.AddScoped<IPatternGovernanceService, PatternGovernanceService>();
             services.AddScoped<IAuditEventQueryService, AuditEventQueryService>();
             services.AddScoped<SmartKb.Api.Connectors.ConnectorAdminService>();
         });

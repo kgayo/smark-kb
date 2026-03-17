@@ -385,6 +385,14 @@ public class SmartKbDbContext : DbContext
             e.HasIndex(p => new { p.TenantId, p.TrustLevel });
             e.HasIndex(p => new { p.TenantId, p.ProductArea });
             e.HasIndex(p => new { p.TenantId, p.UpdatedAt });
+            // Governance tracking (P1-006).
+            e.Property(p => p.ReviewedBy).HasMaxLength(128);
+            e.Property(p => p.ReviewNotes).HasMaxLength(1024);
+            e.Property(p => p.ApprovedBy).HasMaxLength(128);
+            e.Property(p => p.ApprovalNotes).HasMaxLength(1024);
+            e.Property(p => p.DeprecatedBy).HasMaxLength(128);
+            e.Property(p => p.DeprecationReason).HasMaxLength(1024);
+
             e.HasQueryFilter(p => p.DeletedAt == null);
             e.HasOne(p => p.Tenant).WithMany().HasForeignKey(p => p.TenantId).OnDelete(DeleteBehavior.Restrict);
         });
