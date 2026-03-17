@@ -145,7 +145,13 @@ if (searchSettings.IsConfigured)
 
     builder.Services.AddSingleton(searchIndexClient);
     builder.Services.AddSingleton<IIndexingService, AzureSearchIndexingService>();
-    builder.Services.AddSingleton<IRetrievalService, AzureSearchRetrievalService>();
+    builder.Services.AddSingleton<IPatternIndexingService, AzureSearchPatternIndexingService>();
+
+    // P1-004: Use FusedRetrievalService (Evidence + Pattern) when fusion is enabled; fall back to evidence-only.
+    if (retrievalSettings.EnablePatternFusion)
+        builder.Services.AddSingleton<IRetrievalService, FusedRetrievalService>();
+    else
+        builder.Services.AddSingleton<IRetrievalService, AzureSearchRetrievalService>();
 }
 
 // SLO settings (P0-022).

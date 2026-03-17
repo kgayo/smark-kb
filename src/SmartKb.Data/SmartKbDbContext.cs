@@ -23,6 +23,7 @@ public class SmartKbDbContext : DbContext
     public DbSet<AnswerTraceEntity> AnswerTraces => Set<AnswerTraceEntity>();
     public DbSet<EscalationDraftEntity> EscalationDrafts => Set<EscalationDraftEntity>();
     public DbSet<EscalationRoutingRuleEntity> EscalationRoutingRules => Set<EscalationRoutingRuleEntity>();
+    public DbSet<CasePatternEntity> CasePatterns => Set<CasePatternEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -44,6 +45,7 @@ public class SmartKbDbContext : DbContext
         ConfigureAnswerTrace(modelBuilder);
         ConfigureEscalationDraft(modelBuilder);
         ConfigureEscalationRoutingRule(modelBuilder);
+        ConfigureCasePattern(modelBuilder);
     }
 
     private static void ConfigureTenant(ModelBuilder modelBuilder)
@@ -347,6 +349,44 @@ public class SmartKbDbContext : DbContext
             e.HasIndex(r => r.TenantId);
             e.HasIndex(r => new { r.TenantId, r.ProductArea }).IsUnique().HasFilter("[IsActive] = 1");
             e.HasOne(r => r.Tenant).WithMany().HasForeignKey(r => r.TenantId);
+        });
+    }
+
+    private static void ConfigureCasePattern(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<CasePatternEntity>(e =>
+        {
+            e.ToTable("CasePatterns");
+            e.HasKey(p => p.Id);
+            e.Property(p => p.PatternId).HasMaxLength(256).IsRequired();
+            e.Property(p => p.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(p => p.Title).HasMaxLength(512).IsRequired();
+            e.Property(p => p.ProblemStatement).IsRequired();
+            e.Property(p => p.SymptomsJson).IsRequired();
+            e.Property(p => p.DiagnosisStepsJson).IsRequired();
+            e.Property(p => p.ResolutionStepsJson).IsRequired();
+            e.Property(p => p.VerificationStepsJson).IsRequired();
+            e.Property(p => p.EscalationCriteriaJson).IsRequired();
+            e.Property(p => p.EscalationTargetTeam).HasMaxLength(256);
+            e.Property(p => p.RelatedEvidenceIdsJson).IsRequired();
+            e.Property(p => p.TrustLevel).HasMaxLength(32).IsRequired();
+            e.Property(p => p.Version).HasDefaultValue(1);
+            e.Property(p => p.SupersedesPatternId).HasMaxLength(256);
+            e.Property(p => p.ApplicabilityConstraintsJson).IsRequired();
+            e.Property(p => p.ExclusionsJson).IsRequired();
+            e.Property(p => p.ProductArea).HasMaxLength(256);
+            e.Property(p => p.TagsJson).IsRequired();
+            e.Property(p => p.Visibility).HasMaxLength(32).IsRequired();
+            e.Property(p => p.AllowedGroupsJson).IsRequired();
+            e.Property(p => p.AccessLabel).HasMaxLength(256).IsRequired();
+            e.Property(p => p.SourceUrl).HasMaxLength(2048).IsRequired();
+            e.HasIndex(p => p.TenantId);
+            e.HasIndex(p => p.PatternId).IsUnique().HasFilter("[DeletedAt] IS NULL");
+            e.HasIndex(p => new { p.TenantId, p.TrustLevel });
+            e.HasIndex(p => new { p.TenantId, p.ProductArea });
+            e.HasIndex(p => new { p.TenantId, p.UpdatedAt });
+            e.HasQueryFilter(p => p.DeletedAt == null);
+            e.HasOne(p => p.Tenant).WithMany().HasForeignKey(p => p.TenantId).OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

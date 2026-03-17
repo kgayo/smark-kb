@@ -42,4 +42,58 @@ public sealed class RetrievalSettings
     /// Minimum number of results above score threshold to consider evidence sufficient (D-012: default 3).
     /// </summary>
     public int NoEvidenceMinResults { get; set; } = 3;
+
+    // --- Pattern fusion settings (P1-004) ---
+
+    /// <summary>
+    /// Enable cross-index retrieval fusion (Evidence + Pattern indexes).
+    /// When false, retrieval uses Evidence index only (Phase 1 behavior).
+    /// </summary>
+    public bool EnablePatternFusion { get; set; } = true;
+
+    /// <summary>
+    /// Maximum number of pattern results to retrieve from the Pattern index.
+    /// </summary>
+    public int PatternTopK { get; set; } = 5;
+
+    /// <summary>
+    /// Trust level boost multiplier for approved patterns.
+    /// </summary>
+    public float TrustBoostApproved { get; set; } = 1.5f;
+
+    /// <summary>
+    /// Trust level boost multiplier for reviewed patterns.
+    /// </summary>
+    public float TrustBoostReviewed { get; set; } = 1.2f;
+
+    /// <summary>
+    /// Trust level boost multiplier for draft patterns.
+    /// </summary>
+    public float TrustBoostDraft { get; set; } = 0.8f;
+
+    /// <summary>
+    /// Trust level boost multiplier for deprecated patterns.
+    /// </summary>
+    public float TrustBoostDeprecated { get; set; } = 0.3f;
+
+    /// <summary>
+    /// Recency boost: multiplier for results updated within the last 30 days.
+    /// </summary>
+    public float RecencyBoostRecent { get; set; } = 1.2f;
+
+    /// <summary>
+    /// Recency boost: multiplier for results older than 90 days.
+    /// </summary>
+    public float RecencyBoostOld { get; set; } = 0.8f;
+
+    /// <summary>
+    /// Base authority boost for pattern results (curated knowledge premium).
+    /// </summary>
+    public float PatternAuthorityBoost { get; set; } = 1.3f;
+
+    /// <summary>
+    /// Maximum number of chunks from the same source (evidence_id or pattern_id) in final results.
+    /// Enforces diversity constraint.
+    /// </summary>
+    public int DiversityMaxPerSource { get; set; } = 3;
 }

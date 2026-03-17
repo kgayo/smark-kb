@@ -22,6 +22,11 @@ public sealed class SearchServiceSettings
     public string EvidenceIndexName { get; set; } = "evidence";
 
     /// <summary>
+    /// Pattern index name. Defaults to "patterns".
+    /// </summary>
+    public string PatternIndexName { get; set; } = "patterns";
+
+    /// <summary>
     /// Maximum number of documents to send per indexing batch.
     /// </summary>
     public int IndexBatchSize { get; set; } = 100;

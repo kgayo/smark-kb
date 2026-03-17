@@ -19,4 +19,10 @@ public sealed record RetrievalResult
 
     /// <summary>Correlation/trace ID for audit trail.</summary>
     public required string TraceId { get; init; }
+
+    /// <summary>
+    /// Number of results that came from the Pattern index (P1-004).
+    /// Zero when pattern fusion is disabled or no patterns matched.
+    /// </summary>
+    public int PatternCount { get; init; }
 }

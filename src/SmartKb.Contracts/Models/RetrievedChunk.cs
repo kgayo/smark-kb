@@ -29,4 +29,21 @@ public sealed record RetrievedChunk
 
     /// <summary>Semantic reranker score, if applied.</summary>
     public double? SemanticScore { get; init; }
+
+    /// <summary>
+    /// Source index this result came from: "Evidence" or "Pattern" (P1-004).
+    /// Defaults to "Evidence" for backward compatibility.
+    /// </summary>
+    public string ResultSource { get; init; } = "Evidence";
+
+    /// <summary>
+    /// Trust level for pattern results (P1-004). Null for evidence chunks.
+    /// </summary>
+    public string? TrustLevel { get; init; }
+
+    /// <summary>
+    /// Boosted score after applying trust/recency/authority boosts (P1-004).
+    /// Equals RrfScore when no boosts are applied.
+    /// </summary>
+    public double BoostedScore { get; init; }
 }
