@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-17 (Asia/Manila) — iteration 41 (P0-020A)
-Status: Active backlog (P0-001 through P0-020A complete; 0 bugs blocking, 0 tech-debt blocking; next up P0-021 → P0-022)
+Last updated: 2026-03-17 (Asia/Manila) — iteration 42 (P0-021)
+Status: Active backlog (P0-001 through P0-021 complete; 0 bugs blocking, 0 tech-debt blocking; next up P0-022)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -211,13 +211,10 @@ Status: Active backlog (P0-001 through P0-020A complete; 0 bugs blocking, 0 tech
   - Dependencies: P0-020 (complete), D-011 (resolved)
   - Completed: `IAuditEventQueryService` interface + `AuditEventQueryService` implementation in `SmartKb.Data.Repositories`. DTOs: `AuditEventQueryRequest` (eventType, actorId, correlationId, from/to date range, page/pageSize), `AuditEventListResponse` (events, totalCount, page, pageSize, hasMore), `AuditExportCursor` (cursor-based pagination with afterTimestamp/afterId, filters, limit). `GET /api/audit/events` endpoint: paginated query with all filters, returns `ApiResponse<AuditEventListResponse>`, requires `audit:read` permission (Admin, SecurityAuditor). `GET /api/audit/events/export` endpoint: NDJSON streaming export with cursor-based pagination, returns `application/x-ndjson` content type, cursor metadata appended as last line with `__cursor`, `afterTimestamp`, `afterId`, `hasMore` fields; requires `audit:export` permission (Admin, SecurityAuditor). Page size clamped to 200 max, export batch clamped to 5000 max. Tenant isolation enforced on all queries. `InMemoryAuditEventQueryService` for no-DB fallback path. DI registration in `DataServiceExtensions` (scoped) + all test factories updated. 27 new tests (15 AuditEventQueryService unit + 12 AuditEndpoint integration); all 754 backend + 110 frontend = 864 tests passing.
 
-- [ ] P0-021: Implement baseline evaluation harness.
+- [x] P0-021: Implement baseline evaluation harness.
   - Specs: jtbd-06
-  - Dependencies: P0-013 (complete), **D-007 (gold dataset strategy)**
-  - Exit criteria: gold dataset schema defined; eval job produces retrieval precision, groundedness, citation coverage, routing accuracy, no-evidence rate; results compared against baseline; regression alerts; release gating.
-  - Design decision to resolve:
-    - **D-007**: Propose JSONL format, 30-50 manually authored cases, PR-based review, min 30 cases before gated release. Stored in `eval/gold-dataset/`.
-  - Implementation notes: Spec has no numeric SLO thresholds. Propose: groundedness >= 0.80, citation coverage >= 0.70, routing accuracy >= 0.60, no-evidence rate <= 0.25. Flag on regression > 2%, block on regression > 5%.
+  - Dependencies: P0-013 (complete), D-007 (resolved)
+  - Completed: `SmartKb.Eval` library project in `src/SmartKb.Eval/` with full evaluation harness. Gold dataset schema defined (`eval/gold-dataset/schema.json`) and 30 seed cases authored (`eval/gold-dataset/baseline.jsonl`) covering 10 categories (auth, billing, integrations, data, indexing, security, ingestion, admin, compliance, general) with escalation, safety, and out-of-scope cases. `EvalCase` model with JSONL deserialization; `EvalExpected` supports response_type, must_include, must_not_include, must_cite_sources, min_citations, expected_escalation (recommended+target_team), min_confidence, should_have_evidence. `GoldDatasetLoader` with JSONL file loading, string loading (for tests), per-case validation (ID format eval-NNNNN, required fields, response type enum, confidence range), duplicate ID detection. `MetricCalculator` computes per-case `CaseMetrics` (response type match, groundedness, citation coverage, escalation match, routing match, evidence match, must-include hit rate, safety pass, confidence met) and `AggregateMetrics` (groundedness, citation coverage, routing accuracy, no-evidence rate, response type accuracy, must-include hit rate, safety pass rate, average confidence, average duration). `EvalRunner` supports live orchestration (via `IChatOrchestrator`) and offline evaluation from pre-recorded results (`BuildReportFromResults`). `BaselineComparator` loads/saves JSON baseline files; compares current vs baseline with higher-is-better (groundedness, citation coverage, routing accuracy, response type accuracy, safety pass rate, must-include hit rate) and lower-is-better (no-evidence rate) regression detection; severity levels: ok (< 2%), warning (2-5%), blocking (> 5%). `ThresholdChecker` validates aggregate metrics against configurable thresholds (groundedness >= 0.80, citation coverage >= 0.70, routing accuracy >= 0.60, no-evidence rate <= 0.25) and enforces minimum case count (30) for gated release. `EvalSettings` configurable class with validation. `EvalReport` and `EvalBaseline` models with JSON serialization roundtrip. Projects added to solution. 68 new tests (6 settings, 16 dataset loader, 25 metric calculator, 10 baseline comparator, 7 threshold checker, 4 eval runner); all 822 backend + 110 frontend = 932 tests passing. D-007 resolved.
 
 - [ ] P0-022: Implement SLO dashboards and alerts.
   - Specs: jtbd-06, jtbd-10
@@ -329,7 +326,7 @@ Status: Active backlog (P0-001 through P0-020A complete; 0 bugs blocking, 0 tech
 - [x] R-014: ~~No Ingestion Worker resource in IaC~~ — resolved (TECH-001 complete).
 - [x] R-015: ~~Service Bus uses connection string not Managed Identity~~ — resolved (TECH-002 complete).
 - [x] R-016: ~~Feedback reason codes not enumerated~~ — resolved (P0-018: `FeedbackReasonCode` enum with 7 values).
-- [ ] R-017: jtbd-06 has no numeric SLO thresholds — eval harness (P0-021) cannot gate without agreed values.
+- [x] R-017: ~~jtbd-06 has no numeric SLO thresholds~~ — resolved (P0-021: groundedness >= 0.80, citation coverage >= 0.70, routing accuracy >= 0.60, no-evidence rate <= 0.25; configurable via `EvalSettings`).
 - [ ] R-018: Entra ID config optional with silent fallback — misconfiguration risk in production.
 - [ ] R-019: jtbd-03 spec very thin (33 lines) — all detail in PRD. Risk of divergence.
 - [x] R-020: ~~No .NET or frontend CI pipeline~~ — resolved (TECH-006 complete; `ci.yml` added).
@@ -342,8 +339,7 @@ Status: Active backlog (P0-001 through P0-020A complete; 0 bugs blocking, 0 tech
 - [x] D-004: Escalation policy schema and thresholds — resolved: confidence < 0.4 AND severity >= P2. Per-tenant `EscalationRoutingRules` table (tenant_id, product_area, target_team, escalation_threshold, min_severity). Fallback to "Engineering". Configurable via `EscalationSettings`.
 - [x] D-005: Top-k and RRF fusion weights — resolved: top-k=20, equal RRF weights (1.0/1.0), semantic reranker on merged top-20. Pattern Index deferred to P1-004. Configurable via `RetrievalSettings`.
 - [x] D-006: OpenAI model version — resolved: `gpt-4o` (latest), configurable via `OpenAiSettings.Model`. Temperature 0.2 for grounded generation.
-- [ ] D-007: Gold dataset strategy — blocks P0-021.
-  - **Proposed**: JSONL, 30-50 manual cases, PR review, min 30 for gated release. In `eval/gold-dataset/`.
+- [x] D-007: Gold dataset strategy — resolved: JSONL format in `eval/gold-dataset/`, 30 manually authored seed cases covering 10 categories, JSON schema validation, PR-based review, min 30 cases for gated release. Schema at `eval/gold-dataset/schema.json`.
 - [ ] D-008: Solved-ticket candidate criteria — blocks P1-005.
   - **Proposed**: Status in (Closed, Resolved) AND ResolvedWithoutEscalation AND positive_feedback >= 1.
 - [ ] D-009: Terraform remote state backend — blocks P1-012.

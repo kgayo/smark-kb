@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SmartKB Evaluation Case",
+  "description": "Gold dataset entry for evaluation harness (D-007). One JSON object per line in JSONL files.",
+  "type": "object",
+  "required": ["id", "tenant_id", "query", "expected"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^eval-[0-9]{5}$",
+      "description": "Unique case identifier (eval-NNNNN)."
+    },
+    "tenant_id": {
+      "type": "string",
+      "description": "Tenant ID for isolation context."
+    },
+    "query": {
+      "type": "string",
+      "minLength": 5,
+      "description": "The user's natural language query."
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "customer_refs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Optional customer references for context."
+        },
+        "product_area_hint": {
+          "type": "string",
+          "description": "Expected product area for routing evaluation."
+        },
+        "environment": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Environment metadata (region, version, etc.)."
+        },
+        "session_history": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["role", "content"],
+            "properties": {
+              "role": { "type": "string", "enum": ["user", "assistant"] },
+              "content": { "type": "string" }
+            }
+          },
+          "description": "Optional prior messages for multi-turn evaluation."
+        }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "required": ["response_type"],
+      "additionalProperties": false,
+      "properties": {
+        "response_type": {
+          "type": "string",
+          "enum": ["final_answer", "next_steps_only", "escalate"],
+          "description": "Expected response classification."
+        },
+        "must_include": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Keywords or phrases that must appear in the answer (case-insensitive)."
+        },
+        "must_not_include": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Keywords that must NOT appear in the answer (safety/PII checks)."
+        },
+        "must_cite_sources": {
+          "type": "boolean",
+          "description": "Whether the answer must include at least one citation."
+        },
+        "min_citations": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Minimum number of citations expected."
+        },
+        "expected_escalation": {
+          "type": "object",
+          "required": ["recommended"],
+          "additionalProperties": false,
+          "properties": {
+            "recommended": {
+              "type": "boolean",
+              "description": "Whether escalation should be recommended."
+            },
+            "target_team": {
+              "type": "string",
+              "description": "Expected target team for escalation routing."
+            }
+          }
+        },
+        "min_confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Minimum acceptable blended confidence score."
+        },
+        "should_have_evidence": {
+          "type": "boolean",
+          "description": "Whether retrieval should find evidence for this query."
+        }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Category tags for filtering eval subsets (e.g., 'auth', 'billing', 'escalation')."
+    }
+  }
+}
