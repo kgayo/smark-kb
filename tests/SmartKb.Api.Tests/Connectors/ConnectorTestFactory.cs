@@ -73,6 +73,7 @@ public sealed class ConnectorTestFactory : WebApplicationFactory<Program>, IAsyn
             services.AddScoped<AdoWebhookHandler>();
             services.AddScoped<SharePointWebhookHandler>();
             services.AddScoped<HubSpotWebhookHandler>();
+            services.AddScoped<ClickUpWebhookHandler>();
         });
     }
 

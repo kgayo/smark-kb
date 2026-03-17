@@ -112,14 +112,17 @@ builder.Services.AddSingleton<INormalizationPipeline, SmartKb.Contracts.Services
 builder.Services.AddHttpClient("AzureDevOps");
 builder.Services.AddHttpClient("SharePoint");
 builder.Services.AddHttpClient("HubSpot");
+builder.Services.AddHttpClient("ClickUp");
 builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.AzureDevOpsConnectorClient>();
 builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.SharePointConnectorClient>();
 builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.HubSpotConnectorClient>();
+builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.ClickUpConnectorClient>();
 
 // Webhook managers — register all IWebhookManager implementations.
 builder.Services.AddSingleton<IWebhookManager, SmartKb.Contracts.Connectors.AdoWebhookManager>();
 builder.Services.AddSingleton<IWebhookManager, SmartKb.Contracts.Connectors.SharePointWebhookManager>();
 builder.Services.AddSingleton<IWebhookManager, SmartKb.Contracts.Connectors.HubSpotWebhookManager>();
+builder.Services.AddSingleton<IWebhookManager, SmartKb.Contracts.Connectors.ClickUpWebhookManager>();
 
 // Azure AI Search — prefer Managed Identity via Endpoint; fall back to admin API key.
 var searchSettings = new SearchServiceSettings();
@@ -205,6 +208,7 @@ if (!string.IsNullOrEmpty(connectionString))
     builder.Services.AddScoped<AdoWebhookHandler>();
     builder.Services.AddScoped<SharePointWebhookHandler>();
     builder.Services.AddScoped<HubSpotWebhookHandler>();
+    builder.Services.AddScoped<ClickUpWebhookHandler>();
     builder.Services.AddHostedService<WebhookPollingFallbackService>();
 }
 else
@@ -490,6 +494,20 @@ app.MapPost("/api/webhooks/hubspot/{connectorId:guid}", async (
     var timestampHeader = httpContext.Request.Headers["X-HubSpot-Request-Timestamp"].FirstOrDefault();
 
     var (statusCode, message) = await handler.HandleAsync(connectorId, body, signatureHeader, timestampHeader);
+    return Results.Json(new { message }, statusCode: statusCode);
+}).AllowAnonymous();
+
+// ClickUp webhook endpoint — validates HMAC-SHA256 signature via X-Signature header.
+app.MapPost("/api/webhooks/clickup/{connectorId:guid}", async (
+    Guid connectorId,
+    HttpContext httpContext,
+    ClickUpWebhookHandler handler) =>
+{
+    using var reader = new StreamReader(httpContext.Request.Body);
+    var body = await reader.ReadToEndAsync();
+    var signatureHeader = httpContext.Request.Headers["X-Signature"].FirstOrDefault();
+
+    var (statusCode, message) = await handler.HandleAsync(connectorId, body, signatureHeader);
     return Results.Json(new { message }, statusCode: statusCode);
 }).AllowAnonymous();
 

@@ -86,9 +86,11 @@ if (!string.IsNullOrEmpty(connectionString))
 builder.Services.AddHttpClient("AzureDevOps");
 builder.Services.AddHttpClient("SharePoint");
 builder.Services.AddHttpClient("HubSpot");
+builder.Services.AddHttpClient("ClickUp");
 builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.AzureDevOpsConnectorClient>();
 builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.SharePointConnectorClient>();
 builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.HubSpotConnectorClient>();
+builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.ClickUpConnectorClient>();
 
 // Normalization pipeline (chunking + enrichment).
 var chunkingSettings = new ChunkingSettings();
