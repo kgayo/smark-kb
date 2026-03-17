@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import type {
   CitationDto,
+  ConnectorResponse,
   EscalationDraftResponse,
   EscalationSignal,
+  ExternalEscalationResult,
 } from '../api/types';
 import * as api from '../api/client';
 
@@ -30,6 +32,14 @@ export function EscalationDraftModal({
   const [error, setError] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
 
+  // External creation state
+  const [connectors, setConnectors] = useState<ConnectorResponse[]>([]);
+  const [selectedConnectorId, setSelectedConnectorId] = useState('');
+  const [targetProject, setTargetProject] = useState('');
+  const [targetListId, setTargetListId] = useState('');
+  const [creatingExternal, setCreatingExternal] = useState(false);
+  const [externalResult, setExternalResult] = useState<ExternalEscalationResult | null>(null);
+
   // Form fields
   const [title, setTitle] = useState('');
   const [customerSummary, setCustomerSummary] = useState('');
@@ -45,6 +55,10 @@ export function EscalationDraftModal({
       setDraft(null);
       setError(null);
       setCopySuccess(false);
+      setExternalResult(null);
+      setSelectedConnectorId('');
+      setTargetProject('');
+      setTargetListId('');
       return;
     }
 
@@ -60,6 +74,9 @@ export function EscalationDraftModal({
 
     // Auto-create draft
     createDraft();
+
+    // Load available connectors for external creation
+    loadConnectors();
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function createDraft() {
@@ -89,10 +106,39 @@ export function EscalationDraftModal({
       setSeverity(result.severity);
       setTargetTeam(result.targetTeam);
       setReason(result.reason);
+
+      // If draft was already approved externally, show result
+      if (result.externalStatus === 'Created') {
+        setExternalResult({
+          draftId: result.draftId,
+          externalStatus: result.externalStatus,
+          externalId: result.externalId ?? null,
+          externalUrl: result.externalUrl ?? null,
+          errorDetail: null,
+          approvedAt: result.approvedAt ?? null,
+          connectorType: result.targetConnectorType ?? null,
+        });
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create draft');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function loadConnectors() {
+    try {
+      const result = await api.listConnectors();
+      // Only show ADO and ClickUp connectors that are enabled
+      const escalationConnectors = result.connectors.filter(
+        (c) =>
+          (c.connectorType === 'AzureDevOps' || c.connectorType === 'ClickUp') &&
+          c.status === 'Enabled',
+      );
+      setConnectors(escalationConnectors);
+    } catch {
+      // Silently fail — user may not have admin access to list connectors
+      setConnectors([]);
     }
   }
 
@@ -131,6 +177,47 @@ export function EscalationDraftModal({
       setError(e instanceof Error ? e.message : 'Failed to export draft');
     }
   }, [draft]);
+
+  const handleCreateExternal = useCallback(async () => {
+    if (!draft || !selectedConnectorId) return;
+    setCreatingExternal(true);
+    setError(null);
+    setExternalResult(null);
+    try {
+      // Save draft first to capture latest edits
+      await api.updateEscalationDraft(draft.draftId, {
+        title,
+        customerSummary,
+        stepsToReproduce,
+        logsIdsRequested,
+        suspectedComponent,
+        severity,
+        targetTeam,
+        reason,
+      });
+
+      const selectedConnector = connectors.find((c) => c.id === selectedConnectorId);
+      const result = await api.approveEscalationDraft(draft.draftId, {
+        connectorId: selectedConnectorId,
+        targetProject: selectedConnector?.connectorType === 'AzureDevOps' ? targetProject || undefined : undefined,
+        targetListId: selectedConnector?.connectorType === 'ClickUp' ? targetListId || undefined : undefined,
+      });
+      setExternalResult(result);
+
+      if (result.externalStatus === 'Created') {
+        // Refresh draft to show updated external fields
+        const updatedDraft = await api.getEscalationDraft(draft.draftId);
+        setDraft(updatedDraft);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to create external work item');
+    } finally {
+      setCreatingExternal(false);
+    }
+  }, [draft, selectedConnectorId, connectors, targetProject, targetListId, title, customerSummary, stepsToReproduce, logsIdsRequested, suspectedComponent, severity, targetTeam, reason]);
+
+  const selectedConnector = connectors.find((c) => c.id === selectedConnectorId);
+  const alreadyCreated = draft?.externalStatus === 'Created' || externalResult?.externalStatus === 'Created';
 
   if (!open) return null;
 
@@ -260,6 +347,69 @@ export function EscalationDraftModal({
               )}
             </div>
 
+            {/* External creation result banner */}
+            {externalResult?.externalStatus === 'Created' && externalResult.externalUrl && (
+              <div className="external-creation-success" data-testid="external-creation-success">
+                External {externalResult.connectorType === 'AzureDevOps' ? 'work item' : 'task'} created: {' '}
+                <a href={externalResult.externalUrl} target="_blank" rel="noopener noreferrer">
+                  {externalResult.externalId}
+                </a>
+              </div>
+            )}
+
+            {externalResult?.externalStatus === 'Failed' && (
+              <div className="external-creation-error" data-testid="external-creation-error">
+                Failed to create external item: {externalResult.errorDetail}
+              </div>
+            )}
+
+            {/* External creation controls */}
+            {connectors.length > 0 && !alreadyCreated && (
+              <div className="external-creation-section" data-testid="external-creation-section">
+                <label className="draft-field">
+                  <span className="draft-field-label">Create in external system</span>
+                  <select
+                    value={selectedConnectorId}
+                    onChange={(e) => setSelectedConnectorId(e.target.value)}
+                    data-testid="connector-selector"
+                  >
+                    <option value="">Select a connector...</option>
+                    {connectors.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} ({c.connectorType})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                {selectedConnector?.connectorType === 'AzureDevOps' && (
+                  <label className="draft-field">
+                    <span className="draft-field-label">Target Project (optional)</span>
+                    <input
+                      type="text"
+                      value={targetProject}
+                      onChange={(e) => setTargetProject(e.target.value)}
+                      data-testid="target-project"
+                      placeholder="Falls back to first configured project"
+                    />
+                  </label>
+                )}
+
+                {selectedConnector?.connectorType === 'ClickUp' && (
+                  <label className="draft-field">
+                    <span className="draft-field-label">Target List ID (optional)</span>
+                    <input
+                      type="text"
+                      value={targetListId}
+                      onChange={(e) => setTargetListId(e.target.value)}
+                      data-testid="target-list-id"
+                      placeholder="Falls back to first configured list"
+                    />
+                  </label>
+                )}
+              </div>
+            )}
+
             <div className="escalation-draft-actions">
               <button
                 className="btn btn-primary"
@@ -276,22 +426,43 @@ export function EscalationDraftModal({
               >
                 {copySuccess ? 'Copied!' : 'Copy as Markdown'}
               </button>
-              <button
-                className="btn btn-coming-soon"
-                disabled
-                title="Coming soon — external ticket creation in Phase 2"
-                data-testid="draft-create-ado"
-              >
-                Create ADO work item
-              </button>
-              <button
-                className="btn btn-coming-soon"
-                disabled
-                title="Coming soon — external ticket creation in Phase 2"
-                data-testid="draft-create-clickup"
-              >
-                Create ClickUp task
-              </button>
+              {connectors.length > 0 ? (
+                <button
+                  className="btn btn-escalate"
+                  onClick={handleCreateExternal}
+                  disabled={!selectedConnectorId || creatingExternal || alreadyCreated}
+                  data-testid="draft-create-external"
+                >
+                  {creatingExternal
+                    ? 'Creating...'
+                    : alreadyCreated
+                      ? 'Already created'
+                      : selectedConnector?.connectorType === 'ClickUp'
+                        ? 'Create ClickUp task'
+                        : selectedConnector?.connectorType === 'AzureDevOps'
+                          ? 'Create ADO work item'
+                          : 'Create external item'}
+                </button>
+              ) : (
+                <>
+                  <button
+                    className="btn btn-coming-soon"
+                    disabled
+                    title="No ADO or ClickUp connectors configured"
+                    data-testid="draft-create-ado"
+                  >
+                    Create ADO work item
+                  </button>
+                  <button
+                    className="btn btn-coming-soon"
+                    disabled
+                    title="No ADO or ClickUp connectors configured"
+                    data-testid="draft-create-clickup"
+                  >
+                    Create ClickUp task
+                  </button>
+                </>
+              )}
             </div>
           </div>
         )}

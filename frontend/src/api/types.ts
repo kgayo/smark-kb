@@ -139,6 +139,12 @@ export interface EscalationDraftResponse {
   reason: string;
   createdAt: string;
   exportedAt: string | null;
+  approvedAt: string | null;
+  externalId: string | null;
+  externalUrl: string | null;
+  externalStatus: string | null;
+  externalErrorDetail: string | null;
+  targetConnectorType: string | null;
 }
 
 export interface EscalationDraftListResponse {
@@ -151,6 +157,24 @@ export interface EscalationDraftExportResponse {
   draftId: string;
   markdown: string;
   exportedAt: string;
+}
+
+export interface ApproveEscalationDraftRequest {
+  connectorId: string;
+  targetProject?: string;
+  targetListId?: string;
+  areaPath?: string;
+  workItemType?: string;
+}
+
+export interface ExternalEscalationResult {
+  draftId: string;
+  externalStatus: string;
+  externalId: string | null;
+  externalUrl: string | null;
+  errorDetail: string | null;
+  approvedAt: string | null;
+  connectorType: string | null;
 }
 
 // ── Feedback types ──

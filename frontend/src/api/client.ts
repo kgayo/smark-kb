@@ -1,5 +1,6 @@
 import type {
   ApiResponse,
+  ApproveEscalationDraftRequest,
   ConnectorListResponse,
   ConnectorResponse,
   ConnectorValidationResult,
@@ -8,6 +9,7 @@ import type {
   CreateSessionRequest,
   EscalationDraftExportResponse,
   EscalationDraftResponse,
+  ExternalEscalationResult,
   FeedbackResponse,
   MessageListResponse,
   OutcomeListResponse,
@@ -168,6 +170,20 @@ export async function deleteEscalationDraft(draftId: string): Promise<void> {
   await apiFetch<ApiResponse<unknown>>(`/api/escalations/draft/${draftId}`, {
     method: 'DELETE',
   });
+}
+
+export async function approveEscalationDraft(
+  draftId: string,
+  req: ApproveEscalationDraftRequest,
+): Promise<ExternalEscalationResult> {
+  const res = await apiFetch<ApiResponse<ExternalEscalationResult>>(
+    `/api/escalations/draft/${draftId}/approve`,
+    {
+      method: 'POST',
+      body: JSON.stringify(req),
+    },
+  );
+  return unwrap(res);
 }
 
 // ── Feedback endpoints ──

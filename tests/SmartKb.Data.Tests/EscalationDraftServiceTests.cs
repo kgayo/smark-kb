@@ -24,7 +24,8 @@ public class EscalationDraftServiceTests : IDisposable
         SeedData();
 
         _service = new EscalationDraftService(
-            _db, _auditWriter, _settings, NullLogger<EscalationDraftService>.Instance);
+            _db, _auditWriter, _settings, NullLogger<EscalationDraftService>.Instance,
+            [], new StubSecretProvider());
     }
 
     public void Dispose() => _db.Dispose();
@@ -311,6 +312,329 @@ public class EscalationDraftServiceTests : IDisposable
         Assert.False(result);
     }
 
+    // ===== P1-003: ApproveAndCreateExternalAsync tests =====
+
+    private static readonly Guid AdoConnectorId = Guid.Parse("cccccccc-0000-0000-0000-000000000001");
+    private static readonly Guid ClickUpConnectorId = Guid.Parse("cccccccc-0000-0000-0000-000000000002");
+    private static readonly Guid SharePointConnectorId = Guid.Parse("cccccccc-0000-0000-0000-000000000003");
+    private static readonly Guid DisabledConnectorId = Guid.Parse("cccccccc-0000-0000-0000-000000000004");
+
+    private void SeedConnectors()
+    {
+        _db.Connectors.AddRange(
+            new ConnectorEntity
+            {
+                Id = AdoConnectorId,
+                TenantId = "t1",
+                Name = "ADO Connector",
+                ConnectorType = SmartKb.Contracts.Enums.ConnectorType.AzureDevOps,
+                Status = SmartKb.Contracts.Enums.ConnectorStatus.Enabled,
+                AuthType = SmartKb.Contracts.Enums.SecretAuthType.Pat,
+                KeyVaultSecretName = "ado-secret",
+                SourceConfig = """{"organizationUrl":"https://dev.azure.com/testorg","projects":["MyProject"]}""",
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow,
+            },
+            new ConnectorEntity
+            {
+                Id = ClickUpConnectorId,
+                TenantId = "t1",
+                Name = "ClickUp Connector",
+                ConnectorType = SmartKb.Contracts.Enums.ConnectorType.ClickUp,
+                Status = SmartKb.Contracts.Enums.ConnectorStatus.Enabled,
+                AuthType = SmartKb.Contracts.Enums.SecretAuthType.Pat,
+                KeyVaultSecretName = "clickup-secret",
+                SourceConfig = """{"workspaceId":"12345","listIds":["list-1"]}""",
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow,
+            },
+            new ConnectorEntity
+            {
+                Id = SharePointConnectorId,
+                TenantId = "t1",
+                Name = "SharePoint Connector",
+                ConnectorType = SmartKb.Contracts.Enums.ConnectorType.SharePoint,
+                Status = SmartKb.Contracts.Enums.ConnectorStatus.Enabled,
+                AuthType = SmartKb.Contracts.Enums.SecretAuthType.OAuth,
+                KeyVaultSecretName = "sp-secret",
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow,
+            },
+            new ConnectorEntity
+            {
+                Id = DisabledConnectorId,
+                TenantId = "t1",
+                Name = "Disabled ADO",
+                ConnectorType = SmartKb.Contracts.Enums.ConnectorType.AzureDevOps,
+                Status = SmartKb.Contracts.Enums.ConnectorStatus.Disabled,
+                AuthType = SmartKb.Contracts.Enums.SecretAuthType.Pat,
+                KeyVaultSecretName = "disabled-secret",
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow,
+            });
+        _db.SaveChanges();
+    }
+
+    private EscalationDraftService CreateServiceWithConnector(StubEscalationTargetConnector? connector = null)
+    {
+        var connectors = connector is not null
+            ? new IEscalationTargetConnector[] { connector }
+            : Array.Empty<IEscalationTargetConnector>();
+        return new EscalationDraftService(
+            _db, _auditWriter, _settings, NullLogger<EscalationDraftService>.Instance,
+            connectors, new StubSecretProvider());
+    }
+
+    [Fact]
+    public async Task ApproveAndCreateExternal_ReturnsNull_WhenDraftNotFound()
+    {
+        SeedConnectors();
+        var svc = CreateServiceWithConnector();
+        var request = new ApproveEscalationDraftRequest { ConnectorId = AdoConnectorId };
+
+        var result = await svc.ApproveAndCreateExternalAsync("t1", "u1", "corr-1", Guid.NewGuid(), request);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task ApproveAndCreateExternal_ThrowsWhenConnectorNotFound()
+    {
+        SeedConnectors();
+        var svc = CreateServiceWithConnector();
+        var draft = await svc.CreateDraftAsync("t1", "u1", "corr-1", MakeRequest());
+        var request = new ApproveEscalationDraftRequest { ConnectorId = Guid.NewGuid() };
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            svc.ApproveAndCreateExternalAsync("t1", "u1", "corr-1", draft.DraftId, request));
+    }
+
+    [Fact]
+    public async Task ApproveAndCreateExternal_ThrowsWhenConnectorDisabled()
+    {
+        SeedConnectors();
+        var svc = CreateServiceWithConnector();
+        var draft = await svc.CreateDraftAsync("t1", "u1", "corr-1", MakeRequest());
+        var request = new ApproveEscalationDraftRequest { ConnectorId = DisabledConnectorId };
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            svc.ApproveAndCreateExternalAsync("t1", "u1", "corr-1", draft.DraftId, request));
+        Assert.Contains("not enabled", ex.Message);
+    }
+
+    [Fact]
+    public async Task ApproveAndCreateExternal_ThrowsWhenConnectorTypeNotSupported()
+    {
+        SeedConnectors();
+        var svc = CreateServiceWithConnector();
+        var draft = await svc.CreateDraftAsync("t1", "u1", "corr-1", MakeRequest());
+        var request = new ApproveEscalationDraftRequest { ConnectorId = SharePointConnectorId };
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            svc.ApproveAndCreateExternalAsync("t1", "u1", "corr-1", draft.DraftId, request));
+        Assert.Contains("SharePoint", ex.Message);
+        Assert.Contains("does not support external escalation", ex.Message);
+    }
+
+    [Fact]
+    public async Task ApproveAndCreateExternal_SuccessfulCreation_SetsExternalFields()
+    {
+        SeedConnectors();
+        var stub = new StubEscalationTargetConnector(
+            SmartKb.Contracts.Enums.ConnectorType.AzureDevOps,
+            new ExternalWorkItemResult
+            {
+                Success = true,
+                ExternalId = "12345",
+                ExternalUrl = "https://dev.azure.com/testorg/MyProject/_workitems/edit/12345",
+            });
+        var svc = CreateServiceWithConnector(stub);
+        var draft = await svc.CreateDraftAsync("t1", "u1", "corr-1", MakeRequest());
+        _auditWriter.Events.Clear();
+        var request = new ApproveEscalationDraftRequest
+        {
+            ConnectorId = AdoConnectorId,
+            TargetProject = "MyProject",
+        };
+
+        var result = await svc.ApproveAndCreateExternalAsync("t1", "u1", "corr-2", draft.DraftId, request);
+
+        Assert.NotNull(result);
+        Assert.Equal("Created", result!.ExternalStatus);
+        Assert.Equal("12345", result.ExternalId);
+        Assert.Equal("https://dev.azure.com/testorg/MyProject/_workitems/edit/12345", result.ExternalUrl);
+        Assert.NotNull(result.ApprovedAt);
+        Assert.Equal("AzureDevOps", result.ConnectorType);
+        Assert.Null(result.ErrorDetail);
+    }
+
+    [Fact]
+    public async Task ApproveAndCreateExternal_FailedCreation_SetsFailedStatus()
+    {
+        SeedConnectors();
+        var stub = new StubEscalationTargetConnector(
+            SmartKb.Contracts.Enums.ConnectorType.AzureDevOps,
+            new ExternalWorkItemResult
+            {
+                Success = false,
+                ErrorDetail = "ADO API returned 403: Access denied",
+            });
+        var svc = CreateServiceWithConnector(stub);
+        var draft = await svc.CreateDraftAsync("t1", "u1", "corr-1", MakeRequest());
+        _auditWriter.Events.Clear();
+        var request = new ApproveEscalationDraftRequest { ConnectorId = AdoConnectorId };
+
+        var result = await svc.ApproveAndCreateExternalAsync("t1", "u1", "corr-2", draft.DraftId, request);
+
+        Assert.NotNull(result);
+        Assert.Equal("Failed", result!.ExternalStatus);
+        Assert.Contains("403", result.ErrorDetail!);
+        Assert.Null(result.ExternalId);
+        Assert.Null(result.ExternalUrl);
+    }
+
+    [Fact]
+    public async Task ApproveAndCreateExternal_IdempotentOnAlreadyCreated()
+    {
+        SeedConnectors();
+        var stub = new StubEscalationTargetConnector(
+            SmartKb.Contracts.Enums.ConnectorType.AzureDevOps,
+            new ExternalWorkItemResult
+            {
+                Success = true,
+                ExternalId = "99",
+                ExternalUrl = "https://dev.azure.com/testorg/MyProject/_workitems/edit/99",
+            });
+        var svc = CreateServiceWithConnector(stub);
+        var draft = await svc.CreateDraftAsync("t1", "u1", "corr-1", MakeRequest());
+        var request = new ApproveEscalationDraftRequest { ConnectorId = AdoConnectorId };
+
+        // First call.
+        var result1 = await svc.ApproveAndCreateExternalAsync("t1", "u1", "corr-2", draft.DraftId, request);
+        Assert.NotNull(result1);
+        Assert.Equal("Created", result1!.ExternalStatus);
+
+        var callCountAfterFirst = stub.CallCount;
+
+        // Second call should return cached result without calling the connector again.
+        var result2 = await svc.ApproveAndCreateExternalAsync("t1", "u1", "corr-3", draft.DraftId, request);
+        Assert.NotNull(result2);
+        Assert.Equal("Created", result2!.ExternalStatus);
+        Assert.Equal("99", result2.ExternalId);
+        Assert.Equal(callCountAfterFirst, stub.CallCount); // No new calls.
+    }
+
+    [Fact]
+    public async Task ApproveAndCreateExternal_WritesAuditEvents()
+    {
+        SeedConnectors();
+        var stub = new StubEscalationTargetConnector(
+            SmartKb.Contracts.Enums.ConnectorType.AzureDevOps,
+            new ExternalWorkItemResult
+            {
+                Success = true,
+                ExternalId = "42",
+                ExternalUrl = "https://example.com/wi/42",
+            });
+        var svc = CreateServiceWithConnector(stub);
+        var draft = await svc.CreateDraftAsync("t1", "u1", "corr-1", MakeRequest());
+        _auditWriter.Events.Clear();
+        var request = new ApproveEscalationDraftRequest { ConnectorId = AdoConnectorId };
+
+        await svc.ApproveAndCreateExternalAsync("t1", "u1", "corr-2", draft.DraftId, request);
+
+        // Should write 2 audit events: Approved + ExternalCreated.
+        Assert.Equal(2, _auditWriter.Events.Count);
+        Assert.Equal(AuditEventTypes.EscalationDraftApproved, _auditWriter.Events[0].EventType);
+        Assert.Equal(AuditEventTypes.EscalationExternalCreated, _auditWriter.Events[1].EventType);
+        Assert.Contains("corr-2", _auditWriter.Events[0].CorrelationId);
+    }
+
+    [Fact]
+    public async Task ApproveAndCreateExternal_FailedCreation_WritesFailedAuditEvent()
+    {
+        SeedConnectors();
+        var stub = new StubEscalationTargetConnector(
+            SmartKb.Contracts.Enums.ConnectorType.AzureDevOps,
+            new ExternalWorkItemResult
+            {
+                Success = false,
+                ErrorDetail = "timeout",
+            });
+        var svc = CreateServiceWithConnector(stub);
+        var draft = await svc.CreateDraftAsync("t1", "u1", "corr-1", MakeRequest());
+        _auditWriter.Events.Clear();
+        var request = new ApproveEscalationDraftRequest { ConnectorId = AdoConnectorId };
+
+        await svc.ApproveAndCreateExternalAsync("t1", "u1", "corr-2", draft.DraftId, request);
+
+        Assert.Equal(2, _auditWriter.Events.Count);
+        Assert.Equal(AuditEventTypes.EscalationDraftApproved, _auditWriter.Events[0].EventType);
+        Assert.Equal(AuditEventTypes.EscalationExternalFailed, _auditWriter.Events[1].EventType);
+    }
+
+    [Fact]
+    public void BuildExternalDescription_IncludesAllFields()
+    {
+        var entity = new EscalationDraftEntity
+        {
+            Id = Guid.NewGuid(),
+            SessionId = SessionId,
+            MessageId = MessageId,
+            TenantId = "t1",
+            UserId = "u1",
+            Title = "Login Failure",
+            CustomerSummary = "Cannot login after password reset.",
+            StepsToReproduce = "1. Reset password\n2. Try to login",
+            LogsIdsRequested = "correlation-xyz",
+            SuspectedComponent = "Auth Service",
+            Severity = "P1",
+            EvidenceLinksJson = """[{"chunkId":"c1","evidenceId":"e1","title":"KB Article","sourceUrl":"https://wiki/login","sourceSystem":"Wiki","snippet":"Login issue","updatedAt":"2026-01-01T00:00:00Z","accessLabel":"Internal"}]""",
+            TargetTeam = "Identity Team",
+            Reason = "Repeated failures affecting multiple users.",
+            CreatedAt = DateTimeOffset.UtcNow,
+        };
+
+        var description = EscalationDraftService.BuildExternalDescription(entity);
+
+        Assert.Contains("Login Failure", description);
+        Assert.Contains("**Severity:** P1", description);
+        Assert.Contains("**Target Team:** Identity Team", description);
+        Assert.Contains("**Suspected Component:** Auth Service", description);
+        Assert.Contains("### Reason", description);
+        Assert.Contains("Repeated failures", description);
+        Assert.Contains("### Customer Summary", description);
+        Assert.Contains("Cannot login after password reset", description);
+        Assert.Contains("### Steps to Reproduce", description);
+        Assert.Contains("1. Reset password", description);
+        Assert.Contains("### Logs / IDs Requested", description);
+        Assert.Contains("correlation-xyz", description);
+        Assert.Contains("### Evidence Links", description);
+        Assert.Contains("[KB Article](https://wiki/login)", description);
+        Assert.Contains("Smart KB escalation workflow", description);
+    }
+
+    private sealed class StubEscalationTargetConnector : IEscalationTargetConnector
+    {
+        private readonly ExternalWorkItemResult _result;
+        public int CallCount { get; private set; }
+
+        public StubEscalationTargetConnector(SmartKb.Contracts.Enums.ConnectorType type, ExternalWorkItemResult result)
+        {
+            Type = type;
+            _result = result;
+        }
+
+        public SmartKb.Contracts.Enums.ConnectorType Type { get; }
+
+        public Task<ExternalWorkItemResult> CreateExternalWorkItemAsync(
+            string sourceConfig, string secretValue, ExternalWorkItemRequest request, CancellationToken ct = default)
+        {
+            CallCount++;
+            return Task.FromResult(_result);
+        }
+    }
+
     private sealed class StubAuditWriter : IAuditEventWriter
     {
         public List<AuditEvent> Events { get; } = [];
@@ -320,5 +644,17 @@ public class EscalationDraftServiceTests : IDisposable
             Events.Add(auditEvent);
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class StubSecretProvider : ISecretProvider
+    {
+        public Task<string> GetSecretAsync(string secretName, CancellationToken cancellationToken = default)
+            => Task.FromResult("stub-secret");
+
+        public Task SetSecretAsync(string secretName, string secretValue, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
+        public Task DeleteSecretAsync(string secretName, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
     }
 }

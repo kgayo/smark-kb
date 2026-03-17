@@ -18,6 +18,9 @@ public static class AuditEventTypes
 
     // Escalation events.
     public const string EscalationDraftCreated = "escalation.draft.created";
+    public const string EscalationDraftApproved = "escalation.draft.approved";
+    public const string EscalationExternalCreated = "escalation.external.created";
+    public const string EscalationExternalFailed = "escalation.external.failed";
 
     // Connector admin events.
     public const string ConnectorCreated = "connector.created";

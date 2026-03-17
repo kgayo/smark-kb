@@ -15,7 +15,7 @@ namespace SmartKb.Contracts.Connectors;
 /// Supports PAT/OAuth authentication. Implements checkpoint-based incremental sync
 /// via date_updated_gt filter.
 /// </summary>
-public sealed class ClickUpConnectorClient : IConnectorClient
+public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTargetConnector
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -223,6 +223,113 @@ public sealed class ClickUpConnectorClient : IConnectorClient
             NewCheckpoint = finalCheckpoint.Serialize(),
             HasMore = false,
         };
+    }
+
+    // --- External Task Creation (P1-003) ---
+
+    public async Task<ExternalWorkItemResult> CreateExternalWorkItemAsync(
+        string sourceConfig, string secretValue,
+        ExternalWorkItemRequest request, CancellationToken ct = default)
+    {
+        var config = ParseSourceConfig(sourceConfig);
+        if (config is null)
+            return new ExternalWorkItemResult { Success = false, ErrorDetail = "Invalid source configuration." };
+
+        if (string.IsNullOrEmpty(secretValue))
+            return new ExternalWorkItemResult { Success = false, ErrorDetail = "No credentials provided." };
+
+        var listId = request.TargetListId;
+        if (string.IsNullOrEmpty(listId))
+        {
+            // Fall back to first configured list, or resolve the first list from workspace.
+            listId = config.ListIds.FirstOrDefault();
+            if (string.IsNullOrEmpty(listId))
+            {
+                try
+                {
+                    using var resolveClient = CreateHttpClient(config.BaseUrl, secretValue);
+                    var listIds = await ResolveListIdsAsync(resolveClient, config, ct);
+                    listId = listIds.FirstOrDefault();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to resolve ClickUp list IDs for escalation");
+                    return new ExternalWorkItemResult
+                    {
+                        Success = false,
+                        ErrorDetail = $"No target list specified and failed to resolve lists: {ex.Message}",
+                    };
+                }
+
+                if (string.IsNullOrEmpty(listId))
+                    return new ExternalWorkItemResult { Success = false, ErrorDetail = "No target list specified and no lists found in workspace." };
+            }
+        }
+
+        try
+        {
+            using var client = CreateHttpClient(config.BaseUrl, secretValue);
+
+            // Map severity to ClickUp priority: P1→1(Urgent), P2→2(High), P3→3(Normal), P4→4(Low).
+            int? priority = request.Severity switch
+            {
+                "P1" => 1,
+                "P2" => 2,
+                "P3" => 3,
+                "P4" => 4,
+                _ => 3,
+            };
+
+            var body = new Dictionary<string, object?>
+            {
+                ["name"] = request.Title,
+                ["description"] = request.Description,
+                ["priority"] = priority,
+            };
+
+            var payload = JsonSerializer.Serialize(body, JsonOptions);
+            var content = new StringContent(payload, Encoding.UTF8, "application/json");
+
+            var url = $"api/v2/list/{listId}/task";
+            var response = await client.PostAsync(url, content, ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogWarning("ClickUp task creation failed. Status={Status}, Body={Body}",
+                    (int)response.StatusCode, errorBody.Length > 500 ? errorBody[..500] : errorBody);
+                return new ExternalWorkItemResult
+                {
+                    Success = false,
+                    ErrorDetail = $"ClickUp API returned {(int)response.StatusCode}: {(errorBody.Length > 200 ? errorBody[..200] : errorBody)}",
+                };
+            }
+
+            var result = await DeserializeAsync<ClickUpTask>(response, ct);
+            if (result is null || string.IsNullOrEmpty(result.Id))
+                return new ExternalWorkItemResult { Success = false, ErrorDetail = "Failed to parse ClickUp response." };
+
+            var externalUrl = result.Url ?? $"https://app.clickup.com/t/{result.Id}";
+
+            _logger.LogInformation("ClickUp task created. Id={TaskId}, ListId={ListId}",
+                result.Id, listId);
+
+            return new ExternalWorkItemResult
+            {
+                Success = true,
+                ExternalId = result.Id,
+                ExternalUrl = externalUrl,
+            };
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            _logger.LogWarning(ex, "Failed to create ClickUp task");
+            return new ExternalWorkItemResult
+            {
+                Success = false,
+                ErrorDetail = $"Connection error: {ex.Message}",
+            };
+        }
     }
 
     // --- Task fetch ---

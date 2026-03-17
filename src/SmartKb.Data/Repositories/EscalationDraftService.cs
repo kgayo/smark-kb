@@ -16,6 +16,8 @@ public sealed class EscalationDraftService : IEscalationDraftService
     private readonly IAuditEventWriter _auditWriter;
     private readonly EscalationSettings _escalationSettings;
     private readonly ILogger<EscalationDraftService> _logger;
+    private readonly IEnumerable<IEscalationTargetConnector> _targetConnectors;
+    private readonly ISecretProvider _secretProvider;
 
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
@@ -26,12 +28,16 @@ public sealed class EscalationDraftService : IEscalationDraftService
         SmartKbDbContext db,
         IAuditEventWriter auditWriter,
         EscalationSettings escalationSettings,
-        ILogger<EscalationDraftService> logger)
+        ILogger<EscalationDraftService> logger,
+        IEnumerable<IEscalationTargetConnector> targetConnectors,
+        ISecretProvider secretProvider)
     {
         _db = db;
         _auditWriter = auditWriter;
         _escalationSettings = escalationSettings;
         _logger = logger;
+        _targetConnectors = targetConnectors;
+        _secretProvider = secretProvider;
     }
 
     public async Task<EscalationDraftResponse> CreateDraftAsync(
@@ -201,6 +207,180 @@ public sealed class EscalationDraftService : IEscalationDraftService
         return true;
     }
 
+    public async Task<ExternalEscalationResult?> ApproveAndCreateExternalAsync(
+        string tenantId, string userId, string correlationId,
+        Guid draftId, ApproveEscalationDraftRequest request, CancellationToken ct = default)
+    {
+        var entity = await _db.EscalationDrafts
+            .FirstOrDefaultAsync(d => d.Id == draftId && d.TenantId == tenantId && d.UserId == userId, ct);
+
+        if (entity is null) return null;
+
+        // Idempotency: if already approved and succeeded, return cached result.
+        if (entity.ExternalStatus == "Created" && entity.ApprovedAt.HasValue)
+        {
+            return new ExternalEscalationResult
+            {
+                DraftId = draftId,
+                ExternalStatus = "Created",
+                ExternalId = entity.ExternalId,
+                ExternalUrl = entity.ExternalUrl,
+                ApprovedAt = entity.ApprovedAt,
+                ConnectorType = entity.TargetConnectorType?.ToString(),
+            };
+        }
+
+        // Look up the target connector.
+        var connector = await _db.Connectors
+            .FirstOrDefaultAsync(c => c.Id == request.ConnectorId && c.TenantId == tenantId, ct);
+
+        if (connector is null)
+            throw new InvalidOperationException("Connector not found or does not belong to this tenant.");
+
+        if (connector.Status != Contracts.Enums.ConnectorStatus.Enabled)
+            throw new InvalidOperationException("Connector is not enabled.");
+
+        if (connector.ConnectorType != Contracts.Enums.ConnectorType.AzureDevOps &&
+            connector.ConnectorType != Contracts.Enums.ConnectorType.ClickUp)
+            throw new InvalidOperationException($"Connector type '{connector.ConnectorType}' does not support external escalation creation. Only AzureDevOps and ClickUp are supported.");
+
+        // Find the matching IEscalationTargetConnector implementation.
+        var targetConnector = _targetConnectors.FirstOrDefault(c => c.Type == connector.ConnectorType);
+        if (targetConnector is null)
+            throw new InvalidOperationException($"No escalation target connector registered for '{connector.ConnectorType}'.");
+
+        // Fetch the secret from Key Vault.
+        string? secretValue = null;
+        if (!string.IsNullOrEmpty(connector.KeyVaultSecretName))
+        {
+            try
+            {
+                secretValue = await _secretProvider.GetSecretAsync(connector.KeyVaultSecretName, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to retrieve secret for connector {ConnectorId}", connector.Id);
+                throw new InvalidOperationException("Failed to retrieve connector credentials from Key Vault.");
+            }
+        }
+
+        if (string.IsNullOrEmpty(secretValue))
+            throw new InvalidOperationException("Connector has no credentials configured.");
+
+        // Build the description from escalation draft fields.
+        var description = BuildExternalDescription(entity);
+
+        // Record approval.
+        var now = DateTimeOffset.UtcNow;
+        entity.ApprovedAt = now;
+        entity.ApprovedBy = userId;
+        entity.TargetConnectorId = connector.Id;
+        entity.TargetConnectorType = connector.ConnectorType;
+        entity.ExternalStatus = "Pending";
+        await _db.SaveChangesAsync(ct);
+
+        await _auditWriter.WriteAsync(new AuditEvent(
+            EventId: Guid.NewGuid().ToString(),
+            EventType: AuditEventTypes.EscalationDraftApproved,
+            TenantId: tenantId,
+            ActorId: userId,
+            CorrelationId: correlationId,
+            Timestamp: now,
+            Detail: $"Escalation draft approved for external creation. DraftId={draftId}, ConnectorId={connector.Id}, ConnectorType={connector.ConnectorType}"), ct);
+
+        // Create the external work item/task.
+        var workItemRequest = new ExternalWorkItemRequest
+        {
+            Title = entity.Title,
+            Description = description,
+            Severity = entity.Severity,
+            TargetProject = request.TargetProject,
+            TargetListId = request.TargetListId,
+            AreaPath = request.AreaPath,
+            WorkItemType = request.WorkItemType,
+        };
+
+        var result = await targetConnector.CreateExternalWorkItemAsync(
+            connector.SourceConfig ?? "{}", secretValue, workItemRequest, ct);
+
+        // Update entity with result.
+        entity.ExternalId = result.ExternalId;
+        entity.ExternalUrl = result.ExternalUrl;
+        entity.ExternalStatus = result.Success ? "Created" : "Failed";
+        entity.ExternalErrorDetail = result.ErrorDetail;
+        await _db.SaveChangesAsync(ct);
+
+        var auditEventType = result.Success
+            ? AuditEventTypes.EscalationExternalCreated
+            : AuditEventTypes.EscalationExternalFailed;
+
+        await _auditWriter.WriteAsync(new AuditEvent(
+            EventId: Guid.NewGuid().ToString(),
+            EventType: auditEventType,
+            TenantId: tenantId,
+            ActorId: userId,
+            CorrelationId: correlationId,
+            Timestamp: DateTimeOffset.UtcNow,
+            Detail: result.Success
+                ? $"External work item created. DraftId={draftId}, ExternalId={result.ExternalId}, Url={result.ExternalUrl}"
+                : $"External work item creation failed. DraftId={draftId}, Error={result.ErrorDetail}"), ct);
+
+        _logger.LogInformation(
+            "External escalation {Status}. DraftId={DraftId}, ConnectorType={ConnectorType}, ExternalId={ExternalId}",
+            entity.ExternalStatus, draftId, connector.ConnectorType, result.ExternalId);
+
+        return new ExternalEscalationResult
+        {
+            DraftId = draftId,
+            ExternalStatus = entity.ExternalStatus,
+            ExternalId = result.ExternalId,
+            ExternalUrl = result.ExternalUrl,
+            ErrorDetail = result.ErrorDetail,
+            ApprovedAt = now,
+            ConnectorType = connector.ConnectorType.ToString(),
+        };
+    }
+
+    internal static string BuildExternalDescription(EscalationDraftEntity entity)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"## Escalation: {entity.Title}");
+        sb.AppendLine();
+        sb.AppendLine($"**Severity:** {entity.Severity}");
+        sb.AppendLine($"**Target Team:** {entity.TargetTeam}");
+        sb.AppendLine($"**Suspected Component:** {entity.SuspectedComponent}");
+        sb.AppendLine();
+        sb.AppendLine("### Reason");
+        sb.AppendLine(entity.Reason);
+        sb.AppendLine();
+        sb.AppendLine("### Customer Summary");
+        sb.AppendLine(entity.CustomerSummary);
+        sb.AppendLine();
+        if (!string.IsNullOrEmpty(entity.StepsToReproduce))
+        {
+            sb.AppendLine("### Steps to Reproduce");
+            sb.AppendLine(entity.StepsToReproduce);
+            sb.AppendLine();
+        }
+        if (!string.IsNullOrEmpty(entity.LogsIdsRequested))
+        {
+            sb.AppendLine("### Logs / IDs Requested");
+            sb.AppendLine(entity.LogsIdsRequested);
+            sb.AppendLine();
+        }
+        var citations = DeserializeCitations(entity.EvidenceLinksJson);
+        if (citations.Count > 0)
+        {
+            sb.AppendLine("### Evidence Links");
+            foreach (var c in citations)
+                sb.AppendLine($"- [{c.Title}]({c.SourceUrl})");
+            sb.AppendLine();
+        }
+        sb.AppendLine("---");
+        sb.AppendLine("_Created by Smart KB escalation workflow._");
+        return sb.ToString();
+    }
+
     private async Task<string> ResolveTargetTeamAsync(
         string tenantId, string suspectedComponent, CancellationToken ct)
     {
@@ -288,6 +468,12 @@ public sealed class EscalationDraftService : IEscalationDraftService
         Reason = entity.Reason,
         CreatedAt = entity.CreatedAt,
         ExportedAt = entity.ExportedAt,
+        ApprovedAt = entity.ApprovedAt,
+        ExternalId = entity.ExternalId,
+        ExternalUrl = entity.ExternalUrl,
+        ExternalStatus = entity.ExternalStatus,
+        ExternalErrorDetail = entity.ExternalErrorDetail,
+        TargetConnectorType = entity.TargetConnectorType?.ToString(),
     };
 
     private static IReadOnlyList<CitationDto> DeserializeCitations(string json)

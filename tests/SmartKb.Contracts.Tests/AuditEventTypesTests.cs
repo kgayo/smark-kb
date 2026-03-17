@@ -60,6 +60,9 @@ public sealed class AuditEventTypesTests
     [InlineData(nameof(AuditEventTypes.WebhookSignatureFailed), "webhook.signature_failed")]
     [InlineData(nameof(AuditEventTypes.WebhookClientStateMismatch), "webhook.clientstate_mismatch")]
     [InlineData(nameof(AuditEventTypes.WebhookPollFallback), "webhook.poll_fallback")]
+    [InlineData(nameof(AuditEventTypes.EscalationDraftApproved), "escalation.draft.approved")]
+    [InlineData(nameof(AuditEventTypes.EscalationExternalCreated), "escalation.external.created")]
+    [InlineData(nameof(AuditEventTypes.EscalationExternalFailed), "escalation.external.failed")]
     public void Constant_HasExpectedValue(string fieldName, string expectedValue)
     {
         var field = typeof(AuditEventTypes).GetField(fieldName, BindingFlags.Public | BindingFlags.Static);

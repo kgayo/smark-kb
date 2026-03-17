@@ -23,4 +23,8 @@ public interface IEscalationDraftService
 
     Task<bool> DeleteDraftAsync(
         string tenantId, string userId, Guid draftId, CancellationToken ct = default);
+
+    Task<ExternalEscalationResult?> ApproveAndCreateExternalAsync(
+        string tenantId, string userId, string correlationId,
+        Guid draftId, ApproveEscalationDraftRequest request, CancellationToken ct = default);
 }

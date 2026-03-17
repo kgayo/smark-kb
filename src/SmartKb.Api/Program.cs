@@ -113,10 +113,14 @@ builder.Services.AddHttpClient("AzureDevOps");
 builder.Services.AddHttpClient("SharePoint");
 builder.Services.AddHttpClient("HubSpot");
 builder.Services.AddHttpClient("ClickUp");
-builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.AzureDevOpsConnectorClient>();
+builder.Services.AddSingleton<SmartKb.Contracts.Connectors.AzureDevOpsConnectorClient>();
+builder.Services.AddSingleton<IConnectorClient>(sp => sp.GetRequiredService<SmartKb.Contracts.Connectors.AzureDevOpsConnectorClient>());
+builder.Services.AddSingleton<IEscalationTargetConnector>(sp => sp.GetRequiredService<SmartKb.Contracts.Connectors.AzureDevOpsConnectorClient>());
 builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.SharePointConnectorClient>();
 builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.HubSpotConnectorClient>();
-builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.ClickUpConnectorClient>();
+builder.Services.AddSingleton<SmartKb.Contracts.Connectors.ClickUpConnectorClient>();
+builder.Services.AddSingleton<IConnectorClient>(sp => sp.GetRequiredService<SmartKb.Contracts.Connectors.ClickUpConnectorClient>());
+builder.Services.AddSingleton<IEscalationTargetConnector>(sp => sp.GetRequiredService<SmartKb.Contracts.Connectors.ClickUpConnectorClient>());
 
 // Webhook managers — register all IWebhookManager implementations.
 builder.Services.AddSingleton<IWebhookManager, SmartKb.Contracts.Connectors.AdoWebhookManager>();
@@ -747,6 +751,31 @@ app.MapGet("/api/escalations/draft/{draftId:guid}/export", async (
     return response is null
         ? Results.NotFound(ApiResponse<object>.Failure("Escalation draft not found.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<EscalationDraftExportResponse>.Success(response, tenant.CorrelationId));
+}).RequirePermission("chat:query");
+
+app.MapPost("/api/escalations/draft/{draftId:guid}/approve", async (
+    Guid draftId,
+    ApproveEscalationDraftRequest request,
+    ITenantContextAccessor tenantAccessor,
+    IEscalationDraftService escalationService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    try
+    {
+        var result = await escalationService.ApproveAndCreateExternalAsync(
+            tenant.TenantId, tenant.UserId, tenant.CorrelationId, draftId, request);
+        if (result is null)
+            return Results.NotFound(ApiResponse<object>.Failure("Escalation draft not found.", tenant.CorrelationId));
+
+        return result.ExternalStatus == "Created"
+            ? Results.Ok(ApiResponse<ExternalEscalationResult>.Success(result, tenant.CorrelationId))
+            : Results.UnprocessableEntity(ApiResponse<ExternalEscalationResult>.Success(result, tenant.CorrelationId));
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.UnprocessableEntity(
+            ApiResponse<object>.Failure(ex.Message, tenant.CorrelationId));
+    }
 }).RequirePermission("chat:query");
 
 app.MapDelete("/api/escalations/draft/{draftId:guid}", async (

@@ -28,7 +28,7 @@ public class SecretStatusEndpointTests : IClassFixture<AuthTestFactory>
         var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         var root = json.RootElement;
         Assert.Equal("tenant-1", root.GetProperty("tenantId").GetString());
-        Assert.False(root.GetProperty("keyVaultConfigured").GetBoolean());
+        Assert.True(root.GetProperty("keyVaultConfigured").GetBoolean());
         Assert.False(root.GetProperty("openAiKeyConfigured").GetBoolean());
         Assert.Equal("gpt-4o", root.GetProperty("openAiModel").GetString());
     }

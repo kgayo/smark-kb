@@ -323,8 +323,14 @@ public class SmartKbDbContext : DbContext
             e.HasIndex(d => d.SessionId);
             e.HasIndex(d => new { d.TenantId, d.SessionId, d.CreatedAt });
             e.HasIndex(d => new { d.TenantId, d.UserId, d.CreatedAt });
+            e.Property(d => d.ApprovedBy).HasMaxLength(128);
+            e.Property(d => d.TargetConnectorType).HasConversion<string>().HasMaxLength(64);
+            e.Property(d => d.ExternalId).HasMaxLength(512);
+            e.Property(d => d.ExternalUrl).HasMaxLength(2048);
+            e.Property(d => d.ExternalStatus).HasMaxLength(32);
             e.HasQueryFilter(d => d.DeletedAt == null);
             e.HasOne(d => d.Session).WithMany(s => s.EscalationDrafts).HasForeignKey(d => d.SessionId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(d => d.TargetConnector).WithMany().HasForeignKey(d => d.TargetConnectorId).OnDelete(DeleteBehavior.SetNull);
         });
     }
 

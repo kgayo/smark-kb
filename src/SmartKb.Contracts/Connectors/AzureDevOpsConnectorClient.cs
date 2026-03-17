@@ -14,7 +14,7 @@ namespace SmartKb.Contracts.Connectors;
 /// Azure DevOps connector client. Ingests work items and wiki pages via the ADO REST API.
 /// Supports PAT and OAuth authentication. Implements checkpoint-based incremental sync.
 /// </summary>
-public sealed class AzureDevOpsConnectorClient : IConnectorClient
+public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTargetConnector
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -246,6 +246,100 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient
             NewCheckpoint = finalCheckpoint.Serialize(),
             HasMore = false,
         };
+    }
+
+    // --- External Work Item Creation (P1-003) ---
+
+    public async Task<ExternalWorkItemResult> CreateExternalWorkItemAsync(
+        string sourceConfig, string secretValue,
+        ExternalWorkItemRequest request, CancellationToken ct = default)
+    {
+        var config = ParseSourceConfig(sourceConfig);
+        if (config is null)
+            return new ExternalWorkItemResult { Success = false, ErrorDetail = "Invalid source configuration." };
+
+        if (string.IsNullOrEmpty(secretValue))
+            return new ExternalWorkItemResult { Success = false, ErrorDetail = "No credentials provided." };
+
+        var project = request.TargetProject;
+        if (string.IsNullOrEmpty(project))
+        {
+            // Fall back to first configured project.
+            project = config.Projects.FirstOrDefault();
+            if (string.IsNullOrEmpty(project))
+                return new ExternalWorkItemResult { Success = false, ErrorDetail = "No target project specified and no projects configured." };
+        }
+
+        var workItemType = request.WorkItemType ?? "Bug";
+
+        try
+        {
+            using var client = CreateHttpClient(config.OrganizationUrl, secretValue);
+
+            var patchOps = new List<object>
+            {
+                new { op = "add", path = "/fields/System.Title", value = request.Title },
+                new { op = "add", path = "/fields/System.Description", value = request.Description },
+            };
+
+            if (!string.IsNullOrEmpty(request.AreaPath))
+                patchOps.Add(new { op = "add", path = "/fields/System.AreaPath", value = request.AreaPath });
+
+            // Map severity to ADO priority: P1→1, P2→2, P3→3, P4→4.
+            var priority = request.Severity switch
+            {
+                "P1" => 1,
+                "P2" => 2,
+                "P3" => 3,
+                "P4" => 4,
+                _ => 3,
+            };
+            patchOps.Add(new { op = "add", path = "/fields/Microsoft.VSTS.Common.Priority", value = (object)priority });
+
+            var payload = JsonSerializer.Serialize(patchOps, JsonOptions);
+            var content = new StringContent(payload, Encoding.UTF8, "application/json-patch+json");
+
+            var url = $"{Uri.EscapeDataString(project)}/_apis/wit/workitems/${Uri.EscapeDataString(workItemType)}?api-version={ApiVersion}";
+            var response = await client.PatchAsync(url, content, ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogWarning("ADO work item creation failed. Status={Status}, Body={Body}",
+                    (int)response.StatusCode, errorBody.Length > 500 ? errorBody[..500] : errorBody);
+                return new ExternalWorkItemResult
+                {
+                    Success = false,
+                    ErrorDetail = $"ADO API returned {(int)response.StatusCode}: {(errorBody.Length > 200 ? errorBody[..200] : errorBody)}",
+                };
+            }
+
+            var result = await DeserializeAsync<WorkItemResponse>(response, ct);
+            if (result is null)
+                return new ExternalWorkItemResult { Success = false, ErrorDetail = "Failed to parse ADO response." };
+
+            var externalId = result.Id.ToString();
+            var externalUrl = $"{config.OrganizationUrl.TrimEnd('/')}/{Uri.EscapeDataString(project)}/_workitems/edit/{externalId}";
+
+            _logger.LogInformation("ADO work item created. Id={WorkItemId}, Project={Project}, Type={Type}",
+                externalId, project, workItemType);
+
+            return new ExternalWorkItemResult
+            {
+                Success = true,
+                ExternalId = externalId,
+                ExternalUrl = externalUrl,
+            };
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            _logger.LogWarning(ex, "Failed to create ADO work item");
+            return new ExternalWorkItemResult
+            {
+                Success = false,
+                ErrorDetail = $"Connection error: {ex.Message}",
+            };
+        }
     }
 
     // --- Work Items ---

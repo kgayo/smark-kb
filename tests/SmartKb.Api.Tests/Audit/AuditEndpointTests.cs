@@ -235,6 +235,7 @@ internal sealed class AuditTestFactory : WebApplicationFactory<Program>, IAsyncL
             services.AddSingleton(new WebhookSettings());
             services.AddSingleton(new SessionSettings());
             services.AddSingleton(new EscalationSettings());
+            services.AddSingleton<ISecretProvider>(new InMemorySecretProvider());
             services.AddScoped<IEscalationDraftService, EscalationDraftService>();
             services.AddScoped<IFeedbackService, FeedbackService>();
             services.AddScoped<IOutcomeService, OutcomeService>();

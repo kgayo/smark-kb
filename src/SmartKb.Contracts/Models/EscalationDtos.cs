@@ -53,6 +53,13 @@ public sealed record EscalationDraftResponse
     public required string Reason { get; init; }
     public required DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset? ExportedAt { get; init; }
+    // External creation tracking (P1-003).
+    public DateTimeOffset? ApprovedAt { get; init; }
+    public string? ExternalId { get; init; }
+    public string? ExternalUrl { get; init; }
+    public string? ExternalStatus { get; init; }
+    public string? ExternalErrorDetail { get; init; }
+    public string? TargetConnectorType { get; init; }
 }
 
 /// <summary>
@@ -73,4 +80,35 @@ public sealed record EscalationDraftExportResponse
     public required Guid DraftId { get; init; }
     public required string Markdown { get; init; }
     public required DateTimeOffset ExportedAt { get; init; }
+}
+
+/// <summary>
+/// Request to approve an escalation draft and create an external work item/task.
+/// Agent must select a target connector (ADO or ClickUp) that has been configured in the admin panel.
+/// </summary>
+public sealed record ApproveEscalationDraftRequest
+{
+    public required Guid ConnectorId { get; init; }
+    /// <summary>ADO project name. Optional — falls back to first configured project.</summary>
+    public string? TargetProject { get; init; }
+    /// <summary>ClickUp list ID. Optional — falls back to first configured/resolved list.</summary>
+    public string? TargetListId { get; init; }
+    /// <summary>ADO area path. Optional.</summary>
+    public string? AreaPath { get; init; }
+    /// <summary>ADO work item type (Bug, Task, etc.). Defaults to Bug.</summary>
+    public string? WorkItemType { get; init; }
+}
+
+/// <summary>
+/// Response after approving an escalation draft and creating an external work item/task.
+/// </summary>
+public sealed record ExternalEscalationResult
+{
+    public required Guid DraftId { get; init; }
+    public required string ExternalStatus { get; init; }
+    public string? ExternalId { get; init; }
+    public string? ExternalUrl { get; init; }
+    public string? ErrorDetail { get; init; }
+    public DateTimeOffset? ApprovedAt { get; init; }
+    public string? ConnectorType { get; init; }
 }

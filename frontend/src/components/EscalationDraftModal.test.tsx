@@ -38,6 +38,12 @@ const mockDraftResponse: EscalationDraftResponse = {
   reason: 'Low confidence on auth issue',
   createdAt: '2026-03-15T10:00:00Z',
   exportedAt: null,
+  approvedAt: null,
+  externalId: null,
+  externalUrl: null,
+  externalStatus: null,
+  externalErrorDetail: null,
+  targetConnectorType: null,
 };
 
 describe('EscalationDraftModal', () => {
@@ -50,6 +56,7 @@ describe('EscalationDraftModal', () => {
       markdown: '# Escalation\n\nSome content',
       exportedAt: '2026-03-15T10:05:00Z',
     });
+    vi.mocked(api.listConnectors).mockResolvedValue({ connectors: [], totalCount: 0 });
   });
 
   it('does not render when closed', () => {
@@ -261,7 +268,9 @@ describe('EscalationDraftModal', () => {
     });
   });
 
-  it('disables ADO and ClickUp buttons with coming-soon tooltip', async () => {
+  it('disables ADO and ClickUp buttons when no connectors available', async () => {
+    vi.mocked(api.listConnectors).mockResolvedValue({ connectors: [], totalCount: 0 });
+
     render(
       <EscalationDraftModal
         open={true}
@@ -280,8 +289,8 @@ describe('EscalationDraftModal', () => {
     const clickupBtn = screen.getByTestId('draft-create-clickup');
     expect(adoBtn).toBeDisabled();
     expect(clickupBtn).toBeDisabled();
-    expect(adoBtn).toHaveAttribute('title', expect.stringContaining('Coming soon'));
-    expect(clickupBtn).toHaveAttribute('title', expect.stringContaining('Coming soon'));
+    expect(adoBtn).toHaveAttribute('title', expect.stringContaining('No ADO or ClickUp connectors configured'));
+    expect(clickupBtn).toHaveAttribute('title', expect.stringContaining('No ADO or ClickUp connectors configured'));
   });
 
   it('pre-fills fields from escalation signal', async () => {
