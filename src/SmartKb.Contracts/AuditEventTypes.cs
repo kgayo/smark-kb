@@ -37,6 +37,10 @@ public static class AuditEventTypes
     public const string SyncCompleted = "sync.completed";
     public const string SyncFailed = "sync.failed";
 
+    // Pattern distillation events.
+    public const string PatternDistilled = "pattern.distilled";
+    public const string PatternDistillationRun = "pattern.distillation_run";
+
     // Webhook events.
     public const string WebhookReceived = "webhook.received";
     public const string WebhookSignatureFailed = "webhook.signature_failed";

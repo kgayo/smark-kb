@@ -239,6 +239,8 @@ internal sealed class AuditTestFactory : WebApplicationFactory<Program>, IAsyncL
             services.AddScoped<IEscalationDraftService, EscalationDraftService>();
             services.AddScoped<IFeedbackService, FeedbackService>();
             services.AddScoped<IOutcomeService, OutcomeService>();
+            services.AddSingleton(new DistillationSettings());
+            services.AddScoped<IPatternDistillationService, PatternDistillationService>();
             services.AddScoped<ConnectorAdminService>();
             services.AddScoped<AdoWebhookHandler>();
             services.AddScoped<SharePointWebhookHandler>();

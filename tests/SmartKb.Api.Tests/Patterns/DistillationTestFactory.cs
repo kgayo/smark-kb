@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using SmartKb.Api.Audit;
+using SmartKb.Api.Tests.Auth;
 using SmartKb.Api.Tests.Connectors;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Services;
@@ -12,32 +12,17 @@ using SmartKb.Data;
 using SmartKb.Data.Entities;
 using SmartKb.Data.Repositories;
 
-namespace SmartKb.Api.Tests.Auth;
+namespace SmartKb.Api.Tests.Patterns;
 
-public sealed class AuthTestFactory : WebApplicationFactory<Program>, IAsyncLifetime
+internal sealed class DistillationTestFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    private readonly SqliteConnection _connection;
+    private SqliteConnection _connection = null!;
 
-    public AuthTestFactory()
+    public Task InitializeAsync()
     {
         _connection = new SqliteConnection("DataSource=:memory:");
         _connection.Open();
-    }
-
-    public async Task InitializeAsync()
-    {
-        // Force host creation so we can seed the database.
-        using var scope = Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<SmartKbDbContext>();
-        await db.Database.EnsureCreatedAsync();
-
-        if (!await db.Tenants.AnyAsync(t => t.TenantId == "tenant-1"))
-        {
-            db.Tenants.AddRange(
-                new TenantEntity { TenantId = "tenant-1", DisplayName = "Test Tenant 1", CreatedAt = DateTimeOffset.UtcNow },
-                new TenantEntity { TenantId = "tenant-other", DisplayName = "Test Tenant Other", CreatedAt = DateTimeOffset.UtcNow });
-            await db.SaveChangesAsync();
-        }
+        return Task.CompletedTask;
     }
 
     async Task IAsyncLifetime.DisposeAsync()
@@ -69,22 +54,52 @@ public sealed class AuthTestFactory : WebApplicationFactory<Program>, IAsyncLife
 
             services.AddDbContext<SmartKbDbContext>(options =>
                 options.UseSqlite(_connection));
-            services.AddSingleton<InMemoryAuditEventWriter>();
-            services.AddSingleton<IAuditEventWriter>(sp => sp.GetRequiredService<InMemoryAuditEventWriter>());
+            services.AddScoped<IAuditEventWriter, SqlAuditEventWriter>();
             services.AddScoped<IAnswerTraceWriter, SqlAnswerTraceWriter>();
             services.AddScoped<ISessionService, SessionService>();
             services.AddSingleton<ISyncJobPublisher, TestSyncJobPublisher>();
+            services.AddSingleton(new WebhookSettings());
             services.AddSingleton(new SessionSettings());
             services.AddSingleton(new EscalationSettings());
+            services.AddSingleton(new DistillationSettings());
             services.AddSingleton<ISecretProvider>(new InMemorySecretProvider());
             services.AddScoped<IEscalationDraftService, EscalationDraftService>();
             services.AddScoped<IFeedbackService, FeedbackService>();
             services.AddScoped<IOutcomeService, OutcomeService>();
+            services.AddScoped<IPatternDistillationService, PatternDistillationService>();
+            services.AddScoped<IAuditEventQueryService, AuditEventQueryService>();
             services.AddScoped<SmartKb.Api.Connectors.ConnectorAdminService>();
-            services.AddSingleton(new SmartKb.Contracts.Configuration.DistillationSettings());
-            services.AddScoped<IPatternDistillationService, SmartKb.Data.Repositories.PatternDistillationService>();
-            services.AddSingleton<IAuditEventQueryService>(sp =>
-                new InMemoryAuditEventQueryService(sp.GetRequiredService<InMemoryAuditEventWriter>()));
         });
+    }
+
+    public HttpClient CreateAuthenticatedClient(
+        string tenantId = "tenant-1",
+        string roles = "Admin",
+        string userId = "test-user")
+    {
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Add(TestAuthHandler.AuthenticatedHeader, "true");
+        client.DefaultRequestHeaders.Add(TestAuthHandler.TenantHeader, tenantId);
+        client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, roles);
+        client.DefaultRequestHeaders.Add(TestAuthHandler.UserIdHeader, userId);
+        return client;
+    }
+
+    public async Task EnsureDatabaseAsync()
+    {
+        using var scope = Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<SmartKbDbContext>();
+        await db.Database.EnsureCreatedAsync();
+
+        if (!await db.Tenants.AnyAsync(t => t.TenantId == "tenant-1"))
+        {
+            db.Tenants.Add(new TenantEntity
+            {
+                TenantId = "tenant-1",
+                DisplayName = "Test Tenant",
+                CreatedAt = DateTimeOffset.UtcNow,
+            });
+            await db.SaveChangesAsync();
+        }
     }
 }

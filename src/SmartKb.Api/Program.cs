@@ -169,6 +169,11 @@ var escalationSettings = new EscalationSettings();
 builder.Configuration.GetSection(EscalationSettings.SectionName).Bind(escalationSettings);
 builder.Services.AddSingleton(escalationSettings);
 
+// Distillation settings (P1-005 / D-008).
+var distillationSettings = new DistillationSettings();
+builder.Configuration.GetSection(DistillationSettings.SectionName).Bind(distillationSettings);
+builder.Services.AddSingleton(distillationSettings);
+
 // Chat orchestration — OpenAI embedding + chat with structured outputs.
 // Requires both OpenAI API key and search service to be configured.
 var chatOrchestrationSettings = new ChatOrchestrationSettings();
@@ -937,6 +942,27 @@ app.MapGet("/api/admin/slo/status", (
         },
         dashboardHint = "Query these metrics in Azure Monitor / Application Insights customMetrics table.",
     }, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+// --- Pattern Distillation Endpoints (P1-005) ---
+
+app.MapGet("/api/admin/patterns/candidates", async (
+    ITenantContextAccessor tenantAccessor,
+    IPatternDistillationService distillationService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await distillationService.FindCandidatesAsync(tenant.TenantId);
+    return Results.Ok(ApiResponse<DistillationCandidateListResponse>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapPost("/api/admin/patterns/distill", async (
+    ITenantContextAccessor tenantAccessor,
+    IPatternDistillationService distillationService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await distillationService.DistillAsync(
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId);
+    return Results.Ok(ApiResponse<DistillationResult>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 // --- Secrets Status Endpoint ---

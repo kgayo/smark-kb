@@ -184,6 +184,8 @@ internal sealed class ChatTestFactory : WebApplicationFactory<Program>, IAsyncLi
             services.AddScoped<IEscalationDraftService, EscalationDraftService>();
             services.AddScoped<IFeedbackService, FeedbackService>();
             services.AddScoped<IOutcomeService, OutcomeService>();
+            services.AddSingleton(new DistillationSettings());
+            services.AddScoped<IPatternDistillationService, PatternDistillationService>();
             services.AddScoped<IAuditEventQueryService, AuditEventQueryService>();
             services.AddScoped<ConnectorAdminService>();
             services.AddScoped<AdoWebhookHandler>();

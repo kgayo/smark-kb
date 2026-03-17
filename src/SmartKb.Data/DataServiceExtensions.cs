@@ -23,6 +23,7 @@ public static class DataServiceExtensions
         services.AddScoped<IEscalationDraftService, EscalationDraftService>();
         services.AddScoped<IFeedbackService, FeedbackService>();
         services.AddScoped<IOutcomeService, OutcomeService>();
+        services.AddScoped<IPatternDistillationService, PatternDistillationService>();
 
         return services;
     }
