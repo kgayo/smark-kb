@@ -96,6 +96,10 @@ public sealed class AuthTestFactory : WebApplicationFactory<Program>, IAsyncLife
             services.AddSingleton(new RetrievalSettings());
             services.AddScoped<ITenantRetrievalSettingsService, TenantRetrievalSettingsService>();
             services.AddScoped<IWebhookStatusService, SmartKb.Data.Repositories.WebhookStatusService>();
+            services.AddSingleton(new SmartKb.Contracts.Configuration.RoutingAnalyticsSettings());
+            services.AddScoped<IRoutingRuleService, SmartKb.Data.Repositories.RoutingRuleService>();
+            services.AddScoped<IRoutingAnalyticsService, SmartKb.Data.Repositories.RoutingAnalyticsService>();
+            services.AddScoped<IRoutingImprovementService, SmartKb.Data.Repositories.RoutingImprovementService>();
         });
     }
 }

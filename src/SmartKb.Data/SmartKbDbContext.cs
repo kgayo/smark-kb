@@ -25,6 +25,7 @@ public class SmartKbDbContext : DbContext
     public DbSet<EscalationRoutingRuleEntity> EscalationRoutingRules => Set<EscalationRoutingRuleEntity>();
     public DbSet<CasePatternEntity> CasePatterns => Set<CasePatternEntity>();
     public DbSet<TenantRetrievalSettingsEntity> TenantRetrievalSettings => Set<TenantRetrievalSettingsEntity>();
+    public DbSet<RoutingRecommendationEntity> RoutingRecommendations => Set<RoutingRecommendationEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -48,6 +49,7 @@ public class SmartKbDbContext : DbContext
         ConfigureEscalationRoutingRule(modelBuilder);
         ConfigureCasePattern(modelBuilder);
         ConfigureTenantRetrievalSettings(modelBuilder);
+        ConfigureRoutingRecommendation(modelBuilder);
     }
 
     private static void ConfigureTenant(ModelBuilder modelBuilder)
@@ -409,6 +411,28 @@ public class SmartKbDbContext : DbContext
             e.Property(s => s.TenantId).HasMaxLength(128).IsRequired();
             e.HasIndex(s => s.TenantId).IsUnique();
             e.HasOne(s => s.Tenant).WithMany().HasForeignKey(s => s.TenantId);
+        });
+    }
+
+    private static void ConfigureRoutingRecommendation(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<RoutingRecommendationEntity>(e =>
+        {
+            e.ToTable("RoutingRecommendations");
+            e.HasKey(r => r.Id);
+            e.Property(r => r.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(r => r.RecommendationType).HasMaxLength(64).IsRequired();
+            e.Property(r => r.ProductArea).HasMaxLength(256).IsRequired();
+            e.Property(r => r.CurrentTargetTeam).HasMaxLength(256).IsRequired();
+            e.Property(r => r.SuggestedTargetTeam).HasMaxLength(256);
+            e.Property(r => r.Reason).IsRequired();
+            e.Property(r => r.Status).HasMaxLength(32).IsRequired();
+            e.Property(r => r.AppliedBy).HasMaxLength(128);
+            e.Property(r => r.DismissedBy).HasMaxLength(128);
+            e.HasIndex(r => r.TenantId);
+            e.HasIndex(r => new { r.TenantId, r.Status });
+            e.HasIndex(r => new { r.TenantId, r.ProductArea });
+            e.HasOne(r => r.Tenant).WithMany().HasForeignKey(r => r.TenantId);
         });
     }
 }

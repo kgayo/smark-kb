@@ -46,6 +46,14 @@ public static class AuditEventTypes
     public const string PatternApproved = "pattern.approved";
     public const string PatternDeprecated = "pattern.deprecated";
 
+    // Routing improvement events (P1-009).
+    public const string RoutingRuleCreated = "routing.rule.created";
+    public const string RoutingRuleUpdated = "routing.rule.updated";
+    public const string RoutingRuleDeleted = "routing.rule.deleted";
+    public const string RoutingRecommendationGenerated = "routing.recommendation.generated";
+    public const string RoutingRecommendationApplied = "routing.recommendation.applied";
+    public const string RoutingRecommendationDismissed = "routing.recommendation.dismissed";
+
     // Webhook events.
     public const string WebhookReceived = "webhook.received";
     public const string WebhookSignatureFailed = "webhook.signature_failed";

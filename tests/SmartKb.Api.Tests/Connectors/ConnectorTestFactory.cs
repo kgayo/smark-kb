@@ -77,6 +77,10 @@ public sealed class ConnectorTestFactory : WebApplicationFactory<Program>, IAsyn
             services.AddSingleton(new RetrievalSettings());
             services.AddScoped<ITenantRetrievalSettingsService, TenantRetrievalSettingsService>();
             services.AddScoped<IWebhookStatusService, WebhookStatusService>();
+            services.AddSingleton(new SmartKb.Contracts.Configuration.RoutingAnalyticsSettings());
+            services.AddScoped<IRoutingRuleService, SmartKb.Data.Repositories.RoutingRuleService>();
+            services.AddScoped<IRoutingAnalyticsService, SmartKb.Data.Repositories.RoutingAnalyticsService>();
+            services.AddScoped<IRoutingImprovementService, SmartKb.Data.Repositories.RoutingImprovementService>();
             services.AddScoped<AdoWebhookHandler>();
             services.AddScoped<SharePointWebhookHandler>();
             services.AddScoped<HubSpotWebhookHandler>();

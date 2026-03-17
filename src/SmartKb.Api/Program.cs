@@ -174,6 +174,11 @@ var distillationSettings = new DistillationSettings();
 builder.Configuration.GetSection(DistillationSettings.SectionName).Bind(distillationSettings);
 builder.Services.AddSingleton(distillationSettings);
 
+// Routing analytics settings (P1-009).
+var routingAnalyticsSettings = new RoutingAnalyticsSettings();
+builder.Configuration.GetSection(RoutingAnalyticsSettings.SectionName).Bind(routingAnalyticsSettings);
+builder.Services.AddSingleton(routingAnalyticsSettings);
+
 // Chat orchestration — OpenAI embedding + chat with structured outputs.
 // Requires both OpenAI API key and search service to be configured.
 var chatOrchestrationSettings = new ChatOrchestrationSettings();
@@ -1165,6 +1170,128 @@ app.MapGet("/api/admin/diagnostics/summary", async (
     };
 
     return Results.Ok(ApiResponse<DiagnosticsSummaryResponse>.Success(enriched, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+// --- Routing Rules CRUD (P1-009) ---
+
+app.MapGet("/api/admin/routing-rules", async (
+    ITenantContextAccessor tenantAccessor,
+    IRoutingRuleService ruleService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await ruleService.GetRulesAsync(tenant.TenantId);
+    return Results.Ok(ApiResponse<RoutingRuleListResponse>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapGet("/api/admin/routing-rules/{ruleId:guid}", async (
+    Guid ruleId,
+    ITenantContextAccessor tenantAccessor,
+    IRoutingRuleService ruleService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await ruleService.GetRuleAsync(tenant.TenantId, ruleId);
+    return result is null
+        ? Results.NotFound(ApiResponse<RoutingRuleDto>.Failure("Routing rule not found.", tenant.CorrelationId))
+        : Results.Ok(ApiResponse<RoutingRuleDto>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapPost("/api/admin/routing-rules", async (
+    CreateRoutingRuleRequest request,
+    ITenantContextAccessor tenantAccessor,
+    IRoutingRuleService ruleService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await ruleService.CreateRuleAsync(
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, request);
+    return Results.Created($"/api/admin/routing-rules/{result.RuleId}",
+        ApiResponse<RoutingRuleDto>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapPut("/api/admin/routing-rules/{ruleId:guid}", async (
+    Guid ruleId,
+    UpdateRoutingRuleRequest request,
+    ITenantContextAccessor tenantAccessor,
+    IRoutingRuleService ruleService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await ruleService.UpdateRuleAsync(
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, ruleId, request);
+    return result is null
+        ? Results.NotFound(ApiResponse<RoutingRuleDto>.Failure("Routing rule not found.", tenant.CorrelationId))
+        : Results.Ok(ApiResponse<RoutingRuleDto>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapDelete("/api/admin/routing-rules/{ruleId:guid}", async (
+    Guid ruleId,
+    ITenantContextAccessor tenantAccessor,
+    IRoutingRuleService ruleService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var deleted = await ruleService.DeleteRuleAsync(
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, ruleId);
+    return deleted
+        ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
+        : Results.NotFound(ApiResponse<object>.Failure("Routing rule not found.", tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+// --- Routing Analytics + Improvement (P1-009) ---
+
+app.MapGet("/api/admin/routing/analytics", async (
+    int? windowDays,
+    ITenantContextAccessor tenantAccessor,
+    IRoutingAnalyticsService analyticsService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await analyticsService.GetAnalyticsAsync(tenant.TenantId, windowDays);
+    return Results.Ok(ApiResponse<RoutingAnalyticsSummary>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapPost("/api/admin/routing/recommendations/generate", async (
+    ITenantContextAccessor tenantAccessor,
+    IRoutingImprovementService improvementService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await improvementService.GenerateRecommendationsAsync(
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId);
+    return Results.Ok(ApiResponse<RoutingRecommendationListResponse>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapGet("/api/admin/routing/recommendations", async (
+    string? status,
+    ITenantContextAccessor tenantAccessor,
+    IRoutingImprovementService improvementService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await improvementService.GetRecommendationsAsync(tenant.TenantId, status);
+    return Results.Ok(ApiResponse<RoutingRecommendationListResponse>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapPost("/api/admin/routing/recommendations/{recommendationId:guid}/apply", async (
+    Guid recommendationId,
+    ApplyRecommendationRequest? request,
+    ITenantContextAccessor tenantAccessor,
+    IRoutingImprovementService improvementService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await improvementService.ApplyRecommendationAsync(
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId,
+        recommendationId, request);
+    return result is null
+        ? Results.NotFound(ApiResponse<RoutingRecommendationDto>.Failure("Recommendation not found or not pending.", tenant.CorrelationId))
+        : Results.Ok(ApiResponse<RoutingRecommendationDto>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapPost("/api/admin/routing/recommendations/{recommendationId:guid}/dismiss", async (
+    Guid recommendationId,
+    ITenantContextAccessor tenantAccessor,
+    IRoutingImprovementService improvementService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var dismissed = await improvementService.DismissRecommendationAsync(
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, recommendationId);
+    return dismissed
+        ? Results.Ok(ApiResponse<object>.Success(new { dismissed = true }, tenant.CorrelationId))
+        : Results.NotFound(ApiResponse<object>.Failure("Recommendation not found or not pending.", tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.Run();
