@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-16 (Asia/Manila) — iteration 35 (P0-018 complete)
-Status: Active backlog (P0-001 through P0-018 complete; 0 bugs blocking, 0 tech-debt blocking; next up P0-018A)
+Last updated: 2026-03-17 (Asia/Manila) — iteration 41 (P0-020A)
+Status: Active backlog (P0-001 through P0-020A complete; 0 bugs blocking, 0 tech-debt blocking; next up P0-021 → P0-022)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -100,6 +100,15 @@ Status: Active backlog (P0-001 through P0-018 complete; 0 bugs blocking, 0 tech-
 - [x] ~~TECH-007~~: Stale `src/src.sln` file in repo root — **CLOSED (not found)**.
   - Resolution: No `src/src.sln` file exists in the repository. Only `SmartKb.sln` at the root. Verified 2026-03-16.
 
+- [x] BUG-004: Terraform `app-service.tf` missing `https_only = true` on both web apps — **security drift**.
+  - Root cause: ARM template explicitly sets `"httpsOnly": true` on both `app-smartkb-api-{env}` and `app-smartkb-ingestion-{env}`. Terraform `azurerm_linux_web_app` blocks omit `https_only`, which defaults to `false` in the azurerm provider.
+  - Completed: Added `https_only = true` to both `azurerm_linux_web_app.api` and `azurerm_linux_web_app.ingestion` in `infra/terraform/app-service.tf`. Terraform now matches ARM `httpsOnly: true`. All 691 backend tests passing.
+  - Also noted (non-blocking): Terraform `purge_protection_enabled = false` for non-prod vs ARM `null` (latent operational risk if vault is promoted); Search `replicaCount`/`partitionCount` explicit in ARM only (cosmetic).
+
+- [x] BUG-005: CI workflow does not run frontend tests — **regression risk**.
+  - Root cause: `.github/workflows/ci.yml` `frontend` job runs `npm run lint` and `npm run build` but never runs `npm run test` (which invokes `vitest run`). All frontend test cases were invisible to CI.
+  - Completed: Added `npm run test` step to `.github/workflows/ci.yml` frontend job, after lint and before build. 78 frontend tests now run in CI.
+
 ### P0 Ingestion + Evidence Store MVP (continued)
 
 - [x] P0-008: Implement Azure DevOps ingestion (initial backfill + incremental sync).
@@ -180,33 +189,27 @@ Status: Active backlog (P0-001 through P0-018 complete; 0 bugs blocking, 0 tech-
   - Dependencies: P0-016 (chat UI), P0-013A (session/message API)
   - Completed: `FeedbackReasonCode` enum with 7 values (WrongAnswer, OutdatedInfo, MissingContext, WrongSource, TooVague, WrongEscalation, Other). `FeedbackEntity` extended with `UserId`, `ReasonCodesJson` (JSON multi-select), `Comment`, `CorrelationId`. `IFeedbackService` interface + `FeedbackService` implementation in `SmartKb.Data.Repositories`. Full CRUD: `POST /api/sessions/{id}/messages/{id}/feedback` (submit/update), `GET /api/sessions/{id}/messages/{id}/feedback` (get for message), `GET /api/sessions/{id}/feedbacks` (list for session). All endpoints require `chat:feedback` permission (SupportAgent, SupportLead, Admin). One feedback per message per user (upsert on resubmit). Audit event written on new feedback (`chat.feedback`). Trace ID linked from assistant message. `UpdateFeedbackSchema` migration (ReasonCodesJson, Comment, UserId, CorrelationId, TenantId+SessionId composite index). `FeedbackWidget` React component: thumbs up/down toggle, reason code multi-select checkboxes (7 options), optional comment textarea, optional corrected answer textarea, immediate submit on thumbs up, detail form on thumbs down, "Thanks for your feedback" confirmation. Wired into `ChatThread` message footer (after escalation banner) and `ChatPage` state management (feedbackMap). API client: `submitFeedback`, `getFeedback`. CSS: feedback widget styling (thumbs buttons, detail form, reason checkboxes). 26 new backend tests (14 FeedbackService unit + 12 FeedbackEndpoint integration); 670 backend tests passing. 9 new frontend tests (FeedbackWidget); 67 frontend tests passing. Build clean (193 modules, 10.7KB CSS + 450KB JS gzipped).
 
-- [ ] P0-018A: Implement outcome tracking API and UI.
+- [x] P0-018A: Implement outcome tracking API and UI.
   - Specs: jtbd-06, jtbd-08
-  - Dependencies: P0-018 (feedback API)
-  - Exit criteria: outcome events stored in SQL per session with tenant scope; outcomes queryable for reporting; linked to escalation trace and session ID; routing quality metrics computable.
-  - Implementation notes: `OutcomeEventEntity` exists in P0-005. Need `POST /api/sessions/{id}/outcome` endpoint. `ResolutionType` enum: ResolvedWithoutEscalation, Escalated, Rerouted (3 values — jtbd-08 adds Rerouted beyond jtbd-06's 2).
+  - Dependencies: P0-018 (feedback API), BUG-004 + BUG-005 (both fixed)
+  - Completed: `IOutcomeService` interface + `OutcomeService` implementation in `SmartKb.Data.Repositories`. DTOs: `RecordOutcomeRequest`, `OutcomeResponse`, `OutcomeListResponse` in `SmartKb.Contracts.Models`. API endpoints: `POST /api/sessions/{id}/outcome` (create, returns 201 Created) and `GET /api/sessions/{id}/outcome` (list outcomes for session). Both require `chat:outcome` permission (SupportAgent, SupportLead, Admin). Tenant isolation + user ownership enforced. Audit event `chat.outcome` written on submission. DI registration in `DataServiceExtensions`. Frontend: `ResolutionType` type, `RecordOutcomeRequest`/`OutcomeResponse`/`OutcomeListResponse` TypeScript interfaces, `recordOutcome`/`getOutcomes` API client functions, `OutcomeWidget` React component (resolution type radio selector: ResolvedWithoutEscalation/Escalated/Rerouted, conditional target team input for Escalated/Rerouted, acceptance radio buttons, submit button, recorded confirmation state). Widget wired into `ChatPage` below `MessageInput`, visible when session has messages. CSS styles for outcome widget. 14 new backend unit tests (OutcomeServiceTests), 8 new API integration tests (OutcomeEndpointTests: CRUD, auth, RBAC, tenant isolation), 11 new frontend tests (OutcomeWidget). 691 backend + 78 frontend = 769 tests all passing.
 
-- [ ] P0-019: Implement admin connectors dashboard baseline.
+- [x] P0-019: Implement admin connectors dashboard baseline.
   - Specs: jtbd-05, jtbd-07
   - Dependencies: P0-006 (connector admin API complete), P0-016 (React app base)
-  - Exit criteria: admin can onboard a connector, test connection, and run sync without redeploy; sync run status and recent errors visible; field mapping UI; test-connection pass/fail; UI routes enforce role checks client-side.
-  - Implementation notes: Wizard flow: choose type -> auth -> scope -> mapping -> test -> activate. ScheduleCron stored but no scheduler — display as informational only in Phase 1.
+  - Completed: Full admin connector dashboard with role-based access control. `useRoles()` hook calls `/api/me` to fetch user roles; `hasAdminRole()` guard on `/admin` route shows "Access Denied" for non-Admin users. `ConnectorList` component: table with name, type, status (Enabled/Disabled badges), auth type, last sync status (Completed/Failed/Running/Pending/Never), updated timestamp; click-to-select rows; "New Connector" button. `CreateConnectorForm` wizard: 4-step flow (Type → Auth → Config → Review) with name input, connector type card selector (AzureDevOps, SharePoint, HubSpot, ClickUp), auth type dropdown (Pat, OAuth, ServiceAccount, PrivateKey), Key Vault secret name input, source config JSON textarea, schedule cron input (informational only), review summary, back/next navigation, create action. `ConnectorDetail` component: header with name + status badge + back button; action bar (Test Connection, Enable/Disable toggle, Sync Now, Backfill, Edit, Delete with confirmation); test connection result display (success/failure with diagnostic detail); info grid (type, auth, secret status, created date); edit mode with name, source config, schedule cron, field mapping editor; source config display in read-only mode. `FieldMappingEditor` component: table with source/target/transform/required columns; inline editing; add/remove rules; read-only mode for detail view. `SyncRunHistory` component: table with status, type (Backfill/Incremental), started, duration, records processed/failed, error detail. API client layer: 13 new functions (`listConnectors`, `getConnector`, `createConnector`, `updateConnector`, `deleteConnector`, `enableConnector`, `disableConnector`, `testConnection`, `syncNow`, `listSyncRuns`, `getSyncRun`, `validateMapping`, `getMe`). TypeScript types: 15 new interfaces/types matching backend DTOs. Navigation: "Admin" link in ChatPage header; "Back to Chat" link in admin header. CSS: full admin layout, connector table, wizard, detail, field mapping, sync history, test result, status badges. 32 new frontend tests (7 ConnectorList + 9 CreateConnectorForm + 5 FieldMappingEditor + 6 SyncRunHistory + 5 AdminPage role guard); 110 frontend tests passing. Build clean (200 modules, 18.2KB CSS + 479KB JS). All 691 backend tests passing. Phase 1 scope: preview pane and dead-letter/secrets status widget deferred to P1-008 (admin diagnostics).
 
 ### P0 Evaluation, SLOs, and Observability MVP
 
-- [ ] P0-020: Instrument OpenTelemetry + correlation IDs across all paths; wire audit event writes.
+- [x] P0-020: Instrument OpenTelemetry + correlation IDs across all paths; wire audit event writes.
   - Specs: jtbd-06, jtbd-10
   - Dependencies: P0-013 (complete)
-  - Exit criteria: traces/logs correlate end-to-end; correlation IDs propagated through Service Bus; Application Insights receives structured telemetry; immutable audit events for queries, retrieval, answers, escalations, admin changes, cross-tenant denials, PII redaction.
-  - Implementation notes: Baseline Activity tagging exists (P0-003). Need OpenTelemetry SDK for ASP.NET Core, HttpClient, EF Core, Azure SDK. Application Insights exporter.
+  - Completed: Full OpenTelemetry instrumentation across API and Ingestion. OTel SDK packages: `OpenTelemetry.Extensions.Hosting`, `.Instrumentation.AspNetCore`, `.Instrumentation.Http`, `.Instrumentation.SqlClient` (v1.12.0) in both API and Ingestion. Azure Monitor exporter: `Azure.Monitor.OpenTelemetry.AspNetCore` 1.3.0 in API, `Azure.Monitor.OpenTelemetry.Exporter` 1.3.0 in Ingestion — `APPLICATIONINSIGHTS_CONNECTION_STRING` now consumed. Named ActivitySources: `SmartKb.Api`, `SmartKb.Orchestration`, `SmartKb.Ingestion` in `SmartKb.Contracts.Diagnostics` with custom spans — orchestration pipeline (ChatOrchestrate, EmbedQuery, RetrieveEvidence, GenerateAnswer with model/confidence/citation tags), ingestion processing (ProcessSyncJob, SyncJobProcess with records/chunks/status tags). Correlation headers: `TenantContextMiddleware` extracts inbound `X-Correlation-Id` header (falls back to Activity.Current?.Id → TraceIdentifier), echoes correlation ID in response `X-Correlation-Id` header via `OnStarting` callback. Service Bus trace context: `IngestionWorker.ProcessMessageAsync` starts `ProcessSyncJob` activity with `messaging.correlation_id`, `messaging.message_id`, delivery count, sync run/connector/tenant tags; sets `ActivityStatusCode.Ok/Error`. ILogger→OTel bridge: `builder.Logging.AddOpenTelemetry()` with `IncludeScopes` and `IncludeFormattedMessage` in both API and Ingestion — all structured logs automatically enriched with TraceId/SpanId. AuditEventType constants: `SmartKb.Contracts.AuditEventTypes` static class with 20 constants; all 20+ audit event writes across 10 files migrated from string literals to constants. All existing audit events preserved (20+ types covering queries, retrieval, answers, escalations, admin changes, cross-tenant denials, PII redaction, webhooks, sync). 36 new tests (24 AuditEventTypes + 7 Diagnostics/ActivitySource + 3 correlation header middleware + 2 OTel wiring integration); all 727 backend + 110 frontend = 837 tests passing.
 
-- [ ] P0-020A: Implement audit log query and export API.
+- [x] P0-020A: Implement audit log query and export API.
   - Specs: jtbd-10
-  - Dependencies: P0-020, **D-011 (audit export format)**
-  - Exit criteria: audit events queryable by tenant, date range, event type, actor; export in structured format; role-gated to `SecurityAuditor` and `Admin`.
-  - Design decision to resolve:
-    - **D-011**: Propose NDJSON with cursor-based pagination. Export via `GET /api/audit/events/export` returning NDJSON stream.
-  - Implementation notes: Current `GET /api/audit/events` is a placeholder stub — replace with real query implementation. `audit:export` permission exists but has no backing endpoint.
+  - Dependencies: P0-020 (complete), D-011 (resolved)
+  - Completed: `IAuditEventQueryService` interface + `AuditEventQueryService` implementation in `SmartKb.Data.Repositories`. DTOs: `AuditEventQueryRequest` (eventType, actorId, correlationId, from/to date range, page/pageSize), `AuditEventListResponse` (events, totalCount, page, pageSize, hasMore), `AuditExportCursor` (cursor-based pagination with afterTimestamp/afterId, filters, limit). `GET /api/audit/events` endpoint: paginated query with all filters, returns `ApiResponse<AuditEventListResponse>`, requires `audit:read` permission (Admin, SecurityAuditor). `GET /api/audit/events/export` endpoint: NDJSON streaming export with cursor-based pagination, returns `application/x-ndjson` content type, cursor metadata appended as last line with `__cursor`, `afterTimestamp`, `afterId`, `hasMore` fields; requires `audit:export` permission (Admin, SecurityAuditor). Page size clamped to 200 max, export batch clamped to 5000 max. Tenant isolation enforced on all queries. `InMemoryAuditEventQueryService` for no-DB fallback path. DI registration in `DataServiceExtensions` (scoped) + all test factories updated. 27 new tests (15 AuditEventQueryService unit + 12 AuditEndpoint integration); all 754 backend + 110 frontend = 864 tests passing.
 
 - [ ] P0-021: Implement baseline evaluation harness.
   - Specs: jtbd-06
@@ -289,12 +292,25 @@ Status: Active backlog (P0-001 through P0-018 complete; 0 bugs blocking, 0 tech-
   - Specs: jtbd-10
 
 ## Cross-Cutting Test Backlog (continuous)
-- [ ] T-001: Unit tests for normalization/chunking, structured output parsing, ACL and tenant filters, escalation policy logic, PII redaction rules.
+- [x] T-001: Unit tests for normalization/chunking, structured output parsing, ACL and tenant filters, escalation policy logic, PII redaction rules.
+  - Status: Mostly covered. Chunking (9 tests), enrichment (19 tests), PII redaction (10+7 tests), ACL (9 tests), escalation (22 tests) all well tested.
+  - **Remaining gaps**: (a) LLM response deserialization roundtrip — no test parses an actual JSON response string into `ChatResponse`. (b) `ChatOrchestrator.OrchestrateAsync` integration with mocked retrieval + OpenAI — all orchestrator tests call static/pure methods only. (c) Negative tests for `StructuredOutputSchema` (malformed JSON schema, required/optional field validation).
 - [ ] T-002: Integration tests for connector contracts (all auth types), webhook signature verification, search indexing/retrieval, OpenAI error handling/retries, Key Vault resolution.
+  - Status: ADO connector (7 integration tests), SharePoint connector (27 unit tests). ADO/SharePoint webhook signature tests present.
+  - **Remaining gaps**: (a) No SharePoint connector integration test in the ingestion pipeline (only ADO). (b) No incremental sync (`IsBackfill = false`) integration test for ADO. (c) SharePoint webhook `clientState` signature verification negative test missing — seed has `WebhookSecretName = null` bypassing verification. (d) No test for `IngestionWorker` SB dispatch loop, retry/dead-letter, or cancellation mid-processing.
 - [ ] T-003: E2E tests for agent journey (answer+citation+feedback+outcome) and admin journey (connect->map->test->sync->validate->query).
+  - Status: **No E2E framework exists.** No Playwright, Cypress, or equivalent setup anywhere in the repo.
 - [ ] T-004: Security tests for RBAC, cross-tenant leakage, restricted-content exclusion, redaction behavior, audit completeness.
+  - Status: RBAC well tested (AuthorizationTests, PermissionAuthorizationHandler). Cross-tenant connector isolation tested.
+  - **Remaining gaps**: (a) Cross-tenant isolation for escalation and feedback endpoints not tested (only connectors). (b) No test for request body size limits or malformed JSON on any endpoint. (c) No concurrent access test for same session (race on message append / expiry extension).
 - [ ] T-005: Load tests for concurrent chat, ingestion bursts, webhook spikes, search index throughput.
+  - Status: **No load test framework exists.** No k6, JMeter, Locust, or NBomber setup.
 - [ ] T-006: IaC tests/validations for Terraform and ARM on every infra change.
+  - Status: CI workflow runs `terraform fmt/validate` + ARM JSON/structure validation. Parity is manually maintained.
+- [ ] T-007: Frontend test hardening.
+  - **Gaps**: (a) No tests for API client functions with mocked `fetch` (sendMessage, submitFeedback, listSessions, etc.). (b) No test for error state rendering (network errors, 401/403/500). (c) No MSAL token flow test (only smoke). (d) No accessibility tests (ARIA, keyboard nav). (e) No tests for `ChatPage` or `AuthProvider` page-level components. (f) AdminPage has 5 tests (role guard, loading, access denied, connector list, empty state) — needs more coverage for create/detail/edit flows.
+- [ ] T-008: Backend service test gaps.
+  - **Gaps**: (a) `DeadLetterService` — no tests at all. (b) `KeyVaultSecretProvider` — no unit tests (only `OpenAiKeyProviderTests` which covers a different class). (c) `SqlAnswerTraceWriter` — no tests (only `SqlAuditEventWriterTests` covers the audit writer). (d) `AdoSyncJobProcessorIntegrationTests` naming misleading — actually tests `SyncJobProcessor` with ADO connector wired in (cosmetic).
 
 ## Open Risks / Watch Items
 - [ ] R-001: Connector API limits and webhook reliability variability across providers.
@@ -333,8 +349,7 @@ Status: Active backlog (P0-001 through P0-018 complete; 0 bugs blocking, 0 tech-
 - [ ] D-009: Terraform remote state backend — blocks P1-012.
   - **Proposed**: Azure Storage with blob lease locking.
 - [x] D-010: Session token budget — resolved: sliding window, hard cutoff at 80% of gpt-4o 128k (102,400 tokens). Oldest messages dropped first. Configurable via `ChatOrchestrationSettings.MaxTokenBudget`. Summarization deferred to Phase 2.
-- [ ] D-011: Audit export format — blocks P0-020A.
-  - **Proposed**: NDJSON with cursor-based pagination.
+- [x] D-011: Audit export format — resolved: NDJSON with cursor-based pagination. `GET /api/audit/events/export` returns `application/x-ndjson` stream. Each line is a JSON-serialized `AuditEventResponse`. Final line is cursor metadata (`__cursor: true`, `afterTimestamp`, `afterId`, `hasMore`). Client paginates by passing `afterTimestamp` and `afterId` query params from cursor to next request.
 - [x] D-012: No-evidence threshold — resolved: < 3 results above score 0.3 (both conditions, tunable via `RetrievalSettings.NoEvidenceScoreThreshold` and `NoEvidenceMinResults`).
 - [x] D-013: Hallucination degradation — resolved: refuse + next-steps. Blended confidence < 0.3 overrides final_answer to next_steps_only with "I don't have enough information" + diagnostic steps + escalation to Engineering. No-evidence path (HasEvidence=false) returns next_steps_only immediately. Configurable via `ChatOrchestrationSettings.DegradationThreshold`.
 

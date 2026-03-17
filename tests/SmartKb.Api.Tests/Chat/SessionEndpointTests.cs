@@ -328,6 +328,8 @@ internal sealed class SessionTestFactory : WebApplicationFactory<Program>, IAsyn
             services.AddSingleton(new EscalationSettings());
             services.AddScoped<IEscalationDraftService, EscalationDraftService>();
             services.AddScoped<IFeedbackService, FeedbackService>();
+            services.AddScoped<IOutcomeService, OutcomeService>();
+            services.AddScoped<IAuditEventQueryService, AuditEventQueryService>();
             services.AddScoped<ConnectorAdminService>();
             services.AddScoped<AdoWebhookHandler>();
             services.AddScoped<SharePointWebhookHandler>();

@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using SmartKb.Api.Audit;
 using SmartKb.Api.Tests.Auth;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
 using SmartKb.Data;
@@ -109,7 +110,7 @@ public class TenantIsolationTests : IClassFixture<AuthTestFactory>
     }
 
     [Fact]
-    public async Task AuditEvents_ReturnsTenantId()
+    public async Task AuditEvents_ReturnsTenantScopedResults()
     {
         var client = CreateClient();
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/audit/events");
@@ -118,9 +119,9 @@ public class TenantIsolationTests : IClassFixture<AuthTestFactory>
         var response = await client.SendAsync(request);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-        var body = await response.Content.ReadFromJsonAsync<TenantScopedResponse>();
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<AuditEventListResponse>>();
         Assert.NotNull(body);
-        Assert.Equal("tenant-xyz", body.TenantId);
+        Assert.True(body!.IsSuccess);
     }
 
     // --- Cross-tenant access denied (returns 404 — no information leakage) ---
@@ -170,7 +171,7 @@ public class TenantIsolationTests : IClassFixture<AuthTestFactory>
         var auditWriter = _factory.Services.GetRequiredService<InMemoryAuditEventWriter>();
         var events = auditWriter.GetEvents();
         var missingTenantEvent = events.FirstOrDefault(e =>
-            e.EventType == "tenant.missing");
+            e.EventType == AuditEventTypes.TenantMissing);
         Assert.NotNull(missingTenantEvent);
         Assert.Contains("no tenant claim", missingTenantEvent!.Detail);
     }

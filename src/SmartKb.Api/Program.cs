@@ -2,16 +2,21 @@ using System.Reflection;
 using Azure;
 using Azure.Identity;
 using Azure.Messaging.ServiceBus;
+using Azure.Monitor.OpenTelemetry.AspNetCore;
 using Azure.Search.Documents.Indexes;
 using Azure.Storage.Blobs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Identity.Web;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using SmartKb.Api.Audit;
 using SmartKb.Api.Auth;
 using SmartKb.Api.Connectors;
 using SmartKb.Api.Secrets;
 using SmartKb.Api.Tenant;
 using SmartKb.Api.Webhooks;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
@@ -21,6 +26,33 @@ using SmartKb.Data;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHealthChecks();
+
+// --- OpenTelemetry ---
+var otelServiceName = "SmartKb.Api";
+var appInsightsConnStr = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
+
+var otelBuilder = builder.Services.AddOpenTelemetry()
+    .ConfigureResource(r => r.AddService(otelServiceName))
+    .WithTracing(t => t
+        .AddSource(Diagnostics.ApiSourceName)
+        .AddSource(Diagnostics.OrchestrationSourceName)
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddSqlClientInstrumentation())
+    .WithMetrics(m => m
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation());
+
+if (!string.IsNullOrEmpty(appInsightsConnStr))
+{
+    otelBuilder.UseAzureMonitor(o => o.ConnectionString = appInsightsConnStr);
+}
+
+builder.Logging.AddOpenTelemetry(o =>
+{
+    o.IncludeScopes = true;
+    o.IncludeFormattedMessage = true;
+});
 
 if (!string.IsNullOrEmpty(builder.Configuration["AzureAd:ClientId"])
     && !builder.Configuration["AzureAd:ClientId"]!.StartsWith('<'))
@@ -169,6 +201,8 @@ else
 {
     builder.Services.AddSingleton<InMemoryAuditEventWriter>();
     builder.Services.AddSingleton<IAuditEventWriter>(sp => sp.GetRequiredService<InMemoryAuditEventWriter>());
+    builder.Services.AddSingleton<IAuditEventQueryService>(sp =>
+        new InMemoryAuditEventQueryService(sp.GetRequiredService<InMemoryAuditEventWriter>()));
 }
 
 var app = builder.Build();
@@ -561,6 +595,43 @@ app.MapGet("/api/sessions/{sessionId:guid}/feedbacks", async (
         : Results.Ok(ApiResponse<FeedbackListResponse>.Success(response, tenant.CorrelationId));
 }).RequirePermission("chat:feedback");
 
+// --- Outcome Endpoints ---
+
+app.MapPost("/api/sessions/{sessionId:guid}/outcome", async (
+    Guid sessionId,
+    RecordOutcomeRequest request,
+    ITenantContextAccessor tenantAccessor,
+    IOutcomeService outcomeService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    try
+    {
+        var response = await outcomeService.RecordOutcomeAsync(
+            tenant.TenantId, tenant.UserId, tenant.CorrelationId,
+            sessionId, request);
+        return Results.Created($"/api/sessions/{sessionId}/outcome",
+            ApiResponse<OutcomeResponse>.Success(response, tenant.CorrelationId));
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.UnprocessableEntity(
+            ApiResponse<object>.Failure(ex.Message, tenant.CorrelationId));
+    }
+}).RequirePermission("chat:outcome");
+
+app.MapGet("/api/sessions/{sessionId:guid}/outcome", async (
+    Guid sessionId,
+    ITenantContextAccessor tenantAccessor,
+    IOutcomeService outcomeService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var response = await outcomeService.GetOutcomesAsync(
+        tenant.TenantId, tenant.UserId, sessionId);
+    return response is null
+        ? Results.NotFound(ApiResponse<object>.Failure("Session not found.", tenant.CorrelationId))
+        : Results.Ok(ApiResponse<OutcomeListResponse>.Success(response, tenant.CorrelationId));
+}).RequirePermission("chat:outcome");
+
 // --- Escalation Draft Endpoints ---
 
 app.MapPost("/api/escalations/draft", async (
@@ -672,13 +743,88 @@ app.MapPost("/api/chat", async (
     return Results.Ok(ApiResponse<ChatResponse>.Success(response, tenant.CorrelationId));
 }).RequirePermission("chat:query");
 
-// --- Audit Endpoint ---
+// --- Audit Endpoints ---
 
-app.MapGet("/api/audit/events", (ITenantContextAccessor tenantAccessor) =>
+app.MapGet("/api/audit/events", async (
+    ITenantContextAccessor tenantAccessor,
+    IAuditEventQueryService auditQuery,
+    string? eventType,
+    string? actorId,
+    string? correlationId,
+    DateTimeOffset? from,
+    DateTimeOffset? to,
+    int? page,
+    int? pageSize,
+    CancellationToken ct) =>
 {
     var tenant = tenantAccessor.Current!;
-    return Results.Ok(new { tenantId = tenant.TenantId, message = "Audit events placeholder" });
+    var request = new AuditEventQueryRequest
+    {
+        EventType = eventType,
+        ActorId = actorId,
+        CorrelationId = correlationId,
+        From = from,
+        To = to,
+        Page = page ?? 1,
+        PageSize = pageSize ?? 50,
+    };
+    var result = await auditQuery.QueryAsync(tenant.TenantId, request, ct);
+    return Results.Ok(ApiResponse<AuditEventListResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("audit:read");
+
+app.MapGet("/api/audit/events/export", async (
+    HttpContext httpContext,
+    ITenantContextAccessor tenantAccessor,
+    IAuditEventQueryService auditQuery,
+    string? eventType,
+    string? actorId,
+    DateTimeOffset? from,
+    DateTimeOffset? to,
+    DateTimeOffset? afterTimestamp,
+    Guid? afterId,
+    int? limit,
+    CancellationToken ct) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var cursor = new AuditExportCursor
+    {
+        EventType = eventType,
+        ActorId = actorId,
+        From = from,
+        To = to,
+        AfterTimestamp = afterTimestamp,
+        AfterId = afterId,
+        Limit = limit ?? 1000,
+    };
+
+    httpContext.Response.ContentType = "application/x-ndjson";
+    httpContext.Response.Headers["X-Correlation-Id"] = tenant.CorrelationId;
+
+    AuditEventResponse? lastEvent = null;
+    var count = 0;
+
+    await foreach (var auditEvent in auditQuery.ExportAsync(tenant.TenantId, cursor, ct))
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(auditEvent);
+        await httpContext.Response.WriteAsync(json + "\n", ct);
+        lastEvent = auditEvent;
+        count++;
+    }
+
+    // Write cursor metadata as last NDJSON line if there are results
+    if (lastEvent is not null)
+    {
+        var nextCursor = new
+        {
+            __cursor = true,
+            afterTimestamp = lastEvent.Timestamp,
+            afterId = lastEvent.EventId,
+            hasMore = count >= cursor.Limit,
+        };
+        var cursorJson = System.Text.Json.JsonSerializer.Serialize(nextCursor);
+        await httpContext.Response.WriteAsync(cursorJson + "\n", ct);
+    }
+}).RequirePermission("audit:export");
 
 // --- Secrets Status Endpoint ---
 
