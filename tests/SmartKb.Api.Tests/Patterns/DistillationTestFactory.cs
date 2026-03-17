@@ -72,6 +72,7 @@ internal sealed class DistillationTestFactory : WebApplicationFactory<Program>, 
             services.AddScoped<SmartKb.Api.Connectors.ConnectorAdminService>();
             services.AddSingleton(new RetrievalSettings());
             services.AddScoped<ITenantRetrievalSettingsService, TenantRetrievalSettingsService>();
+            services.AddScoped<IWebhookStatusService, SmartKb.Data.Repositories.WebhookStatusService>();
         });
     }
 

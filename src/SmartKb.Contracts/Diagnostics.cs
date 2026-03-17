@@ -89,4 +89,10 @@ public static class Diagnostics
         Meter.CreateHistogram<double>(
             "smartkb.chat.confidence",
             description: "Blended confidence score distribution for chat responses.");
+
+    /// <summary>Source API rate-limit hits (HTTP 429) during connector sync (counter).</summary>
+    public static readonly Counter<long> SourceRateLimitTotal =
+        Meter.CreateCounter<long>(
+            "smartkb.ingestion.source_rate_limit_total",
+            description: "Source API rate-limit (429) responses encountered during ingestion.");
 }

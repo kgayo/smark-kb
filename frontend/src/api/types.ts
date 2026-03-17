@@ -473,3 +473,92 @@ export interface UpdateRetrievalSettingsRequest {
   noEvidenceScoreThreshold?: number;
   noEvidenceMinResults?: number;
 }
+
+// ── Diagnostics types (P1-008) ──
+
+export interface WebhookSubscriptionStatus {
+  id: string;
+  connectorId: string;
+  connectorName: string;
+  connectorType: string;
+  eventType: string;
+  isActive: boolean;
+  pollingFallbackActive: boolean;
+  consecutiveFailures: number;
+  lastDeliveryAt: string | null;
+  nextPollAt: string | null;
+  externalSubscriptionId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WebhookStatusListResponse {
+  subscriptions: WebhookSubscriptionStatus[];
+  totalCount: number;
+  activeCount: number;
+  fallbackCount: number;
+}
+
+export interface ConnectorHealthSummary {
+  connectorId: string;
+  name: string;
+  connectorType: string;
+  status: string;
+  lastSyncStatus: string | null;
+  lastSyncAt: string | null;
+  webhookCount: number;
+  webhooksInFallback: number;
+  totalFailures: number;
+}
+
+export interface DiagnosticsSummaryResponse {
+  totalConnectors: number;
+  enabledConnectors: number;
+  disabledConnectors: number;
+  totalWebhooks: number;
+  activeWebhooks: number;
+  fallbackWebhooks: number;
+  failingWebhooks: number;
+  serviceBusConfigured: boolean;
+  keyVaultConfigured: boolean;
+  openAiConfigured: boolean;
+  searchServiceConfigured: boolean;
+  connectorHealth: ConnectorHealthSummary[];
+}
+
+export interface DeadLetterMessage {
+  messageId: string;
+  correlationId: string | null;
+  subject: string | null;
+  deadLetterReason: string | null;
+  deadLetterErrorDescription: string | null;
+  deliveryCount: number;
+  enqueuedTime: string;
+  body: string;
+  applicationProperties: Record<string, unknown>;
+}
+
+export interface DeadLetterListResponse {
+  messages: DeadLetterMessage[];
+  count: number;
+  serviceBusConfigured?: boolean;
+}
+
+export interface SloStatusResponse {
+  targets: {
+    answerLatencyP95TargetMs: number;
+    availabilityTargetPercent: number;
+    syncLagP95TargetMinutes: number;
+    noEvidenceRateThreshold: number;
+    deadLetterDepthThreshold: number;
+  };
+  metrics: Record<string, string>;
+  dashboardHint: string;
+}
+
+export interface SecretsStatusResponse {
+  tenantId: string;
+  keyVaultConfigured: boolean;
+  openAiKeyConfigured: boolean;
+  openAiModel: string;
+}

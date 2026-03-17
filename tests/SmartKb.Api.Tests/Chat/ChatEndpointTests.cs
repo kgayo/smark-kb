@@ -193,6 +193,7 @@ internal sealed class ChatTestFactory : WebApplicationFactory<Program>, IAsyncLi
             services.AddScoped<SharePointWebhookHandler>();
             services.AddSingleton(new RetrievalSettings());
             services.AddScoped<ITenantRetrievalSettingsService, TenantRetrievalSettingsService>();
+            services.AddScoped<IWebhookStatusService, SmartKb.Data.Repositories.WebhookStatusService>();
 
             // Use stub orchestrator — no real OpenAI or search calls.
             services.AddScoped<IChatOrchestrator, StubChatOrchestrator>();

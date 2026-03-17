@@ -222,6 +222,14 @@ public sealed class SyncJobProcessor
             await WriteAuditAsync(message, AuditEventTypes.SyncFailed,
                 $"Sync run {message.SyncRunId} failed: {ex.Message}");
 
+            // P1-008: Track source API rate-limit hits (HTTP 429).
+            if (ex is HttpRequestException hre && hre.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+            {
+                Diagnostics.SourceRateLimitTotal.Add(1,
+                    new KeyValuePair<string, object?>("smartkb.connector_type", message.ConnectorType.ToString()),
+                    new KeyValuePair<string, object?>("smartkb.tenant_id", message.TenantId));
+            }
+
             // P0-022: Record failure metrics.
             syncSw.Stop();
             Diagnostics.SyncJobDurationMs.Record(syncSw.ElapsedMilliseconds,

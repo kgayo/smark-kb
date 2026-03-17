@@ -8,7 +8,9 @@ import type {
   CreateConnectorRequest,
   CreateEscalationDraftRequest,
   CreateSessionRequest,
+  DeadLetterListResponse,
   DeprecatePatternRequest,
+  DiagnosticsSummaryResponse,
   EscalationDraftExportResponse,
   EscalationDraftResponse,
   ExternalEscalationResult,
@@ -22,10 +24,12 @@ import type {
   RecordOutcomeRequest,
   RetrievalSettingsResponse,
   ReviewPatternRequest,
+  SecretsStatusResponse,
   SendMessageRequest,
   SessionChatResponse,
   SessionListResponse,
   SessionResponse,
+  SloStatusResponse,
   SubmitFeedbackRequest,
   SyncNowRequest,
   SyncRunListResponse,
@@ -34,6 +38,7 @@ import type {
   UpdateConnectorRequest,
   UpdateEscalationDraftRequest,
   UpdateRetrievalSettingsRequest,
+  WebhookStatusListResponse,
 } from './types';
 
 let getAccessToken: (() => Promise<string | null>) | null = null;
@@ -463,4 +468,50 @@ export async function resetRetrievalSettings(): Promise<void> {
   await apiFetch<ApiResponse<unknown>>('/api/admin/retrieval-settings', {
     method: 'DELETE',
   });
+}
+
+// ── Diagnostics endpoints (P1-008) ──
+
+export async function getWebhooksByConnector(
+  connectorId: string,
+): Promise<WebhookStatusListResponse> {
+  const res = await apiFetch<ApiResponse<WebhookStatusListResponse>>(
+    `/api/admin/connectors/${connectorId}/webhooks`,
+  );
+  return unwrap(res);
+}
+
+export async function getAllWebhooks(): Promise<WebhookStatusListResponse> {
+  const res = await apiFetch<ApiResponse<WebhookStatusListResponse>>(
+    '/api/admin/webhooks',
+  );
+  return unwrap(res);
+}
+
+export async function getDiagnosticsSummary(): Promise<DiagnosticsSummaryResponse> {
+  const res = await apiFetch<ApiResponse<DiagnosticsSummaryResponse>>(
+    '/api/admin/diagnostics/summary',
+  );
+  return unwrap(res);
+}
+
+export async function getDeadLetters(
+  maxMessages?: number,
+): Promise<DeadLetterListResponse> {
+  const params = maxMessages ? `?maxMessages=${maxMessages}` : '';
+  const res = await apiFetch<ApiResponse<DeadLetterListResponse>>(
+    `/api/admin/ingestion/dead-letters${params}`,
+  );
+  return unwrap(res);
+}
+
+export async function getSloStatus(): Promise<SloStatusResponse> {
+  const res = await apiFetch<ApiResponse<SloStatusResponse>>(
+    '/api/admin/slo/status',
+  );
+  return unwrap(res);
+}
+
+export async function getSecretsStatus(): Promise<SecretsStatusResponse> {
+  return apiFetch<SecretsStatusResponse>('/api/admin/secrets/status');
 }

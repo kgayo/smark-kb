@@ -102,6 +102,9 @@ export function AdminPage() {
           <h1>Connector Dashboard</h1>
         </div>
         <div className="admin-header-right">
+          <Link to="/diagnostics" className="btn btn-sm" data-testid="diagnostics-link">
+            Diagnostics
+          </Link>
           <Link to="/patterns" className="btn btn-sm" data-testid="patterns-link">
             Patterns
           </Link>

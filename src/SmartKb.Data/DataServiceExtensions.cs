@@ -26,6 +26,7 @@ public static class DataServiceExtensions
         services.AddScoped<IPatternDistillationService, PatternDistillationService>();
         services.AddScoped<IPatternGovernanceService, PatternGovernanceService>();
         services.AddScoped<ITenantRetrievalSettingsService, TenantRetrievalSettingsService>();
+        services.AddScoped<IWebhookStatusService, WebhookStatusService>();
 
         return services;
     }

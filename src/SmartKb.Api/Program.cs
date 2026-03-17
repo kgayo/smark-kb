@@ -971,6 +971,7 @@ app.MapGet("/api/admin/slo/status", (
             recordsProcessedMetric = "smartkb.ingestion.records_processed_total",
             piiRedactionsMetric = "smartkb.security.pii_redactions_total",
             confidenceMetric = "smartkb.chat.confidence",
+            sourceRateLimitMetric = "smartkb.ingestion.source_rate_limit_total",
         },
         dashboardHint = "Query these metrics in Azure Monitor / Application Insights customMetrics table.",
     }, tenant.CorrelationId));
@@ -1114,6 +1115,56 @@ app.MapGet("/api/admin/ingestion/dead-letters", async (
     var maxMessages = int.TryParse(maxParam, out var m) ? m : 20;
     var result = await dlService.PeekAsync(maxMessages);
     return Results.Ok(ApiResponse<DeadLetterListResponse>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+// --- Webhook Status Endpoint (P1-008) ---
+
+app.MapGet("/api/admin/connectors/{connectorId}/webhooks", async (
+    Guid connectorId,
+    ITenantContextAccessor tenantAccessor,
+    IWebhookStatusService webhookStatusService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await webhookStatusService.GetByConnectorAsync(tenant.TenantId, connectorId);
+    return Results.Ok(ApiResponse<WebhookStatusListResponse>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapGet("/api/admin/webhooks", async (
+    ITenantContextAccessor tenantAccessor,
+    IWebhookStatusService webhookStatusService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await webhookStatusService.GetAllAsync(tenant.TenantId);
+    return Results.Ok(ApiResponse<WebhookStatusListResponse>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+// --- Diagnostics Summary Endpoint (P1-008) ---
+
+app.MapGet("/api/admin/diagnostics/summary", async (
+    ITenantContextAccessor tenantAccessor,
+    IWebhookStatusService webhookStatusService,
+    OpenAiKeyProvider openAiKeyProvider,
+    IServiceProvider sp) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var summary = await webhookStatusService.GetDiagnosticsSummaryAsync(tenant.TenantId);
+
+    var keyVaultConfigured = sp.GetService<ISecretProvider>() is not null;
+    bool openAiConfigured;
+    try { openAiConfigured = !string.IsNullOrWhiteSpace(openAiKeyProvider.GetApiKey()); }
+    catch (InvalidOperationException) { openAiConfigured = false; }
+    var searchConfigured = sp.GetService<SearchIndexClient>() is not null;
+    var sbConfigured = sp.GetService<ServiceBusClient>() is not null;
+
+    var enriched = summary with
+    {
+        ServiceBusConfigured = sbConfigured,
+        KeyVaultConfigured = keyVaultConfigured,
+        OpenAiConfigured = openAiConfigured,
+        SearchServiceConfigured = searchConfigured,
+    };
+
+    return Results.Ok(ApiResponse<DiagnosticsSummaryResponse>.Success(enriched, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.Run();

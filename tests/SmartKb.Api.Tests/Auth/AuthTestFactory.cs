@@ -95,6 +95,7 @@ public sealed class AuthTestFactory : WebApplicationFactory<Program>, IAsyncLife
                 new InMemoryAuditEventQueryService(sp.GetRequiredService<InMemoryAuditEventWriter>()));
             services.AddSingleton(new RetrievalSettings());
             services.AddScoped<ITenantRetrievalSettingsService, TenantRetrievalSettingsService>();
+            services.AddScoped<IWebhookStatusService, SmartKb.Data.Repositories.WebhookStatusService>();
         });
     }
 }

@@ -1886,3 +1886,258 @@ body {
   border-radius: 10px;
   font-size: 11px;
 }
+
+/* ── Diagnostics Page (P1-008) ── */
+
+.diag-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.diag-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.diag-tab:hover {
+  color: var(--color-text);
+}
+
+.diag-tab-active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  font-weight: 600;
+}
+
+.diag-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.diag-badge-warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.diag-badge-danger {
+  background: #fecaca;
+  color: #991b1b;
+}
+
+.diag-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.diag-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.diag-card h3 {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.diag-stat {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.diag-label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.diag-warn {
+  color: #92400e;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.diag-warn-inline {
+  color: #92400e;
+  font-size: 12px;
+}
+
+.diag-danger-text {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+.diag-section {
+  margin-bottom: 24px;
+}
+
+.diag-section h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.diag-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.diag-table th {
+  text-align: left;
+  padding: 8px 12px;
+  background: #f8f9fb;
+  border-bottom: 1px solid var(--color-border);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.diag-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0f1f3;
+}
+
+.diag-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.diag-badge-inline {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.badge-success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge-danger {
+  background: #fecaca;
+  color: #991b1b;
+}
+
+.badge-warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badge-info {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.badge-muted {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.diag-service-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  padding: 2px 0;
+}
+
+.diag-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.diag-ok .diag-dot {
+  background: #16a34a;
+}
+
+.diag-not-ok .diag-dot {
+  background: #dc2626;
+}
+
+.diag-summary-row {
+  display: flex;
+  gap: 16px;
+  padding: 8px 0 16px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.diag-empty {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--color-text-muted);
+}
+
+.diag-mono {
+  font-family: 'SF Mono', Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
+.diag-detail-box {
+  background: #f8f9fb;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 12px;
+  font-size: 12px;
+}
+
+.diag-detail-box div {
+  margin-bottom: 4px;
+}
+
+.diag-pre {
+  background: #1e1e2e;
+  color: #cdd6f4;
+  padding: 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 11px;
+  max-height: 200px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin-top: 4px;
+}
+
+.diag-muted {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.diag-overview {
+  padding: 16px 0;
+}
