@@ -51,6 +51,9 @@ public sealed record EvidenceChunk
     /// <summary>Monotonic enrichment version for safe reprocessing.</summary>
     public int EnrichmentVersion { get; init; } = 1;
 
-    /// <summary>Error tokens extracted during baseline enrichment.</summary>
+    /// <summary>Error tokens extracted during enrichment.</summary>
     public IReadOnlyList<string> ErrorTokens { get; init; } = [];
+
+    /// <summary>Technology/framework tags detected during enrichment (v2+).</summary>
+    public IReadOnlyList<string> TechnologyTags { get; init; } = [];
 }

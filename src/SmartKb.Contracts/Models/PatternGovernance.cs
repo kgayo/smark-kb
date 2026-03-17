@@ -38,6 +38,7 @@ public sealed record PatternSummary
     public string? SupersedesPatternId { get; init; }
     public string SourceUrl { get; init; } = string.Empty;
     public int RelatedEvidenceCount { get; init; }
+    public float? QualityScore { get; init; }
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
 
@@ -78,6 +79,7 @@ public sealed record PatternDetail
     public string Visibility { get; init; } = "Internal";
     public string AccessLabel { get; init; } = "Internal";
     public string SourceUrl { get; init; } = string.Empty;
+    public float? QualityScore { get; init; }
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
 

@@ -19,6 +19,7 @@ public sealed class PatternDistillationService : IPatternDistillationService
     private readonly DistillationSettings _settings;
     private readonly IEmbeddingService? _embeddingService;
     private readonly IPatternIndexingService? _patternIndexing;
+    private readonly ICaseCardQualityValidator? _qualityValidator;
     private readonly IAuditEventWriter _auditWriter;
     private readonly ILogger<PatternDistillationService> _logger;
 
@@ -33,12 +34,14 @@ public sealed class PatternDistillationService : IPatternDistillationService
         IAuditEventWriter auditWriter,
         ILogger<PatternDistillationService> logger,
         IEmbeddingService? embeddingService = null,
-        IPatternIndexingService? patternIndexing = null)
+        IPatternIndexingService? patternIndexing = null,
+        ICaseCardQualityValidator? qualityValidator = null)
     {
         _db = db;
         _settings = settings;
         _embeddingService = embeddingService;
         _patternIndexing = patternIndexing;
+        _qualityValidator = qualityValidator;
         _auditWriter = auditWriter;
         _logger = logger;
     }
@@ -359,6 +362,32 @@ public sealed class PatternDistillationService : IPatternDistillationService
             CreatedAt = now,
             UpdatedAt = now,
         };
+
+        // Quality gate: validate the pattern before persisting.
+        if (_qualityValidator is not null)
+        {
+            var tempPattern = MapEntityToModel(entity, embedding);
+            var qualityReport = _qualityValidator.Validate(tempPattern);
+
+            if (qualityReport.Rejected)
+            {
+                _logger.LogInformation(
+                    "Pattern {PatternId} rejected by quality gate (score={Score:F2}): {Issues}",
+                    patternId, qualityReport.QualityScore,
+                    string.Join("; ", qualityReport.Issues.Select(i => i.Message)));
+                return null;
+            }
+
+            // Persist quality metadata on the entity.
+            entity.QualityScore = qualityReport.QualityScore;
+
+            if (!qualityReport.Passed)
+            {
+                _logger.LogInformation(
+                    "Pattern {PatternId} below quality threshold (score={Score:F2}) but not rejected. Saving as draft with quality flag.",
+                    patternId, qualityReport.QualityScore);
+            }
+        }
 
         _db.CasePatterns.Add(entity);
         await _db.SaveChangesAsync(ct);

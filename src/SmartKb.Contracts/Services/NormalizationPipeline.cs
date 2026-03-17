@@ -61,6 +61,7 @@ public sealed class NormalizationPipeline : INormalizationPipeline
                 SourceUrl = record.SourceLocator.Url,
                 EnrichmentVersion = enrichment.EnrichmentVersion,
                 ErrorTokens = enrichment.ErrorTokens,
+                TechnologyTags = enrichment.TechnologyTags,
             });
         }
 

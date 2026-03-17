@@ -396,6 +396,8 @@ public class SmartKbDbContext : DbContext
             e.Property(p => p.ApprovalNotes).HasMaxLength(1024);
             e.Property(p => p.DeprecatedBy).HasMaxLength(128);
             e.Property(p => p.DeprecationReason).HasMaxLength(1024);
+            // Quality gate score (P1-011).
+            e.Property(p => p.QualityScore);
 
             e.HasQueryFilter(p => p.DeletedAt == null);
             e.HasOne(p => p.Tenant).WithMany().HasForeignKey(p => p.TenantId).OnDelete(DeleteBehavior.Restrict);

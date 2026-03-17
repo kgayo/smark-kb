@@ -36,6 +36,9 @@ public sealed class CasePatternEntity
     public DateTimeOffset UpdatedAt { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }
 
+    // Quality gate score from P1-011 validation (0.0-1.0, null if not validated).
+    public float? QualityScore { get; set; }
+
     // Governance tracking fields (P1-006).
     public DateTimeOffset? ReviewedAt { get; set; }
     public string? ReviewedBy { get; set; }

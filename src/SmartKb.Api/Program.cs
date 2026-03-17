@@ -105,7 +105,7 @@ var chunkingSettings = new SmartKb.Contracts.Configuration.ChunkingSettings();
 builder.Configuration.GetSection(SmartKb.Contracts.Configuration.ChunkingSettings.SectionName).Bind(chunkingSettings);
 builder.Services.AddSingleton(chunkingSettings);
 builder.Services.AddSingleton<IChunkingService, SmartKb.Contracts.Services.TextChunkingService>();
-builder.Services.AddSingleton<IEnrichmentService, SmartKb.Contracts.Services.BaselineEnrichmentService>();
+builder.Services.AddSingleton<IEnrichmentService, SmartKb.Contracts.Services.EnhancedEnrichmentService>();
 builder.Services.AddSingleton<INormalizationPipeline, SmartKb.Contracts.Services.NormalizationPipeline>();
 
 // Connector clients — register all IConnectorClient implementations.
@@ -173,6 +173,12 @@ builder.Services.AddSingleton(escalationSettings);
 var distillationSettings = new DistillationSettings();
 builder.Configuration.GetSection(DistillationSettings.SectionName).Bind(distillationSettings);
 builder.Services.AddSingleton(distillationSettings);
+
+// Case-card quality settings (P1-011).
+var caseCardQualitySettings = new SmartKb.Contracts.Configuration.CaseCardQualitySettings();
+builder.Configuration.GetSection(SmartKb.Contracts.Configuration.CaseCardQualitySettings.SectionName).Bind(caseCardQualitySettings);
+builder.Services.AddSingleton(caseCardQualitySettings);
+builder.Services.AddSingleton<SmartKb.Contracts.Services.ICaseCardQualityValidator, SmartKb.Contracts.Services.CaseCardQualityValidator>();
 
 // Routing analytics settings (P1-009).
 var routingAnalyticsSettings = new RoutingAnalyticsSettings();

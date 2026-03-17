@@ -97,7 +97,7 @@ var chunkingSettings = new ChunkingSettings();
 builder.Configuration.GetSection(ChunkingSettings.SectionName).Bind(chunkingSettings);
 builder.Services.AddSingleton(chunkingSettings);
 builder.Services.AddSingleton<IChunkingService, TextChunkingService>();
-builder.Services.AddSingleton<IEnrichmentService, BaselineEnrichmentService>();
+builder.Services.AddSingleton<IEnrichmentService, EnhancedEnrichmentService>();
 builder.Services.AddSingleton<INormalizationPipeline, NormalizationPipeline>();
 
 // Sync job processor (scoped — uses DbContext).
