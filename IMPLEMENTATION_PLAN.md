@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-18 (Asia/Manila) — iteration 57 (P2-002)
-Status: Active backlog (P0-001 through P0-022 + P1-001 through P1-012 + P2-001 through P2-002 complete; 0 bugs blocking, 0 tech-debt blocking; Phase 1 MVP complete, Phase 2 in progress)
+Last updated: 2026-03-18 (Asia/Manila) — iteration 61 (T-002 + T-008)
+Status: Active backlog (P0-001 through P0-022 + P1-001 through P1-012 + P2-001 through P2-005 complete; T-002 + T-008 complete; 0 bugs blocking, 0 tech-debt blocking; Phase 1 MVP complete, Phase 2 in progress)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -306,9 +306,9 @@ Status: Active backlog (P0-001 through P0-022 + P1-001 through P1-012 + P2-001 t
 - [x] T-001: Unit tests for normalization/chunking, structured output parsing, ACL and tenant filters, escalation policy logic, PII redaction rules.
   - Status: Mostly covered. Chunking (9 tests), enrichment (19 tests), PII redaction (10+7 tests), ACL (9 tests), escalation (22 tests) all well tested.
   - **Remaining gaps**: (a) LLM response deserialization roundtrip — no test parses an actual JSON response string into `ChatResponse`. (b) `ChatOrchestrator.OrchestrateAsync` integration with mocked retrieval + OpenAI — all orchestrator tests call static/pure methods only. (c) Negative tests for `StructuredOutputSchema` (malformed JSON schema, required/optional field validation).
-- [ ] T-002: Integration tests for connector contracts (all auth types), webhook signature verification, search indexing/retrieval, OpenAI error handling/retries, Key Vault resolution.
-  - Status: ADO connector (7 integration tests), SharePoint connector (27 unit tests). ADO/SharePoint webhook signature tests present.
-  - **Remaining gaps**: (a) No SharePoint connector integration test in the ingestion pipeline (only ADO). (b) No incremental sync (`IsBackfill = false`) integration test for ADO. (c) SharePoint webhook `clientState` signature verification negative test missing — seed has `WebhookSecretName = null` bypassing verification. (d) No test for `IngestionWorker` SB dispatch loop, retry/dead-letter, or cancellation mid-processing.
+- [x] T-002: Integration tests for connector contracts (all auth types), webhook signature verification, search indexing/retrieval, OpenAI error handling/retries, Key Vault resolution.
+  - Status: ADO connector (7+4 integration tests), SharePoint connector (27 unit + 6 integration tests). ADO/SharePoint webhook signature tests present.
+  - Completed: (a) **SharePoint connector integration test** — `SharePointSyncJobProcessorIntegrationTests` with 6 tests: backfill sync with file records, Key Vault secret resolution, OAuth token failure handling, checkpoint preservation, idempotency, chunk persistence. Mock GraphRoutingHandler for OAuth token, site resolution, drive resolution, delta query endpoints. (b) **ADO incremental sync** — `AdoIncrementalSyncTests` with 4 tests: incremental sync (IsBackfill=false) completion, checkpoint usage from pre-existing checkpoint, audit event writing, chunk persistence. (c) SharePoint webhook clientState negative test already covered by `HandleNotificationAsync_Returns401_WhenClientStateMismatch` in `SharePointWebhookHandlerTests`. (d) **IngestionWorker dispatch** — `IngestionWorkerDispatchTests` with 6 tests: idle mode start/stop, null ServiceBusClient handling, SyncJobMessage JSON roundtrip, invalid JSON deserialization, null literal deserialization, ServiceBusSettings defaults. Full SB processor lifecycle untestable without real Service Bus; contract validation covers message serialization.
 - [ ] T-003: E2E tests for agent journey (answer+citation+feedback+outcome) and admin journey (connect->map->test->sync->validate->query).
   - Status: **No E2E framework exists.** No Playwright, Cypress, or equivalent setup anywhere in the repo.
 - [ ] T-004: Security tests for RBAC, cross-tenant leakage, restricted-content exclusion, redaction behavior, audit completeness.
@@ -320,8 +320,8 @@ Status: Active backlog (P0-001 through P0-022 + P1-001 through P1-012 + P2-001 t
   - Status: CI workflow runs `terraform fmt/validate` + ARM JSON/structure validation. Parity is manually maintained.
 - [ ] T-007: Frontend test hardening.
   - **Gaps**: (a) No tests for API client functions with mocked `fetch` (sendMessage, submitFeedback, listSessions, etc.). (b) No test for error state rendering (network errors, 401/403/500). (c) No MSAL token flow test (only smoke). (d) No accessibility tests (ARIA, keyboard nav). (e) No tests for `ChatPage` or `AuthProvider` page-level components. (f) AdminPage has 5 tests (role guard, loading, access denied, connector list, empty state) — needs more coverage for create/detail/edit flows.
-- [ ] T-008: Backend service test gaps.
-  - **Gaps**: (a) `DeadLetterService` — no tests at all. (b) `KeyVaultSecretProvider` — no unit tests (only `OpenAiKeyProviderTests` which covers a different class). (c) `SqlAnswerTraceWriter` — no tests (only `SqlAuditEventWriterTests` covers the audit writer). (d) `AdoSyncJobProcessorIntegrationTests` naming misleading — actually tests `SyncJobProcessor` with ADO connector wired in (cosmetic).
+- [x] T-008: Backend service test gaps.
+  - Completed: (a) **DeadLetterService** — `DeadLetterServiceTests` with 8 tests: DLQ path construction, empty peek, message mapping (messageId, correlationId, subject, deliveryCount, body), multiple messages, default maxMessages=20, DisposeAsync receiver cleanup, DeadLetterMessage record properties, DeadLetterListResponse record properties. Mock `ServiceBusClient` + `ServiceBusReceiver` with virtual method overrides. (b) **KeyVaultSecretProvider** — `KeyVaultSecretProviderTests` with 5 tests: GetSecretAsync returns value, GetSecretAsync propagates RequestFailedException for missing secret, SetSecretAsync stores value, DeleteSecretAsync removes secret, multiple secrets return correct values. Mock `SecretClient` with virtual method overrides + `SecretModelFactory`. (c) **SqlAnswerTraceWriter** — `SqlAnswerTraceWriterTests` with 5 tests: all fields persisted (including JSON chunk IDs), multiple traces, escalation recommended flag, empty chunk lists as JSON arrays, CreatedAt timestamp range check. (d) `AdoSyncJobProcessorIntegrationTests` naming cosmetic — not changed (accurate description: "ADO connector wired into SyncJobProcessor").
 
 ## Open Risks / Watch Items
 - [ ] R-001: Connector API limits and webhook reliability variability across providers.
