@@ -18,6 +18,7 @@ public sealed class EscalationDraftService : IEscalationDraftService
     private readonly ILogger<EscalationDraftService> _logger;
     private readonly IEnumerable<IEscalationTargetConnector> _targetConnectors;
     private readonly ISecretProvider _secretProvider;
+    private readonly ITeamPlaybookService _playbookService;
 
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
@@ -30,7 +31,8 @@ public sealed class EscalationDraftService : IEscalationDraftService
         EscalationSettings escalationSettings,
         ILogger<EscalationDraftService> logger,
         IEnumerable<IEscalationTargetConnector> targetConnectors,
-        ISecretProvider secretProvider)
+        ISecretProvider secretProvider,
+        ITeamPlaybookService playbookService)
     {
         _db = db;
         _auditWriter = auditWriter;
@@ -38,6 +40,7 @@ public sealed class EscalationDraftService : IEscalationDraftService
         _logger = logger;
         _targetConnectors = targetConnectors;
         _secretProvider = secretProvider;
+        _playbookService = playbookService;
     }
 
     public async Task<EscalationDraftResponse> CreateDraftAsync(
@@ -87,6 +90,27 @@ public sealed class EscalationDraftService : IEscalationDraftService
         _db.EscalationDrafts.Add(entity);
         await _db.SaveChangesAsync(ct);
 
+        // Validate against team playbook (P2-002).
+        var playbookValidation = await _playbookService.ValidateDraftAsync(tenantId, targetTeam, request, ct);
+
+        if (!playbookValidation.IsValid)
+        {
+            _logger.LogWarning(
+                "Escalation draft has playbook violations. DraftId={DraftId}, TeamName={TeamName}, MissingFields={MissingFields}, PolicyViolation={PolicyViolation}",
+                entity.Id, targetTeam,
+                string.Join(", ", playbookValidation.MissingRequiredFields),
+                playbookValidation.PolicyViolation);
+
+            await _auditWriter.WriteAsync(new AuditEvent(
+                EventId: entity.Id.ToString(),
+                EventType: AuditEventTypes.PlaybookValidationFailed,
+                TenantId: tenantId,
+                ActorId: userId,
+                CorrelationId: correlationId,
+                Timestamp: now,
+                Detail: $"Playbook validation failed for team {targetTeam}. Missing: [{string.Join(", ", playbookValidation.MissingRequiredFields)}]. Policy: {playbookValidation.PolicyViolation ?? "none"}"), ct);
+        }
+
         _logger.LogInformation(
             "Escalation draft created. DraftId={DraftId}, SessionId={SessionId}, TargetTeam={TargetTeam}, Severity={Severity}, TenantId={TenantId}",
             entity.Id, entity.SessionId, entity.TargetTeam, entity.Severity, tenantId);
@@ -100,7 +124,7 @@ public sealed class EscalationDraftService : IEscalationDraftService
             Timestamp: now,
             Detail: $"Escalation draft created. DraftId={entity.Id}, SessionId={entity.SessionId}, TargetTeam={entity.TargetTeam}, Severity={entity.Severity}"), ct);
 
-        return MapDraft(entity);
+        return MapDraft(entity, playbookValidation);
     }
 
     public async Task<EscalationDraftResponse?> GetDraftAsync(
@@ -129,7 +153,7 @@ public sealed class EscalationDraftService : IEscalationDraftService
         return new EscalationDraftListResponse
         {
             SessionId = sessionId,
-            Drafts = drafts.Select(MapDraft).ToList(),
+            Drafts = drafts.Select(d => MapDraft(d)).ToList(),
             TotalCount = drafts.Count,
         };
     }
@@ -452,7 +476,7 @@ public sealed class EscalationDraftService : IEscalationDraftService
         return sb.ToString();
     }
 
-    private EscalationDraftResponse MapDraft(EscalationDraftEntity entity) => new()
+    private EscalationDraftResponse MapDraft(EscalationDraftEntity entity, PlaybookValidationResult? playbookValidation = null) => new()
     {
         DraftId = entity.Id,
         SessionId = entity.SessionId,
@@ -474,6 +498,7 @@ public sealed class EscalationDraftService : IEscalationDraftService
         ExternalStatus = entity.ExternalStatus,
         ExternalErrorDetail = entity.ExternalErrorDetail,
         TargetConnectorType = entity.TargetConnectorType?.ToString(),
+        PlaybookValidation = playbookValidation,
     };
 
     private static IReadOnlyList<CitationDto> DeserializeCitations(string json)

@@ -23,9 +23,12 @@ public class EscalationDraftServiceTests : IDisposable
 
         SeedData();
 
+        var playbookService = new TeamPlaybookService(
+            _db, _auditWriter, NullLogger<TeamPlaybookService>.Instance);
+
         _service = new EscalationDraftService(
             _db, _auditWriter, _settings, NullLogger<EscalationDraftService>.Instance,
-            [], new StubSecretProvider());
+            [], new StubSecretProvider(), playbookService);
     }
 
     public void Dispose() => _db.Dispose();
@@ -380,9 +383,11 @@ public class EscalationDraftServiceTests : IDisposable
         var connectors = connector is not null
             ? new IEscalationTargetConnector[] { connector }
             : Array.Empty<IEscalationTargetConnector>();
+        var playbookService = new TeamPlaybookService(
+            _db, _auditWriter, NullLogger<TeamPlaybookService>.Instance);
         return new EscalationDraftService(
             _db, _auditWriter, _settings, NullLogger<EscalationDraftService>.Instance,
-            connectors, new StubSecretProvider());
+            connectors, new StubSecretProvider(), playbookService);
     }
 
     [Fact]

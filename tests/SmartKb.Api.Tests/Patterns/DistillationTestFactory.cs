@@ -63,6 +63,7 @@ internal sealed class DistillationTestFactory : WebApplicationFactory<Program>, 
             services.AddSingleton(new EscalationSettings());
             services.AddSingleton(new DistillationSettings());
             services.AddSingleton<ISecretProvider>(new InMemorySecretProvider());
+            services.AddScoped<ITeamPlaybookService, TeamPlaybookService>();
             services.AddScoped<IEscalationDraftService, EscalationDraftService>();
             services.AddScoped<IFeedbackService, FeedbackService>();
             services.AddScoped<IOutcomeService, OutcomeService>();

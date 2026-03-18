@@ -63,6 +63,12 @@ public static class AuditEventTypes
     public const string DataSubjectDeletionCompleted = "privacy.deletion_completed";
     public const string DataSubjectDeletionFailed = "privacy.deletion_failed";
 
+    // Team playbook events (P2-002).
+    public const string PlaybookCreated = "playbook.created";
+    public const string PlaybookUpdated = "playbook.updated";
+    public const string PlaybookDeleted = "playbook.deleted";
+    public const string PlaybookValidationFailed = "playbook.validation_failed";
+
     // Webhook events.
     public const string WebhookReceived = "webhook.received";
     public const string WebhookSignatureFailed = "webhook.signature_failed";

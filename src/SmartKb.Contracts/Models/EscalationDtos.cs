@@ -60,6 +60,8 @@ public sealed record EscalationDraftResponse
     public string? ExternalStatus { get; init; }
     public string? ExternalErrorDetail { get; init; }
     public string? TargetConnectorType { get; init; }
+    /// <summary>Playbook validation result for the target team (P2-002). Null if no playbook exists.</summary>
+    public PlaybookValidationResult? PlaybookValidation { get; init; }
 }
 
 /// <summary>

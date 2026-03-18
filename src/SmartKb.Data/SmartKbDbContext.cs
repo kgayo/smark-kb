@@ -28,6 +28,7 @@ public class SmartKbDbContext : DbContext
     public DbSet<RoutingRecommendationEntity> RoutingRecommendations => Set<RoutingRecommendationEntity>();
     public DbSet<PiiPolicyEntity> PiiPolicies => Set<PiiPolicyEntity>();
     public DbSet<DataSubjectDeletionRequestEntity> DataSubjectDeletionRequests => Set<DataSubjectDeletionRequestEntity>();
+    public DbSet<TeamPlaybookEntity> TeamPlaybooks => Set<TeamPlaybookEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -54,6 +55,7 @@ public class SmartKbDbContext : DbContext
         ConfigureRoutingRecommendation(modelBuilder);
         ConfigurePiiPolicy(modelBuilder);
         ConfigureDataSubjectDeletionRequest(modelBuilder);
+        ConfigureTeamPlaybook(modelBuilder);
     }
 
     private static void ConfigureTenant(ModelBuilder modelBuilder)
@@ -473,6 +475,28 @@ public class SmartKbDbContext : DbContext
             e.HasIndex(d => new { d.TenantId, d.SubjectId });
             e.HasIndex(d => new { d.TenantId, d.Status });
             e.HasOne(d => d.Tenant).WithMany().HasForeignKey(d => d.TenantId);
+        });
+    }
+
+    private static void ConfigureTeamPlaybook(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<TeamPlaybookEntity>(e =>
+        {
+            e.ToTable("TeamPlaybooks");
+            e.HasKey(p => p.Id);
+            e.Property(p => p.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(p => p.TeamName).HasMaxLength(256).IsRequired();
+            e.Property(p => p.Description).HasMaxLength(1024).IsRequired();
+            e.Property(p => p.RequiredFieldsJson).IsRequired();
+            e.Property(p => p.ChecklistJson).IsRequired();
+            e.Property(p => p.ContactChannel).HasMaxLength(512);
+            e.Property(p => p.MinSeverity).HasMaxLength(16);
+            e.Property(p => p.AutoRouteSeverity).HasMaxLength(16);
+            e.Property(p => p.FallbackTeam).HasMaxLength(256);
+            e.HasIndex(p => p.TenantId);
+            e.HasIndex(p => new { p.TenantId, p.TeamName }).IsUnique().HasFilter("[DeletedAt] IS NULL");
+            e.HasQueryFilter(p => p.DeletedAt == null);
+            e.HasOne(p => p.Tenant).WithMany().HasForeignKey(p => p.TenantId);
         });
     }
 }

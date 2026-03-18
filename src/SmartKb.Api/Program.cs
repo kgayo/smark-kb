@@ -1300,6 +1300,91 @@ app.MapPost("/api/admin/routing/recommendations/{recommendationId:guid}/dismiss"
         : Results.NotFound(ApiResponse<object>.Failure("Recommendation not found or not pending.", tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
+// ──── Team Playbooks (P2-002) ────
+
+app.MapGet("/api/admin/playbooks", async (
+    ITenantContextAccessor tenantAccessor,
+    ITeamPlaybookService playbookService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await playbookService.GetPlaybooksAsync(tenant.TenantId);
+    return Results.Ok(ApiResponse<TeamPlaybookListResponse>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapGet("/api/admin/playbooks/{playbookId:guid}", async (
+    Guid playbookId,
+    ITenantContextAccessor tenantAccessor,
+    ITeamPlaybookService playbookService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await playbookService.GetPlaybookAsync(tenant.TenantId, playbookId);
+    return result is null
+        ? Results.NotFound(ApiResponse<TeamPlaybookDto>.Failure("Playbook not found.", tenant.CorrelationId))
+        : Results.Ok(ApiResponse<TeamPlaybookDto>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapGet("/api/admin/playbooks/team/{teamName}", async (
+    string teamName,
+    ITenantContextAccessor tenantAccessor,
+    ITeamPlaybookService playbookService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await playbookService.GetPlaybookByTeamAsync(tenant.TenantId, teamName);
+    return result is null
+        ? Results.NotFound(ApiResponse<TeamPlaybookDto>.Failure("Playbook not found for team.", tenant.CorrelationId))
+        : Results.Ok(ApiResponse<TeamPlaybookDto>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapPost("/api/admin/playbooks", async (
+    CreateTeamPlaybookRequest request,
+    ITenantContextAccessor tenantAccessor,
+    ITeamPlaybookService playbookService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await playbookService.CreatePlaybookAsync(
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, request);
+    return Results.Created($"/api/admin/playbooks/{result.Id}",
+        ApiResponse<TeamPlaybookDto>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapPut("/api/admin/playbooks/{playbookId:guid}", async (
+    Guid playbookId,
+    UpdateTeamPlaybookRequest request,
+    ITenantContextAccessor tenantAccessor,
+    ITeamPlaybookService playbookService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await playbookService.UpdatePlaybookAsync(
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, playbookId, request);
+    return result is null
+        ? Results.NotFound(ApiResponse<TeamPlaybookDto>.Failure("Playbook not found.", tenant.CorrelationId))
+        : Results.Ok(ApiResponse<TeamPlaybookDto>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapDelete("/api/admin/playbooks/{playbookId:guid}", async (
+    Guid playbookId,
+    ITenantContextAccessor tenantAccessor,
+    ITeamPlaybookService playbookService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var deleted = await playbookService.DeletePlaybookAsync(
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, playbookId);
+    return deleted
+        ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
+        : Results.NotFound(ApiResponse<object>.Failure("Playbook not found.", tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapPost("/api/admin/playbooks/validate", async (
+    PlaybookValidateRequest request,
+    ITenantContextAccessor tenantAccessor,
+    ITeamPlaybookService playbookService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await playbookService.ValidateDraftAsync(
+        tenant.TenantId, request.TargetTeam, request.Draft);
+    return Results.Ok(ApiResponse<PlaybookValidationResult>.Success(result, tenant.CorrelationId));
+}).RequirePermission("chat:query");
+
 // ──── Privacy & Compliance Endpoints (P2-001) ────
 
 app.MapGet("/api/admin/privacy/pii-policy", async (

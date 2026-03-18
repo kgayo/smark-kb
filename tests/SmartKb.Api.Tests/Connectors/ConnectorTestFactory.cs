@@ -66,6 +66,7 @@ public sealed class ConnectorTestFactory : WebApplicationFactory<Program>, IAsyn
             services.AddSingleton(new SessionSettings());
             services.AddSingleton(new EscalationSettings());
             services.AddSingleton<ISecretProvider>(new InMemorySecretProvider());
+            services.AddScoped<ITeamPlaybookService, TeamPlaybookService>();
             services.AddScoped<IEscalationDraftService, EscalationDraftService>();
             services.AddScoped<IFeedbackService, FeedbackService>();
             services.AddScoped<IOutcomeService, OutcomeService>();

@@ -20,6 +20,7 @@ public static class DataServiceExtensions
         services.AddScoped<IAuditEventQueryService, AuditEventQueryService>();
         services.AddScoped<IAnswerTraceWriter, SqlAnswerTraceWriter>();
         services.AddScoped<ISessionService, SessionService>();
+        services.AddScoped<ITeamPlaybookService, TeamPlaybookService>();
         services.AddScoped<IEscalationDraftService, EscalationDraftService>();
         services.AddScoped<IFeedbackService, FeedbackService>();
         services.AddScoped<IOutcomeService, OutcomeService>();
