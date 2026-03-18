@@ -61,6 +61,24 @@ public sealed record ChatResponse
 
     /// <summary>Number of evidence chunks that had PII redacted before model context assembly (P0-014A).</summary>
     public int PiiRedactedCount { get; init; }
+
+    /// <summary>Issue category from pre-retrieval classification (P3-001, FR-TRIAGE-001).</summary>
+    public string? IssueCategory { get; init; }
+
+    /// <summary>Product area from pre-retrieval classification (P3-001, FR-TRIAGE-001).</summary>
+    public string? ClassifiedProductArea { get; init; }
+
+    /// <summary>Severity estimate from pre-retrieval classification (P3-001, FR-TRIAGE-001).</summary>
+    public string? SeverityGuess { get; init; }
+
+    /// <summary>Classification confidence score (0.0–1.0) from pre-retrieval step (P3-001).</summary>
+    public float ClassificationConfidence { get; init; }
+
+    /// <summary>Suggestions for missing information that would improve answer quality (P3-001, FR-TRIAGE-002).</summary>
+    public IReadOnlyList<string> MissingInfoSuggestions { get; init; } = [];
+
+    /// <summary>Escalation likelihood from classification (0.0–1.0) (P3-001).</summary>
+    public float EscalationLikelihood { get; init; }
 }
 
 /// <summary>
@@ -144,4 +162,50 @@ internal sealed record OpenAiEscalationOutput
 
     [JsonPropertyName("handoff_note")]
     public string HandoffNote { get; init; } = string.Empty;
+}
+
+/// <summary>
+/// Result of pre-retrieval query classification (P3-001, FR-TRIAGE-001, FR-TRIAGE-002).
+/// Used to bias retrieval filters and populate triage metadata in ChatResponse.
+/// </summary>
+public sealed record ClassificationResult
+{
+    /// <summary>Primary issue category (e.g., Authentication, Billing, Integration, Performance).</summary>
+    [JsonPropertyName("issue_category")]
+    public string IssueCategory { get; init; } = string.Empty;
+
+    /// <summary>Product/module area (e.g., SSO, Payment, API, Dashboard).</summary>
+    [JsonPropertyName("product_area")]
+    public string ProductArea { get; init; } = string.Empty;
+
+    /// <summary>Estimated severity: P1 (critical), P2 (significant), P3 (minor), P4 (cosmetic), Unknown.</summary>
+    [JsonPropertyName("severity_hint")]
+    public string SeverityHint { get; init; } = "Unknown";
+
+    /// <summary>Whether customer-specific context is needed for accurate diagnosis.</summary>
+    [JsonPropertyName("needs_customer_lookup")]
+    public bool NeedsCustomerLookup { get; init; }
+
+    /// <summary>Suggestions for missing information that would improve answer confidence (FR-TRIAGE-002).</summary>
+    [JsonPropertyName("missing_info_suggestions")]
+    public List<string> MissingInfoSuggestions { get; init; } = [];
+
+    /// <summary>Confidence in this classification (0.0–1.0).</summary>
+    [JsonPropertyName("classification_confidence")]
+    public float ClassificationConfidence { get; init; }
+
+    /// <summary>Escalation likelihood score (0.0–1.0).</summary>
+    [JsonPropertyName("escalation_likelihood")]
+    public float EscalationLikelihood { get; init; }
+
+    /// <summary>Suggested source type preferences for retrieval (e.g., "ticket", "wiki_page").</summary>
+    [JsonPropertyName("source_type_preference")]
+    public List<string> SourceTypePreference { get; init; } = [];
+
+    /// <summary>Suggested time horizon in days for retrieval filtering.</summary>
+    [JsonPropertyName("time_horizon_days")]
+    public int? TimeHorizonDays { get; init; }
+
+    /// <summary>Returns a default/empty classification for fallback scenarios.</summary>
+    public static ClassificationResult Empty => new();
 }

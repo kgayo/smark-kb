@@ -175,7 +175,7 @@ public class GoldDatasetLoaderTests
         }
 
         var cases = await GoldDatasetLoader.LoadFromFileAsync(path);
-        Assert.True(cases.Count >= 30, $"Expected at least 30 cases, got {cases.Count}");
+        Assert.True(cases.Count >= 50, $"Expected at least 50 cases, got {cases.Count}");
 
         var duplicates = GoldDatasetLoader.FindDuplicateIds(cases);
         Assert.Empty(duplicates);

@@ -44,6 +44,18 @@ public sealed class ChatOrchestrationSettings
     /// <summary>System prompt template version for tracking.</summary>
     public string SystemPromptVersion { get; set; } = "1.0";
 
+    /// <summary>Whether pre-retrieval query classification is enabled (P3-001).</summary>
+    public bool EnableQueryClassification { get; set; } = true;
+
+    /// <summary>Model to use for classification (lighter/faster than generation model). D-014 resolved: gpt-4o-mini.</summary>
+    public string ClassificationModel { get; set; } = "gpt-4o-mini";
+
+    /// <summary>Minimum classification confidence to apply product area filter to retrieval.</summary>
+    public float ClassificationFilterConfidenceThreshold { get; set; } = 0.5f;
+
+    /// <summary>Maximum time in milliseconds to wait for classification before falling back to unclassified retrieval.</summary>
+    public int ClassificationTimeoutMs { get; set; } = 3000;
+
     public string GetConfidenceLabel(float confidence)
     {
         if (confidence >= HighConfidenceThreshold) return "High";

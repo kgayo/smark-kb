@@ -1,0 +1,89 @@
+name: Eval — Nightly Smoke
+
+on:
+  schedule:
+    # Run nightly at 02:00 UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      smoke_count:
+        description: 'Number of cases for smoke run'
+        required: false
+        default: '30'
+        type: string
+      api_url:
+        description: 'API base URL (staging)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  checks: write
+  actions: read
+
+env:
+  DATASET_PATH: eval/gold-dataset/baseline.jsonl
+  BASELINE_PATH: eval/gold-dataset/eval-baseline.json
+  OUTPUT_PATH: eval/eval-report-nightly.json
+
+jobs:
+  eval-smoke:
+    name: Nightly Smoke Evaluation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Build eval CLI
+        run: dotnet build src/SmartKb.Eval.Cli/SmartKb.Eval.Cli.csproj --configuration Release --no-restore
+
+      - name: Determine API URL
+        id: config
+        run: |
+          URL="${{ inputs.api_url || '' }}"
+          if [ -z "$URL" ]; then
+            URL="${{ secrets.EVAL_API_BASE_URL }}"
+          fi
+          echo "api_url=$URL" >> "$GITHUB_OUTPUT"
+          echo "has_api=$([ -n "$URL" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - name: Run smoke eval (live)
+        if: steps.config.outputs.has_api == 'true'
+        id: eval-live
+        run: |
+          SMOKE_COUNT="${{ inputs.smoke_count || '30' }}"
+          dotnet run --project src/SmartKb.Eval.Cli/SmartKb.Eval.Cli.csproj --configuration Release -- \
+            --dataset "${{ env.DATASET_PATH }}" \
+            --baseline "${{ env.BASELINE_PATH }}" \
+            --output "${{ env.OUTPUT_PATH }}" \
+            --mode smoke \
+            --smoke-count "$SMOKE_COUNT" \
+            --api-url "${{ steps.config.outputs.api_url }}" \
+            --api-token "${{ secrets.EVAL_API_TOKEN }}"
+        env:
+          GITHUB_STEP_SUMMARY: ${{ github.step_summary }}
+
+      - name: Run smoke eval (offline — dataset validation only)
+        if: steps.config.outputs.has_api != 'true'
+        id: eval-offline
+        run: |
+          SMOKE_COUNT="${{ inputs.smoke_count || '30' }}"
+          dotnet run --project src/SmartKb.Eval.Cli/SmartKb.Eval.Cli.csproj --configuration Release -- \
+            --dataset "${{ env.DATASET_PATH }}" \
+            --baseline "${{ env.BASELINE_PATH }}" \
+            --output "${{ env.OUTPUT_PATH }}" \
+            --mode smoke \
+            --smoke-count "$SMOKE_COUNT"
+        env:
+          GITHUB_STEP_SUMMARY: ${{ github.step_summary }}
+
+      - name: Upload eval report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-report-nightly-${{ github.run_number }}
+          path: ${{ env.OUTPUT_PATH }}
+          if-no-files-found: ignore

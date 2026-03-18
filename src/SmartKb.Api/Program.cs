@@ -220,6 +220,7 @@ builder.Services.AddSingleton<IPiiRedactionService, PiiRedactionService>();
 if (!string.IsNullOrEmpty(openAiSettings.ApiKey) && searchSettings.IsConfigured)
 {
     builder.Services.AddSingleton<IEmbeddingService, OpenAiEmbeddingService>();
+    builder.Services.AddSingleton<IQueryClassificationService, OpenAiQueryClassificationService>();
     builder.Services.AddScoped<IChatOrchestrator, SmartKb.Contracts.Services.ChatOrchestrator>();
 }
 

@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-18 (Asia/Manila) — iteration 65 (T-007)
-Status: Active backlog (P0-001 through P0-022 + P1-001 through P1-012 + P2-001 through P2-005 complete; T-002 + T-003 + T-005 + T-006 + T-007 + T-008 complete; 0 bugs blocking, 0 tech-debt blocking; Phase 1 MVP complete, Phase 2 in progress)
+Last updated: 2026-03-18 (Asia/Manila) — iteration 70 (P3-006 scheduled eval CI workflows)
+Status: Active backlog (Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 in progress: P3-001, P3-006 complete; Tests complete: T-001–T-008; ~1997 tests passing (1673 backend + 253 frontend + 98 IaC = ~2024 total); 0 bugs blocking, 0 tech-debt blocking)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -275,7 +275,7 @@ Status: Active backlog (P0-001 through P0-022 + P1-001 through P1-012 + P2-001 t
   - Design decision: **D-009**: Azure Storage backend with blob lease locking (implemented).
   - Completed: **Terraform azurerm backend** with partial configuration and Azure AD auth — `backend.tf` configures `backend "azurerm"` with `use_azuread_auth = true`; environment-specific backend config files (`backend.dev.hcl`, `backend.staging.hcl`, `backend.prod.hcl`) each point to `stsmartkbtfstate` storage account with per-environment state file keys (`smartkb-{env}.tfstate`). **Bootstrap script** — `infra/scripts/bootstrap-tfstate.sh` provisions the state storage infrastructure (resource group `rg-smartkb-tfstate`, storage account `stsmartkbtfstate` with TLS 1.2, blob versioning, 14-day soft-delete, private access); idempotent and parameterized (`--location`). **ARM parity** — `infra/arm/tfstate-backend.json` standalone ARM template mirrors bootstrap resources (storage account, blob services with versioning + delete retention, container). **Workflow updates** — `drift-detection.yml` now passes `-backend-config=backend.${ENV}.hcl` during `terraform init`; `infra-validate.yml` validates `tfstate-backend.json` JSON syntax and ARM structure. **Tests** — 20 new tests in `test_check_parity.py`: 10 tfstate backend ARM template tests (schema, keys, storage account TLS/public-access, blob versioning, container, soft-delete, outputs, apiVersion), 4 bootstrap script tests (exists, executable, shebang, strict mode), 3 backend config tests (all envs exist, reference tfstate container, consistent storage account name), 3 existing file content validations. All 48 parity tests + 1294 backend tests passing.
 
-## Phase 3+ (V2+) Priority Queue
+## Phase 2 (V1) Complete — P2 Items (moved from Phase 3)
 
 - [x] P2-001: Stricter privacy tooling (PII policy controls, redaction audit, retention, right-to-delete propagation).
   - Specs: jtbd-10
@@ -301,6 +301,298 @@ Status: Active backlog (P0-001 through P0-022 + P1-001 through P1-012 + P2-001 t
   - Specs: jtbd-10
   - Design decisions: **D-015**: Retention execution is made measurable through three mechanisms: (1) **Execution log persistence** — every cleanup run persists a `RetentionExecutionLogEntity` recording tenant, entity type, deleted count, cutoff date, execution timestamp, duration in ms, and actor. Logs are queryable via GET `/api/admin/privacy/retention/history` with optional `entityType` filter and pagination (`skip`/`take`). (2) **Compliance verification** — GET `/api/admin/privacy/retention/compliance` generates a `RetentionComplianceReport` that checks each configured policy against its last execution timestamp. Policies are overdue if not executed within `ComplianceWindowDays` (default: 7, configurable via `RetentionSettings`). Report includes per-entity-type compliance entries with last execution details and overall compliant/non-compliant status. (3) **Dual retention windows** — `RetentionConfigEntity` gains optional `MetricRetentionDays` for aggregated-metric retention alongside the existing `RetentionDays` for detailed-log retention. Validation enforces `MetricRetentionDays >= RetentionDays`. New audit event type `privacy.retention_compliance_checked`. New OTel metrics: `retention_cleanup_duration_ms` (histogram), `retention_compliance_checks_total` (counter), `retention_overdue_policies_total` (counter). Client-side date ordering in execution history for SQLite compatibility.
   - Completed: **1 new entity** — `RetentionExecutionLogEntity` (execution log with tenant, entity type, deleted count, cutoff, timestamp, duration, actor). **1 new column** — `MetricRetentionDays` (nullable int) on `RetentionConfigEntity`. **Migration** `20260318140000_AddRetentionExecutionLog` creates RetentionExecutionLogs table with indexes on (TenantId), (TenantId, ExecutedAt), (TenantId, EntityType) and adds MetricRetentionDays column. **RetentionSettings** — configurable ComplianceWindowDays (7) and MaxExecutionLogEntries (1000). Enhanced **RetentionCleanupService** — execution log persistence per cleanup run, `GetExecutionHistoryAsync` with filtering/pagination, `GetComplianceReportAsync` with overdue detection. **1 new audit event type** — `privacy.retention_compliance_checked`. **3 new OTel metrics** — retention cleanup duration, compliance checks total, overdue policies total. **2 new admin API endpoints** — GET `/api/admin/privacy/retention/history` (paginated execution log with entityType filter), GET `/api/admin/privacy/retention/compliance` (compliance report with per-policy overdue status). Both require `privacy:manage` RBAC. **Tests** — 15 new RetentionCleanupService unit tests (execution log persistence, zero-deleted logging, history retrieval, entityType filtering, pagination, ordering, tenant isolation, compliance report — empty/compliant/overdue/audit/metric-days/mixed), 11 new API integration tests (history empty/populated/filtered/RBAC, compliance empty/compliant/overdue/RBAC, metric retention days CRUD/validation, tenant isolation) = 26 new tests. All 1541 tests passing (717 contracts + 367 data + 363 API + 26 ingestion + 68 eval).
+
+## Phase 3 (V2+) Priority Queue — Gap Audit 2026-03-18
+
+Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) and the PRD (FR-*/NFR-* requirements) against the implemented codebase. Ordered by priority (impact × feasibility).
+
+### P3 Core Intelligence Gaps
+
+- [x] P3-001: Implement pre-retrieval issue classification step (FR-TRIAGE-001, FR-TRIAGE-002).
+  - Specs: jtbd-04 (Stage 1), PRD §50 "Issue Understanding"
+  - Dependencies: P0-013 (complete)
+  - Completed: `IQueryClassificationService` interface + `OpenAiQueryClassificationService` implementation using gpt-4o-mini with OpenAI structured output (`support_classification` json_schema). Classification schema: `issue_category`, `product_area`, `severity_hint` (P1-P4/Unknown), `needs_customer_lookup`, `missing_info_suggestions` (FR-TRIAGE-002), `classification_confidence` (0-1), `escalation_likelihood` (0-1), `source_type_preference`, `time_horizon_days`. `ChatOrchestrator` Step 0: classify query before embedding+retrieval with configurable timeout (default 3s) and graceful fallback on failure/timeout. `EnrichFiltersFromClassification` applies classification-derived `ProductAreas`, `SourceTypes`, `TimeHorizonDays` to `RetrievalFilter` only when confidence >= threshold (default 0.5) and user hasn't set explicit filters. `ChatResponse` extended with 6 triage metadata fields: `IssueCategory`, `ClassifiedProductArea`, `SeverityGuess`, `ClassificationConfidence`, `MissingInfoSuggestions`, `EscalationLikelihood`. FR-TRIAGE-002: low-confidence classifications append "Ask the customer: ..." suggestions to `NextSteps`. `ChatOrchestrationSettings` extended with `EnableQueryClassification`, `ClassificationModel`, `ClassificationFilterConfidenceThreshold`, `ClassificationTimeoutMs`. D-014 resolved: gpt-4o-mini model, full schema with 9 fields, confidence-gated filter application. Classification is non-fatal: timeout/error falls back to unclassified retrieval. Activity tracing tags for classification metadata. Registered as singleton in API DI (conditional on OpenAI key). 24 new tests (4 ClassificationResult DTO + 9 EnrichFiltersFromClassification + 4 BuildClassificationMessages + 2 ClassificationSettings + 3 ClassificationSchema + 2 ChatResponse triage metadata); all 1651 backend tests passing.
+
+- [ ] P3-002: Implement session context summarization for long conversations.
+  - Specs: jtbd-04, jtbd-05
+  - Gap: D-010 resolved token budget with sliding window (drop oldest messages) but deferred summarization to Phase 2+. Long multi-turn sessions lose early context that may be critical.
+  - Scope: Before the sliding window drops messages, summarize the about-to-be-dropped messages into a compact context block. Inject summary as a system message at session history start. Use a fast model call (gpt-4o-mini or equivalent) for summarization to control cost.
+  - Dependencies: P0-013A (complete), P2-003 (cost controls)
+  - Priority: MEDIUM — improves multi-turn quality for complex troubleshooting sessions.
+
+- [ ] P3-003: Implement full text extraction for binary documents (PDF, DOCX, PPTX, XLSX).
+  - Specs: jtbd-01 (SharePoint), jtbd-02
+  - Gap: SharePoint connector ingests file metadata but `SharePointConnectorClient.cs:356` notes "Full text extraction happens in P0-010" — however, P0-010 only handles text content (markdown/HTML stripping). Binary files (PDF, DOCX, PPTX, XLSX) are stored as raw blobs but their text is never extracted for chunking/indexing.
+  - Scope: Add `ITextExtractionService` with implementations for PDF (PdfSharp or Azure AI Document Intelligence), DOCX (Open XML SDK), PPTX, XLSX. Wire into normalization pipeline for binary content types. Fall back to metadata-only indexing on extraction failure.
+  - Dependencies: P0-010 (complete), P0-010A (blob storage complete)
+  - Priority: HIGH — SharePoint document libraries contain primarily binary files; without extraction, a major portion of evidence is invisible to retrieval.
+
+### P3 Search Quality and Tuning
+
+- [ ] P3-004: Add Azure AI Search synonym maps for domain vocabulary.
+  - Specs: jtbd-03 Phase 2
+  - Gap: No synonym maps exist. Support teams use varied terminology (e.g., "crash" vs "BSOD" vs "blue screen", "ticket" vs "case" vs "incident"). BM25 retrieval misses these without synonyms.
+  - Scope: Create `ISynonymMapService` with CRUD for per-tenant synonym rules. Register synonym maps on Evidence and Pattern indexes. Admin UI for synonym management. Seed with common support domain synonyms.
+  - Dependencies: P0-011 (complete)
+  - Priority: MEDIUM — improves recall for BM25 leg of hybrid search.
+
+- [ ] P3-005: Implement search schema versioning and rollback strategy (NFR-OPS-003).
+  - Specs: jtbd-03, PRD NFR-OPS-003
+  - Gap: No mechanism for rolling back Azure AI Search index schema changes. Current `CreateOrUpdate` is forward-only. A breaking schema change (field removal, type change) could require full reindex with no rollback path.
+  - Scope: Add `IndexSchemaVersion` tracking (SQL entity). Blue-green index strategy: create new index → reindex → swap alias → delete old. `IIndexMigrationService` with version comparison, migration execution, and rollback capability.
+  - Dependencies: P0-011 (complete)
+  - Priority: MEDIUM — safety net for production index changes.
+
+### P3 Eval and Observability
+
+- [x] P3-006: Add scheduled evaluation CI workflows (nightly smoke + weekly full).
+  - Specs: jtbd-06, AGENTS.md
+  - Dependencies: P0-021 (eval harness complete)
+  - Completed: `SmartKb.Eval.Cli` console project with `EvalCliRunner` (testable core logic), `HttpChatOrchestratorClient` (HTTP adapter for deployed API), `GitHubActionsFormatter` (annotations + job summary markdown). CLI supports `--mode smoke|full`, `--smoke-count`, `--api-url`, `--api-token`, `--baseline`, `--output`, `--update-baseline`. Two modes: live (calls deployed staging API via HTTP) and offline (dataset validation + baseline threshold check). Stratified smoke case selection via tag-based round-robin sampling. `.github/workflows/eval-nightly.yml` (cron 02:00 UTC daily, smoke subset of 30 cases, auto-detects API availability and falls back to offline mode). `.github/workflows/eval-weekly.yml` (cron 04:00 UTC Sunday, full dataset, creates GitHub issue on blocking regression, supports baseline update via workflow_dispatch). Both workflows: `dotnet build` → CLI run → upload artifact. Gold dataset expanded from 30 → 50 cases covering HubSpot, ClickUp, pattern governance, cost controls, GDPR/privacy, playbooks, contradiction detection, embedding cache, dead letter diagnostics, connector management, performance SLO escalation. GitHub Actions annotations for threshold violations (::error) and regressions (::warning/::error). Job summary markdown with metrics table, baseline comparison, violation list, failed cases. 22 new tests (13 EvalCliRunnerTests + 9 GitHubActionsFormatterTests); all 1673 backend tests passing.
+
+- [ ] P3-007: Implement eval regression alert notifications.
+  - Specs: jtbd-06
+  - Gap: Eval harness computes metrics and compares against baselines, but regression alerts are not surfaced to support lead/engineering beyond CI check status. No Slack/email/Teams notification.
+  - Scope: Add notification channel integration (webhook to Slack/Teams) on eval regression detection. Include metric name, current vs baseline, and delta.
+  - Dependencies: P3-006
+  - Priority: LOW — CI annotations may be sufficient initially.
+
+### P3 Frontend Admin Gaps
+
+- [ ] P3-008: Add admin UI pages for routing analytics, playbooks, cost controls, and privacy management.
+  - Specs: jtbd-05, jtbd-08, jtbd-10
+  - Gap: Backend APIs exist for routing analytics (P1-009: 10 endpoints), team playbooks (P2-002: 7 endpoints), cost optimization (P2-003: 6 endpoints), and privacy management (P2-001: 11 endpoints), but the frontend only has 4 pages: ChatPage, AdminPage (connectors), PatternGovernancePage, DiagnosticsPage. All Phase 2 admin features are API-only.
+  - Scope: Add React pages/tabs for: (a) Routing Analytics — metrics dashboard, rule CRUD, recommendation review. (b) Team Playbooks — CRUD, validation preview. (c) Cost Controls — budget settings, usage charts, cache stats. (d) Privacy Admin — PII policy config, retention policy config, deletion requests, compliance report.
+  - Dependencies: P1-009, P2-001, P2-002, P2-003 (all complete)
+  - Priority: MEDIUM — admin features are usable via API but not accessible to non-technical admins.
+
+### P3 Ingestion Hardening
+
+- [ ] P3-009: Implement credential rotation workflow and expiry monitoring.
+  - Specs: jtbd-07
+  - Gap: Key Vault secrets can be rotated externally, but no UI/workflow for triggering rotation, no monitoring for approaching secret expiry, and no alert when a connector's credential is about to expire.
+  - Scope: Add `ISecretRotationService` that checks Key Vault secret expiry dates. Surface expiry warnings in diagnostics dashboard. Optional: admin action to rotate secret (generate new, update Key Vault, test connection, deactivate old).
+  - Dependencies: P0-004 (secret architecture complete), P1-008 (diagnostics complete)
+  - Priority: LOW — manual Key Vault rotation works; automation is convenience.
+
+- [ ] P3-010: Add connector scope selection UI refinement (jtbd-07).
+  - Specs: jtbd-07
+  - Gap: Connector creation uses a JSON textarea for source config. PRD specifies scope selection per source (projects/sites/workspaces/pipelines) — a guided picker rather than raw JSON.
+  - Scope: Replace JSON textarea with structured forms per connector type: ADO (project multi-select, work item type filter, area path filter), SharePoint (site picker, drive multi-select, extension filter), HubSpot (object type checkboxes, pipeline select), ClickUp (workspace/space/folder/list picker).
+  - Dependencies: P0-019 (admin dashboard complete)
+  - Priority: LOW — raw JSON works for technical admins; guided UI improves onboarding.
+
+### P3 Spec Debt and Documentation
+
+- [ ] P3-011: Resolve remaining open spec clarifications.
+  - Gap: 8 open SPEC items remain unresolved:
+    - SPEC-003: Content-level dedup strategy — implementation exists (ContentHash in SyncJobProcessor) but spec not updated.
+    - SPEC-004: Enrichment version scheme — implementation exists (EnrichmentVersion int, ReprocessedAt timestamp) but spec not formalized.
+    - SPEC-007: jtbd-03 spec expansion — spec is 33 lines; all detail lives in PRD §50. Risk of divergence.
+    - SPEC-009: Numeric SLO thresholds — partially resolved by P0-021 (groundedness >= 0.80 etc.) but jtbd-06 spec not patched.
+    - SPEC-010: Routing rule precedence — no spec language for multi-rule resolution order.
+    - SPEC-011: Severity classification ownership — unclear whether LLM, enrichment, agent, or source ticket determines severity.
+    - SPEC-012: Trust state 3 vs 4 — resolved in code (4 states: Draft/Reviewed/Approved/Deprecated) but spec not patched.
+    - SPEC-013: Pattern usage/reuse metrics — PatternMaintenanceService checks answer trace citations but no formal metrics schema.
+    - SPEC-015: Default retention windows — implementation uses configurable per-entity policies but spec has no defaults.
+    - SPEC-016: Cross-tenant detection — beyond missing-tid check; no spec language.
+  - Scope: Patch each spec file with implementation decisions. Mark resolved in this plan.
+  - Priority: MEDIUM — reduces drift between specs and code.
+
+- [ ] P3-012: Define and document pattern usage/reuse metrics schema (SPEC-013).
+  - Specs: jtbd-09
+  - Gap: `PatternMaintenanceService` checks answer trace citations for usage detection but there is no formal metrics entity or API for pattern usage analytics (e.g., "Pattern X was cited in N answers over the last 30 days").
+  - Scope: Add `PatternUsageMetricEntity` tracking per-pattern citation counts by time window. Add `GET /api/admin/patterns/{id}/usage` endpoint. Surface in PatternGovernancePage detail view.
+  - Dependencies: P1-005 (distillation complete), P1-006 (governance complete)
+  - Priority: LOW — maintenance service covers the critical "unused detection" case.
+
+- [ ] P3-013: Add pattern version history table for field-level change tracking.
+  - Specs: jtbd-09 (Req 09-4: version history and deprecation/replacement links)
+  - Gap: `CasePatternEntity` has a `Version` int and `SupersedesPatternId` forward link, but no history table recording what changed between versions. Full audit trail of field-level changes across pattern versions is absent.
+  - Scope: Add `PatternVersionHistoryEntity` (pattern_id, version, changed_fields JSON, changed_by, changed_at, previous_values JSON). Populate on every update via `PatternGovernanceService`. Add `GET /api/patterns/{id}/history` endpoint.
+  - Dependencies: P1-006 (governance complete)
+  - Priority: LOW — current audit events capture who approved/deprecated, but not what changed in the pattern content.
+
+- [ ] P3-014: Add explicit `RootCause` field to case pattern schema.
+  - Specs: jtbd-09 (Req 09-1: extract root cause)
+  - Gap: Spec requires extracting "root cause" as a distinct field. Current `CasePatternEntity` has `ProblemStatement` but no dedicated `RootCause` field — root cause is subsumed into the problem statement or resolution steps.
+  - Scope: Add `RootCause` string field to `CasePatternEntity`, `PatternDetail` DTO, and distillation prompt. Migration to add column. Update pattern index schema.
+  - Dependencies: P1-005 (distillation complete)
+  - Priority: LOW — cosmetic schema improvement; root cause info is captured, just not in a named field.
+
+- [ ] P3-032: Add CD/deploy workflow for dev/staging/prod environments.
+  - Specs: jtbd-11, AGENTS.md
+  - Gap: CI validates Terraform/ARM and runs tests, but no GitHub Actions workflow deploys infrastructure (`terraform apply`) or applications (`az webapp deploy`). Deployments are entirely manual.
+  - Scope: Add `.github/workflows/deploy.yml` with environment-gated jobs: (a) `terraform plan` → manual approval → `terraform apply` for infra changes, (b) `dotnet publish` → `az webapp deploy` for API and Ingestion, (c) `npm run build` → deploy frontend to Static Web App or storage + CDN. Use GitHub Environments with protection rules (required reviewers, wait timer). Support dev (auto), staging (auto), prod (manual approval).
+  - Dependencies: P0-005A (IaC baseline complete), P3-036 (frontend hosting IaC)
+  - Priority: HIGH — without CD, every deployment is manual and error-prone.
+
+- [ ] P3-033: Remove dead `BaselineEnrichmentService` code.
+  - Specs: jtbd-02
+  - Gap: `BaselineEnrichmentService` in `SmartKb.Contracts.Services` still exists alongside `EnhancedEnrichmentService` which supersedes it. Both API and Ingestion DI register only `EnhancedEnrichmentService`. The baseline variant is dead code with its own test file still present.
+  - Scope: Delete `BaselineEnrichmentService.cs` and its tests. Verify no references remain.
+  - Dependencies: None
+  - Priority: LOW — dead code cleanup; no functional impact.
+
+- [ ] P3-034: Add automatic pattern indexing to Azure AI Search after distillation.
+  - Specs: jtbd-09, jtbd-03
+  - Gap: `AzureSearchPatternIndexingService` and `IPatternIndexingService` are registered in DI and fully implemented. `PatternDistillationService` creates `CasePatternEntity` records in SQL. However, no code path calls `IPatternIndexingService.IndexPatternsAsync` after distillation completes — newly distilled patterns are persisted in SQL but never pushed to the search index automatically.
+  - Scope: Wire `IPatternIndexingService.IndexPatternsAsync` call at the end of `PatternDistillationService.DistillAsync` (after quality gate passes). Also add indexing call to `PatternGovernanceService` on trust level transitions (Approved patterns should be indexed, Deprecated patterns should be removed from index).
+  - Dependencies: P1-005 (distillation complete), P1-006 (governance complete)
+  - Priority: MEDIUM — patterns are created and governed but invisible to the fused retrieval service until manually indexed.
+
+- [ ] P3-035: Add background worker for embedding cache eviction.
+  - Specs: jtbd-02 (P2-003 cost optimization)
+  - Gap: `EmbeddingCacheEntity` has an `ExpiresAt` column and reads filter expired entries, but no background job proactively deletes expired cache entries. Over time, the cache table will grow unbounded with stale rows.
+  - Scope: Add `EmbeddingCacheEvictionService` (BackgroundService) that periodically deletes rows where `ExpiresAt < DateTimeOffset.UtcNow`. Run every 6 hours. Log evicted count. Add OTel counter `embedding_cache_evictions_total`.
+  - Dependencies: P2-003 (cost optimization complete)
+  - Priority: LOW — read-time filtering prevents stale data from being used; background eviction is storage hygiene.
+
+- [ ] P3-036: Add IaC for frontend hosting (Azure Static Web Apps or Storage + CDN).
+  - Specs: jtbd-11
+  - Gap: The frontend is built in CI (`npm run build`) but no Azure resource exists for hosting it. Neither Terraform nor ARM define a Static Web App, Storage static website, or CDN endpoint for the React frontend.
+  - Scope: Add `azurerm_static_web_app` (or `azurerm_storage_account` with static website + `azurerm_cdn_endpoint`) to Terraform and corresponding ARM resource. Configure custom domain support. Wire into CD workflow (P3-032).
+  - Dependencies: P0-005A (IaC baseline complete)
+  - Priority: MEDIUM — frontend has no production hosting target; currently development-only.
+
+- [ ] P3-037: Fix ARM availability alert threshold default to match Terraform (99.5).
+  - Specs: jtbd-11
+  - Gap: Terraform `variables.tf` defaults `availability_threshold_percent` to `99.5` (float). ARM `main.json` defaults `availabilityThresholdPercent` to `99` (integer). Environment parameter files may override, but the template defaults diverge, which could cause inconsistent alert behavior on new environments.
+  - Scope: Update ARM `main.json` `availabilityThresholdPercent` default from `99` to `99.5`. Verify env parameter files are consistent.
+  - Dependencies: None
+  - Priority: LOW — cosmetic parity fix; env params likely override.
+
+- [ ] P3-038: Add multi-turn evaluation cases to gold dataset.
+  - Specs: jtbd-06
+  - Gap: `eval/gold-dataset/schema.json` supports `session_history` for multi-turn conversation evaluation, but none of the 30 baseline cases in `baseline.jsonl` use it. Multi-turn conversation quality — a critical UX path for complex troubleshooting — is completely unevaluated.
+  - Scope: Add 10-15 multi-turn eval cases covering: follow-up clarification, context accumulation across turns, session summary accuracy (when P3-002 ships), escalation after multi-turn failure, and topic switching within a session.
+  - Dependencies: P0-021 (eval harness complete)
+  - Priority: MEDIUM — multi-turn is the primary agent workflow; quality gaps here are invisible without eval coverage.
+
+- [ ] P3-015: Add IaC template version tracking and changelog.
+  - Specs: jtbd-11 (Req 11-5: track template versions and changelog notes for breaking infra changes)
+  - Gap: No `CHANGELOG.md` in `infra/`, no version metadata in Terraform or ARM templates, no convention for noting breaking infra changes.
+  - Scope: Add `infra/CHANGELOG.md` with version entries. Add `version` tag/variable to Terraform root module. Document convention for breaking vs. non-breaking infra changes.
+  - Dependencies: P0-005A (IaC baseline complete)
+  - Priority: LOW — operational hygiene; drift detection covers the critical safety net.
+
+- [ ] P3-016: Strengthen audit event immutability at database level.
+  - Specs: jtbd-10 (Req 10-7: immutable audit events)
+  - Gap: Audit event immutability is enforced by convention (no update/delete API endpoints) rather than database-level constraints. A code change or direct SQL access could mutate audit records.
+  - Scope: Options: (a) Add SQL trigger to prevent UPDATE/DELETE on AuditEvents table, (b) Use temporal tables for tamper-evident audit, or (c) Add append-only constraint via EF Core interceptor that throws on audit entity modifications.
+  - Dependencies: P0-020 (audit complete)
+  - Priority: LOW — convention-based immutability is acceptable for most compliance regimes; DB-level enforcement is defense-in-depth.
+
+- [ ] P3-017: Implement ticket-specific troubleshooting-structure chunking mode.
+  - Specs: jtbd-02 (Req 02-R3: chunk tickets by troubleshooting structure)
+  - Gap: Spec requires tickets to be chunked "by troubleshooting structure" (splitting on symptoms / root cause / resolution / verification boundaries). Current `TextChunkingService` uses a single generic chunker that splits all content uniformly by markdown headers and paragraphs. There is no content-type-aware chunking mode that understands standard ticket narrative structure.
+  - Scope: Add `TicketStructureChunker` that detects common ticket section patterns (e.g., "Steps to Reproduce", "Root Cause", "Resolution", "Workaround") and splits on those boundaries. Wire via `IChunkingService` with content-type dispatch (tickets vs. documents). Apply to SourceType.Ticket and SourceType.WorkItem.
+  - Dependencies: P0-010 (normalization complete)
+  - Priority: MEDIUM — improves chunk quality for ticket content, which is the primary evidence source for most support queries.
+
+### P3 Connector and Ingestion Completeness
+
+- [ ] P3-018: Implement scheduled sync execution from ScheduleCron field.
+  - Specs: jtbd-07 (REQ-07-5: schedule control)
+  - Gap: `ConnectorEntity.ScheduleCron` is stored in SQL and accepted in create/update requests, but no background worker reads or acts on it. The cron field is purely informational — connectors only sync via manual "Sync Now" or webhook-triggered incremental sync.
+  - Scope: Add `ScheduledSyncService` (BackgroundService) that periodically evaluates `ScheduleCron` for all enabled connectors and publishes `SyncJobMessage` when due. Use NCrontab for cron parsing. Track last scheduled sync time to avoid duplicate triggers. Respect `ConnectorStatus.Enabled` and webhook fallback state.
+  - Dependencies: P0-007 (ingestion orchestration complete)
+  - Priority: HIGH — without this, connectors with no webhook support (or during webhook outage recovery) have no automatic sync cadence.
+
+- [ ] P3-019: Implement OAuth authorization code flow for connectors.
+  - Specs: jtbd-07 (REQ-07-2: OAuth auth support)
+  - Gap: `SecretAuthType` enum includes `OAuth` but only PAT/token and service account auth flows are implemented. No OAuth redirect/callback handler exists. SharePoint uses client credentials (service account), not delegated OAuth.
+  - Scope: Add OAuth callback endpoint (`GET /api/admin/connectors/{id}/oauth/callback`). Implement authorization code flow: redirect admin to provider's OAuth consent page → receive auth code → exchange for tokens → store refresh token in Key Vault. Support token refresh on sync. Wire for providers that support OAuth (HubSpot, SharePoint delegated, potentially ClickUp).
+  - Dependencies: P0-004 (secret architecture), P0-006 (connector admin)
+  - Priority: MEDIUM — PAT/service account works but OAuth is more secure and standard for production connectors. Some HubSpot features require OAuth scopes beyond PAT capability.
+
+- [ ] P3-020: Add rate-limit alert surfacing in diagnostics.
+  - Specs: jtbd-07 (REQ-07-7: rate-limit alerts in health diagnostics)
+  - Gap: `Diagnostics.SourceRateLimitTotal` counter tracks HTTP 429 responses during ingestion, and the SLO endpoint surfaces some metrics, but there is no alert model, threshold configuration, or UI indicator when a connector is being rate-limited. Dead-letter and webhook diagnostics are comprehensive, but rate-limit visibility is metrics-only.
+  - Scope: Add rate-limit threshold to `WebhookSettings` or `SloSettings`. Surface rate-limit spike alerts in `DiagnosticsSummaryResponse`. Add rate-limit warning badge to connector detail view in frontend.
+  - Dependencies: P1-008 (diagnostics complete)
+  - Priority: LOW — operational convenience; rate-limit metrics exist in Application Insights for investigation.
+
+### P3 Eval Completeness
+
+- [ ] P3-021: Persist eval report history and implement eval API.
+  - Specs: jtbd-06 (REQ-06-4: trend reporting)
+  - Gap: `EvalReport` and `EvalBaseline` are in-memory models with no database entity. `BaselineComparator` compares against a single baseline with no persistence of historical runs. No API endpoint exists to retrieve past eval results. Support leads cannot view eval trends.
+  - Scope: Add `EvalReportEntity` (tenant, run type, timestamp, metrics JSON, baseline comparison JSON, threshold violations JSON). Add `IEvalReportService` with persistence and query. Add `GET /api/admin/eval/reports` and `GET /api/admin/eval/reports/{id}` endpoints. Wire `EvalRunner` to persist results after each run.
+  - Dependencies: P0-021 (eval harness complete), P3-006 (scheduled runs)
+  - Priority: MEDIUM — without persistence, trend reporting is impossible and AC-06-2 is only half-met.
+
+- [ ] P3-022: Implement gold dataset management workflow.
+  - Specs: jtbd-06 (REQ-06-3: maintain gold dataset)
+  - Gap: `GoldDatasetLoader` and `eval/gold-dataset/schema.json` exist with 30 seed cases in `baseline.jsonl`, but there is no in-app workflow to add, edit, review, or promote feedback-corrected answers into the gold dataset. Dataset maintenance requires direct JSONL file editing.
+  - Scope: Add `GET/POST/PUT/DELETE /api/admin/eval/gold-cases` endpoints for gold case CRUD. Add UI in diagnostics or eval admin page. Optional: add "Promote to gold dataset" action on feedback entries where agent provided a corrected answer.
+  - Dependencies: P0-021 (eval harness complete)
+  - Priority: LOW — file-based management works for engineering; in-app workflow improves support lead participation in quality improvement.
+
+- [ ] P3-023: Link eval deltas to improvement actions (eval-to-improvement traceability).
+  - Specs: jtbd-06 (AC-06-4: improvement actions traceable to measured deltas)
+  - Gap: `RoutingImprovementService` generates recommendations from outcome analytics, but there is no explicit link from an `EvalReport` delta to a concrete improvement action record. The traceability chain stops at routing-level recommendations.
+  - Scope: Add `SourceEvalReportId` field to `RoutingRecommendationEntity`. When `GenerateRecommendationsAsync` is called after an eval run, link the recommendation to the eval report that triggered it. Surface in recommendation detail view.
+  - Dependencies: P3-021 (eval persistence), P1-009 (routing recommendations)
+  - Priority: LOW — completes the feedback loop traceability story but not critical for operation.
+
+### P3 PRD Cross-Reference Gaps (discovered iteration 67)
+
+- [ ] P3-024: Add confidence "why" rationale to chat response contract (FR-CHAT-002 partial).
+  - Specs: jtbd-04, PRD §20 "Chat-based support copilot"
+  - Gap: PRD specifies a "Confidence indicator and 'why' rationale." The confidence label (High/Medium/Low/Insufficient) is implemented via `ConfidenceLabel` in `ChatResponse`, but no `ConfidenceRationale` string field explains *why* confidence is at that level (e.g., "3 high-relevance evidence chunks matched from recent sources" vs "only 1 low-score match found").
+  - Scope: Add `ConfidenceRationale` field to `ChatResponse`. Populate in `ChatOrchestrator` from retrieval metrics (chunk count, score distribution, recency, source diversity). Surface in `ChatThread` component below `ConfidenceBadge`.
+  - Dependencies: P0-016 (confidence scoring complete)
+  - Priority: MEDIUM — improves agent trust calibration; agents can better judge when to rely on vs. question the copilot.
+
+- [ ] P3-025: Implement Evidence Drawer Source Viewer drill-down (FR-CHAT-003 partial).
+  - Specs: jtbd-05, PRD §20 "Chat-based support copilot"
+  - Gap: PRD specifies clicking a cited item opens a "Source Viewer" with rendered markdown/wiki content, ticket details, document preview (read-only), and a copy-citation-link action. Current `EvidenceDrawer` shows snippet + source link + timestamp + access label, but clicking opens the external source URL directly. No in-app rendered view or copy-citation action.
+  - Scope: Add `SourceViewerPanel` component that renders evidence content inline (markdown for wiki pages, structured fields for tickets, raw text for documents). Add "Copy citation link" button. Wire from `EvidenceDrawer` click handler. Fetch full content from `RawContentSnapshot` via a new `GET /api/evidence/{chunkId}/content` endpoint.
+  - Dependencies: P0-017 (evidence drawer complete), P0-010A (blob storage complete)
+  - Priority: LOW — external source links are functional; in-app viewer is a UX polish improvement.
+
+- [ ] P3-026: Add routing tag mapping to field mapping editor (ADM-004 partial).
+  - Specs: jtbd-07, PRD §20 "Admin dashboard > Connector management"
+  - Gap: PRD specifies field mapping UI must support defining "routing tags (product/module mapping)" as part of transforms. Current `FieldMappingEditor` has source/target/transform/required columns but no routing-tag concept. Product area and module tags used for escalation routing (P1-009) are set by enrichment, not configurable in connector field mapping.
+  - Scope: Add `RoutingTags` column to `FieldMappingRule`. Allow admin to define source-field-to-routing-tag mappings (e.g., ADO area path → product_area tag). Apply during normalization before enrichment. Surface in `FieldMappingEditor` component.
+  - Dependencies: P0-012 (field mapping complete), P1-009 (routing analytics complete)
+  - Priority: LOW — enrichment-based tagging works; explicit mapping gives admins more control over routing accuracy.
+
+- [ ] P3-027: Implement connector preview with retrieval test and missing-field highlights (ADM-006 partial).
+  - Specs: jtbd-07, PRD §20 "Admin dashboard > Connector management"
+  - Gap: PRD specifies three preview capabilities: (a) show sample normalized records (partially done via `validateMapping`), (b) test retrieval query against newly ingested data, (c) highlight missing required fields. Sub-requirements (b) and (c) were deferred from P0-012 but never picked up.
+  - Scope: Add `POST /api/admin/connectors/{id}/preview-retrieval` endpoint that runs a test query against chunks from this connector only. Add missing-field analysis to `validateMapping` response (which fields are empty across sample records). Surface both in `ConnectorDetail` component.
+  - Dependencies: P0-012 (connector admin complete), P0-011 (retrieval complete)
+  - Priority: LOW — validation endpoint covers the critical path; retrieval preview is admin convenience.
+
+- [ ] P3-028: Add stop-words and special tokens management for search (ADM-103 partial).
+  - Specs: jtbd-03, PRD §20 "Admin dashboard > Knowledge governance"
+  - Gap: PRD specifies admin UI for managing "stop-words, synonym lists, and special tokens (e.g., error codes)." P3-004 covers synonym maps as an Azure AI Search backend feature, but stop-words and special token (error code) management are not tracked.
+  - Scope: Extend `ISynonymMapService` (from P3-004) to also manage stop-word lists and special token preservation rules. Special tokens (e.g., "BSOD", "0x80070005", "HTTP 502") should be preserved during normalization and boosted in BM25. Add admin UI section alongside synonym management.
+  - Dependencies: P3-004 (synonym maps)
+  - Priority: LOW — error token extraction exists in enrichment; explicit management adds admin control.
+
+- [ ] P3-029: Add admin UI for audit export and compliance investigations.
+  - Specs: jtbd-10, PRD §60 "Compliance notes"
+  - Gap: `GET /api/audit/events/export` NDJSON streaming endpoint exists (P0-020A), but there is no frontend UI for triggering, filtering, and downloading audit exports. The PRD compliance note implies a user-facing admin interface for compliance investigations, not just an API.
+  - Scope: Add "Audit & Compliance" tab to DiagnosticsPage or a new dedicated page. Include: date range picker, event type filter, tenant filter (for multi-tenant admins), export button (downloads NDJSON), event table with pagination, and event detail modal.
+  - Dependencies: P0-020A (audit export API complete)
+  - Priority: MEDIUM — compliance officers and security auditors need self-serve access without API tooling.
+
+- [ ] P3-030: Evaluate customer-managed key (CMK) support for data encryption.
+  - Specs: jtbd-10, PRD §60 "Data encryption"
+  - Gap: PRD states "Encrypt at rest using platform defaults; optionally support customer-managed keys (tenant-configurable)." Platform-default encryption is handled by Azure. CMK/BYOK is not tracked in any phase.
+  - Scope: Evaluate per-tenant CMK feasibility across Azure SQL (TDE with CMK), Azure AI Search (CMK), Azure Blob Storage (CMK), and Azure Service Bus (CMK). Document architecture decision. If feasible, add IaC support for CMK-enabled resources and tenant-level key configuration.
+  - Dependencies: P0-005A (IaC baseline)
+  - Priority: LOW — platform-default encryption meets most compliance regimes; CMK is enterprise-tier requirement.
+
+- [ ] P3-031: Document model fine-tuning / distillation decision (PRD Level 4 optional).
+  - Specs: PRD §60 "Continuous improvement mechanisms > Level 4"
+  - Gap: PRD mentions "Consider distillation/fine-tuning only after stable evaluation harness exists. Use strict privacy controls and redaction before any such process." This is explicitly optional but completely untracked — not even as a deferred architectural decision.
+  - Scope: Add D-018 design decision documenting when/whether to pursue model fine-tuning. Prerequisites: stable eval harness (P3-006), privacy controls (P2-001 complete), sufficient gold dataset (P3-022). Decision should document privacy requirements (PII redaction before training data export), cost/benefit analysis, and trigger criteria.
+  - Dependencies: P3-006, P3-022, P2-001 (complete)
+  - Priority: LOW — explicitly optional per PRD; document the decision framework for future consideration.
 
 ## Cross-Cutting Test Backlog (continuous)
 - [x] T-001: Unit tests for normalization/chunking, structured output parsing, ACL and tenant filters, escalation policy logic, PII redaction rules.
@@ -328,26 +620,42 @@ Status: Active backlog (P0-001 through P0-022 + P1-001 through P1-012 + P2-001 t
   - Completed: (a) **DeadLetterService** — `DeadLetterServiceTests` with 8 tests: DLQ path construction, empty peek, message mapping (messageId, correlationId, subject, deliveryCount, body), multiple messages, default maxMessages=20, DisposeAsync receiver cleanup, DeadLetterMessage record properties, DeadLetterListResponse record properties. Mock `ServiceBusClient` + `ServiceBusReceiver` with virtual method overrides. (b) **KeyVaultSecretProvider** — `KeyVaultSecretProviderTests` with 5 tests: GetSecretAsync returns value, GetSecretAsync propagates RequestFailedException for missing secret, SetSecretAsync stores value, DeleteSecretAsync removes secret, multiple secrets return correct values. Mock `SecretClient` with virtual method overrides + `SecretModelFactory`. (c) **SqlAnswerTraceWriter** — `SqlAnswerTraceWriterTests` with 5 tests: all fields persisted (including JSON chunk IDs), multiple traces, escalation recommended flag, empty chunk lists as JSON arrays, CreatedAt timestamp range check. (d) `AdoSyncJobProcessorIntegrationTests` naming cosmetic — not changed (accurate description: "ADO connector wired into SyncJobProcessor").
 
 ## Open Risks / Watch Items
-- [ ] R-001: Connector API limits and webhook reliability variability across providers.
-- [ ] R-002: Retrieval quality drift as corpus grows; requires active eval + tuning.
-- [ ] R-003: Escalation over/under-triggering before enough outcome data accumulates.
-- [ ] R-004: Tenant misconfiguration risk in early environments.
-- [ ] R-005: Terraform/ARM drift risk if infra updates bypass IaC workflows.
-- [ ] R-006: PII leakage into model context before redaction rules are mature; baseline detection in Phase 1 mitigates but does not eliminate.
-- [ ] R-007: Service Bus message ordering under high load; design for idempotency.
+- [ ] R-001: Connector API limits and webhook reliability variability across providers. Mitigated by polling fallback (P0-008A) and rate-limit metrics (P1-008). Residual: per-provider quota tuning needed in production.
+- [ ] R-002: Retrieval quality drift as corpus grows; requires active eval + tuning. Mitigated by eval harness (P0-021) and per-tenant tuning (P1-007). **Blocked by** P3-006 (no scheduled eval runs yet).
+- [ ] R-003: Escalation over/under-triggering before enough outcome data accumulates. Mitigated by routing analytics (P1-009) and improvement recommendations. Residual: cold-start period.
+- [ ] R-004: Tenant misconfiguration risk in early environments. Mitigated by validation endpoints. Consider P3-010 (guided scope selection) for further mitigation.
+- [ ] R-005: Terraform/ARM drift risk if infra updates bypass IaC workflows. Mitigated by drift-detection.yml (weekly scheduled), infra-validate.yml, and IaC parity tests (P1-010, T-006).
+- [x] R-006: ~~PII leakage into model context~~ — resolved (P0-014A baseline redaction + P2-001 per-tenant policy with 3 enforcement modes + custom patterns).
+- [ ] R-007: Service Bus message ordering under high load; design for idempotency. Mitigated by idempotency keys on all webhook handlers and content hash dedup in SyncJobProcessor.
 - [x] R-008: Embedding model and chunking parameters — resolved in P0-005C.
-- [ ] R-009: Dual Terraform + ARM maintenance burden. ~~Active divergence found: ARM missing SQL Entra admin (BUG-002)~~ — fixed.
-- [ ] R-010: Confidence/escalation thresholds undefined; treat as tunable config informed by eval runs.
-- [ ] R-011: Phase 1 escalation drafts — copy/export only. Must communicate in UX.
-- [x] R-012: ACL metadata models differ per source. Each connector must document its ACL mapping. ADO: area paths → Restricted groups. SharePoint: drive name → Restricted groups.
-- [x] R-013: ~~Session context may exceed token limits~~ — resolved (D-010: sliding window with 80% context window budget, oldest messages dropped first).
-- [x] R-014: ~~No Ingestion Worker resource in IaC~~ — resolved (TECH-001 complete).
-- [x] R-015: ~~Service Bus uses connection string not Managed Identity~~ — resolved (TECH-002 complete).
-- [x] R-016: ~~Feedback reason codes not enumerated~~ — resolved (P0-018: `FeedbackReasonCode` enum with 7 values).
-- [x] R-017: ~~jtbd-06 has no numeric SLO thresholds~~ — resolved (P0-021: groundedness >= 0.80, citation coverage >= 0.70, routing accuracy >= 0.60, no-evidence rate <= 0.25; configurable via `EvalSettings`).
-- [ ] R-018: Entra ID config optional with silent fallback — misconfiguration risk in production.
-- [ ] R-019: jtbd-03 spec very thin (33 lines) — all detail in PRD. Risk of divergence.
-- [x] R-020: ~~No .NET or frontend CI pipeline~~ — resolved (TECH-006 complete; `ci.yml` added).
+- [ ] R-009: Dual Terraform + ARM maintenance burden. Fixed BUG-002. Ongoing vigilance via T-006 parity tests.
+- [x] R-010: ~~Confidence/escalation thresholds undefined~~ — resolved. Configurable via `ChatOrchestrationSettings` and `EscalationSettings`.
+- [x] R-011: ~~Phase 1 escalation drafts — copy/export only~~ — resolved. P1-003 added external ticket creation (ADO/ClickUp) after human approval.
+- [x] R-012: ACL metadata models differ per source — resolved. Each connector documents its ACL mapping.
+- [x] R-013: ~~Session context may exceed token limits~~ — resolved (D-010).
+- [x] R-014: ~~No Ingestion Worker resource in IaC~~ — resolved (TECH-001).
+- [x] R-015: ~~Service Bus uses connection string not Managed Identity~~ — resolved (TECH-002).
+- [x] R-016: ~~Feedback reason codes not enumerated~~ — resolved (P0-018).
+- [x] R-017: ~~jtbd-06 has no numeric SLO thresholds~~ — resolved (P0-021).
+- [ ] R-018: Entra ID config optional with silent fallback — misconfiguration risk in production. Consider adding startup validation when `ASPNETCORE_ENVIRONMENT=Production`.
+- [ ] R-019: jtbd-03 spec very thin (33 lines) — all detail in PRD. Risk of divergence. **Tracked as** P3-011/SPEC-007.
+- [x] R-020: ~~No .NET or frontend CI pipeline~~ — resolved (TECH-006).
+- [ ] R-021: **NEW** — Binary document text extraction missing. SharePoint binary files (PDF, DOCX, PPTX) stored as raw blobs but never chunked/indexed. **Tracked as** P3-003.
+- [x] R-022: Pre-retrieval query classification. **Resolved by** P3-001 (iteration 69). Classification via gpt-4o-mini biases retrieval filters by product area, source type, and time horizon.
+- [x] R-023: ~~No scheduled eval automation.~~ **RESOLVED** by P3-006 — nightly smoke and weekly full eval CI workflows with GitHub Actions annotations and regression-gated issue creation.
+- [ ] R-024: **NEW** — Phase 2 admin features (routing, playbooks, cost, privacy) have no frontend UI. Accessible via API only. **Tracked as** P3-008.
+- [ ] R-025: **NEW** — ScheduleCron field on connectors is stored but never executed. Connectors without webhooks have no automatic sync cadence. **Tracked as** P3-018.
+- [ ] R-026: **NEW** — Eval report history not persisted. Trend reporting and regression visibility for support leads not possible. **Tracked as** P3-021.
+- [ ] R-027: **NEW** — OAuth auth flow not implemented despite `SecretAuthType.OAuth` enum value existing. Some provider features (HubSpot scopes) may require OAuth. **Tracked as** P3-019.
+- [ ] R-028: **NEW** — Confidence rationale absent from response contract. Agents see confidence labels but not the reasoning, reducing trust calibration. **Tracked as** P3-024.
+- [ ] R-029: **NEW** — No in-app rendered Source Viewer for evidence. Agents must leave the copilot to view full source content. **Tracked as** P3-025.
+- [ ] R-030: **NEW** — Audit export is API-only. Compliance investigations require API tooling rather than self-serve UI. **Tracked as** P3-029.
+- [ ] R-031: **NEW** — Customer-managed keys (CMK) not evaluated. Enterprise tenants with strict encryption requirements have no CMK path. **Tracked as** P3-030.
+- [ ] R-032: **NEW** — No CD/deploy workflow. All deployments are manual (terraform apply, az webapp deploy). Risk of configuration drift between environments and human error during release. **Tracked as** P3-032.
+- [ ] R-033: **NEW** — Distilled patterns are not auto-indexed to Azure AI Search. Patterns exist in SQL but are invisible to fused retrieval until manually triggered. **Tracked as** P3-034.
+- [ ] R-034: **NEW** — No frontend hosting resource in IaC. React build output has no production deployment target. **Tracked as** P3-036.
+- [ ] R-035: **NEW** — Multi-turn conversation quality is unevaluated. Gold dataset has 0 multi-turn cases despite session_history schema support. **Tracked as** P3-038.
+- [ ] R-036: **NEW** — ARM/Terraform availability threshold default discrepancy (99 vs 99.5). Could cause inconsistent alerting on new environments. **Tracked as** P3-037.
 
 ## Open Design Decisions (must resolve before dependent items)
 
@@ -366,26 +674,41 @@ Status: Active backlog (P0-001 through P0-022 + P1-001 through P1-012 + P2-001 t
 - [x] D-012: No-evidence threshold — resolved: < 3 results above score 0.3 (both conditions, tunable via `RetrievalSettings.NoEvidenceScoreThreshold` and `NoEvidenceMinResults`).
 - [x] D-013: Hallucination degradation — resolved: refuse + next-steps. Blended confidence < 0.3 overrides final_answer to next_steps_only with "I don't have enough information" + diagnostic steps + escalation to Engineering. No-evidence path (HasEvidence=false) returns next_steps_only immediately. Configurable via `ChatOrchestrationSettings.DegradationThreshold`.
 
+### Phase 3 Design Decisions (open — must resolve before dependent P3 items)
+
+- [x] D-014: Pre-retrieval classification model and schema — **Resolved**: gpt-4o-mini (lighter/faster/cheaper than gpt-4o for generation). Schema: 9 fields (issue_category, product_area, severity_hint enum P1-P4/Unknown, needs_customer_lookup, missing_info_suggestions array, classification_confidence float, escalation_likelihood float, source_type_preference array, time_horizon_days nullable int). Classification biases retrieval via `EnrichFiltersFromClassification`: applies product_area, source_types, time_horizon to `RetrievalFilter` when confidence >= 0.5 threshold and user hasn't set explicit filters. Implemented in P3-001.
+  - **Proposed**: Use gpt-4o-mini for classification (lower latency + cost). Output schema: `{ issue_category, product_area, severity_hint, environment_hint, missing_info_suggestions[] }`. Apply product_area as OData filter; severity_hint as escalation input; missing_info as FR-TRIAGE-002 response.
+- [ ] D-015: Text extraction tooling for binary documents — Azure AI Document Intelligence (cloud, cost per page) vs. local libraries (PdfSharp, Open XML SDK — free, no external calls). **Blocks** P3-003.
+  - **Proposed**: Use Open XML SDK for DOCX/PPTX/XLSX (free, deterministic). Use PdfPig for PDF (free, .NET native). Reserve Azure AI Document Intelligence for scanned/image-heavy PDFs in a future phase.
+- [ ] D-016: Session summarization model — same model as generation or a cheaper/faster model? Summary length and format? **Blocks** P3-002.
+  - **Proposed**: Use gpt-4o-mini. Produce a 200-token structured summary: key issue, attempted solutions, unresolved questions. Inject as system message before remaining session history.
+- [ ] D-017: Search index migration strategy — blue-green vs. in-place with compatible changes only. **Blocks** P3-005.
+  - **Proposed**: Blue-green approach. Create versioned index (e.g., `evidence-v2`), reindex from SQL chunks, swap index alias in SearchServiceSettings, delete old index after verification period.
+
+- [ ] D-018: Model fine-tuning / distillation decision — whether to pursue, prerequisites (stable eval + privacy controls + sufficient gold dataset), privacy requirements (PII redaction before training data export), cost/benefit analysis, and trigger criteria. **Blocks** P3-031.
+  - **Proposed**: Defer until gold dataset reaches 500+ cases and eval harness is running scheduled (P3-006 + P3-022). Document privacy requirements: all training data must pass through PII redaction pipeline (P2-001) before export. Consider distillation of gpt-4o into a smaller model only if latency SLOs cannot be met with prompt optimization alone.
+
 ## Spec Clarification Backlog
 Items where specs are ambiguous, inconsistent, or missing detail. Patch before or during dependent implementation.
+**Tracked collectively as P3-011.**
 
-- [x] SPEC-001: jtbd-01 — Add webhook registration lifecycle (register/renew/deregister on enable/disable). Resolved: P0-008A implements register on enable, deregister on disable via `IWebhookManager`. Renewal deferred (ADO hooks don't expire).
-- [x] SPEC-002: jtbd-01 — Define polling fallback interval and failure detection mechanism. Resolved: P0-008A implements 5-minute default interval with 0-60s jitter, 3 consecutive failure threshold, `WebhookPollingFallbackService` BackgroundService.
-- [ ] SPEC-003: jtbd-01 — Define content-level dedup strategy using ContentHash.
-- [ ] SPEC-004: jtbd-02 — Define enrichment version scheme (format, storage, reprocessing trigger).
-- [x] SPEC-005: jtbd-02 — Define error token extraction method; add `ErrorTokens` field to CanonicalRecord. Resolved: `ErrorTokens` added to `CanonicalRecord`. `BaselineEnrichmentService.ExtractErrorTokens` uses regex for exception names, HTTP status codes, error codes (ERR-xxx, AADSTS), and hex codes (0x...).
-- [x] SPEC-006: jtbd-02 — Standardize chunk ID format (`_` in code vs `#` in PRD). Resolved: underscore format `{EvidenceId}_chunk_{index}` is canonical. PRD `#` format deprecated.
-- [ ] SPEC-007: jtbd-03 — Expand thin spec (33 lines) with PRD detail (query stages, field schema, merge algorithm, telemetry).
-- [x] SPEC-008: jtbd-06 — Enumerate feedback reason codes. Resolved: `FeedbackReasonCode` enum with 7 values: WrongAnswer, OutdatedInfo, MissingContext, WrongSource, TooVague, WrongEscalation, Other. Multi-select stored as JSON array in `ReasonCodesJson`.
-- [ ] SPEC-009: jtbd-06 — Define numeric SLO thresholds for eval gates.
-- [ ] SPEC-010: jtbd-08 — Define routing rule precedence for multiple matching rules.
-- [ ] SPEC-011: jtbd-08 — Define severity classification ownership (LLM, classification, agent, source ticket).
-- [ ] SPEC-012: jtbd-09 — Resolve trust state mismatch: spec 3 states vs PRD 4 states. Propose 4.
-- [ ] SPEC-013: jtbd-09 — Define pattern usage/reuse metrics schema.
-- [x] SPEC-014: jtbd-10 — Specify PII detection tooling and category list. Resolved: Phase 1 uses custom regex for 4 categories: email, phone, ssn, credit_card. Azure AI Language PII / Presidio evaluation deferred to Phase 2 (P2-001).
-- [ ] SPEC-015: jtbd-10 — Define default retention window values and entity-to-window mapping.
-- [ ] SPEC-016: jtbd-10 — Define cross-tenant access detection beyond missing-tid.
-- [x] SPEC-017: jtbd-11 — Add Ingestion Worker to IaC resource inventory. Resolved: TECH-001 complete.
+- [x] SPEC-001: jtbd-01 — Add webhook registration lifecycle. Resolved in P0-008A.
+- [x] SPEC-002: jtbd-01 — Define polling fallback interval. Resolved in P0-008A.
+- [ ] SPEC-003: jtbd-01 — Define content-level dedup strategy using ContentHash. **Implementation exists** (SyncJobProcessor compares ContentHash, skips upload when unchanged; chunk-level hash dedup via ComputeChunkHash). Spec needs patching to document this behavior.
+- [ ] SPEC-004: jtbd-02 — Define enrichment version scheme. **Implementation exists** (EnrichmentVersion int on EvidenceChunk, ReprocessedAt timestamp, hash includes version). Spec needs patching to document: format=monotonic int, storage=EvidenceChunkEntity column, trigger=version mismatch during upsert.
+- [x] SPEC-005: jtbd-02 — Define error token extraction. Resolved in P0-010.
+- [x] SPEC-006: jtbd-02 — Standardize chunk ID format. Resolved: underscore format.
+- [ ] SPEC-007: jtbd-03 — Expand thin spec (33 lines) with PRD detail. Needs: query stages, field schema, merge algorithm, telemetry. All implemented in code but spec lags.
+- [x] SPEC-008: jtbd-06 — Enumerate feedback reason codes. Resolved in P0-018.
+- [ ] SPEC-009: jtbd-06 — Define numeric SLO thresholds for eval gates. **Partially resolved** in P0-021 (groundedness >= 0.80, citation_coverage >= 0.70, routing_accuracy >= 0.60, no_evidence_rate <= 0.25). Spec needs patching.
+- [ ] SPEC-010: jtbd-08 — Define routing rule precedence. Current behavior: first matching rule by product area wins. Spec needs documenting.
+- [ ] SPEC-011: jtbd-08 — Define severity classification ownership. Current behavior: enrichment service assigns at ingestion; LLM structured output can override via escalation signal; agent can edit in draft. Spec needs documenting.
+- [ ] SPEC-012: jtbd-09 — Trust state mismatch: spec says 3, PRD says 4. **Resolved in code**: 4 states (Draft/Reviewed/Approved/Deprecated) in `TrustLevel` enum. Spec needs patching.
+- [ ] SPEC-013: jtbd-09 — Pattern usage/reuse metrics. PatternMaintenanceService tracks citation-based usage for "unused" detection. No formal metrics API. **Tracked as** P3-012.
+- [x] SPEC-014: jtbd-10 — PII detection tooling. Resolved in P0-014A + P2-001.
+- [ ] SPEC-015: jtbd-10 — Default retention windows. **Implementation exists** (RetentionCleanupService with per-entity configurable days + MetricRetentionDays dual window). Spec needs defaults documented.
+- [ ] SPEC-016: jtbd-10 — Cross-tenant detection beyond missing-tid. Current: TenantContextMiddleware checks `tid` claim, returns 403 + audit on missing; all queries use tenant-scoped EF filters; cross-tenant resource access returns 404 (not 403). Spec needs documenting.
+- [x] SPEC-017: jtbd-11 — Add Ingestion Worker to IaC. Resolved in TECH-001.
 
 ## Plan Maintenance Checklist (run each iteration)
 - [ ] Mark completed items with evidence (PR/test IDs).
@@ -393,3 +716,9 @@ Items where specs are ambiguous, inconsistent, or missing detail. Patch before o
 - [ ] Add newly discovered bugs/tech debt with priority.
 - [ ] Confirm Terraform and ARM templates remain synchronized after Azure resource changes.
 - [ ] Remove stale completed details to keep plan concise.
+
+## Audit Log
+- **Iteration 66 (2026-03-18)**: Full spec-vs-code gap audit. All 11 specs and PRD FR-*/NFR-* requirements compared against implemented codebase. Phase 1+2 confirmed complete (1880 tests, 0 bugs blocking). 23 new Phase 3 backlog items added (P3-001 through P3-023). 4 new design decisions (D-014 through D-017). 7 new risks (R-021 through R-027). Open spec clarifications annotated with implementation status. Risk items R-006, R-010, R-011 marked resolved. Key gaps: pre-retrieval classification (FR-TRIAGE), binary text extraction (SharePoint), scheduled eval automation, Phase 2 admin frontend pages.
+- **Iteration 67 (2026-03-18)**: Deep PRD cross-reference audit with requirement-level traceability. Cross-referenced all FR-CHAT, FR-TRIAGE, FR-ESC, FR-PATTERN, FR-FB, NFR-SEC, NFR-PERF, NFR-OPS, and ADM-* requirement IDs against P0–P3 backlog. 8 new Phase 3 items added (P3-024 through P3-031): confidence rationale (FR-CHAT-002), Source Viewer drill-down (FR-CHAT-003), routing tag mapping (ADM-004), connector preview retrieval test (ADM-006), stop-words/special tokens (ADM-103), audit export UI (compliance), CMK evaluation (data encryption), and model fine-tuning decision (Level 4 optional). 1 new design decision (D-018: fine-tuning). 4 new risks (R-028 through R-031). Test count updated to ~1949 (1627 backend + 253 frontend + 68 eval + 98 IaC - some overlap in counting). Phase 3 backlog now has 31 items ordered by priority.
+- **Iteration 68 (2026-03-18)**: Full spec-vs-code reconciliation with codebase deep scan. All source code (API endpoints, DI registrations, EF entities, connectors, services, frontend pages/components, IaC resources, CI workflows, eval harness, gold dataset) compared against 11 specs + PRD + existing backlog. 7 new Phase 3 items added (P3-032 through P3-038): CD/deploy workflow (HIGH — no deployment automation exists), dead BaselineEnrichmentService cleanup, auto-index patterns after distillation (MEDIUM — patterns invisible to retrieval), embedding cache eviction worker, frontend hosting IaC (MEDIUM — no production hosting target), ARM threshold fix, multi-turn eval cases (MEDIUM — 0 of 30 gold cases exercise session_history). 5 new risks (R-032 through R-036). Confirmed: all Phase 1 + Phase 2 items complete, all test backlog items complete, all bugs/tech-debt resolved. Phase 3 backlog now has 38 items. Priority ordering validated: P3-001 (pre-retrieval classification), P3-003 (binary extraction), P3-006 (scheduled eval), P3-018 (scheduled sync), P3-032 (CD workflow) remain the top-5 HIGH-priority items.
+- **Iteration 70 (2026-03-18)**: P3-006 — Scheduled evaluation CI workflows. New `SmartKb.Eval.Cli` console project (EvalCliRunner, HttpChatOrchestratorClient, GitHubActionsFormatter). Two GitHub Actions workflows: `eval-nightly.yml` (daily 02:00 UTC, smoke subset) and `eval-weekly.yml` (Sunday 04:00 UTC, full dataset, auto-creates GitHub issue on blocking regression). Gold dataset expanded 30 → 50 cases (HubSpot, ClickUp, pattern governance, cost controls, GDPR/privacy, playbooks, diagnostics, performance SLOs). CLI supports live (staging API) and offline (dataset validation + baseline check) modes. Stratified smoke sampling. GitHub Actions annotations for violations/regressions. 22 new tests (13 EvalCliRunnerTests + 9 GitHubActionsFormatterTests). R-023 resolved. Total: 1673 backend + 253 frontend = 1926 tests, all passing.

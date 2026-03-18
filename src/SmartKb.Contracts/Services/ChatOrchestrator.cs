@@ -23,6 +23,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
     private readonly IAuditEventWriter _auditEventWriter;
     private readonly ITokenUsageService _tokenUsageService;
     private readonly IEmbeddingCacheService? _embeddingCacheService;
+    private readonly IQueryClassificationService? _classificationService;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly OpenAiSettings _openAiSettings;
     private readonly ChatOrchestrationSettings _settings;
@@ -47,7 +48,8 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         ChatOrchestrationSettings settings,
         CostOptimizationSettings costSettings,
         ILogger<ChatOrchestrator> logger,
-        IEmbeddingCacheService? embeddingCacheService = null)
+        IEmbeddingCacheService? embeddingCacheService = null,
+        IQueryClassificationService? classificationService = null)
     {
         _embeddingService = embeddingService;
         _retrievalService = retrievalService;
@@ -56,6 +58,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         _auditEventWriter = auditEventWriter;
         _tokenUsageService = tokenUsageService;
         _embeddingCacheService = embeddingCacheService;
+        _classificationService = classificationService;
         _httpClientFactory = httpClientFactory;
         _openAiSettings = openAiSettings;
         _settings = settings;
@@ -82,6 +85,44 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         _logger.LogInformation(
             "Chat orchestration started. TenantId={TenantId}, UserId={UserId}, TraceId={TraceId}, QueryLength={QueryLength}",
             tenantId, userId, traceId, request.Query.Length);
+
+        // Step 0 (P3-001): Pre-retrieval query classification — classify before retrieval to bias filters.
+        ClassificationResult classification = ClassificationResult.Empty;
+        if (_classificationService is not null && _settings.EnableQueryClassification)
+        {
+            try
+            {
+                using var classificationActivity = DiagnosticsHelper.OrchestrationSource.StartActivity("ClassifyQuery");
+                using var classificationCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                classificationCts.CancelAfter(_settings.ClassificationTimeoutMs);
+
+                classification = await _classificationService.ClassifyAsync(
+                    request.Query, request.SessionHistory, classificationCts.Token);
+
+                classificationActivity?.SetTag("smartkb.classification.category", classification.IssueCategory);
+                classificationActivity?.SetTag("smartkb.classification.product_area", classification.ProductArea);
+                classificationActivity?.SetTag("smartkb.classification.severity", classification.SeverityHint);
+                classificationActivity?.SetTag("smartkb.classification.confidence", classification.ClassificationConfidence);
+
+                _logger.LogInformation(
+                    "Query classification complete. TraceId={TraceId}, Category={Category}, " +
+                    "ProductArea={ProductArea}, Severity={Severity}, Confidence={Confidence:F2}",
+                    traceId, classification.IssueCategory, classification.ProductArea,
+                    classification.SeverityHint, classification.ClassificationConfidence);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("Query classification timed out after {TimeoutMs}ms. Proceeding without classification. TraceId={TraceId}",
+                    _settings.ClassificationTimeoutMs, traceId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Query classification failed. Proceeding without classification. TraceId={TraceId}", traceId);
+            }
+        }
+
+        // Enrich retrieval filters from classification output (P3-001).
+        var effectiveFilters = EnrichFiltersFromClassification(request.Filters, classification);
 
         // Step 1: Generate query embedding (with P2-003 cache support).
         float[] queryEmbedding;
@@ -124,7 +165,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         {
             using var retrievalActivity = DiagnosticsHelper.OrchestrationSource.StartActivity("RetrieveEvidence");
             retrievalResult = await _retrievalService.RetrieveAsync(
-                tenantId, request.Query, queryEmbedding, request.UserGroups, request.Filters, correlationId, cancellationToken);
+                tenantId, request.Query, queryEmbedding, request.UserGroups, effectiveFilters, correlationId, cancellationToken);
             retrievalActivity?.SetTag("smartkb.chunk_count", retrievalResult.Chunks.Count);
             retrievalActivity?.SetTag("smartkb.has_evidence", retrievalResult.HasEvidence);
             retrievalActivity?.SetTag("smartkb.acl_filtered", retrievalResult.AclFilteredOutCount);
@@ -382,6 +423,16 @@ public sealed class ChatOrchestrator : IChatOrchestrator
             _logger.LogError(ex, "Failed to record token usage. TraceId={TraceId}", traceId);
         }
 
+        // Append missing info suggestions from classification as next steps when confidence is low (FR-TRIAGE-002).
+        if (classification.MissingInfoSuggestions.Count > 0 &&
+            classification.ClassificationConfidence < _settings.ClassificationFilterConfidenceThreshold)
+        {
+            nextSteps = nextSteps
+                .Concat(classification.MissingInfoSuggestions.Select(s => $"Ask the customer: {s}"))
+                .ToList()
+                .AsReadOnly();
+        }
+
         return new ChatResponse
         {
             ResponseType = responseType,
@@ -395,6 +446,13 @@ public sealed class ChatOrchestrator : IChatOrchestrator
             HasEvidence = true,
             SystemPromptVersion = _settings.SystemPromptVersion,
             PiiRedactedCount = piiRedactedCount,
+            IssueCategory = !string.IsNullOrEmpty(classification.IssueCategory) ? classification.IssueCategory : null,
+            ClassifiedProductArea = !string.IsNullOrEmpty(classification.ProductArea) ? classification.ProductArea : null,
+            SeverityGuess = !string.IsNullOrEmpty(classification.SeverityHint) && classification.SeverityHint != "Unknown"
+                ? classification.SeverityHint : null,
+            ClassificationConfidence = classification.ClassificationConfidence,
+            MissingInfoSuggestions = classification.MissingInfoSuggestions,
+            EscalationLikelihood = classification.EscalationLikelihood,
         };
     }
 
@@ -745,6 +803,56 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         }
 
         return (result, redactedCount, aggregatedCounts, affectedChunkIds);
+    }
+
+    /// <summary>
+    /// Enriches retrieval filters with classification output (P3-001).
+    /// Only applies classification-derived filters when classification confidence exceeds threshold
+    /// and the user hasn't already set explicit filters.
+    /// </summary>
+    internal RetrievalFilter EnrichFiltersFromClassification(
+        RetrievalFilter? existingFilters,
+        ClassificationResult classification)
+    {
+        if (classification == ClassificationResult.Empty)
+            return existingFilters ?? new RetrievalFilter();
+
+        var filters = existingFilters ?? new RetrievalFilter();
+        var confidenceAboveThreshold = classification.ClassificationConfidence >= _settings.ClassificationFilterConfidenceThreshold;
+
+        // Apply product area filter if not already set and confidence is sufficient.
+        IReadOnlyList<string>? productAreas = filters.ProductAreas;
+        if ((productAreas is null or { Count: 0 }) &&
+            !string.IsNullOrEmpty(classification.ProductArea) &&
+            confidenceAboveThreshold)
+        {
+            productAreas = [classification.ProductArea];
+        }
+
+        // Apply source type preference if not already set.
+        IReadOnlyList<string>? sourceTypes = filters.SourceTypes;
+        if ((sourceTypes is null or { Count: 0 }) &&
+            classification.SourceTypePreference.Count > 0 &&
+            confidenceAboveThreshold)
+        {
+            sourceTypes = classification.SourceTypePreference;
+        }
+
+        // Apply time horizon if not already set.
+        int? timeHorizonDays = filters.TimeHorizonDays;
+        if (timeHorizonDays is null &&
+            classification.TimeHorizonDays is not null &&
+            confidenceAboveThreshold)
+        {
+            timeHorizonDays = classification.TimeHorizonDays;
+        }
+
+        return filters with
+        {
+            ProductAreas = productAreas,
+            SourceTypes = sourceTypes,
+            TimeHorizonDays = timeHorizonDays,
+        };
     }
 
     /// <summary>Approximate token count using chars/4 heuristic for English text.</summary>
