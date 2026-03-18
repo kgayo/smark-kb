@@ -227,40 +227,49 @@ public sealed class PatternGovernanceService : IPatternGovernanceService
             "Pattern {PatternId} transitioned {Previous} → {Target} by {ActorId} in tenant {TenantId}",
             patternId, previousLevel, targetLevel, actorId, tenantId);
 
-        // Re-index the pattern with updated trust level if indexing service is available.
+        // Update the search index after governance transition.
         if (_patternIndexing is not null)
         {
             try
             {
-                var model = new CasePattern
+                if (targetLevel == TrustLevel.Deprecated)
                 {
-                    PatternId = entity.PatternId,
-                    TenantId = entity.TenantId,
-                    Title = entity.Title,
-                    ProblemStatement = entity.ProblemStatement,
-                    Symptoms = DeserializeStringList(entity.SymptomsJson),
-                    DiagnosisSteps = DeserializeStringList(entity.DiagnosisStepsJson),
-                    ResolutionSteps = DeserializeStringList(entity.ResolutionStepsJson),
-                    VerificationSteps = DeserializeStringList(entity.VerificationStepsJson),
-                    EscalationCriteria = DeserializeStringList(entity.EscalationCriteriaJson),
-                    RelatedEvidenceIds = DeserializeStringList(entity.RelatedEvidenceIdsJson),
-                    Confidence = entity.Confidence,
-                    TrustLevel = targetLevel,
-                    Version = entity.Version,
-                    ProductArea = entity.ProductArea,
-                    Tags = DeserializeStringList(entity.TagsJson),
-                    Visibility = Enum.TryParse<AccessVisibility>(entity.Visibility, out var v) ? v : AccessVisibility.Internal,
-                    AllowedGroups = DeserializeStringList(entity.AllowedGroupsJson),
-                    AccessLabel = entity.AccessLabel,
-                    SourceUrl = entity.SourceUrl,
-                    CreatedAt = entity.CreatedAt,
-                    UpdatedAt = entity.UpdatedAt,
-                };
-                await _patternIndexing.IndexPatternsAsync([model], ct);
+                    // Remove deprecated patterns from the search index entirely.
+                    await _patternIndexing.DeletePatternsAsync([entity.PatternId], ct);
+                }
+                else
+                {
+                    // Re-index the pattern with updated trust level.
+                    var model = new CasePattern
+                    {
+                        PatternId = entity.PatternId,
+                        TenantId = entity.TenantId,
+                        Title = entity.Title,
+                        ProblemStatement = entity.ProblemStatement,
+                        Symptoms = DeserializeStringList(entity.SymptomsJson),
+                        DiagnosisSteps = DeserializeStringList(entity.DiagnosisStepsJson),
+                        ResolutionSteps = DeserializeStringList(entity.ResolutionStepsJson),
+                        VerificationSteps = DeserializeStringList(entity.VerificationStepsJson),
+                        EscalationCriteria = DeserializeStringList(entity.EscalationCriteriaJson),
+                        RelatedEvidenceIds = DeserializeStringList(entity.RelatedEvidenceIdsJson),
+                        Confidence = entity.Confidence,
+                        TrustLevel = targetLevel,
+                        Version = entity.Version,
+                        ProductArea = entity.ProductArea,
+                        Tags = DeserializeStringList(entity.TagsJson),
+                        Visibility = Enum.TryParse<AccessVisibility>(entity.Visibility, out var v) ? v : AccessVisibility.Internal,
+                        AllowedGroups = DeserializeStringList(entity.AllowedGroupsJson),
+                        AccessLabel = entity.AccessLabel,
+                        SourceUrl = entity.SourceUrl,
+                        CreatedAt = entity.CreatedAt,
+                        UpdatedAt = entity.UpdatedAt,
+                    };
+                    await _patternIndexing.IndexPatternsAsync([model], ct);
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to re-index pattern {PatternId} after governance transition", patternId);
+                _logger.LogWarning(ex, "Failed to update search index for pattern {PatternId} after governance transition", patternId);
             }
         }
 

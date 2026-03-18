@@ -461,6 +461,139 @@ public class PatternGovernanceServiceTests : IDisposable
         Assert.True(result.Patterns[0].CreatedAt >= result.Patterns[1].CreatedAt);
     }
 
+    // ── Search Index Integration Tests (P3-034) ──
+
+    [Fact]
+    public async Task DeprecatePattern_DeletesFromSearchIndex()
+    {
+        var stubIndexing = new StubPatternIndexingService();
+        var service = new PatternGovernanceService(
+            _db, _auditWriter,
+            NullLogger<PatternGovernanceService>.Instance,
+            stubIndexing);
+        var entity = SeedPattern(TrustLevel.Approved);
+
+        await service.DeprecatePatternAsync(
+            TenantId, entity.PatternId, ActorId, CorrelationId,
+            new DeprecatePatternRequest { Reason = "Obsolete" });
+
+        Assert.Empty(stubIndexing.IndexedPatterns);
+        Assert.Single(stubIndexing.DeletedPatternIds);
+        Assert.Equal(entity.PatternId, stubIndexing.DeletedPatternIds[0]);
+    }
+
+    [Fact]
+    public async Task ReviewPattern_ReindexesInSearchIndex()
+    {
+        var stubIndexing = new StubPatternIndexingService();
+        var service = new PatternGovernanceService(
+            _db, _auditWriter,
+            NullLogger<PatternGovernanceService>.Instance,
+            stubIndexing);
+        var entity = SeedPattern(TrustLevel.Draft);
+
+        await service.ReviewPatternAsync(
+            TenantId, entity.PatternId, ActorId, CorrelationId,
+            new ReviewPatternRequest { Notes = "OK" });
+
+        Assert.Single(stubIndexing.IndexedPatterns);
+        Assert.Equal(TrustLevel.Reviewed, stubIndexing.IndexedPatterns[0].TrustLevel);
+        Assert.Empty(stubIndexing.DeletedPatternIds);
+    }
+
+    [Fact]
+    public async Task ApprovePattern_ReindexesInSearchIndex()
+    {
+        var stubIndexing = new StubPatternIndexingService();
+        var service = new PatternGovernanceService(
+            _db, _auditWriter,
+            NullLogger<PatternGovernanceService>.Instance,
+            stubIndexing);
+        var entity = SeedPattern(TrustLevel.Reviewed);
+
+        await service.ApprovePatternAsync(
+            TenantId, entity.PatternId, ActorId, CorrelationId,
+            new ApprovePatternRequest { Notes = "Approved" });
+
+        Assert.Single(stubIndexing.IndexedPatterns);
+        Assert.Equal(TrustLevel.Approved, stubIndexing.IndexedPatterns[0].TrustLevel);
+        Assert.Empty(stubIndexing.DeletedPatternIds);
+    }
+
+    [Fact]
+    public async Task DeprecatePattern_GracefullyHandlesIndexingFailure()
+    {
+        var stubIndexing = new StubPatternIndexingService { ShouldThrow = true };
+        var service = new PatternGovernanceService(
+            _db, _auditWriter,
+            NullLogger<PatternGovernanceService>.Instance,
+            stubIndexing);
+        var entity = SeedPattern(TrustLevel.Approved);
+
+        var result = await service.DeprecatePatternAsync(
+            TenantId, entity.PatternId, ActorId, CorrelationId,
+            new DeprecatePatternRequest { Reason = "Obsolete" });
+
+        // Transition should succeed even if index deletion fails.
+        Assert.NotNull(result);
+        Assert.Equal("Deprecated", result.NewTrustLevel);
+    }
+
+    [Fact]
+    public async Task ApprovePattern_GracefullyHandlesIndexingFailure()
+    {
+        var stubIndexing = new StubPatternIndexingService { ShouldThrow = true };
+        var service = new PatternGovernanceService(
+            _db, _auditWriter,
+            NullLogger<PatternGovernanceService>.Instance,
+            stubIndexing);
+        var entity = SeedPattern(TrustLevel.Draft);
+
+        var result = await service.ApprovePatternAsync(
+            TenantId, entity.PatternId, ActorId, CorrelationId,
+            new ApprovePatternRequest());
+
+        // Transition should succeed even if indexing fails.
+        Assert.NotNull(result);
+        Assert.Equal("Approved", result.NewTrustLevel);
+    }
+
+    [Fact]
+    public async Task DeprecateFromDraft_DeletesFromSearchIndex()
+    {
+        var stubIndexing = new StubPatternIndexingService();
+        var service = new PatternGovernanceService(
+            _db, _auditWriter,
+            NullLogger<PatternGovernanceService>.Instance,
+            stubIndexing);
+        var entity = SeedPattern(TrustLevel.Draft);
+
+        await service.DeprecatePatternAsync(
+            TenantId, entity.PatternId, ActorId, CorrelationId,
+            new DeprecatePatternRequest { Reason = "Bad pattern" });
+
+        Assert.Empty(stubIndexing.IndexedPatterns);
+        Assert.Single(stubIndexing.DeletedPatternIds);
+    }
+
+    [Fact]
+    public async Task DeprecateFromReviewed_DeletesFromSearchIndex()
+    {
+        var stubIndexing = new StubPatternIndexingService();
+        var service = new PatternGovernanceService(
+            _db, _auditWriter,
+            NullLogger<PatternGovernanceService>.Instance,
+            stubIndexing);
+        var entity = SeedPattern(TrustLevel.Reviewed);
+
+        await service.DeprecatePatternAsync(
+            TenantId, entity.PatternId, ActorId, CorrelationId,
+            new DeprecatePatternRequest { Reason = "Superseded" });
+
+        Assert.Empty(stubIndexing.IndexedPatterns);
+        Assert.Single(stubIndexing.DeletedPatternIds);
+    }
+
     private sealed class StubAuditWriter : IAuditEventWriter
     {
         public List<AuditEvent> Events { get; } = [];
@@ -469,6 +602,34 @@ public class PatternGovernanceServiceTests : IDisposable
         {
             Events.Add(auditEvent);
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class StubPatternIndexingService : IPatternIndexingService
+    {
+        public List<CasePattern> IndexedPatterns { get; } = [];
+        public List<string> DeletedPatternIds { get; } = [];
+        public bool ShouldThrow { get; set; }
+
+        public Task EnsureIndexAsync(CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
+        public Task<IndexingResult> IndexPatternsAsync(
+            IReadOnlyList<CasePattern> patterns,
+            CancellationToken cancellationToken = default)
+        {
+            if (ShouldThrow) throw new InvalidOperationException("Index service unavailable");
+            IndexedPatterns.AddRange(patterns);
+            return Task.FromResult(new IndexingResult(patterns.Count, 0, []));
+        }
+
+        public Task<int> DeletePatternsAsync(
+            IReadOnlyList<string> patternIds,
+            CancellationToken cancellationToken = default)
+        {
+            if (ShouldThrow) throw new InvalidOperationException("Index service unavailable");
+            DeletedPatternIds.AddRange(patternIds);
+            return Task.FromResult(patternIds.Count);
         }
     }
 }
