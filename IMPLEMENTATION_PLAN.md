@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-18 (Asia/Manila) — iteration 62 (T-003)
-Status: Active backlog (P0-001 through P0-022 + P1-001 through P1-012 + P2-001 through P2-005 complete; T-002 + T-003 + T-008 complete; 0 bugs blocking, 0 tech-debt blocking; Phase 1 MVP complete, Phase 2 in progress)
+Last updated: 2026-03-18 (Asia/Manila) — iteration 63 (T-005)
+Status: Active backlog (P0-001 through P0-022 + P1-001 through P1-012 + P2-001 through P2-005 complete; T-002 + T-003 + T-005 + T-008 complete; 0 bugs blocking, 0 tech-debt blocking; Phase 1 MVP complete, Phase 2 in progress)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -315,8 +315,9 @@ Status: Active backlog (P0-001 through P0-022 + P1-001 through P1-012 + P2-001 t
 - [x] T-004: Security tests for RBAC, cross-tenant leakage, restricted-content exclusion, redaction behavior, audit completeness.
   - Status: RBAC well tested (AuthorizationTests, PermissionAuthorizationHandler). Cross-tenant connector isolation tested.
   - Completed: `SecurityTests` in `tests/SmartKb.Api.Tests/Security/SecurityTests.cs` — 21 tests covering all three remaining gaps: (a) **Cross-tenant isolation for escalation endpoints** — 4 tests: update returns 404 and leaves original unchanged, delete returns 404 and draft persists, export returns 404, list drafts by session returns 404. **Cross-tenant isolation for feedback endpoints** — 3 tests: submit feedback on cross-tenant message returns 422, list feedbacks returns 404, get feedback returns 404. **Cross-tenant session isolation** — 2 tests: send message to cross-tenant session returns 404, delete cross-tenant session returns 404. (b) **Malformed JSON / invalid request body** — 7 tests: malformed JSON on chat/session/message/escalation/feedback endpoints returns 400, empty body returns 400/422, wrong content type returns 400/415. (c) **Concurrent access** — 3 tests: concurrent message sends produce consistent session state, concurrent feedback submissions resolve via upsert, concurrent session creation all succeed independently. All endpoints use tenant-scoped queries and return 404 (not 403) for cross-tenant resources to prevent information leakage.
-- [ ] T-005: Load tests for concurrent chat, ingestion bursts, webhook spikes, search index throughput.
-  - Status: **No load test framework exists.** No k6, JMeter, Locust, or NBomber setup.
+- [x] T-005: Load tests for concurrent chat, ingestion bursts, webhook spikes, search index throughput.
+  - Status: Complete. 25 load tests in `tests/SmartKb.Api.Tests/Load/`.
+  - Completed: `LoadTestFactory` with WebApplicationFactory + SQLite in-memory DB. Four test classes in serialized `[Collection("LoadTests")]`: (a) **ConcurrentChatLoadTests** (6 tests) — 50 parallel session creation, 20 parallel message sends, 10 concurrent same-session messages, 20 parallel session list reads, 10-user chat isolation, 50 sequential throughput. (b) **IngestionBurstLoadTests** (6 tests) — 20 parallel connector creation, 10 parallel sync triggers, 30 parallel connector list reads, concurrent enable/disable toggle, 30 sequential throughput, multi-tenant connector isolation. (c) **WebhookSpikeLoadTests** (7 tests) — 50 concurrent ADO webhooks, 50 concurrent SharePoint webhooks, 30 concurrent Graph validation handshakes, 30 concurrent HubSpot webhooks, 30 concurrent ClickUp webhooks, 60 mixed-provider concurrent traffic, 100 sequential throughput. (d) **SearchThroughputLoadTests** (6 tests) — 50 parallel stateless chat queries, 20 parallel response integrity checks, 10-user multi-turn session queries, cross-tenant concurrent search isolation, 100 sequential throughput, 20 concurrent feedback submissions. Tests validate no data corruption, no 500s (except transient SQLite DB lock), tenant isolation under load, response integrity, and throughput budgets (30s for sequential workloads). All 1627 tests passing.
 - [ ] T-006: IaC tests/validations for Terraform and ARM on every infra change.
   - Status: CI workflow runs `terraform fmt/validate` + ARM JSON/structure validation. Parity is manually maintained.
 - [ ] T-007: Frontend test hardening.
