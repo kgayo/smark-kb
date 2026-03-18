@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using SmartKb.Api.Audit;
 using SmartKb.Api.Tests.Connectors;
 using SmartKb.Contracts.Configuration;
@@ -46,7 +47,17 @@ public sealed class AuthTestFactory : WebApplicationFactory<Program>, IAsyncLife
                 new TenantEntity { TenantId = "tenant-priv", DisplayName = "Privacy Test", CreatedAt = now },
                 new TenantEntity { TenantId = "tenant-priv-ret", DisplayName = "Privacy Retention Test", CreatedAt = now },
                 new TenantEntity { TenantId = "tenant-priv-del", DisplayName = "Privacy Deletion Test", CreatedAt = now },
-                new TenantEntity { TenantId = "tenant-priv-rbac", DisplayName = "Privacy RBAC Test", CreatedAt = now });
+                new TenantEntity { TenantId = "tenant-priv-rbac", DisplayName = "Privacy RBAC Test", CreatedAt = now },
+                new TenantEntity { TenantId = "tenant-priv-hist", DisplayName = "Privacy History Test", CreatedAt = now },
+                new TenantEntity { TenantId = "tenant-priv-hist2", DisplayName = "Privacy History Test 2", CreatedAt = now },
+                new TenantEntity { TenantId = "tenant-priv-hist3", DisplayName = "Privacy History Test 3", CreatedAt = now },
+                new TenantEntity { TenantId = "tenant-priv-comp", DisplayName = "Privacy Compliance Test", CreatedAt = now },
+                new TenantEntity { TenantId = "tenant-priv-comp2", DisplayName = "Privacy Compliance Test 2", CreatedAt = now },
+                new TenantEntity { TenantId = "tenant-priv-comp3", DisplayName = "Privacy Compliance Test 3", CreatedAt = now },
+                new TenantEntity { TenantId = "tenant-priv-metric", DisplayName = "Privacy Metric Test", CreatedAt = now },
+                new TenantEntity { TenantId = "tenant-priv-metric2", DisplayName = "Privacy Metric Test 2", CreatedAt = now },
+                new TenantEntity { TenantId = "tenant-priv-iso1", DisplayName = "Privacy Isolation Test 1", CreatedAt = now },
+                new TenantEntity { TenantId = "tenant-priv-iso2", DisplayName = "Privacy Isolation Test 2", CreatedAt = now });
             await db.SaveChangesAsync();
         }
     }
@@ -106,10 +117,14 @@ public sealed class AuthTestFactory : WebApplicationFactory<Program>, IAsyncLife
             services.AddScoped<IRoutingAnalyticsService, SmartKb.Data.Repositories.RoutingAnalyticsService>();
             services.AddScoped<IRoutingImprovementService, SmartKb.Data.Repositories.RoutingImprovementService>();
             services.AddScoped<IPiiPolicyService, SmartKb.Data.Repositories.PiiPolicyService>();
+            services.AddSingleton<IOptions<RetentionSettings>>(Options.Create(new RetentionSettings()));
             services.AddScoped<IRetentionCleanupService, SmartKb.Data.Repositories.RetentionCleanupService>();
             services.AddScoped<IDataSubjectDeletionService, SmartKb.Data.Repositories.DataSubjectDeletionService>();
             services.AddScoped<ITenantCostSettingsService, SmartKb.Data.Repositories.TenantCostSettingsService>();
             services.AddScoped<ITokenUsageService, SmartKb.Data.Repositories.TokenUsageService>();
+            services.AddSingleton(new SmartKb.Contracts.Configuration.PatternMaintenanceSettings());
+            services.AddScoped<IContradictionDetectionService, SmartKb.Data.Repositories.ContradictionDetectionService>();
+            services.AddScoped<IPatternMaintenanceService, SmartKb.Data.Repositories.PatternMaintenanceService>();
         });
     }
 }

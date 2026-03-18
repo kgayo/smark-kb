@@ -59,6 +59,7 @@ public static class AuditEventTypes
     public const string PiiRedactionAudit = "privacy.pii_redaction_audit";
     public const string RetentionPolicyUpdated = "privacy.retention_policy_updated";
     public const string RetentionCleanupExecuted = "privacy.retention_cleanup_executed";
+    public const string RetentionComplianceChecked = "privacy.retention_compliance_checked";
     public const string DataSubjectDeletionRequested = "privacy.deletion_requested";
     public const string DataSubjectDeletionCompleted = "privacy.deletion_completed";
     public const string DataSubjectDeletionFailed = "privacy.deletion_failed";
@@ -68,6 +69,15 @@ public static class AuditEventTypes
     public const string PlaybookUpdated = "playbook.updated";
     public const string PlaybookDeleted = "playbook.deleted";
     public const string PlaybookValidationFailed = "playbook.validation_failed";
+
+    // Pattern maintenance events (P2-004).
+    public const string ContradictionDetected = "pattern.contradiction.detected";
+    public const string ContradictionDetectionRun = "pattern.contradiction.detection_run";
+    public const string ContradictionResolved = "pattern.contradiction.resolved";
+    public const string MaintenanceDetectionRun = "pattern.maintenance.detection_run";
+    public const string MaintenanceTaskCreated = "pattern.maintenance.task_created";
+    public const string MaintenanceTaskResolved = "pattern.maintenance.task_resolved";
+    public const string MaintenanceTaskDismissed = "pattern.maintenance.task_dismissed";
 
     // Webhook events.
     public const string WebhookReceived = "webhook.received";

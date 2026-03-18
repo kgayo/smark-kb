@@ -102,6 +102,25 @@ public static class Diagnostics
             "smartkb.privacy.data_subject_deletions_total",
             description: "Total data subject deletion requests processed.");
 
+    /// <summary>Retention cleanup execution duration in milliseconds (histogram).</summary>
+    public static readonly Histogram<long> RetentionCleanupDurationMs =
+        Meter.CreateHistogram<long>(
+            "smartkb.privacy.retention_cleanup_duration_ms",
+            unit: "ms",
+            description: "Duration of retention cleanup execution per entity type.");
+
+    /// <summary>Retention compliance checks performed (counter).</summary>
+    public static readonly Counter<long> RetentionComplianceChecksTotal =
+        Meter.CreateCounter<long>(
+            "smartkb.privacy.retention_compliance_checks_total",
+            description: "Total retention compliance checks performed.");
+
+    /// <summary>Overdue retention policies detected (counter).</summary>
+    public static readonly Counter<long> RetentionOverduePoliciesTotal =
+        Meter.CreateCounter<long>(
+            "smartkb.privacy.retention_overdue_policies_total",
+            description: "Retention policies detected as overdue during compliance checks.");
+
     /// <summary>Source API rate-limit hits (HTTP 429) during connector sync (counter).</summary>
     public static readonly Counter<long> SourceRateLimitTotal =
         Meter.CreateCounter<long>(

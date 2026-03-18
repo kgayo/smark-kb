@@ -48,6 +48,7 @@ public sealed record RetentionPolicyEntry
 {
     public required string EntityType { get; init; }
     public required int RetentionDays { get; init; }
+    public int? MetricRetentionDays { get; init; }
     public required DateTimeOffset UpdatedAt { get; init; }
 }
 
@@ -56,8 +57,11 @@ public sealed record RetentionPolicyUpdateRequest
     /// <summary>Entity type: AppSession, Message, AuditEvent, EvidenceChunk, AnswerTrace.</summary>
     public required string EntityType { get; init; }
 
-    /// <summary>Number of days before data is eligible for cleanup. Minimum: 1.</summary>
+    /// <summary>Number of days before detailed data is eligible for cleanup. Minimum: 1.</summary>
     public required int RetentionDays { get; init; }
+
+    /// <summary>Optional longer window for aggregated metrics. Must be >= RetentionDays when set.</summary>
+    public int? MetricRetentionDays { get; init; }
 }
 
 /// <summary>
@@ -109,4 +113,55 @@ public sealed record RedactionAuditDetail
     public required IReadOnlyDictionary<string, int> RedactionsByType { get; init; }
     public required IReadOnlyList<string> AffectedChunkIds { get; init; }
     public required string EnforcementMode { get; init; }
+}
+
+/// <summary>
+/// Retention execution log entry (P2-005).
+/// </summary>
+public sealed record RetentionExecutionLogEntry
+{
+    public required Guid Id { get; init; }
+    public required string TenantId { get; init; }
+    public required string EntityType { get; init; }
+    public required int DeletedCount { get; init; }
+    public required DateTimeOffset CutoffDate { get; init; }
+    public required DateTimeOffset ExecutedAt { get; init; }
+    public required long DurationMs { get; init; }
+    public required string ActorId { get; init; }
+}
+
+/// <summary>
+/// Paginated execution history response (P2-005).
+/// </summary>
+public sealed record RetentionExecutionHistoryResponse
+{
+    public required IReadOnlyList<RetentionExecutionLogEntry> Entries { get; init; }
+    public required int TotalCount { get; init; }
+}
+
+/// <summary>
+/// Compliance status for a single retention policy (P2-005).
+/// </summary>
+public sealed record RetentionComplianceEntry
+{
+    public required string EntityType { get; init; }
+    public required int RetentionDays { get; init; }
+    public int? MetricRetentionDays { get; init; }
+    public DateTimeOffset? LastExecutedAt { get; init; }
+    public int? LastDeletedCount { get; init; }
+    public required bool IsOverdue { get; init; }
+    public required int DaysSinceLastExecution { get; init; }
+}
+
+/// <summary>
+/// Overall retention compliance report for a tenant (P2-005).
+/// </summary>
+public sealed record RetentionComplianceReport
+{
+    public required string TenantId { get; init; }
+    public required DateTimeOffset GeneratedAt { get; init; }
+    public required bool IsCompliant { get; init; }
+    public required int TotalPolicies { get; init; }
+    public required int OverduePolicies { get; init; }
+    public required IReadOnlyList<RetentionComplianceEntry> Entries { get; init; }
 }

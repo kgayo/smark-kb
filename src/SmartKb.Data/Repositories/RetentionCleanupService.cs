@@ -1,6 +1,9 @@
+using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using SmartKb.Contracts;
+using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
 using SmartKb.Data.Entities;
@@ -15,15 +18,18 @@ public sealed class RetentionCleanupService : IRetentionCleanupService
     private readonly SmartKbDbContext _db;
     private readonly IAuditEventWriter _auditWriter;
     private readonly ILogger<RetentionCleanupService> _logger;
+    private readonly RetentionSettings _settings;
 
     public RetentionCleanupService(
         SmartKbDbContext db,
         IAuditEventWriter auditWriter,
-        ILogger<RetentionCleanupService> logger)
+        ILogger<RetentionCleanupService> logger,
+        IOptions<RetentionSettings> settings)
     {
         _db = db;
         _auditWriter = auditWriter;
         _logger = logger;
+        _settings = settings.Value;
     }
 
     public async Task<RetentionPolicyResponse> GetPoliciesAsync(string tenantId, CancellationToken ct = default)
@@ -40,6 +46,7 @@ public sealed class RetentionCleanupService : IRetentionCleanupService
             {
                 EntityType = c.EntityType,
                 RetentionDays = c.RetentionDays,
+                MetricRetentionDays = c.MetricRetentionDays,
                 UpdatedAt = c.UpdatedAt,
             }).ToList(),
         };
@@ -53,6 +60,9 @@ public sealed class RetentionCleanupService : IRetentionCleanupService
 
         if (request.RetentionDays < 1)
             throw new ArgumentException("RetentionDays must be at least 1.");
+
+        if (request.MetricRetentionDays.HasValue && request.MetricRetentionDays.Value < request.RetentionDays)
+            throw new ArgumentException("MetricRetentionDays must be >= RetentionDays.");
 
         var now = DateTimeOffset.UtcNow;
         var entity = await _db.RetentionConfigs
@@ -71,13 +81,18 @@ public sealed class RetentionCleanupService : IRetentionCleanupService
         }
 
         entity.RetentionDays = request.RetentionDays;
+        entity.MetricRetentionDays = request.MetricRetentionDays;
         entity.UpdatedAt = now;
 
         await _db.SaveChangesAsync(ct);
 
         _logger.LogInformation(
-            "Retention policy updated. TenantId={TenantId} EntityType={EntityType} Days={Days}",
-            tenantId, request.EntityType, request.RetentionDays);
+            "Retention policy updated. TenantId={TenantId} EntityType={EntityType} Days={Days} MetricDays={MetricDays}",
+            tenantId, request.EntityType, request.RetentionDays, request.MetricRetentionDays);
+
+        var metricDetail = request.MetricRetentionDays.HasValue
+            ? $", MetricRetentionDays={request.MetricRetentionDays.Value}"
+            : "";
 
         await _auditWriter.WriteAsync(new AuditEvent(
             EventId: Guid.NewGuid().ToString(),
@@ -86,12 +101,13 @@ public sealed class RetentionCleanupService : IRetentionCleanupService
             ActorId: actorId,
             CorrelationId: Guid.NewGuid().ToString(),
             Timestamp: now,
-            Detail: $"Retention policy set: {request.EntityType}={request.RetentionDays} days"), ct);
+            Detail: $"Retention policy set: {request.EntityType}={request.RetentionDays} days{metricDetail}"), ct);
 
         return new RetentionPolicyEntry
         {
             EntityType = entity.EntityType,
             RetentionDays = entity.RetentionDays,
+            MetricRetentionDays = entity.MetricRetentionDays,
             UpdatedAt = entity.UpdatedAt,
         };
     }
@@ -138,7 +154,9 @@ public sealed class RetentionCleanupService : IRetentionCleanupService
         foreach (var config in configs)
         {
             var cutoff = now.AddDays(-config.RetentionDays);
+            var sw = Stopwatch.StartNew();
             var deleted = await ExecuteEntityCleanup(tenantId, config.EntityType, cutoff, ct);
+            sw.Stop();
 
             if (deleted > 0)
             {
@@ -150,6 +168,26 @@ public sealed class RetentionCleanupService : IRetentionCleanupService
                     });
             }
 
+            Diagnostics.RetentionCleanupDurationMs.Record(sw.ElapsedMilliseconds,
+                new System.Diagnostics.TagList
+                {
+                    { "tenant_id", tenantId },
+                    { "entity_type", config.EntityType },
+                });
+
+            // Persist execution log entry.
+            _db.RetentionExecutionLogs.Add(new RetentionExecutionLogEntity
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                EntityType = config.EntityType,
+                DeletedCount = deleted,
+                CutoffDate = cutoff,
+                ExecutedAt = now,
+                DurationMs = sw.ElapsedMilliseconds,
+                ActorId = "system",
+            });
+
             results.Add(new RetentionCleanupResult
             {
                 TenantId = tenantId,
@@ -159,6 +197,8 @@ public sealed class RetentionCleanupService : IRetentionCleanupService
                 ExecutedAt = now,
             });
         }
+
+        await _db.SaveChangesAsync(ct);
 
         var totalDeleted = results.Sum(r => r.DeletedCount);
         if (totalDeleted > 0)
@@ -183,6 +223,118 @@ public sealed class RetentionCleanupService : IRetentionCleanupService
         return results;
     }
 
+    public async Task<RetentionExecutionHistoryResponse> GetExecutionHistoryAsync(
+        string tenantId, string? entityType = null, int skip = 0, int take = 50, CancellationToken ct = default)
+    {
+        var query = _db.RetentionExecutionLogs
+            .Where(l => l.TenantId == tenantId);
+
+        if (!string.IsNullOrEmpty(entityType))
+            query = query.Where(l => l.EntityType == entityType);
+
+        // Client-side ordering to avoid DateTimeOffset translation issues across database providers.
+        var allLogs = await query.ToListAsync(ct);
+        var totalCount = allLogs.Count;
+
+        var entries = allLogs
+            .OrderByDescending(l => l.ExecutedAt)
+            .Skip(skip)
+            .Take(take)
+            .Select(l => new RetentionExecutionLogEntry
+            {
+                Id = l.Id,
+                TenantId = l.TenantId,
+                EntityType = l.EntityType,
+                DeletedCount = l.DeletedCount,
+                CutoffDate = l.CutoffDate,
+                ExecutedAt = l.ExecutedAt,
+                DurationMs = l.DurationMs,
+                ActorId = l.ActorId,
+            })
+            .ToList();
+
+        return new RetentionExecutionHistoryResponse
+        {
+            Entries = entries,
+            TotalCount = totalCount,
+        };
+    }
+
+    public async Task<RetentionComplianceReport> GetComplianceReportAsync(
+        string tenantId, CancellationToken ct = default)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var configs = await _db.RetentionConfigs
+            .Where(r => r.TenantId == tenantId)
+            .OrderBy(r => r.EntityType)
+            .ToListAsync(ct);
+
+        // Get latest execution per entity type using client-side grouping for SQLite compat.
+        var logs = await _db.RetentionExecutionLogs
+            .Where(l => l.TenantId == tenantId)
+            .ToListAsync(ct);
+
+        var latestByType = logs
+            .GroupBy(l => l.EntityType)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(l => l.ExecutedAt).First());
+
+        var entries = new List<RetentionComplianceEntry>();
+        var overdueCount = 0;
+
+        foreach (var config in configs)
+        {
+            latestByType.TryGetValue(config.EntityType, out var latest);
+
+            var daysSince = latest is not null
+                ? (int)(now - latest.ExecutedAt).TotalDays
+                : int.MaxValue;
+
+            var isOverdue = daysSince > _settings.ComplianceWindowDays;
+            if (isOverdue) overdueCount++;
+
+            entries.Add(new RetentionComplianceEntry
+            {
+                EntityType = config.EntityType,
+                RetentionDays = config.RetentionDays,
+                MetricRetentionDays = config.MetricRetentionDays,
+                LastExecutedAt = latest?.ExecutedAt,
+                LastDeletedCount = latest?.DeletedCount,
+                IsOverdue = isOverdue,
+                DaysSinceLastExecution = daysSince == int.MaxValue ? -1 : daysSince,
+            });
+        }
+
+        Diagnostics.RetentionComplianceChecksTotal.Add(1,
+            new System.Diagnostics.TagList { { "tenant_id", tenantId } });
+
+        if (overdueCount > 0)
+        {
+            Diagnostics.RetentionOverduePoliciesTotal.Add(overdueCount,
+                new System.Diagnostics.TagList { { "tenant_id", tenantId } });
+        }
+
+        var isCompliant = overdueCount == 0 && configs.Count > 0;
+
+        await _auditWriter.WriteAsync(new AuditEvent(
+            EventId: Guid.NewGuid().ToString(),
+            EventType: AuditEventTypes.RetentionComplianceChecked,
+            TenantId: tenantId,
+            ActorId: "system",
+            CorrelationId: Guid.NewGuid().ToString(),
+            Timestamp: now,
+            Detail: $"Compliance check: {configs.Count} policies, {overdueCount} overdue, compliant={isCompliant}"), ct);
+
+        return new RetentionComplianceReport
+        {
+            TenantId = tenantId,
+            GeneratedAt = now,
+            IsCompliant = isCompliant,
+            TotalPolicies = configs.Count,
+            OverduePolicies = overdueCount,
+            Entries = entries,
+        };
+    }
+
     private async Task<int> ExecuteEntityCleanup(
         string tenantId, string entityType, DateTimeOffset cutoff, CancellationToken ct)
     {
@@ -199,8 +351,6 @@ public sealed class RetentionCleanupService : IRetentionCleanupService
 
     private async Task<int> CleanupSessions(string tenantId, DateTimeOffset cutoff, CancellationToken ct)
     {
-        // Load tenant sessions, then filter by date client-side to avoid DateTimeOffset
-        // translation issues across database providers.
         var sessions = (await _db.Sessions
             .Where(s => s.TenantId == tenantId)
             .ToListAsync(ct))

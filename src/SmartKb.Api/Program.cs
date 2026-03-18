@@ -204,6 +204,15 @@ var costOptimizationSettings = new CostOptimizationSettings();
 builder.Configuration.GetSection(CostOptimizationSettings.SectionName).Bind(costOptimizationSettings);
 builder.Services.AddSingleton(costOptimizationSettings);
 
+// Pattern maintenance settings (P2-004).
+var patternMaintenanceSettings = new PatternMaintenanceSettings();
+builder.Configuration.GetSection(PatternMaintenanceSettings.SectionName).Bind(patternMaintenanceSettings);
+builder.Services.AddSingleton(patternMaintenanceSettings);
+
+// Retention settings (P2-005).
+builder.Services.Configure<RetentionSettings>(
+    builder.Configuration.GetSection(RetentionSettings.SectionName));
+
 builder.Services.AddHttpClient("OpenAi");
 
 builder.Services.AddSingleton<IPiiRedactionService, PiiRedactionService>();
@@ -1084,6 +1093,97 @@ app.MapPost("/api/patterns/{patternId}/deprecate", async (
         : Results.Ok(ApiResponse<PatternGovernanceResult>.Success(result, tenant.CorrelationId));
 }).RequirePermission("pattern:deprecate");
 
+// --- Pattern Maintenance Endpoints (P2-004) ---
+
+app.MapPost("/api/admin/patterns/detect-contradictions", async (
+    ITenantContextAccessor tenantAccessor,
+    IContradictionDetectionService contradictionService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await contradictionService.DetectContradictionsAsync(
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId);
+    return Results.Ok(ApiResponse<ContradictionDetectionResult>.Success(result, tenant.CorrelationId));
+}).RequirePermission("pattern:approve");
+
+app.MapGet("/api/admin/patterns/contradictions", async (
+    ITenantContextAccessor tenantAccessor,
+    IContradictionDetectionService contradictionService,
+    string? status,
+    int? page,
+    int? pageSize) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await contradictionService.GetContradictionsAsync(
+        tenant.TenantId, status, page ?? 1, pageSize ?? 20);
+    return Results.Ok(ApiResponse<ContradictionListResponse>.Success(result, tenant.CorrelationId));
+}).RequirePermission("pattern:approve");
+
+app.MapPost("/api/admin/patterns/contradictions/{id}/resolve", async (
+    Guid id,
+    ResolveContradictionRequest request,
+    ITenantContextAccessor tenantAccessor,
+    IContradictionDetectionService contradictionService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await contradictionService.ResolveContradictionAsync(
+        id, tenant.TenantId, tenant.UserId, tenant.CorrelationId, request);
+    return result is null
+        ? Results.NotFound()
+        : Results.Ok(ApiResponse<ContradictionSummary>.Success(result, tenant.CorrelationId));
+}).RequirePermission("pattern:approve");
+
+app.MapPost("/api/admin/patterns/detect-maintenance", async (
+    ITenantContextAccessor tenantAccessor,
+    IPatternMaintenanceService maintenanceService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await maintenanceService.DetectMaintenanceIssuesAsync(
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId);
+    return Results.Ok(ApiResponse<MaintenanceDetectionResult>.Success(result, tenant.CorrelationId));
+}).RequirePermission("pattern:approve");
+
+app.MapGet("/api/admin/patterns/maintenance-tasks", async (
+    ITenantContextAccessor tenantAccessor,
+    IPatternMaintenanceService maintenanceService,
+    string? status,
+    string? taskType,
+    int? page,
+    int? pageSize) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await maintenanceService.GetMaintenanceTasksAsync(
+        tenant.TenantId, status, taskType, page ?? 1, pageSize ?? 20);
+    return Results.Ok(ApiResponse<MaintenanceTaskListResponse>.Success(result, tenant.CorrelationId));
+}).RequirePermission("pattern:approve");
+
+app.MapPost("/api/admin/patterns/maintenance-tasks/{id}/resolve", async (
+    Guid id,
+    ResolveMaintenanceTaskRequest request,
+    ITenantContextAccessor tenantAccessor,
+    IPatternMaintenanceService maintenanceService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await maintenanceService.ResolveTaskAsync(
+        id, tenant.TenantId, tenant.UserId, tenant.CorrelationId, request);
+    return result is null
+        ? Results.NotFound()
+        : Results.Ok(ApiResponse<MaintenanceTaskSummary>.Success(result, tenant.CorrelationId));
+}).RequirePermission("pattern:approve");
+
+app.MapPost("/api/admin/patterns/maintenance-tasks/{id}/dismiss", async (
+    Guid id,
+    ResolveMaintenanceTaskRequest request,
+    ITenantContextAccessor tenantAccessor,
+    IPatternMaintenanceService maintenanceService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await maintenanceService.DismissTaskAsync(
+        id, tenant.TenantId, tenant.UserId, tenant.CorrelationId, request);
+    return result is null
+        ? Results.NotFound()
+        : Results.Ok(ApiResponse<MaintenanceTaskSummary>.Success(result, tenant.CorrelationId));
+}).RequirePermission("pattern:approve");
+
 // --- Secrets Status Endpoint ---
 
 app.MapGet("/api/admin/secrets/status", (
@@ -1516,6 +1616,30 @@ app.MapGet("/api/admin/privacy/data-subject-deletion/{requestId:guid}", async (
     return result is not null
         ? Results.Ok(ApiResponse<DataSubjectDeletionResponse>.Success(result, tenant.CorrelationId))
         : Results.NotFound(ApiResponse<object>.Failure("Deletion request not found.", tenant.CorrelationId));
+}).RequirePermission("privacy:manage");
+
+// ──── Retention Measurable Execution Endpoints (P2-005) ────
+
+app.MapGet("/api/admin/privacy/retention/history", async (
+    string? entityType,
+    int? skip,
+    int? take,
+    ITenantContextAccessor tenantAccessor,
+    IRetentionCleanupService retentionService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await retentionService.GetExecutionHistoryAsync(
+        tenant.TenantId, entityType, skip ?? 0, take ?? 50);
+    return Results.Ok(ApiResponse<RetentionExecutionHistoryResponse>.Success(result, tenant.CorrelationId));
+}).RequirePermission("privacy:manage");
+
+app.MapGet("/api/admin/privacy/retention/compliance", async (
+    ITenantContextAccessor tenantAccessor,
+    IRetentionCleanupService retentionService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var report = await retentionService.GetComplianceReportAsync(tenant.TenantId);
+    return Results.Ok(ApiResponse<RetentionComplianceReport>.Success(report, tenant.CorrelationId));
 }).RequirePermission("privacy:manage");
 
 // --- Cost Optimization Endpoints (P2-003) ---

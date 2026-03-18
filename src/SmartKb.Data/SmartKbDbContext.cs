@@ -32,6 +32,9 @@ public class SmartKbDbContext : DbContext
     public DbSet<TokenUsageEntity> TokenUsages => Set<TokenUsageEntity>();
     public DbSet<TenantCostSettingsEntity> TenantCostSettings => Set<TenantCostSettingsEntity>();
     public DbSet<EmbeddingCacheEntity> EmbeddingCache => Set<EmbeddingCacheEntity>();
+    public DbSet<PatternContradictionEntity> PatternContradictions => Set<PatternContradictionEntity>();
+    public DbSet<PatternMaintenanceTaskEntity> PatternMaintenanceTasks => Set<PatternMaintenanceTaskEntity>();
+    public DbSet<RetentionExecutionLogEntity> RetentionExecutionLogs => Set<RetentionExecutionLogEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -62,6 +65,9 @@ public class SmartKbDbContext : DbContext
         ConfigureTokenUsage(modelBuilder);
         ConfigureTenantCostSettings(modelBuilder);
         ConfigureEmbeddingCache(modelBuilder);
+        ConfigurePatternContradiction(modelBuilder);
+        ConfigurePatternMaintenanceTask(modelBuilder);
+        ConfigureRetentionExecutionLog(modelBuilder);
     }
 
     private static void ConfigureTenant(ModelBuilder modelBuilder)
@@ -546,6 +552,69 @@ public class SmartKbDbContext : DbContext
             e.Property(c => c.ModelId).HasMaxLength(128).IsRequired();
             e.HasIndex(c => c.ContentHash);
             e.HasIndex(c => c.ExpiresAt);
+        });
+    }
+
+    private static void ConfigurePatternContradiction(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<PatternContradictionEntity>(e =>
+        {
+            e.ToTable("PatternContradictions");
+            e.HasKey(c => c.Id);
+            e.Property(c => c.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(c => c.PatternIdA).HasMaxLength(256).IsRequired();
+            e.Property(c => c.PatternIdB).HasMaxLength(256).IsRequired();
+            e.Property(c => c.ContradictionType).HasMaxLength(64).IsRequired();
+            e.Property(c => c.Description).IsRequired();
+            e.Property(c => c.ConflictingFieldsJson).IsRequired();
+            e.Property(c => c.Status).HasMaxLength(32).IsRequired();
+            e.Property(c => c.Resolution).HasMaxLength(64);
+            e.Property(c => c.ResolvedBy).HasMaxLength(128);
+            e.Property(c => c.ResolutionNotes).HasMaxLength(1024);
+            e.HasIndex(c => c.TenantId);
+            e.HasIndex(c => new { c.TenantId, c.Status });
+            e.HasIndex(c => new { c.TenantId, c.PatternIdA });
+            e.HasIndex(c => new { c.TenantId, c.PatternIdB });
+            e.HasOne(c => c.Tenant).WithMany().HasForeignKey(c => c.TenantId);
+        });
+    }
+
+    private static void ConfigurePatternMaintenanceTask(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<PatternMaintenanceTaskEntity>(e =>
+        {
+            e.ToTable("PatternMaintenanceTasks");
+            e.HasKey(t => t.Id);
+            e.Property(t => t.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(t => t.PatternId).HasMaxLength(256).IsRequired();
+            e.Property(t => t.TaskType).HasMaxLength(64).IsRequired();
+            e.Property(t => t.Severity).HasMaxLength(32).IsRequired();
+            e.Property(t => t.Description).IsRequired();
+            e.Property(t => t.RecommendedAction).IsRequired();
+            e.Property(t => t.MetricsJson).IsRequired();
+            e.Property(t => t.Status).HasMaxLength(32).IsRequired();
+            e.Property(t => t.ResolvedBy).HasMaxLength(128);
+            e.Property(t => t.ResolutionNotes).HasMaxLength(1024);
+            e.HasIndex(t => t.TenantId);
+            e.HasIndex(t => new { t.TenantId, t.Status });
+            e.HasIndex(t => new { t.TenantId, t.PatternId });
+            e.HasOne(t => t.Tenant).WithMany().HasForeignKey(t => t.TenantId);
+        });
+    }
+
+    private static void ConfigureRetentionExecutionLog(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<RetentionExecutionLogEntity>(e =>
+        {
+            e.ToTable("RetentionExecutionLogs");
+            e.HasKey(l => l.Id);
+            e.Property(l => l.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(l => l.EntityType).HasMaxLength(128).IsRequired();
+            e.Property(l => l.ActorId).HasMaxLength(128).IsRequired();
+            e.HasIndex(l => l.TenantId);
+            e.HasIndex(l => new { l.TenantId, l.ExecutedAt });
+            e.HasIndex(l => new { l.TenantId, l.EntityType });
+            e.HasOne(l => l.Tenant).WithMany().HasForeignKey(l => l.TenantId);
         });
     }
 }
