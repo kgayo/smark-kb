@@ -1,0 +1,102 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "description": "Bootstrap infrastructure for Terraform remote state backend. Deploy once to rg-smartkb-tfstate before using terraform init with the azurerm backend."
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Azure region for state storage resources."
+      }
+    },
+    "storageAccountName": {
+      "type": "string",
+      "defaultValue": "stsmartkbtfstate",
+      "metadata": {
+        "description": "Storage account name for Terraform state."
+      }
+    },
+    "containerName": {
+      "type": "string",
+      "defaultValue": "tfstate",
+      "metadata": {
+        "description": "Blob container name for state files."
+      }
+    },
+    "deleteRetentionDays": {
+      "type": "int",
+      "defaultValue": 14,
+      "metadata": {
+        "description": "Soft-delete retention period in days for blob recovery."
+      }
+    }
+  },
+  "variables": {
+    "commonTags": {
+      "project": "smart-kb",
+      "purpose": "terraform-state",
+      "managed_by": "arm"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2023-05-01",
+      "name": "[parameters('storageAccountName')]",
+      "location": "[parameters('location')]",
+      "tags": "[variables('commonTags')]",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "kind": "StorageV2",
+      "properties": {
+        "minimumTlsVersion": "TLS1_2",
+        "supportsHttpsTrafficOnly": true,
+        "allowBlobPublicAccess": false
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices",
+      "apiVersion": "2023-05-01",
+      "name": "[format('{0}/default', parameters('storageAccountName'))]",
+      "properties": {
+        "isVersioningEnabled": true,
+        "deleteRetentionPolicy": {
+          "enabled": true,
+          "days": "[parameters('deleteRetentionDays')]"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2023-05-01",
+      "name": "[format('{0}/default/{1}', parameters('storageAccountName'), parameters('containerName'))]",
+      "properties": {
+        "publicAccess": "None"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/blobServices', parameters('storageAccountName'), 'default')]"
+      ]
+    }
+  ],
+  "outputs": {
+    "storageAccountName": {
+      "type": "string",
+      "value": "[parameters('storageAccountName')]"
+    },
+    "containerName": {
+      "type": "string",
+      "value": "[parameters('containerName')]"
+    },
+    "storageAccountBlobEndpoint": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))).primaryEndpoints.blob]"
+    }
+  }
+}

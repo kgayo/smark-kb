@@ -37,6 +37,8 @@ public static class DataServiceExtensions
         services.AddScoped<ITenantCostSettingsService, TenantCostSettingsService>();
         services.AddScoped<ITokenUsageService, TokenUsageService>();
         services.AddScoped<IEmbeddingCacheService, EmbeddingCacheService>();
+        services.AddScoped<IContradictionDetectionService, ContradictionDetectionService>();
+        services.AddScoped<IPatternMaintenanceService, PatternMaintenanceService>();
 
         return services;
     }

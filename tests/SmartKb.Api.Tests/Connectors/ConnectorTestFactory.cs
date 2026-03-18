@@ -87,6 +87,9 @@ public sealed class ConnectorTestFactory : WebApplicationFactory<Program>, IAsyn
             services.AddScoped<IDataSubjectDeletionService, DataSubjectDeletionService>();
             services.AddScoped<ITenantCostSettingsService, TenantCostSettingsService>();
             services.AddScoped<ITokenUsageService, TokenUsageService>();
+            services.AddSingleton(new SmartKb.Contracts.Configuration.PatternMaintenanceSettings());
+            services.AddScoped<IContradictionDetectionService, SmartKb.Data.Repositories.ContradictionDetectionService>();
+            services.AddScoped<IPatternMaintenanceService, SmartKb.Data.Repositories.PatternMaintenanceService>();
             services.AddScoped<AdoWebhookHandler>();
             services.AddScoped<SharePointWebhookHandler>();
             services.AddScoped<HubSpotWebhookHandler>();

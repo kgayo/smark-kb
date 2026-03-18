@@ -258,6 +258,9 @@ internal sealed class AuditTestFactory : WebApplicationFactory<Program>, IAsyncL
             services.AddScoped<IDataSubjectDeletionService, SmartKb.Data.Repositories.DataSubjectDeletionService>();
             services.AddScoped<ITenantCostSettingsService, SmartKb.Data.Repositories.TenantCostSettingsService>();
             services.AddScoped<ITokenUsageService, SmartKb.Data.Repositories.TokenUsageService>();
+            services.AddSingleton(new SmartKb.Contracts.Configuration.PatternMaintenanceSettings());
+            services.AddScoped<IContradictionDetectionService, SmartKb.Data.Repositories.ContradictionDetectionService>();
+            services.AddScoped<IPatternMaintenanceService, SmartKb.Data.Repositories.PatternMaintenanceService>();
         });
     }
 
