@@ -30,13 +30,16 @@ public sealed class SharePointWebhookManager : IWebhookManager
     private static readonly TimeSpan SubscriptionLifetime = TimeSpan.FromMinutes(4230);
 
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ITextExtractionService _textExtractor;
     private readonly ILogger<SharePointWebhookManager> _logger;
 
     public SharePointWebhookManager(
         IHttpClientFactory httpClientFactory,
+        ITextExtractionService textExtractor,
         ILogger<SharePointWebhookManager> logger)
     {
         _httpClientFactory = httpClientFactory;
+        _textExtractor = textExtractor;
         _logger = logger;
     }
 
@@ -73,7 +76,7 @@ public sealed class SharePointWebhookManager : IWebhookManager
         using var graphClient = CreateGraphClient(accessToken);
 
         // Resolve site and drives.
-        var spClient = new SharePointConnectorClient(_httpClientFactory, _logger as ILogger<SharePointConnectorClient> ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<SharePointConnectorClient>.Instance);
+        var spClient = new SharePointConnectorClient(_httpClientFactory, _textExtractor, _logger as ILogger<SharePointConnectorClient> ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<SharePointConnectorClient>.Instance);
         var siteId = await spClient.ResolveSiteIdAsync(graphClient, config.SiteUrl, cancellationToken);
         if (siteId is null)
         {

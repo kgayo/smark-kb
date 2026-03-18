@@ -70,6 +70,47 @@ public sealed class AzureBlobStorageService : IBlobStorageService
         return response.Value;
     }
 
+    public async Task<string> UploadBinaryContentAsync(
+        string tenantId,
+        string connectorType,
+        string evidenceId,
+        Stream content,
+        string contentType,
+        CancellationToken cancellationToken = default)
+    {
+        var blobPath = IBlobStorageService.BuildBinaryBlobPath(tenantId, connectorType, evidenceId);
+        var blobClient = _container.GetBlobClient(blobPath);
+
+        var options = new BlobUploadOptions
+        {
+            HttpHeaders = new BlobHttpHeaders { ContentType = contentType },
+        };
+
+        await blobClient.UploadAsync(content, options, cancellationToken);
+
+        _logger.LogDebug(
+            "Uploaded binary content for {EvidenceId} to {BlobPath} ({ContentType})",
+            evidenceId, blobPath, contentType);
+
+        return blobPath;
+    }
+
+    public async Task<Stream?> DownloadBinaryContentAsync(string blobPath, CancellationToken cancellationToken = default)
+    {
+        var blobClient = _container.GetBlobClient(blobPath);
+
+        try
+        {
+            var response = await blobClient.DownloadStreamingAsync(cancellationToken: cancellationToken);
+            return response.Value.Content;
+        }
+        catch (RequestFailedException ex) when (ex.Status == 404)
+        {
+            _logger.LogDebug("Binary blob not found at {BlobPath}", blobPath);
+            return null;
+        }
+    }
+
     public async Task<bool> ExistsAsync(string blobPath, CancellationToken cancellationToken = default)
     {
         var blobClient = _container.GetBlobClient(blobPath);

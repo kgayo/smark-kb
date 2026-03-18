@@ -8,8 +8,8 @@ using SmartKb.Contracts;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Connectors;
 using SmartKb.Contracts.Enums;
-using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
+using SmartKb.Contracts.Models;
 using SmartKb.Data;
 using SmartKb.Data.Entities;
 using SmartKb.Ingestion.Processing;
@@ -297,7 +297,8 @@ public class SharePointSyncJobProcessorIntegrationTests : IDisposable
     {
         var factory = new TestHttpClientFactory(handler);
         var logger = new LoggerFactory().CreateLogger<SharePointConnectorClient>();
-        return new SharePointConnectorClient(factory, logger);
+        var extractor = new NullTextExtractionService();
+        return new SharePointConnectorClient(factory, extractor, logger);
     }
 
     /// <summary>
@@ -388,4 +389,13 @@ internal class GraphRoutingHandler : HttpMessageHandler
             Content = new StringContent($"No route for {method} {url}", Encoding.UTF8, "text/plain"),
         });
     }
+}
+
+internal sealed class NullTextExtractionService : ITextExtractionService
+{
+    public bool CanExtract(string fileName) => false;
+
+    public Task<TextExtractionResult> ExtractTextAsync(
+        Stream content, string fileName, CancellationToken cancellationToken = default)
+        => Task.FromResult(TextExtractionResult.Failure("No extraction in test mode."));
 }

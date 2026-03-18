@@ -481,13 +481,165 @@ public class SharePointConnectorClientTests
         Assert.Empty(config.ExcludeFolders);
     }
 
+    // --- DownloadAndExtractText tests ---
+
+    [Fact]
+    public async Task DownloadAndExtractText_TextFile_DownloadsAndSetsContent()
+    {
+        var handler = new DelegatingMockHandler(req =>
+        {
+            if (req.RequestUri!.PathAndQuery.Contains("/content"))
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("# README\nThis is a text file."),
+                };
+            return new HttpResponseMessage(HttpStatusCode.OK);
+        });
+
+        var client = CreateClient(handler);
+        var httpClient = new TestHttpClientFactory(handler).CreateClient("SharePoint");
+        httpClient.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "token");
+
+        var item = new GraphDriveItem { Id = "item1", Name = "readme.md", Size = 100 };
+        var record = CreateTestRecord("sp-drive1-item1", "[metadata only]");
+
+        var result = await client.DownloadAndExtractTextAsync(httpClient, "drive1", item, record, CancellationToken.None);
+
+        Assert.Equal("# README\nThis is a text file.", result.TextContent);
+    }
+
+    [Fact]
+    public async Task DownloadAndExtractText_BinaryPdf_ExtractsText()
+    {
+        var pdfBytes = CreateSimplePdf("Extracted PDF content");
+        var handler = new DelegatingMockHandler(req =>
+        {
+            if (req.RequestUri!.PathAndQuery.Contains("/content"))
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new ByteArrayContent(pdfBytes),
+                };
+            return new HttpResponseMessage(HttpStatusCode.OK);
+        });
+
+        var extractor = new SmartKb.Contracts.Services.TextExtractionService(
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<SmartKb.Contracts.Services.TextExtractionService>.Instance);
+        var client = CreateClientWithExtractor(handler, extractor);
+        var httpClient = new TestHttpClientFactory(handler).CreateClient("SharePoint");
+
+        var item = new GraphDriveItem { Id = "item2", Name = "report.pdf", Size = pdfBytes.Length };
+        var record = CreateTestRecord("sp-drive1-item2", "[metadata only]");
+
+        var result = await client.DownloadAndExtractTextAsync(httpClient, "drive1", item, record, CancellationToken.None);
+
+        Assert.Contains("Extracted PDF content", result.TextContent);
+    }
+
+    [Fact]
+    public async Task DownloadAndExtractText_DownloadFails_FallsBackToMetadata()
+    {
+        var handler = new DelegatingMockHandler(req =>
+            new HttpResponseMessage(HttpStatusCode.Forbidden));
+
+        var client = CreateClient(handler);
+        var httpClient = new TestHttpClientFactory(handler).CreateClient("SharePoint");
+
+        var item = new GraphDriveItem { Id = "item3", Name = "secret.pdf", Size = 500 };
+        var record = CreateTestRecord("sp-drive1-item3", "[metadata only]");
+
+        var result = await client.DownloadAndExtractTextAsync(httpClient, "drive1", item, record, CancellationToken.None);
+
+        Assert.Equal("[metadata only]", result.TextContent);
+    }
+
+    [Fact]
+    public async Task DownloadAndExtractText_UnsupportedExtension_KeepsMetadata()
+    {
+        var client = CreateClient();
+        var httpClient = new TestHttpClientFactory(
+            new MockHttpHandler(HttpStatusCode.OK, "test")).CreateClient("SharePoint");
+
+        var item = new GraphDriveItem { Id = "item4", Name = "image.png", Size = 1024 };
+        var record = CreateTestRecord("sp-drive1-item4", "[metadata only]");
+
+        var result = await client.DownloadAndExtractTextAsync(httpClient, "drive1", item, record, CancellationToken.None);
+
+        Assert.Equal("[metadata only]", result.TextContent);
+    }
+
+    [Fact]
+    public async Task DownloadAndExtractText_CorruptBinary_FallsBackToMetadata()
+    {
+        var handler = new DelegatingMockHandler(req =>
+        {
+            if (req.RequestUri!.PathAndQuery.Contains("/content"))
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new ByteArrayContent(new byte[] { 0x00, 0x01, 0x02 }),
+                };
+            return new HttpResponseMessage(HttpStatusCode.OK);
+        });
+
+        var extractor = new SmartKb.Contracts.Services.TextExtractionService(
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<SmartKb.Contracts.Services.TextExtractionService>.Instance);
+        var client = CreateClientWithExtractor(handler, extractor);
+        var httpClient = new TestHttpClientFactory(handler).CreateClient("SharePoint");
+
+        var item = new GraphDriveItem { Id = "item5", Name = "corrupt.docx", Size = 3 };
+        var record = CreateTestRecord("sp-drive1-item5", "[metadata only]");
+
+        var result = await client.DownloadAndExtractTextAsync(httpClient, "drive1", item, record, CancellationToken.None);
+
+        Assert.Equal("[metadata only]", result.TextContent);
+    }
+
     // --- Helpers ---
 
     private static SharePointConnectorClient CreateClient(HttpMessageHandler? handler = null)
     {
         var factory = new TestHttpClientFactory(handler ?? new MockHttpHandler(HttpStatusCode.OK, "{}"));
         var logger = Microsoft.Extensions.Logging.Abstractions.NullLogger<SharePointConnectorClient>.Instance;
-        return new SharePointConnectorClient(factory, logger);
+        var extractor = new NullTextExtractionService();
+        return new SharePointConnectorClient(factory, extractor, logger);
+    }
+
+    private static SharePointConnectorClient CreateClientWithExtractor(
+        HttpMessageHandler handler, SmartKb.Contracts.Services.ITextExtractionService extractor)
+    {
+        var factory = new TestHttpClientFactory(handler);
+        var logger = Microsoft.Extensions.Logging.Abstractions.NullLogger<SharePointConnectorClient>.Instance;
+        return new SharePointConnectorClient(factory, extractor, logger);
+    }
+
+    private static CanonicalRecord CreateTestRecord(string evidenceId, string textContent)
+    {
+        return new CanonicalRecord
+        {
+            TenantId = "tenant-1",
+            EvidenceId = evidenceId,
+            SourceSystem = ConnectorType.SharePoint,
+            SourceType = SourceType.Document,
+            SourceLocator = new SourceLocator("id", "https://example.com"),
+            Title = "Test",
+            TextContent = textContent,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+            Status = EvidenceStatus.Open,
+            Permissions = new RecordPermissions(AccessVisibility.Internal, []),
+            ContentHash = "hash",
+            AccessLabel = "Internal",
+        };
+    }
+
+    private static byte[] CreateSimplePdf(string text)
+    {
+        var builder = new UglyToad.PdfPig.Writer.PdfDocumentBuilder();
+        var font = builder.AddStandard14Font(
+            UglyToad.PdfPig.Fonts.Standard14Fonts.Standard14Font.Helvetica);
+        var page = builder.AddPage(595, 842);
+        page.AddText(text, 12, new UglyToad.PdfPig.Core.PdfPoint(72, 700), font);
+        return builder.Build();
     }
 
     private static string CreateSourceConfigJson(

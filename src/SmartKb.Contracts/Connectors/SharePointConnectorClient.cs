@@ -35,14 +35,29 @@ public sealed class SharePointConnectorClient : IConnectorClient
         ".rtf", ".odt", ".ods", ".odp",
     };
 
+    // Binary file extensions that require text extraction via ITextExtractionService.
+    private static readonly HashSet<string> BinaryExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".pdf", ".docx", ".pptx", ".xlsx",
+    };
+
+    // Text-based extensions where we can download content directly as UTF-8 text.
+    private static readonly HashSet<string> TextExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".txt", ".md", ".csv", ".log", ".json", ".xml", ".html", ".htm",
+    };
+
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ITextExtractionService _textExtractor;
     private readonly ILogger<SharePointConnectorClient> _logger;
 
     public SharePointConnectorClient(
         IHttpClientFactory httpClientFactory,
+        ITextExtractionService textExtractor,
         ILogger<SharePointConnectorClient> logger)
     {
         _httpClientFactory = httpClientFactory;
+        _textExtractor = textExtractor;
         _logger = logger;
     }
 
@@ -305,6 +320,9 @@ public sealed class SharePointConnectorClient : IConnectorClient
                     var record = MapDriveItemToCanonical(item, drive, config, tenantId);
                     if (record is not null)
                     {
+                        // Download file content and extract text.
+                        record = await DownloadAndExtractTextAsync(
+                            client, drive.Id!, item, record, ct);
                         records.Add(record);
                         fetched++;
                     }
@@ -381,6 +399,84 @@ public sealed class SharePointConnectorClient : IConnectorClient
             ProductArea = folderPath,
             Tags = string.IsNullOrEmpty(extension) ? [] : [extension],
         };
+    }
+
+    // --- File Content Download + Text Extraction ---
+
+    /// <summary>
+    /// Downloads file content from Graph API and extracts text.
+    /// For binary formats (PDF, DOCX, PPTX, XLSX): uses ITextExtractionService.
+    /// For text formats (TXT, MD, CSV, etc.): reads content directly as UTF-8.
+    /// Falls back to metadata-only TextContent on any failure.
+    /// </summary>
+    internal async Task<CanonicalRecord> DownloadAndExtractTextAsync(
+        HttpClient client, string driveId, GraphDriveItem item,
+        CanonicalRecord record, CancellationToken ct)
+    {
+        var extension = Path.GetExtension(item.Name ?? "").ToLowerInvariant();
+
+        // Skip unsupported formats — keep metadata-only TextContent.
+        if (!BinaryExtensions.Contains(extension) && !TextExtensions.Contains(extension))
+            return record;
+
+        try
+        {
+            var downloadUrl = $"{GraphBaseUrl}/drives/{driveId}/items/{item.Id}/content";
+            using var response = await client.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning(
+                    "Failed to download content for {ItemName} (HTTP {StatusCode})",
+                    item.Name, (int)response.StatusCode);
+                return record;
+            }
+
+            if (BinaryExtensions.Contains(extension))
+            {
+                // Binary extraction via PdfPig / Open XML SDK.
+                using var stream = await response.Content.ReadAsStreamAsync(ct);
+
+                // Buffer to MemoryStream so extraction libraries can seek.
+                using var memoryStream = new MemoryStream();
+                await stream.CopyToAsync(memoryStream, ct);
+                memoryStream.Position = 0;
+
+                var result = await _textExtractor.ExtractTextAsync(memoryStream, item.Name!, ct);
+                if (result.Success && !string.IsNullOrWhiteSpace(result.Text))
+                {
+                    _logger.LogDebug(
+                        "Extracted {Length} chars from {ItemName} ({Format}, {PageCount} pages/sheets)",
+                        result.Text.Length, item.Name, result.Format, result.PageCount);
+
+                    return record with { TextContent = result.Text };
+                }
+
+                _logger.LogDebug(
+                    "Text extraction returned no content for {ItemName}: {Error}",
+                    item.Name, result.Error);
+                return record;
+            }
+            else
+            {
+                // Text-based file — read content directly.
+                var text = await response.Content.ReadAsStringAsync(ct);
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    _logger.LogDebug(
+                        "Downloaded {Length} chars of text content from {ItemName}",
+                        text.Length, item.Name);
+                    return record with { TextContent = text };
+                }
+
+                return record;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Content download/extraction failed for {ItemName}. Using metadata-only.", item.Name);
+            return record;
+        }
     }
 
     // --- OAuth2 Token Acquisition ---

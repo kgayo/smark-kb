@@ -698,6 +698,22 @@ internal class FakeBlobStorageService : IBlobStorageService
 
     public Task<bool> ExistsAsync(string blobPath, CancellationToken cancellationToken = default)
         => Task.FromResult(Uploads.ContainsKey(blobPath));
+
+    public Task<string> UploadBinaryContentAsync(string tenantId, string connectorType, string evidenceId,
+        Stream content, string contentType, CancellationToken cancellationToken = default)
+    {
+        var path = IBlobStorageService.BuildBinaryBlobPath(tenantId, connectorType, evidenceId);
+        using var reader = new StreamReader(content);
+        Uploads[path] = reader.ReadToEnd();
+        return Task.FromResult(path);
+    }
+
+    public Task<Stream?> DownloadBinaryContentAsync(string blobPath, CancellationToken cancellationToken = default)
+    {
+        if (Uploads.TryGetValue(blobPath, out var content))
+            return Task.FromResult<Stream?>(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(content)));
+        return Task.FromResult<Stream?>(null);
+    }
 }
 
 internal class FakeSecretProvider : ISecretProvider

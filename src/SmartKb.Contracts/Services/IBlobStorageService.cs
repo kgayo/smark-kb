@@ -41,6 +41,23 @@ public interface IBlobStorageService
     Task<bool> DeleteRawContentAsync(string blobPath, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Uploads binary content to blob storage and returns the blob path.
+    /// </summary>
+    Task<string> UploadBinaryContentAsync(
+        string tenantId,
+        string connectorType,
+        string evidenceId,
+        Stream content,
+        string contentType,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Downloads binary content from blob storage as a stream.
+    /// </summary>
+    /// <returns>The binary stream, or null if the blob does not exist.</returns>
+    Task<Stream?> DownloadBinaryContentAsync(string blobPath, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Checks whether a blob exists at the given path.
     /// </summary>
     Task<bool> ExistsAsync(string blobPath, CancellationToken cancellationToken = default);
@@ -51,4 +68,11 @@ public interface IBlobStorageService
     /// </summary>
     static string BuildBlobPath(string tenantId, string connectorType, string evidenceId)
         => $"{tenantId}/{connectorType}/{evidenceId}/raw";
+
+    /// <summary>
+    /// Builds the blob path for binary content (stored separately from text snapshots).
+    /// Format: {tenantId}/{connectorType}/{evidenceId}/binary
+    /// </summary>
+    static string BuildBinaryBlobPath(string tenantId, string connectorType, string evidenceId)
+        => $"{tenantId}/{connectorType}/{evidenceId}/binary";
 }

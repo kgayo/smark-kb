@@ -93,6 +93,9 @@ if (!string.IsNullOrEmpty(connectionString))
     builder.Services.AddSmartKbData(connectionString);
 }
 
+// Text extraction service for binary documents (PDF, DOCX, PPTX, XLSX).
+builder.Services.AddSingleton<ITextExtractionService, SmartKb.Contracts.Services.TextExtractionService>();
+
 // Connector clients — register all IConnectorClient implementations.
 builder.Services.AddHttpClient("AzureDevOps");
 builder.Services.AddHttpClient("SharePoint");

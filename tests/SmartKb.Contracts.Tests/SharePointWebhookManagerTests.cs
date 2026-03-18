@@ -188,7 +188,8 @@ public class SharePointWebhookManagerTests
     {
         var factory = new TestHttpClientFactory(handler ?? new MockHttpHandler(HttpStatusCode.OK, "{}"));
         var logger = Microsoft.Extensions.Logging.Abstractions.NullLogger<SharePointWebhookManager>.Instance;
-        return new SharePointWebhookManager(factory, logger);
+        var extractor = new NullTextExtractionService();
+        return new SharePointWebhookManager(factory, extractor, logger);
     }
 
     private static string CreateSourceConfigJson()

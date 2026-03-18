@@ -108,6 +108,9 @@ builder.Services.AddSingleton<IChunkingService, SmartKb.Contracts.Services.TextC
 builder.Services.AddSingleton<IEnrichmentService, SmartKb.Contracts.Services.EnhancedEnrichmentService>();
 builder.Services.AddSingleton<INormalizationPipeline, SmartKb.Contracts.Services.NormalizationPipeline>();
 
+// Text extraction service for binary documents (PDF, DOCX, PPTX, XLSX).
+builder.Services.AddSingleton<ITextExtractionService, SmartKb.Contracts.Services.TextExtractionService>();
+
 // Connector clients — register all IConnectorClient implementations.
 builder.Services.AddHttpClient("AzureDevOps");
 builder.Services.AddHttpClient("SharePoint");

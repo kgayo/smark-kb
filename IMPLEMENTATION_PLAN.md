@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-18 (Asia/Manila) — iteration 73 (P3-034 automatic pattern indexing completion)
-Status: Active backlog (Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 in progress: P3-001, P3-002, P3-006, P3-018, P3-034 complete; Tests complete: T-001–T-008; ~2004 tests passing (1721 backend + 253 frontend + 98 IaC = ~2072 total); 0 bugs blocking, 0 tech-debt blocking)
+Last updated: 2026-03-18 (Asia/Manila) — iteration 74 (P3-003 binary text extraction)
+Status: Active backlog (Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 in progress: P3-001, P3-002, P3-003, P3-006, P3-018, P3-034 complete; Tests complete: T-001–T-008; ~2099 tests passing (1746 backend + 253 frontend + 98 IaC = ~2097 total); 0 bugs blocking, 0 tech-debt blocking)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -321,12 +321,10 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
   - Priority: MEDIUM — improves multi-turn quality for complex troubleshooting sessions.
   - **DONE** (iteration 72): `ISessionSummarizationService` + `OpenAiSessionSummarizationService` using gpt-4o-mini with structured JSON output. `ChatOrchestrator.AssembleMessages` now calls `ComputeDroppedMessages` to detect sliding-window drops, summarizes via gpt-4o-mini when ≥4 messages would be dropped, and injects the summary as a system message before remaining history. Settings: `EnableSessionSummarization`, `SummarizationModel`, `SummarizationMaxTokens` (256), `SummarizationTimeoutMs` (5s), `SummarizationMinDroppedMessages` (4). OTel counter `smartkb.chat.session_summarizations_total`. 22 new tests.
 
-- [ ] P3-003: Implement full text extraction for binary documents (PDF, DOCX, PPTX, XLSX).
+- [x] P3-003: Implement full text extraction for binary documents (PDF, DOCX, PPTX, XLSX).
   - Specs: jtbd-01 (SharePoint), jtbd-02
-  - Gap: SharePoint connector ingests file metadata but `SharePointConnectorClient.cs:356` notes "Full text extraction happens in P0-010" — however, P0-010 only handles text content (markdown/HTML stripping). Binary files (PDF, DOCX, PPTX, XLSX) are stored as raw blobs but their text is never extracted for chunking/indexing.
-  - Scope: Add `ITextExtractionService` with implementations for PDF (PdfSharp or Azure AI Document Intelligence), DOCX (Open XML SDK), PPTX, XLSX. Wire into normalization pipeline for binary content types. Fall back to metadata-only indexing on extraction failure.
-  - Dependencies: P0-010 (complete), P0-010A (blob storage complete)
-  - Priority: HIGH — SharePoint document libraries contain primarily binary files; without extraction, a major portion of evidence is invisible to retrieval.
+  - Dependencies: P0-010 (complete), P0-010A (blob storage complete), D-015 (resolved)
+  - **DONE** (iteration 74): `ITextExtractionService` interface + `TextExtractionService` implementation in `SmartKb.Contracts.Services`. PDF extraction via PdfPig (page-by-page text). DOCX extraction via Open XML SDK (paragraph iteration). PPTX extraction via Open XML SDK (slide text bodies). XLSX extraction via Open XML SDK (cell values with shared string table resolution). `SharePointConnectorClient.DownloadAndExtractTextAsync` downloads file content from Graph API (`/drives/{driveId}/items/{itemId}/content`): binary formats extracted via `ITextExtractionService`, text formats (txt, md, csv, etc.) read directly as UTF-8. Graceful fallback to metadata-only `TextContent` on any download/extraction failure. `IBlobStorageService` extended with `UploadBinaryContentAsync`/`DownloadBinaryContentAsync` for binary blob storage. `AzureBlobStorageService` implements binary methods via `BlobClient.UploadAsync`/`DownloadStreamingAsync`. `TextExtractionService` registered as singleton in both API and Ingestion DI. NuGet packages: `PdfPig 0.1.13`, `DocumentFormat.OpenXml 3.4.1`. 25 new tests (20 TextExtractionService unit + 5 SharePointConnectorClient extraction integration); all 1746 backend tests passing.
 
 ### P3 Search Quality and Tuning
 
@@ -637,7 +635,7 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
 - [ ] R-018: Entra ID config optional with silent fallback — misconfiguration risk in production. Consider adding startup validation when `ASPNETCORE_ENVIRONMENT=Production`.
 - [ ] R-019: jtbd-03 spec very thin (33 lines) — all detail in PRD. Risk of divergence. **Tracked as** P3-011/SPEC-007.
 - [x] R-020: ~~No .NET or frontend CI pipeline~~ — resolved (TECH-006).
-- [ ] R-021: **NEW** — Binary document text extraction missing. SharePoint binary files (PDF, DOCX, PPTX) stored as raw blobs but never chunked/indexed. **Tracked as** P3-003.
+- [x] R-021: Binary document text extraction — **RESOLVED** by P3-003 (iteration 74). SharePoint connector now downloads and extracts text from PDF/DOCX/PPTX/XLSX via PdfPig and Open XML SDK.
 - [x] R-022: Pre-retrieval query classification. **Resolved by** P3-001 (iteration 69). Classification via gpt-4o-mini biases retrieval filters by product area, source type, and time horizon.
 - [x] R-023: ~~No scheduled eval automation.~~ **RESOLVED** by P3-006 — nightly smoke and weekly full eval CI workflows with GitHub Actions annotations and regression-gated issue creation.
 - [ ] R-024: **NEW** — Phase 2 admin features (routing, playbooks, cost, privacy) have no frontend UI. Accessible via API only. **Tracked as** P3-008.
@@ -675,8 +673,8 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
 
 - [x] D-014: Pre-retrieval classification model and schema — **Resolved**: gpt-4o-mini (lighter/faster/cheaper than gpt-4o for generation). Schema: 9 fields (issue_category, product_area, severity_hint enum P1-P4/Unknown, needs_customer_lookup, missing_info_suggestions array, classification_confidence float, escalation_likelihood float, source_type_preference array, time_horizon_days nullable int). Classification biases retrieval via `EnrichFiltersFromClassification`: applies product_area, source_types, time_horizon to `RetrievalFilter` when confidence >= 0.5 threshold and user hasn't set explicit filters. Implemented in P3-001.
   - **Proposed**: Use gpt-4o-mini for classification (lower latency + cost). Output schema: `{ issue_category, product_area, severity_hint, environment_hint, missing_info_suggestions[] }`. Apply product_area as OData filter; severity_hint as escalation input; missing_info as FR-TRIAGE-002 response.
-- [ ] D-015: Text extraction tooling for binary documents — Azure AI Document Intelligence (cloud, cost per page) vs. local libraries (PdfSharp, Open XML SDK — free, no external calls). **Blocks** P3-003.
-  - **Proposed**: Use Open XML SDK for DOCX/PPTX/XLSX (free, deterministic). Use PdfPig for PDF (free, .NET native). Reserve Azure AI Document Intelligence for scanned/image-heavy PDFs in a future phase.
+- [x] D-015: Text extraction tooling for binary documents — Azure AI Document Intelligence (cloud, cost per page) vs. local libraries (PdfSharp, Open XML SDK — free, no external calls). **Resolved** (iteration 74).
+  - **Decision**: Use Open XML SDK (`DocumentFormat.OpenXml 3.4.1`) for DOCX/PPTX/XLSX (free, deterministic, no external calls). Use PdfPig (`PdfPig 0.1.13`) for PDF (free, .NET native). Azure AI Document Intelligence reserved for scanned/image-heavy PDFs in a future phase. Extraction happens inline during SharePoint connector fetch — `DownloadAndExtractTextAsync` downloads file bytes, extracts text, and sets `TextContent` on the `CanonicalRecord`. Falls back to metadata-only on failure.
 - [x] D-016: Session summarization model — same model as generation or a cheaper/faster model? Summary length and format? **Resolved** (iteration 72).
   - **Decision**: Use gpt-4o-mini (configurable via `SummarizationModel`). Structured JSON output with `key_issue`, `attempted_solutions[]`, `unresolved_questions[]`, `customer_context`. Max 256 tokens. Injected as system message before remaining session history. Summarization triggered only when ≥4 messages would be dropped (configurable via `SummarizationMinDroppedMessages`). 5s timeout with graceful degradation (drops without summary on failure).
 - [ ] D-017: Search index migration strategy — blue-green vs. in-place with compatible changes only. **Blocks** P3-005.
