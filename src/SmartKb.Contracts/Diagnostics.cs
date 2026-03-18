@@ -179,4 +179,12 @@ public static class Diagnostics
         Meter.CreateCounter<long>(
             "smartkb.cost.retrieval_compression_truncated_total",
             description: "Evidence chunks truncated by retrieval compression.");
+
+    // --- Session Summarization Metrics (P3-002) ---
+
+    /// <summary>Session summarizations performed (counter).</summary>
+    public static readonly Counter<long> SessionSummarizationsTotal =
+        Meter.CreateCounter<long>(
+            "smartkb.chat.session_summarizations_total",
+            description: "Session context summarizations performed when sliding window drops messages.");
 }

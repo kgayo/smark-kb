@@ -6,6 +6,7 @@ namespace SmartKb.Contracts.Configuration;
 /// D-006: OpenAI model — gpt-4o (latest), configurable via OpenAiSettings.Model.
 /// D-010: Session token budget — sliding window, 80% of context window, drop oldest first.
 /// D-013: Hallucination degradation — refuse + next-steps when confidence &lt; 0.3 and no evidence.
+/// D-016: Session summarization — gpt-4o-mini, 200-token structured summary before sliding window drop.
 /// </summary>
 public sealed class ChatOrchestrationSettings
 {
@@ -55,6 +56,21 @@ public sealed class ChatOrchestrationSettings
 
     /// <summary>Maximum time in milliseconds to wait for classification before falling back to unclassified retrieval.</summary>
     public int ClassificationTimeoutMs { get; set; } = 3000;
+
+    /// <summary>Whether session context summarization is enabled (P3-002, D-016).</summary>
+    public bool EnableSessionSummarization { get; set; } = true;
+
+    /// <summary>Model to use for session summarization (lighter/faster than generation model). D-016 resolved: gpt-4o-mini.</summary>
+    public string SummarizationModel { get; set; } = "gpt-4o-mini";
+
+    /// <summary>Maximum tokens for the summarization response (D-016: ~200 tokens for structured summary).</summary>
+    public int SummarizationMaxTokens { get; set; } = 256;
+
+    /// <summary>Maximum time in milliseconds to wait for summarization before dropping messages without summary.</summary>
+    public int SummarizationTimeoutMs { get; set; } = 5000;
+
+    /// <summary>Minimum number of messages that must be dropped before triggering summarization. Avoids overhead for trivial drops.</summary>
+    public int SummarizationMinDroppedMessages { get; set; } = 4;
 
     public string GetConfidenceLabel(float confidence)
     {

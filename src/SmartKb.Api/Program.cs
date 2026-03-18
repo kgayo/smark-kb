@@ -221,6 +221,7 @@ if (!string.IsNullOrEmpty(openAiSettings.ApiKey) && searchSettings.IsConfigured)
 {
     builder.Services.AddSingleton<IEmbeddingService, OpenAiEmbeddingService>();
     builder.Services.AddSingleton<IQueryClassificationService, OpenAiQueryClassificationService>();
+    builder.Services.AddSingleton<ISessionSummarizationService, OpenAiSessionSummarizationService>();
     builder.Services.AddScoped<IChatOrchestrator, SmartKb.Contracts.Services.ChatOrchestrator>();
 }
 

@@ -24,6 +24,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
     private readonly ITokenUsageService _tokenUsageService;
     private readonly IEmbeddingCacheService? _embeddingCacheService;
     private readonly IQueryClassificationService? _classificationService;
+    private readonly ISessionSummarizationService? _summarizationService;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly OpenAiSettings _openAiSettings;
     private readonly ChatOrchestrationSettings _settings;
@@ -49,7 +50,8 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         CostOptimizationSettings costSettings,
         ILogger<ChatOrchestrator> logger,
         IEmbeddingCacheService? embeddingCacheService = null,
-        IQueryClassificationService? classificationService = null)
+        IQueryClassificationService? classificationService = null,
+        ISessionSummarizationService? summarizationService = null)
     {
         _embeddingService = embeddingService;
         _retrievalService = retrievalService;
@@ -59,6 +61,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         _tokenUsageService = tokenUsageService;
         _embeddingCacheService = embeddingCacheService;
         _classificationService = classificationService;
+        _summarizationService = summarizationService;
         _httpClientFactory = httpClientFactory;
         _openAiSettings = openAiSettings;
         _settings = settings;
@@ -260,13 +263,47 @@ public sealed class ChatOrchestrator : IChatOrchestrator
             }
         }
 
-        // Step 4: Assemble prompt with evidence context and session history (D-010 token budget).
+        // Step 4: Assemble prompt with evidence context and session history (D-010 token budget, P3-002 summarization).
         var evidenceChunks = redactedChunks
             .Take(_settings.MaxEvidenceChunksInPrompt)
             .ToList();
 
         var systemPrompt = BuildSystemPrompt(evidenceChunks);
-        var messages = AssembleMessages(systemPrompt, request.SessionHistory, request.Query);
+
+        // P3-002: Summarize messages that would be dropped by the sliding window, if enabled.
+        string? sessionSummary = null;
+        var droppedMessages = ComputeDroppedMessages(systemPrompt, request.SessionHistory, request.Query);
+        if (droppedMessages.Count >= _settings.SummarizationMinDroppedMessages
+            && _summarizationService is not null
+            && _settings.EnableSessionSummarization)
+        {
+            try
+            {
+                using var summarizationActivity = DiagnosticsHelper.OrchestrationSource.StartActivity("SummarizeSession");
+                using var summarizationCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                summarizationCts.CancelAfter(_settings.SummarizationTimeoutMs);
+
+                sessionSummary = await _summarizationService.SummarizeAsync(droppedMessages, summarizationCts.Token);
+                Diagnostics.SessionSummarizationsTotal.Add(1,
+                    new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId));
+
+                summarizationActivity?.SetTag("smartkb.summarization.dropped_count", droppedMessages.Count);
+                summarizationActivity?.SetTag("smartkb.summarization.summary_length", sessionSummary?.Length ?? 0);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning(
+                    "Session summarization timed out after {TimeoutMs}ms. Dropping messages without summary. TraceId={TraceId}",
+                    _settings.SummarizationTimeoutMs, traceId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "Session summarization failed. Dropping messages without summary. TraceId={TraceId}", traceId);
+            }
+        }
+
+        var messages = AssembleMessages(systemPrompt, request.SessionHistory, request.Query, sessionSummary);
 
         // Step 5: Call OpenAI with structured output.
         OpenAiCallResult callResult;
@@ -498,31 +535,63 @@ public sealed class ChatOrchestrator : IChatOrchestrator
     }
 
     /// <summary>
-    /// Assembles the message list for the OpenAI API call, applying D-010 token budget.
-    /// Trims oldest session messages first when budget is exceeded.
+    /// Computes which messages would be dropped by the sliding window token budget (D-010).
+    /// Used by P3-002 to determine which messages need summarization before assembly.
     /// </summary>
-    internal List<object> AssembleMessages(
+    internal List<ChatMessage> ComputeDroppedMessages(
         string systemPrompt,
         IReadOnlyList<ChatMessage> sessionHistory,
         string currentQuery)
     {
+        if (sessionHistory.Count == 0)
+            return [];
+
+        var budgetForHistory = ComputeHistoryBudget(systemPrompt, currentQuery);
+        if (budgetForHistory <= 0)
+            return sessionHistory.ToList();
+
+        var historyTokens = sessionHistory
+            .Select(m => (message: m, tokens: EstimateTokens(m.Content)))
+            .ToList();
+
+        var totalHistoryTokens = historyTokens.Sum(h => h.tokens);
+        var dropped = new List<ChatMessage>();
+
+        var idx = 0;
+        while (totalHistoryTokens > budgetForHistory && idx < historyTokens.Count)
+        {
+            dropped.Add(historyTokens[idx].message);
+            totalHistoryTokens -= historyTokens[idx].tokens;
+            idx++;
+        }
+
+        return dropped;
+    }
+
+    /// <summary>
+    /// Assembles the message list for the OpenAI API call, applying D-010 token budget.
+    /// Trims oldest session messages first when budget is exceeded.
+    /// When a session summary is provided (P3-002), injects it as a system message before the remaining history.
+    /// </summary>
+    internal List<object> AssembleMessages(
+        string systemPrompt,
+        IReadOnlyList<ChatMessage> sessionHistory,
+        string currentQuery,
+        string? sessionSummary = null)
+    {
         var messages = new List<object>();
 
         // System prompt is always included.
-        var systemTokens = EstimateTokens(systemPrompt);
-        var queryTokens = EstimateTokens(currentQuery);
-
-        // Budget available for session history.
-        var budgetForHistory = _settings.MaxTokenBudget
-            - _settings.SystemPromptTokenReserve
-            - systemTokens
-            - queryTokens
-            - _settings.MaxResponseTokens;
-
         messages.Add(new { role = "system", content = systemPrompt });
 
+        var budgetForHistory = ComputeHistoryBudget(systemPrompt, currentQuery);
+
+        // Reserve budget for summary injection if present.
+        var summaryTokens = sessionSummary is not null ? EstimateTokens(sessionSummary) : 0;
+        var effectiveBudget = budgetForHistory - summaryTokens;
+
         // Add session history from oldest to newest, trimming oldest first if over budget.
-        if (sessionHistory.Count > 0 && budgetForHistory > 0)
+        if (sessionHistory.Count > 0 && effectiveBudget > 0)
         {
             var historyTokens = sessionHistory
                 .Select(m => (message: m, tokens: EstimateTokens(m.Content)))
@@ -532,10 +601,25 @@ public sealed class ChatOrchestrator : IChatOrchestrator
             var startIndex = 0;
 
             // Drop oldest messages until we fit within budget.
-            while (totalHistoryTokens > budgetForHistory && startIndex < historyTokens.Count)
+            while (totalHistoryTokens > effectiveBudget && startIndex < historyTokens.Count)
             {
                 totalHistoryTokens -= historyTokens[startIndex].tokens;
                 startIndex++;
+            }
+
+            // P3-002: Inject session summary before remaining history messages.
+            if (startIndex > 0 && sessionSummary is not null)
+            {
+                messages.Add(new { role = "system", content = sessionSummary });
+                _logger.LogInformation(
+                    "Token budget: dropped {DroppedCount} oldest session messages, injected summary ({SummaryTokens} tokens). Budget={Budget}",
+                    startIndex, summaryTokens, _settings.MaxTokenBudget);
+            }
+            else if (startIndex > 0)
+            {
+                _logger.LogInformation(
+                    "Token budget: dropped {DroppedCount} oldest session messages to fit within {Budget} token budget",
+                    startIndex, _settings.MaxTokenBudget);
             }
 
             for (var i = startIndex; i < historyTokens.Count; i++)
@@ -543,19 +627,32 @@ public sealed class ChatOrchestrator : IChatOrchestrator
                 var m = historyTokens[i].message;
                 messages.Add(new { role = m.Role, content = m.Content });
             }
-
-            if (startIndex > 0)
-            {
-                _logger.LogInformation(
-                    "Token budget: dropped {DroppedCount} oldest session messages to fit within {Budget} token budget",
-                    startIndex, _settings.MaxTokenBudget);
-            }
+        }
+        else if (sessionSummary is not null && budgetForHistory > summaryTokens)
+        {
+            // All history messages dropped but summary fits.
+            messages.Add(new { role = "system", content = sessionSummary });
+            _logger.LogInformation(
+                "Token budget: all {Count} session messages dropped, injected summary only. Budget={Budget}",
+                sessionHistory.Count, _settings.MaxTokenBudget);
         }
 
         // Current user query always included.
         messages.Add(new { role = "user", content = currentQuery });
 
         return messages;
+    }
+
+    /// <summary>Computes the token budget available for session history.</summary>
+    private int ComputeHistoryBudget(string systemPrompt, string currentQuery)
+    {
+        var systemTokens = EstimateTokens(systemPrompt);
+        var queryTokens = EstimateTokens(currentQuery);
+        return _settings.MaxTokenBudget
+            - _settings.SystemPromptTokenReserve
+            - systemTokens
+            - queryTokens
+            - _settings.MaxResponseTokens;
     }
 
     /// <summary>Result of an OpenAI structured call including token usage (P2-003).</summary>
