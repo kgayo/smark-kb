@@ -108,6 +108,8 @@ public sealed class AuthTestFactory : WebApplicationFactory<Program>, IAsyncLife
             services.AddScoped<IPiiPolicyService, SmartKb.Data.Repositories.PiiPolicyService>();
             services.AddScoped<IRetentionCleanupService, SmartKb.Data.Repositories.RetentionCleanupService>();
             services.AddScoped<IDataSubjectDeletionService, SmartKb.Data.Repositories.DataSubjectDeletionService>();
+            services.AddScoped<ITenantCostSettingsService, SmartKb.Data.Repositories.TenantCostSettingsService>();
+            services.AddScoped<ITokenUsageService, SmartKb.Data.Repositories.TokenUsageService>();
         });
     }
 }

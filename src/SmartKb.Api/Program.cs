@@ -199,6 +199,11 @@ var embeddingSettings = new EmbeddingSettings();
 builder.Configuration.GetSection(EmbeddingSettings.SectionName).Bind(embeddingSettings);
 builder.Services.AddSingleton(embeddingSettings);
 
+// Cost optimization settings (P2-003).
+var costOptimizationSettings = new CostOptimizationSettings();
+builder.Configuration.GetSection(CostOptimizationSettings.SectionName).Bind(costOptimizationSettings);
+builder.Services.AddSingleton(costOptimizationSettings);
+
 builder.Services.AddHttpClient("OpenAi");
 
 builder.Services.AddSingleton<IPiiRedactionService, PiiRedactionService>();
@@ -1512,6 +1517,73 @@ app.MapGet("/api/admin/privacy/data-subject-deletion/{requestId:guid}", async (
         ? Results.Ok(ApiResponse<DataSubjectDeletionResponse>.Success(result, tenant.CorrelationId))
         : Results.NotFound(ApiResponse<object>.Failure("Deletion request not found.", tenant.CorrelationId));
 }).RequirePermission("privacy:manage");
+
+// --- Cost Optimization Endpoints (P2-003) ---
+
+app.MapGet("/api/admin/cost-settings", async (
+    ITenantContextAccessor tenantAccessor,
+    ITenantCostSettingsService costSettingsService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await costSettingsService.GetSettingsAsync(tenant.TenantId);
+    return Results.Ok(ApiResponse<CostSettingsResponse>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapPut("/api/admin/cost-settings", async (
+    UpdateCostSettingsRequest request,
+    ITenantContextAccessor tenantAccessor,
+    ITenantCostSettingsService costSettingsService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await costSettingsService.UpdateSettingsAsync(tenant.TenantId, request);
+    return Results.Ok(ApiResponse<CostSettingsResponse>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapDelete("/api/admin/cost-settings", async (
+    ITenantContextAccessor tenantAccessor,
+    ITenantCostSettingsService costSettingsService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var deleted = await costSettingsService.ResetSettingsAsync(tenant.TenantId);
+    return deleted
+        ? Results.Ok(ApiResponse<object>.Success(new { reset = true }, tenant.CorrelationId))
+        : Results.NotFound(ApiResponse<object>.Failure("No tenant cost overrides found.", tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapGet("/api/admin/token-usage/summary", async (
+    ITenantContextAccessor tenantAccessor,
+    ITokenUsageService tokenUsageService,
+    int? days) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var periodDays = days ?? 30;
+    var periodEnd = DateTimeOffset.UtcNow;
+    var periodStart = periodEnd.AddDays(-periodDays);
+    var result = await tokenUsageService.GetSummaryAsync(tenant.TenantId, periodStart, periodEnd);
+    return Results.Ok(ApiResponse<TokenUsageSummary>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapGet("/api/admin/token-usage/daily", async (
+    ITenantContextAccessor tenantAccessor,
+    ITokenUsageService tokenUsageService,
+    int? days) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var periodDays = days ?? 30;
+    var periodEnd = DateTimeOffset.UtcNow;
+    var periodStart = periodEnd.AddDays(-periodDays);
+    var result = await tokenUsageService.GetDailyBreakdownAsync(tenant.TenantId, periodStart, periodEnd);
+    return Results.Ok(ApiResponse<IReadOnlyList<DailyUsageBreakdown>>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapGet("/api/admin/token-usage/budget-check", async (
+    ITenantContextAccessor tenantAccessor,
+    ITokenUsageService tokenUsageService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await tokenUsageService.CheckBudgetAsync(tenant.TenantId);
+    return Results.Ok(ApiResponse<BudgetCheckResult>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
 
 app.Run();
 

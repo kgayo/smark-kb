@@ -21,9 +21,12 @@ public sealed class ChatOrchestrator : IChatOrchestrator
     private readonly IAnswerTraceWriter _traceWriter;
     private readonly IPiiRedactionService _piiRedactionService;
     private readonly IAuditEventWriter _auditEventWriter;
+    private readonly ITokenUsageService _tokenUsageService;
+    private readonly IEmbeddingCacheService? _embeddingCacheService;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly OpenAiSettings _openAiSettings;
     private readonly ChatOrchestrationSettings _settings;
+    private readonly CostOptimizationSettings _costSettings;
     private readonly ILogger<ChatOrchestrator> _logger;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -38,19 +41,25 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         IAnswerTraceWriter traceWriter,
         IPiiRedactionService piiRedactionService,
         IAuditEventWriter auditEventWriter,
+        ITokenUsageService tokenUsageService,
         IHttpClientFactory httpClientFactory,
         OpenAiSettings openAiSettings,
         ChatOrchestrationSettings settings,
-        ILogger<ChatOrchestrator> logger)
+        CostOptimizationSettings costSettings,
+        ILogger<ChatOrchestrator> logger,
+        IEmbeddingCacheService? embeddingCacheService = null)
     {
         _embeddingService = embeddingService;
         _retrievalService = retrievalService;
         _traceWriter = traceWriter;
         _piiRedactionService = piiRedactionService;
         _auditEventWriter = auditEventWriter;
+        _tokenUsageService = tokenUsageService;
+        _embeddingCacheService = embeddingCacheService;
         _httpClientFactory = httpClientFactory;
         _openAiSettings = openAiSettings;
         _settings = settings;
+        _costSettings = costSettings;
         _logger = logger;
     }
 
@@ -74,12 +83,32 @@ public sealed class ChatOrchestrator : IChatOrchestrator
             "Chat orchestration started. TenantId={TenantId}, UserId={UserId}, TraceId={TraceId}, QueryLength={QueryLength}",
             tenantId, userId, traceId, request.Query.Length);
 
-        // Step 1: Generate query embedding.
+        // Step 1: Generate query embedding (with P2-003 cache support).
         float[] queryEmbedding;
+        var embeddingCacheHit = false;
         try
         {
             using var embeddingActivity = DiagnosticsHelper.OrchestrationSource.StartActivity("EmbedQuery");
-            queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(request.Query, cancellationToken);
+
+            if (_embeddingCacheService is not null && _costSettings.EnableEmbeddingCache)
+            {
+                var (cached, cacheHit) = await _embeddingCacheService.GetOrGenerateAsync(request.Query, cancellationToken);
+                queryEmbedding = cached!;
+                embeddingCacheHit = cacheHit;
+                embeddingActivity?.SetTag("smartkb.embedding_cache_hit", cacheHit);
+
+                if (cacheHit)
+                    DiagnosticsHelper.EmbeddingCacheHitsTotal.Add(1,
+                        new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId));
+                else
+                    DiagnosticsHelper.EmbeddingCacheMissesTotal.Add(1,
+                        new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId));
+            }
+            else
+            {
+                queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(request.Query, cancellationToken);
+            }
+
             embeddingActivity?.SetTag("smartkb.embedding_dims", queryEmbedding.Length);
         }
         catch (Exception ex)
@@ -171,6 +200,25 @@ public sealed class ChatOrchestrator : IChatOrchestrator
             }
         }
 
+        // Step 3.9 (P2-003): Retrieval compression — truncate long chunks to reduce token usage.
+        var compressionTruncatedCount = 0;
+        if (_costSettings.EnableRetrievalCompression)
+        {
+            var (compressed, truncCount) = RetrievalCompressionService.CompressChunks(
+                redactedChunks, _costSettings.MaxChunkCharsCompressed);
+            redactedChunks = compressed;
+            compressionTruncatedCount = truncCount;
+
+            if (truncCount > 0)
+            {
+                _logger.LogInformation(
+                    "Retrieval compression truncated {TruncatedCount} chunk(s). TraceId={TraceId}",
+                    truncCount, traceId);
+                DiagnosticsHelper.RetrievalCompressionTruncatedTotal.Add(truncCount,
+                    new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId));
+            }
+        }
+
         // Step 4: Assemble prompt with evidence context and session history (D-010 token budget).
         var evidenceChunks = redactedChunks
             .Take(_settings.MaxEvidenceChunksInPrompt)
@@ -180,13 +228,15 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         var messages = AssembleMessages(systemPrompt, request.SessionHistory, request.Query);
 
         // Step 5: Call OpenAI with structured output.
-        OpenAiStructuredResponse? modelResponse;
+        OpenAiCallResult callResult;
         try
         {
             using var generationActivity = DiagnosticsHelper.OrchestrationSource.StartActivity("GenerateAnswer");
             generationActivity?.SetTag("smartkb.model", _openAiSettings.Model);
-            modelResponse = await CallOpenAiStructuredAsync(messages, cancellationToken);
-            generationActivity?.SetTag("smartkb.response_type", modelResponse?.ResponseType);
+            callResult = await CallOpenAiStructuredAsync(messages, cancellationToken);
+            generationActivity?.SetTag("smartkb.response_type", callResult.Response?.ResponseType);
+            generationActivity?.SetTag("smartkb.prompt_tokens", callResult.PromptTokens);
+            generationActivity?.SetTag("smartkb.completion_tokens", callResult.CompletionTokens);
         }
         catch (Exception ex)
         {
@@ -195,6 +245,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
             return BuildNoEvidenceResponse(traceId, "Unable to generate a response at this time. Please try again.");
         }
 
+        var modelResponse = callResult.Response;
         if (modelResponse is null)
         {
             _logger.LogWarning("OpenAI returned null/unparseable response. TraceId={TraceId}", traceId);
@@ -297,6 +348,38 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to persist answer trace. TraceId={TraceId}", traceId);
+        }
+
+        // Step 11 (P2-003): Record token usage and cost metrics.
+        try
+        {
+            var embeddingTokens = embeddingCacheHit ? 0 : EstimateTokens(request.Query);
+            var estimatedCost = ComputeEstimatedCost(
+                callResult.PromptTokens, callResult.CompletionTokens, embeddingTokens);
+
+            var usageRecord = new TokenUsageRecord
+            {
+                PromptTokens = callResult.PromptTokens,
+                CompletionTokens = callResult.CompletionTokens,
+                TotalTokens = callResult.TotalTokens,
+                EmbeddingTokens = embeddingTokens,
+                EmbeddingCacheHit = embeddingCacheHit,
+                EvidenceChunksUsed = evidenceChunks.Count,
+                EstimatedCostUsd = estimatedCost,
+            };
+
+            await _tokenUsageService.RecordUsageAsync(tenantId, userId, correlationId, usageRecord, cancellationToken);
+
+            DiagnosticsHelper.PromptTokensUsed.Record(callResult.PromptTokens,
+                new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId));
+            DiagnosticsHelper.CompletionTokensUsed.Record(callResult.CompletionTokens,
+                new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId));
+            DiagnosticsHelper.EstimatedCostUsd.Record((double)estimatedCost,
+                new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to record token usage. TraceId={TraceId}", traceId);
         }
 
         return new ChatResponse
@@ -417,8 +500,15 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         return messages;
     }
 
+    /// <summary>Result of an OpenAI structured call including token usage (P2-003).</summary>
+    internal sealed record OpenAiCallResult(
+        OpenAiStructuredResponse? Response,
+        int PromptTokens,
+        int CompletionTokens,
+        int TotalTokens);
+
     /// <summary>Calls OpenAI Chat Completions with structured output (json_schema response_format).</summary>
-    internal async Task<OpenAiStructuredResponse?> CallOpenAiStructuredAsync(
+    internal async Task<OpenAiCallResult> CallOpenAiStructuredAsync(
         List<object> messages,
         CancellationToken cancellationToken)
     {
@@ -457,6 +547,15 @@ public sealed class ChatOrchestrator : IChatOrchestrator
 
         var responseJson = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: cancellationToken);
 
+        // P2-003: Extract token usage from API response.
+        int promptTokens = 0, completionTokens = 0, totalTokens = 0;
+        if (responseJson.TryGetProperty("usage", out var usage))
+        {
+            if (usage.TryGetProperty("prompt_tokens", out var pt)) promptTokens = pt.GetInt32();
+            if (usage.TryGetProperty("completion_tokens", out var ct2)) completionTokens = ct2.GetInt32();
+            if (usage.TryGetProperty("total_tokens", out var tt)) totalTokens = tt.GetInt32();
+        }
+
         // Extract the content from choices[0].message.content.
         if (responseJson.TryGetProperty("choices", out var choices) &&
             choices.GetArrayLength() > 0)
@@ -468,11 +567,12 @@ public sealed class ChatOrchestrator : IChatOrchestrator
 
             if (!string.IsNullOrEmpty(messageContent))
             {
-                return JsonSerializer.Deserialize<OpenAiStructuredResponse>(messageContent, JsonOptions);
+                var parsed = JsonSerializer.Deserialize<OpenAiStructuredResponse>(messageContent, JsonOptions);
+                return new OpenAiCallResult(parsed, promptTokens, completionTokens, totalTokens);
             }
         }
 
-        return null;
+        return new OpenAiCallResult(null, promptTokens, completionTokens, totalTokens);
     }
 
     /// <summary>
@@ -649,6 +749,15 @@ public sealed class ChatOrchestrator : IChatOrchestrator
 
     /// <summary>Approximate token count using chars/4 heuristic for English text.</summary>
     internal static int EstimateTokens(string text) => (text.Length + 3) / 4;
+
+    /// <summary>Estimates cost in USD based on token usage and configured pricing (P2-003).</summary>
+    internal decimal ComputeEstimatedCost(int promptTokens, int completionTokens, int embeddingTokens)
+    {
+        var promptCost = promptTokens * _costSettings.PromptTokenCostPerMillion / 1_000_000m;
+        var completionCost = completionTokens * _costSettings.CompletionTokenCostPerMillion / 1_000_000m;
+        var embeddingCost = embeddingTokens * _costSettings.EmbeddingTokenCostPerMillion / 1_000_000m;
+        return promptCost + completionCost + embeddingCost;
+    }
 
     private ChatResponse BuildNoEvidenceResponse(string traceId, string? customMessage = null)
     {

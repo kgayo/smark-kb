@@ -107,4 +107,51 @@ public static class Diagnostics
         Meter.CreateCounter<long>(
             "smartkb.ingestion.source_rate_limit_total",
             description: "Source API rate-limit (429) responses encountered during ingestion.");
+
+    // --- Cost Optimization Metrics (P2-003) ---
+
+    /// <summary>Prompt tokens consumed per request (histogram).</summary>
+    public static readonly Histogram<long> PromptTokensUsed =
+        Meter.CreateHistogram<long>(
+            "smartkb.cost.prompt_tokens",
+            unit: "tokens",
+            description: "Prompt tokens consumed per chat request.");
+
+    /// <summary>Completion tokens consumed per request (histogram).</summary>
+    public static readonly Histogram<long> CompletionTokensUsed =
+        Meter.CreateHistogram<long>(
+            "smartkb.cost.completion_tokens",
+            unit: "tokens",
+            description: "Completion tokens consumed per chat request.");
+
+    /// <summary>Embedding cache hits (counter).</summary>
+    public static readonly Counter<long> EmbeddingCacheHitsTotal =
+        Meter.CreateCounter<long>(
+            "smartkb.cost.embedding_cache_hits_total",
+            description: "Embedding cache hit count.");
+
+    /// <summary>Embedding cache misses (counter).</summary>
+    public static readonly Counter<long> EmbeddingCacheMissesTotal =
+        Meter.CreateCounter<long>(
+            "smartkb.cost.embedding_cache_misses_total",
+            description: "Embedding cache miss count.");
+
+    /// <summary>Estimated cost per request in USD (histogram).</summary>
+    public static readonly Histogram<double> EstimatedCostUsd =
+        Meter.CreateHistogram<double>(
+            "smartkb.cost.estimated_cost_usd",
+            unit: "USD",
+            description: "Estimated cost per chat request in USD.");
+
+    /// <summary>Requests denied due to budget limits (counter).</summary>
+    public static readonly Counter<long> BudgetDeniedTotal =
+        Meter.CreateCounter<long>(
+            "smartkb.cost.budget_denied_total",
+            description: "Chat requests denied due to token budget exhaustion.");
+
+    /// <summary>Evidence chunks truncated by retrieval compression (counter).</summary>
+    public static readonly Counter<long> RetrievalCompressionTruncatedTotal =
+        Meter.CreateCounter<long>(
+            "smartkb.cost.retrieval_compression_truncated_total",
+            description: "Evidence chunks truncated by retrieval compression.");
 }

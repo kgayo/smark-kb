@@ -34,6 +34,9 @@ public static class DataServiceExtensions
         services.AddScoped<IPiiPolicyService, PiiPolicyService>();
         services.AddScoped<IRetentionCleanupService, RetentionCleanupService>();
         services.AddScoped<IDataSubjectDeletionService, DataSubjectDeletionService>();
+        services.AddScoped<ITenantCostSettingsService, TenantCostSettingsService>();
+        services.AddScoped<ITokenUsageService, TokenUsageService>();
+        services.AddScoped<IEmbeddingCacheService, EmbeddingCacheService>();
 
         return services;
     }

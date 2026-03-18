@@ -29,6 +29,9 @@ public class SmartKbDbContext : DbContext
     public DbSet<PiiPolicyEntity> PiiPolicies => Set<PiiPolicyEntity>();
     public DbSet<DataSubjectDeletionRequestEntity> DataSubjectDeletionRequests => Set<DataSubjectDeletionRequestEntity>();
     public DbSet<TeamPlaybookEntity> TeamPlaybooks => Set<TeamPlaybookEntity>();
+    public DbSet<TokenUsageEntity> TokenUsages => Set<TokenUsageEntity>();
+    public DbSet<TenantCostSettingsEntity> TenantCostSettings => Set<TenantCostSettingsEntity>();
+    public DbSet<EmbeddingCacheEntity> EmbeddingCache => Set<EmbeddingCacheEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -56,6 +59,9 @@ public class SmartKbDbContext : DbContext
         ConfigurePiiPolicy(modelBuilder);
         ConfigureDataSubjectDeletionRequest(modelBuilder);
         ConfigureTeamPlaybook(modelBuilder);
+        ConfigureTokenUsage(modelBuilder);
+        ConfigureTenantCostSettings(modelBuilder);
+        ConfigureEmbeddingCache(modelBuilder);
     }
 
     private static void ConfigureTenant(ModelBuilder modelBuilder)
@@ -497,6 +503,49 @@ public class SmartKbDbContext : DbContext
             e.HasIndex(p => new { p.TenantId, p.TeamName }).IsUnique().HasFilter("[DeletedAt] IS NULL");
             e.HasQueryFilter(p => p.DeletedAt == null);
             e.HasOne(p => p.Tenant).WithMany().HasForeignKey(p => p.TenantId);
+        });
+    }
+
+    private static void ConfigureTokenUsage(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<TokenUsageEntity>(e =>
+        {
+            e.ToTable("TokenUsages");
+            e.HasKey(t => t.Id);
+            e.Property(t => t.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(t => t.UserId).HasMaxLength(128).IsRequired();
+            e.Property(t => t.CorrelationId).HasMaxLength(128).IsRequired();
+            e.Property(t => t.EstimatedCostUsd).HasColumnType("decimal(18,8)");
+            e.HasIndex(t => t.TenantId);
+            e.HasIndex(t => t.CorrelationId);
+            e.HasIndex(t => new { t.TenantId, t.CreatedAt });
+        });
+    }
+
+    private static void ConfigureTenantCostSettings(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<TenantCostSettingsEntity>(e =>
+        {
+            e.ToTable("TenantCostSettings");
+            e.HasKey(s => s.Id);
+            e.Property(s => s.TenantId).HasMaxLength(128).IsRequired();
+            e.HasIndex(s => s.TenantId).IsUnique();
+            e.HasOne(s => s.Tenant).WithMany().HasForeignKey(s => s.TenantId);
+        });
+    }
+
+    private static void ConfigureEmbeddingCache(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<EmbeddingCacheEntity>(e =>
+        {
+            e.ToTable("EmbeddingCache");
+            e.HasKey(c => c.Id);
+            e.Property(c => c.ContentHash).HasMaxLength(128).IsRequired();
+            e.Property(c => c.InputText).IsRequired();
+            e.Property(c => c.EmbeddingJson).IsRequired();
+            e.Property(c => c.ModelId).HasMaxLength(128).IsRequired();
+            e.HasIndex(c => c.ContentHash);
+            e.HasIndex(c => c.ExpiresAt);
         });
     }
 }

@@ -85,6 +85,8 @@ public sealed class ConnectorTestFactory : WebApplicationFactory<Program>, IAsyn
             services.AddScoped<IPiiPolicyService, PiiPolicyService>();
             services.AddScoped<IRetentionCleanupService, RetentionCleanupService>();
             services.AddScoped<IDataSubjectDeletionService, DataSubjectDeletionService>();
+            services.AddScoped<ITenantCostSettingsService, TenantCostSettingsService>();
+            services.AddScoped<ITokenUsageService, TokenUsageService>();
             services.AddScoped<AdoWebhookHandler>();
             services.AddScoped<SharePointWebhookHandler>();
             services.AddScoped<HubSpotWebhookHandler>();
