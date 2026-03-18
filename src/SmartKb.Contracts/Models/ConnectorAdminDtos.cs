@@ -50,6 +50,7 @@ public sealed record ConnectorResponse
     public string? SourceConfig { get; init; }
     public FieldMappingConfig? FieldMapping { get; init; }
     public string? ScheduleCron { get; init; }
+    public DateTimeOffset? LastScheduledSyncAt { get; init; }
     public required DateTimeOffset CreatedAt { get; init; }
     public required DateTimeOffset UpdatedAt { get; init; }
     public SyncRunSummary? LastSyncRun { get; init; }

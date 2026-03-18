@@ -18,6 +18,7 @@ using SmartKb.Data;
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.Services.AddHostedService<IngestionWorker>();
+builder.Services.AddHostedService<ScheduledSyncService>();
 builder.Services.AddHealthChecks();
 
 // --- OpenTelemetry ---
@@ -73,7 +74,17 @@ if (serviceBusSettings.IsConfigured)
         : new ServiceBusClient(serviceBusSettings.ConnectionString);
 
     builder.Services.AddSingleton(sbClient);
+    builder.Services.AddSingleton<ISyncJobPublisher, SmartKb.Ingestion.ServiceBusSyncJobPublisher>();
 }
+else
+{
+    builder.Services.AddSingleton<ISyncJobPublisher, SmartKb.Ingestion.InMemorySyncJobPublisher>();
+}
+
+// Scheduled sync settings (P3-018).
+var scheduledSyncSettings = new ScheduledSyncSettings();
+builder.Configuration.GetSection(ScheduledSyncSettings.SectionName).Bind(scheduledSyncSettings);
+builder.Services.AddSingleton(scheduledSyncSettings);
 
 // Database.
 var connectionString = builder.Configuration.GetConnectionString("SmartKbDb");

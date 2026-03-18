@@ -492,12 +492,10 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
 
 ### P3 Connector and Ingestion Completeness
 
-- [ ] P3-018: Implement scheduled sync execution from ScheduleCron field.
+- [x] P3-018: Implement scheduled sync execution from ScheduleCron field.
   - Specs: jtbd-07 (REQ-07-5: schedule control)
-  - Gap: `ConnectorEntity.ScheduleCron` is stored in SQL and accepted in create/update requests, but no background worker reads or acts on it. The cron field is purely informational — connectors only sync via manual "Sync Now" or webhook-triggered incremental sync.
-  - Scope: Add `ScheduledSyncService` (BackgroundService) that periodically evaluates `ScheduleCron` for all enabled connectors and publishes `SyncJobMessage` when due. Use NCrontab for cron parsing. Track last scheduled sync time to avoid duplicate triggers. Respect `ConnectorStatus.Enabled` and webhook fallback state.
   - Dependencies: P0-007 (ingestion orchestration complete)
-  - Priority: HIGH — without this, connectors with no webhook support (or during webhook outage recovery) have no automatic sync cadence.
+  - Completed: `ScheduledSyncService` (BackgroundService) in `SmartKb.Ingestion` evaluates `ScheduleCron` on all enabled connectors every configurable interval (default 60s). Uses NCrontab 3.3.3 for standard 5-field cron parsing. `IsDue()` checks against `LastScheduledSyncAt` (new nullable DateTimeOffset field on `ConnectorEntity`), falling back to last completed SyncRun checkpoint time, then connector creation time. Creates `SyncRunEntity` (Pending, IsBackfill=false) with minute-granularity idempotency key (`scheduled-{connectorId}-{yyyyMMddHHmm}`) to prevent duplicate triggers within the same minute. Publishes `SyncJobMessage` via `ISyncJobPublisher` (Service Bus in production, in-memory fallback for dev). Updates `LastScheduledSyncAt` and `UpdatedAt` on connector after trigger. Respects `ConnectorStatus.Enabled`, soft-delete query filter, and non-null ScheduleCron. Invalid cron expressions silently skipped (no crash on single connector failure). `ScheduledSyncSettings` config: `Enabled` (default true), `EvaluationIntervalSeconds` (default 60). `TimeProvider` injected for testability. `AuditEventTypes.ScheduledSyncTriggered` / `ScheduledSyncSkipped` event types. `Diagnostics.ScheduledSyncTriggeredTotal` OTel counter with connector_type tag. `ConnectorResponse.LastScheduledSyncAt` surfaced in admin API. EF migration `20260318160000_AddScheduledSyncTracking`. `InternalsVisibleTo` for test project. 19 new tests (6 IsDue pure logic + 11 EvaluateSchedulesAsync integration with SQLite + 2 lifecycle/settings); all 1692 backend tests passing.
 
 - [ ] P3-019: Implement OAuth authorization code flow for connectors.
   - Specs: jtbd-07 (REQ-07-2: OAuth auth support)

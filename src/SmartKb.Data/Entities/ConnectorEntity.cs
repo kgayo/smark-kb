@@ -14,6 +14,7 @@ public sealed class ConnectorEntity
     public string? SourceConfig { get; set; }
     public string? FieldMapping { get; set; }
     public string? ScheduleCron { get; set; }
+    public DateTimeOffset? LastScheduledSyncAt { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }

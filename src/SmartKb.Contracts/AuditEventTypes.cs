@@ -79,6 +79,10 @@ public static class AuditEventTypes
     public const string MaintenanceTaskResolved = "pattern.maintenance.task_resolved";
     public const string MaintenanceTaskDismissed = "pattern.maintenance.task_dismissed";
 
+    // Scheduled sync events (P3-018).
+    public const string ScheduledSyncTriggered = "scheduled_sync.triggered";
+    public const string ScheduledSyncSkipped = "scheduled_sync.skipped";
+
     // Webhook events.
     public const string WebhookReceived = "webhook.received";
     public const string WebhookSignatureFailed = "webhook.signature_failed";

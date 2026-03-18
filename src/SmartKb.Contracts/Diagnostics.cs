@@ -121,6 +121,12 @@ public static class Diagnostics
             "smartkb.privacy.retention_overdue_policies_total",
             description: "Retention policies detected as overdue during compliance checks.");
 
+    /// <summary>Scheduled sync jobs triggered (counter).</summary>
+    public static readonly Counter<long> ScheduledSyncTriggeredTotal =
+        Meter.CreateCounter<long>(
+            "smartkb.ingestion.scheduled_sync_triggered_total",
+            description: "Scheduled sync jobs triggered by cron evaluation.");
+
     /// <summary>Source API rate-limit hits (HTTP 429) during connector sync (counter).</summary>
     public static readonly Counter<long> SourceRateLimitTotal =
         Meter.CreateCounter<long>(

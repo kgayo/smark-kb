@@ -489,6 +489,7 @@ public sealed class ConnectorAdminService
             SourceConfig = entity.SourceConfig,
             FieldMapping = DeserializeFieldMapping(entity.FieldMapping),
             ScheduleCron = entity.ScheduleCron,
+            LastScheduledSyncAt = entity.LastScheduledSyncAt,
             CreatedAt = entity.CreatedAt,
             UpdatedAt = entity.UpdatedAt,
             LastSyncRun = entity.SyncRuns?.OrderByDescending(s => s.StartedAt).FirstOrDefault() is { } run
