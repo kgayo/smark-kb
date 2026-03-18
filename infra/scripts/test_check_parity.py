@@ -3,6 +3,7 @@
 
 import json
 import os
+import re
 import tempfile
 import textwrap
 import unittest
@@ -16,6 +17,7 @@ from check_parity import (
     ParityIssue,
     ParityReport,
     TerraformResource,
+    check_arm_security_hardening,
     check_parity,
     format_report,
     main,
@@ -536,6 +538,10 @@ class TestCliEntryPoint(unittest.TestCase):
                                 "type": "Microsoft.KeyVault/vaults",
                                 "apiVersion": "2023-02-01",
                                 "name": "kv-test",
+                                "properties": {
+                                    "enableRbacAuthorization": True,
+                                    "enableSoftDelete": True,
+                                },
                             }
                         ]
                     },
@@ -570,6 +576,624 @@ class TestCliEntryPoint(unittest.TestCase):
             with open(arm_path, "w") as f:
                 json.dump({"resources": []}, f)
             rc = main(["--tf-dir", tf_dir, "--arm-template", arm_path, "--json"])
+            self.assertEqual(rc, 0)
+
+
+class TestCheckArmSecurityHardening(unittest.TestCase):
+    """Unit tests for check_arm_security_hardening function."""
+
+    def _write_arm(self, tmpdir: str, template: dict) -> str:
+        path = os.path.join(tmpdir, "main.json")
+        with open(path, "w") as f:
+            json.dump(template, f)
+        return path
+
+    def test_passes_for_compliant_web_app(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = self._write_arm(d, {
+                "resources": [{
+                    "type": "Microsoft.Web/sites",
+                    "name": "app-test",
+                    "apiVersion": "2023-12-01",
+                    "identity": {"type": "SystemAssigned"},
+                    "properties": {"httpsOnly": True},
+                }]
+            })
+            issues = check_arm_security_hardening(path)
+            self.assertEqual(len(issues), 0)
+
+    def test_fails_when_https_only_missing(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = self._write_arm(d, {
+                "resources": [{
+                    "type": "Microsoft.Web/sites",
+                    "name": "app-test",
+                    "apiVersion": "2023-12-01",
+                    "identity": {"type": "SystemAssigned"},
+                    "properties": {"httpsOnly": False},
+                }]
+            })
+            issues = check_arm_security_hardening(path)
+            errors = [i for i in issues if "httpsOnly" in i.message]
+            self.assertEqual(len(errors), 1)
+            self.assertEqual(errors[0].category, "security_hardening")
+
+    def test_fails_when_identity_missing(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = self._write_arm(d, {
+                "resources": [{
+                    "type": "Microsoft.Web/sites",
+                    "name": "app-test",
+                    "apiVersion": "2023-12-01",
+                    "properties": {"httpsOnly": True},
+                }]
+            })
+            issues = check_arm_security_hardening(path)
+            errors = [i for i in issues if "SystemAssigned" in i.message]
+            self.assertEqual(len(errors), 1)
+
+    def test_fails_when_storage_tls_wrong(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = self._write_arm(d, {
+                "resources": [{
+                    "type": "Microsoft.Storage/storageAccounts",
+                    "name": "st-test",
+                    "apiVersion": "2023-05-01",
+                    "properties": {
+                        "minimumTlsVersion": "TLS1_0",
+                        "supportsHttpsTrafficOnly": True,
+                    },
+                }]
+            })
+            issues = check_arm_security_hardening(path)
+            errors = [i for i in issues if "TLS" in i.message]
+            self.assertEqual(len(errors), 1)
+
+    def test_fails_when_keyvault_rbac_disabled(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = self._write_arm(d, {
+                "resources": [{
+                    "type": "Microsoft.KeyVault/vaults",
+                    "name": "kv-test",
+                    "apiVersion": "2023-07-01",
+                    "properties": {
+                        "enableRbacAuthorization": False,
+                        "enableSoftDelete": True,
+                    },
+                }]
+            })
+            issues = check_arm_security_hardening(path)
+            errors = [i for i in issues if "RBAC" in i.message]
+            self.assertEqual(len(errors), 1)
+
+    def test_fails_when_blob_container_public(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = self._write_arm(d, {
+                "resources": [{
+                    "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+                    "name": "container-test",
+                    "apiVersion": "2023-05-01",
+                    "properties": {"publicAccess": "Blob"},
+                }]
+            })
+            issues = check_arm_security_hardening(path)
+            errors = [i for i in issues if "publicAccess" in i.message]
+            self.assertEqual(len(errors), 1)
+
+    def test_fails_when_queue_no_dlq(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = self._write_arm(d, {
+                "resources": [{
+                    "type": "Microsoft.ServiceBus/namespaces/queues",
+                    "name": "queue-test",
+                    "apiVersion": "2022-10-01-preview",
+                    "properties": {
+                        "maxDeliveryCount": 10,
+                        "deadLetteringOnMessageExpiration": False,
+                    },
+                }]
+            })
+            issues = check_arm_security_hardening(path)
+            errors = [i for i in issues if "deadLettering" in i.message]
+            self.assertEqual(len(errors), 1)
+
+    def test_multiple_web_apps_each_checked(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = self._write_arm(d, {
+                "resources": [
+                    {
+                        "type": "Microsoft.Web/sites", "name": "app-1",
+                        "apiVersion": "2023-12-01",
+                        "identity": {"type": "SystemAssigned"},
+                        "properties": {"httpsOnly": False},
+                    },
+                    {
+                        "type": "Microsoft.Web/sites", "name": "app-2",
+                        "apiVersion": "2023-12-01",
+                        "identity": {"type": "SystemAssigned"},
+                        "properties": {"httpsOnly": False},
+                    },
+                ]
+            })
+            issues = check_arm_security_hardening(path)
+            https_errors = [i for i in issues if "httpsOnly" in i.message]
+            self.assertEqual(len(https_errors), 2)
+
+    def test_search_service_identity_required(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = self._write_arm(d, {
+                "resources": [{
+                    "type": "Microsoft.Search/searchServices",
+                    "name": "srch-test",
+                    "apiVersion": "2024-03-01-preview",
+                    "properties": {},
+                }]
+            })
+            issues = check_arm_security_hardening(path)
+            errors = [i for i in issues if "SystemAssigned" in i.message]
+            self.assertEqual(len(errors), 1)
+
+    def test_missing_file_raises(self):
+        with self.assertRaises(FileNotFoundError):
+            check_arm_security_hardening("/nonexistent/main.json")
+
+
+class TestProjectArmSecurityHardening(unittest.TestCase):
+    """Validate security hardening of the actual project ARM template."""
+
+    def setUp(self):
+        self.arm_path = Path(__file__).parent.parent / "arm" / "main.json"
+        if not self.arm_path.is_file():
+            self.skipTest("ARM template not found (running outside repo)")
+        with open(self.arm_path) as f:
+            self.template = json.load(f)
+        self.resources = self.template.get("resources", [])
+
+    def test_all_web_apps_enforce_https(self):
+        sites = [r for r in self.resources if r.get("type") == "Microsoft.Web/sites"]
+        self.assertGreaterEqual(len(sites), 2, "Expected at least 2 web apps")
+        for site in sites:
+            self.assertTrue(
+                site["properties"].get("httpsOnly"),
+                f"Web app '{site['name']}' must have httpsOnly=true",
+            )
+
+    def test_all_web_apps_have_system_identity(self):
+        sites = [r for r in self.resources if r.get("type") == "Microsoft.Web/sites"]
+        for site in sites:
+            self.assertEqual(
+                site.get("identity", {}).get("type"), "SystemAssigned",
+                f"Web app '{site['name']}' must use SystemAssigned identity",
+            )
+
+    def test_storage_account_tls12(self):
+        storage = [r for r in self.resources if r.get("type") == "Microsoft.Storage/storageAccounts"]
+        self.assertEqual(len(storage), 1)
+        self.assertEqual(storage[0]["properties"]["minimumTlsVersion"], "TLS1_2")
+
+    def test_storage_account_https_only(self):
+        storage = [r for r in self.resources if r.get("type") == "Microsoft.Storage/storageAccounts"]
+        self.assertTrue(storage[0]["properties"]["supportsHttpsTrafficOnly"])
+
+    def test_blob_container_private(self):
+        containers = [
+            r for r in self.resources
+            if r.get("type") == "Microsoft.Storage/storageAccounts/blobServices/containers"
+        ]
+        self.assertGreaterEqual(len(containers), 1)
+        for c in containers:
+            self.assertEqual(c["properties"]["publicAccess"], "None")
+
+    def test_key_vault_rbac_enabled(self):
+        vaults = [r for r in self.resources if r.get("type") == "Microsoft.KeyVault/vaults"]
+        self.assertEqual(len(vaults), 1)
+        self.assertTrue(vaults[0]["properties"]["enableRbacAuthorization"])
+
+    def test_key_vault_soft_delete_enabled(self):
+        vaults = [r for r in self.resources if r.get("type") == "Microsoft.KeyVault/vaults"]
+        self.assertTrue(vaults[0]["properties"]["enableSoftDelete"])
+
+    def test_key_vault_soft_delete_retention_90_days(self):
+        vaults = [r for r in self.resources if r.get("type") == "Microsoft.KeyVault/vaults"]
+        self.assertEqual(vaults[0]["properties"]["softDeleteRetentionInDays"], 90)
+
+    def test_search_service_has_system_identity(self):
+        search = [r for r in self.resources if r.get("type") == "Microsoft.Search/searchServices"]
+        self.assertEqual(len(search), 1)
+        self.assertEqual(search[0]["identity"]["type"], "SystemAssigned")
+
+    def test_sql_server_version_12(self):
+        sql = [r for r in self.resources if r.get("type") == "Microsoft.Sql/servers"]
+        self.assertEqual(len(sql), 1)
+        self.assertEqual(sql[0]["properties"]["version"], "12.0")
+
+    def test_sql_firewall_allows_azure_services_only(self):
+        fw_rules = [
+            r for r in self.resources
+            if r.get("type") == "Microsoft.Sql/servers/firewallRules"
+        ]
+        self.assertGreaterEqual(len(fw_rules), 1)
+        for rule in fw_rules:
+            self.assertEqual(rule["properties"]["startIpAddress"], "0.0.0.0")
+            self.assertEqual(rule["properties"]["endIpAddress"], "0.0.0.0")
+
+    def test_queue_dead_lettering_enabled(self):
+        queues = [
+            r for r in self.resources
+            if r.get("type") == "Microsoft.ServiceBus/namespaces/queues"
+        ]
+        self.assertGreaterEqual(len(queues), 1)
+        for q in queues:
+            self.assertTrue(q["properties"]["deadLetteringOnMessageExpiration"])
+
+    def test_queue_max_delivery_count(self):
+        queues = [
+            r for r in self.resources
+            if r.get("type") == "Microsoft.ServiceBus/namespaces/queues"
+        ]
+        for q in queues:
+            self.assertEqual(q["properties"]["maxDeliveryCount"], 10)
+
+    def test_app_service_plan_linux(self):
+        plans = [r for r in self.resources if r.get("type") == "Microsoft.Web/serverfarms"]
+        self.assertEqual(len(plans), 1)
+        self.assertEqual(plans[0]["kind"], "linux")
+        self.assertTrue(plans[0]["properties"]["reserved"])
+
+    def test_web_apps_have_required_app_settings(self):
+        """Both web apps must configure all infrastructure connection settings."""
+        required_settings = {
+            "APPLICATIONINSIGHTS_CONNECTION_STRING",
+            "KeyVault__VaultUri",
+            "ServiceBus__FullyQualifiedNamespace",
+            "BlobStorage__ServiceUri",
+            "SearchService__Endpoint",
+        }
+        sites = [r for r in self.resources if r.get("type") == "Microsoft.Web/sites"]
+        for site in sites:
+            settings = site["properties"]["siteConfig"].get("appSettings", [])
+            names = {s["name"] for s in settings}
+            missing = required_settings - names
+            self.assertEqual(
+                missing, set(),
+                f"Web app '{site['name']}' missing app settings: {missing}",
+            )
+
+    def test_web_apps_have_sql_connection_string(self):
+        sites = [r for r in self.resources if r.get("type") == "Microsoft.Web/sites"]
+        for site in sites:
+            conn_strings = site["properties"]["siteConfig"].get("connectionStrings", [])
+            names = {cs["name"] for cs in conn_strings}
+            self.assertIn("SmartKbDb", names, f"Web app '{site['name']}' missing SmartKbDb connection string")
+
+    def test_security_hardening_function_passes(self):
+        """The project ARM template passes automated security hardening checks."""
+        issues = check_arm_security_hardening(self.arm_path)
+        if issues:
+            msgs = "\n".join(f"  [{i.category}] {i.message}" for i in issues)
+            self.fail(f"Security hardening issues found:\n{msgs}")
+
+
+class TestPropertyLevelParity(unittest.TestCase):
+    """Cross-validate key configuration properties between Terraform and ARM."""
+
+    def setUp(self):
+        self.tf_dir = Path(__file__).parent.parent / "terraform"
+        self.arm_path = Path(__file__).parent.parent / "arm" / "main.json"
+        if not self.tf_dir.is_dir() or not self.arm_path.is_file():
+            self.skipTest("IaC files not found (running outside repo)")
+        with open(self.arm_path) as f:
+            self.arm = json.load(f)
+        self.arm_resources = self.arm.get("resources", [])
+
+    def _read_tf(self, filename: str) -> str:
+        return (self.tf_dir / filename).read_text()
+
+    def test_web_apps_https_only_in_both(self):
+        """Both TF and ARM enforce httpsOnly on web apps."""
+        tf_content = self._read_tf("app-service.tf")
+        self.assertIn("https_only", tf_content)
+        self.assertEqual(tf_content.count("https_only          = true"), 2)
+        sites = [r for r in self.arm_resources if r.get("type") == "Microsoft.Web/sites"]
+        for site in sites:
+            self.assertTrue(site["properties"]["httpsOnly"])
+
+    def test_storage_tls_version_matches(self):
+        """TF min_tls_version = TLS1_2 matches ARM minimumTlsVersion = TLS1_2."""
+        tf_content = self._read_tf("storage.tf")
+        self.assertIn('min_tls_version          = "TLS1_2"', tf_content)
+        storage = [r for r in self.arm_resources if r.get("type") == "Microsoft.Storage/storageAccounts"]
+        self.assertEqual(storage[0]["properties"]["minimumTlsVersion"], "TLS1_2")
+
+    def test_key_vault_rbac_matches(self):
+        """TF enable_rbac_authorization = true matches ARM enableRbacAuthorization = true."""
+        tf_content = self._read_tf("keyvault.tf")
+        self.assertIn("enable_rbac_authorization = true", tf_content)
+        vaults = [r for r in self.arm_resources if r.get("type") == "Microsoft.KeyVault/vaults"]
+        self.assertTrue(vaults[0]["properties"]["enableRbacAuthorization"])
+
+    def test_key_vault_soft_delete_retention_matches(self):
+        """TF soft_delete_retention_days = 90 matches ARM softDeleteRetentionInDays = 90."""
+        tf_content = self._read_tf("keyvault.tf")
+        self.assertIn("soft_delete_retention_days = 90", tf_content)
+        vaults = [r for r in self.arm_resources if r.get("type") == "Microsoft.KeyVault/vaults"]
+        self.assertEqual(vaults[0]["properties"]["softDeleteRetentionInDays"], 90)
+
+    def test_queue_max_delivery_count_matches(self):
+        """TF max_delivery_count = 10 matches ARM maxDeliveryCount = 10."""
+        tf_content = self._read_tf("servicebus.tf")
+        self.assertIn("max_delivery_count                   = 10", tf_content)
+        queues = [r for r in self.arm_resources if r.get("type") == "Microsoft.ServiceBus/namespaces/queues"]
+        self.assertEqual(queues[0]["properties"]["maxDeliveryCount"], 10)
+
+    def test_queue_dead_lettering_matches(self):
+        """TF dead_lettering_on_message_expiration = true matches ARM."""
+        tf_content = self._read_tf("servicebus.tf")
+        self.assertIn("dead_lettering_on_message_expiration = true", tf_content)
+        queues = [r for r in self.arm_resources if r.get("type") == "Microsoft.ServiceBus/namespaces/queues"]
+        self.assertTrue(queues[0]["properties"]["deadLetteringOnMessageExpiration"])
+
+    def test_sql_server_version_matches(self):
+        """TF version = 12.0 matches ARM version = 12.0."""
+        tf_content = self._read_tf("sql.tf")
+        self.assertIn('version                      = "12.0"', tf_content)
+        sql = [r for r in self.arm_resources if r.get("type") == "Microsoft.Sql/servers"]
+        self.assertEqual(sql[0]["properties"]["version"], "12.0")
+
+    def test_blob_retention_days_match(self):
+        """TF delete_retention_policy days = 7 matches ARM deleteRetentionPolicy days = 7."""
+        tf_content = self._read_tf("storage.tf")
+        self.assertIn("days = 7", tf_content)
+        blob_svc = [
+            r for r in self.arm_resources
+            if r.get("type") == "Microsoft.Storage/storageAccounts/blobServices"
+        ]
+        self.assertEqual(
+            blob_svc[0]["properties"]["deleteRetentionPolicy"]["days"], 7
+        )
+
+    def test_app_settings_keys_match(self):
+        """Both TF web apps and ARM web apps define the same app setting keys."""
+        tf_content = self._read_tf("app-service.tf")
+        tf_settings = set(re.findall(r'"([A-Z][A-Za-z_]+)"', tf_content))
+        # Filter to only actual app setting keys (not connection string types)
+        expected_settings = {
+            "APPLICATIONINSIGHTS_CONNECTION_STRING",
+            "KeyVault__VaultUri",
+            "ServiceBus__FullyQualifiedNamespace",
+            "BlobStorage__ServiceUri",
+            "SearchService__Endpoint",
+        }
+        self.assertTrue(expected_settings.issubset(tf_settings))
+
+        sites = [r for r in self.arm_resources if r.get("type") == "Microsoft.Web/sites"]
+        for site in sites:
+            arm_settings = {
+                s["name"]
+                for s in site["properties"]["siteConfig"].get("appSettings", [])
+            }
+            missing = expected_settings - arm_settings
+            self.assertEqual(missing, set(), f"ARM '{site['name']}' missing: {missing}")
+
+    def test_search_identity_matches(self):
+        """Both TF and ARM define SystemAssigned identity on search service."""
+        tf_content = self._read_tf("search.tf")
+        self.assertIn('type = "SystemAssigned"', tf_content)
+        search = [r for r in self.arm_resources if r.get("type") == "Microsoft.Search/searchServices"]
+        self.assertEqual(search[0]["identity"]["type"], "SystemAssigned")
+
+
+class TestArmParameterFileConsistency(unittest.TestCase):
+    """Validate ARM parameter files are consistent across environments."""
+
+    def setUp(self):
+        self.arm_dir = Path(__file__).parent.parent / "arm"
+        if not self.arm_dir.is_dir():
+            self.skipTest("ARM directory not found (running outside repo)")
+        self.envs = ["dev", "staging", "prod"]
+        self.param_files = {}
+        for env in self.envs:
+            path = self.arm_dir / f"parameters.{env}.json"
+            if not path.is_file():
+                self.skipTest(f"parameters.{env}.json not found")
+            with open(path) as f:
+                self.param_files[env] = json.load(f)
+
+    def test_all_param_files_have_valid_schema(self):
+        for env, data in self.param_files.items():
+            self.assertEqual(
+                data["$schema"],
+                "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+                f"parameters.{env}.json has invalid schema",
+            )
+
+    def test_all_param_files_have_same_parameter_keys(self):
+        key_sets = {
+            env: set(data["parameters"].keys())
+            for env, data in self.param_files.items()
+        }
+        dev_keys = key_sets["dev"]
+        for env in ["staging", "prod"]:
+            self.assertEqual(
+                dev_keys, key_sets[env],
+                f"parameters.{env}.json keys differ from dev: "
+                f"missing={dev_keys - key_sets[env]}, extra={key_sets[env] - dev_keys}",
+            )
+
+    def test_environment_value_matches_filename(self):
+        for env, data in self.param_files.items():
+            self.assertEqual(
+                data["parameters"]["environment"]["value"], env,
+                f"parameters.{env}.json environment value mismatch",
+            )
+
+    def test_all_param_files_have_entra_tenant_id(self):
+        for env, data in self.param_files.items():
+            self.assertIn("entraTenantId", data["parameters"])
+
+    def test_all_param_files_have_sql_admin_password(self):
+        for env, data in self.param_files.items():
+            self.assertIn("sqlAdminPassword", data["parameters"])
+
+    def test_param_files_reference_main_template_params(self):
+        """All param file keys must exist in the main ARM template parameters."""
+        main_path = self.arm_dir / "main.json"
+        if not main_path.is_file():
+            self.skipTest("main.json not found")
+        with open(main_path) as f:
+            main_template = json.load(f)
+        template_params = set(main_template["parameters"].keys())
+        for env, data in self.param_files.items():
+            file_params = set(data["parameters"].keys())
+            unknown = file_params - template_params
+            self.assertEqual(
+                unknown, set(),
+                f"parameters.{env}.json references unknown params: {unknown}",
+            )
+
+
+class TestTfvarsFileConsistency(unittest.TestCase):
+    """Validate Terraform tfvars files are consistent across environments."""
+
+    def setUp(self):
+        self.tf_dir = Path(__file__).parent.parent / "terraform"
+        if not self.tf_dir.is_dir():
+            self.skipTest("Terraform directory not found (running outside repo)")
+        self.envs = ["dev", "staging", "prod"]
+        self.tfvars = {}
+        for env in self.envs:
+            path = self.tf_dir / f"{env}.tfvars"
+            if not path.is_file():
+                self.skipTest(f"{env}.tfvars not found")
+            self.tfvars[env] = path.read_text()
+
+    def _parse_keys(self, content: str) -> set:
+        return set(re.findall(r'^(\w+)\s*=', content, re.MULTILINE))
+
+    def test_all_tfvars_have_same_variable_keys(self):
+        key_sets = {env: self._parse_keys(c) for env, c in self.tfvars.items()}
+        dev_keys = key_sets["dev"]
+        for env in ["staging", "prod"]:
+            self.assertEqual(
+                dev_keys, key_sets[env],
+                f"{env}.tfvars keys differ from dev: "
+                f"missing={dev_keys - key_sets[env]}, extra={key_sets[env] - dev_keys}",
+            )
+
+    def test_environment_value_matches_filename(self):
+        for env, content in self.tfvars.items():
+            self.assertIn(
+                f'environment     = "{env}"', content,
+                f"{env}.tfvars environment value mismatch",
+            )
+
+    def test_tfvars_keys_reference_declared_variables(self):
+        """All tfvars keys must correspond to declared variables in variables.tf."""
+        vars_path = self.tf_dir / "variables.tf"
+        if not vars_path.is_file():
+            self.skipTest("variables.tf not found")
+        vars_content = vars_path.read_text()
+        declared = set(re.findall(r'^variable\s+"(\w+)"', vars_content, re.MULTILINE))
+        for env, content in self.tfvars.items():
+            used = self._parse_keys(content)
+            unknown = used - declared
+            self.assertEqual(
+                unknown, set(),
+                f"{env}.tfvars references undeclared variables: {unknown}",
+            )
+
+    def test_sku_values_provided_for_all_envs(self):
+        """All environments must specify SKU variables."""
+        sku_vars = {"app_service_sku", "sql_sku", "search_sku", "servicebus_sku"}
+        for env, content in self.tfvars.items():
+            keys = self._parse_keys(content)
+            missing = sku_vars - keys
+            self.assertEqual(
+                missing, set(),
+                f"{env}.tfvars missing SKU variables: {missing}",
+            )
+
+    def test_arm_and_tf_sku_defaults_match(self):
+        """ARM default SKU parameter values match TF variable defaults for dev."""
+        arm_path = Path(__file__).parent.parent / "arm" / "main.json"
+        if not arm_path.is_file():
+            self.skipTest("main.json not found")
+        with open(arm_path) as f:
+            arm = json.load(f)
+        arm_params = arm["parameters"]
+        vars_path = self.tf_dir / "variables.tf"
+        vars_content = vars_path.read_text()
+
+        # Check that ARM default values match TF variable defaults
+        arm_tf_map = {
+            "appServiceSku": "app_service_sku",
+            "sqlSku": "sql_sku",
+            "searchSku": "search_sku",
+            "serviceBusSku": "servicebus_sku",
+        }
+        for arm_name, tf_name in arm_tf_map.items():
+            arm_default = arm_params[arm_name].get("defaultValue")
+            # Extract TF default from variables.tf
+            pattern = rf'variable\s+"{tf_name}".*?default\s*=\s*"([^"]+)"'
+            match = re.search(pattern, vars_content, re.DOTALL)
+            if match and arm_default:
+                self.assertEqual(
+                    arm_default, match.group(1),
+                    f"Default SKU mismatch for {arm_name}: ARM={arm_default}, TF={match.group(1)}",
+                )
+
+
+class TestCliIncludesSecurityHardening(unittest.TestCase):
+    """Verify the CLI entry point also runs security hardening checks."""
+
+    def test_cli_fails_on_security_hardening_violation(self):
+        with tempfile.TemporaryDirectory() as d:
+            tf_dir = os.path.join(d, "tf")
+            os.makedirs(tf_dir)
+            Path(tf_dir, "main.tf").write_text(
+                'resource "azurerm_key_vault" "main" {\n}\n'
+            )
+            arm_path = os.path.join(d, "main.json")
+            with open(arm_path, "w") as f:
+                json.dump({
+                    "resources": [
+                        {
+                            "type": "Microsoft.KeyVault/vaults",
+                            "apiVersion": "2023-07-01",
+                            "name": "kv-test",
+                            "properties": {
+                                "enableRbacAuthorization": False,
+                                "enableSoftDelete": False,
+                            },
+                        }
+                    ]
+                }, f)
+            rc = main(["--tf-dir", tf_dir, "--arm-template", arm_path])
+            self.assertEqual(rc, 1, "CLI should fail on security hardening violations")
+
+    def test_cli_passes_when_all_compliant(self):
+        with tempfile.TemporaryDirectory() as d:
+            tf_dir = os.path.join(d, "tf")
+            os.makedirs(tf_dir)
+            Path(tf_dir, "main.tf").write_text(
+                'resource "azurerm_key_vault" "main" {\n}\n'
+            )
+            arm_path = os.path.join(d, "main.json")
+            with open(arm_path, "w") as f:
+                json.dump({
+                    "resources": [
+                        {
+                            "type": "Microsoft.KeyVault/vaults",
+                            "apiVersion": "2023-07-01",
+                            "name": "kv-test",
+                            "properties": {
+                                "enableRbacAuthorization": True,
+                                "enableSoftDelete": True,
+                            },
+                        }
+                    ]
+                }, f)
+            rc = main(["--tf-dir", tf_dir, "--arm-template", arm_path])
             self.assertEqual(rc, 0)
 
 

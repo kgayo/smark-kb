@@ -260,6 +260,112 @@ def check_parity(
 
 
 # ---------------------------------------------------------------------------
+# ARM security hardening validation
+# ---------------------------------------------------------------------------
+
+# Required security properties for ARM resource types.
+# Each entry: (json_path_parts, expected_value, description)
+_ARM_SECURITY_RULES: list[tuple[str, list[tuple[list[str], object, str]]]] = [
+    (
+        "Microsoft.Web/sites",
+        [
+            (["properties", "httpsOnly"], True, "httpsOnly must be true"),
+            (["identity", "type"], "SystemAssigned", "must use SystemAssigned identity"),
+        ],
+    ),
+    (
+        "Microsoft.Storage/storageAccounts",
+        [
+            (["properties", "minimumTlsVersion"], "TLS1_2", "must enforce TLS 1.2"),
+            (["properties", "supportsHttpsTrafficOnly"], True, "must require HTTPS-only traffic"),
+        ],
+    ),
+    (
+        "Microsoft.KeyVault/vaults",
+        [
+            (["properties", "enableRbacAuthorization"], True, "must use RBAC authorization"),
+            (["properties", "enableSoftDelete"], True, "must have soft-delete enabled"),
+        ],
+    ),
+    (
+        "Microsoft.Search/searchServices",
+        [
+            (["identity", "type"], "SystemAssigned", "must use SystemAssigned identity"),
+        ],
+    ),
+]
+
+
+def _get_nested(obj: dict, keys: list[str]) -> object:
+    """Walk a dict by key path, returning None on missing keys."""
+    current = obj
+    for k in keys:
+        if not isinstance(current, dict) or k not in current:
+            return None
+        current = current[k]
+    return current
+
+
+def check_arm_security_hardening(arm_path: str | Path) -> list[ParityIssue]:
+    """Validate ARM template resources meet security hardening requirements."""
+    arm_file = Path(arm_path)
+    if not arm_file.is_file():
+        raise FileNotFoundError(f"ARM template not found: {arm_path}")
+
+    with open(arm_file, encoding="utf-8") as f:
+        template = json.load(f)
+
+    issues: list[ParityIssue] = []
+    resources = template.get("resources", [])
+
+    for rule_type, checks in _ARM_SECURITY_RULES:
+        matching = [r for r in resources if r.get("type") == rule_type]
+        for res in matching:
+            name = res.get("name", "<unnamed>")
+            for path_keys, expected, desc in checks:
+                actual = _get_nested(res, path_keys)
+                if actual != expected:
+                    issues.append(
+                        ParityIssue(
+                            severity="error",
+                            category="security_hardening",
+                            message=(
+                                f"{rule_type} '{name}': {desc} "
+                                f"(expected={expected!r}, actual={actual!r})"
+                            ),
+                        )
+                    )
+
+    # Validate blob containers have no public access
+    for res in resources:
+        if res.get("type") == "Microsoft.Storage/storageAccounts/blobServices/containers":
+            access = _get_nested(res, ["properties", "publicAccess"])
+            if access != "None":
+                issues.append(
+                    ParityIssue(
+                        severity="error",
+                        category="security_hardening",
+                        message=f"Blob container '{res.get('name', '')}': publicAccess must be 'None' (actual={access!r})",
+                    )
+                )
+
+    # Validate Service Bus queue has dead-lettering enabled
+    for res in resources:
+        if res.get("type") == "Microsoft.ServiceBus/namespaces/queues":
+            dlq = _get_nested(res, ["properties", "deadLetteringOnMessageExpiration"])
+            if dlq is not True:
+                issues.append(
+                    ParityIssue(
+                        severity="error",
+                        category="security_hardening",
+                        message=f"Queue '{res.get('name', '')}': deadLetteringOnMessageExpiration must be true",
+                    )
+                )
+
+    return issues
+
+
+# ---------------------------------------------------------------------------
 # Output formatting
 # ---------------------------------------------------------------------------
 def format_report(report: ParityReport, verbose: bool = False) -> str:
@@ -375,6 +481,10 @@ def main(argv: Optional[list[str]] = None) -> int:
         return 2
 
     report = check_parity(tf_resources, arm_resources)
+
+    # Also run security hardening checks
+    hardening_issues = check_arm_security_hardening(args.arm_template)
+    report.issues.extend(hardening_issues)
 
     if args.json:
         print(json.dumps(report_to_dict(report), indent=2))
