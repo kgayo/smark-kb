@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-19 (Asia/Manila) — iteration 79 (P3-038 multi-turn eval cases)
-Status: Active backlog (Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 in progress: P3-001, P3-002, P3-003, P3-004, P3-005, P3-006, P3-018, P3-032, P3-034, P3-036, P3-038 complete; Tests complete: T-001–T-008; ~2165 tests passing (1809 backend + 258 frontend + 98 IaC); 0 bugs blocking, 0 tech-debt blocking)
+Last updated: 2026-03-19 (Asia/Manila) — iteration 80 (P3-008 admin UI pages for routing/playbooks/cost/privacy)
+Status: Active backlog (Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 in progress: P3-001, P3-002, P3-003, P3-004, P3-005, P3-006, P3-008, P3-018, P3-032, P3-034, P3-036, P3-038 complete; Tests complete: T-001–T-008; ~2198 tests passing (1809 backend + 291 frontend + 98 IaC); 0 bugs blocking, 0 tech-debt blocking)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -354,12 +354,9 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
 
 ### P3 Frontend Admin Gaps
 
-- [ ] P3-008: Add admin UI pages for routing analytics, playbooks, cost controls, and privacy management.
+- [x] P3-008: Add admin UI pages for routing analytics, playbooks, cost controls, and privacy management.
   - Specs: jtbd-05, jtbd-08, jtbd-10
-  - Gap: Backend APIs exist for routing analytics (P1-009: 10 endpoints), team playbooks (P2-002: 7 endpoints), cost optimization (P2-003: 6 endpoints), and privacy management (P2-001: 11 endpoints), but the frontend only has 4 pages: ChatPage, AdminPage (connectors), PatternGovernancePage, DiagnosticsPage. All Phase 2 admin features are API-only.
-  - Scope: Add React pages/tabs for: (a) Routing Analytics — metrics dashboard, rule CRUD, recommendation review. (b) Team Playbooks — CRUD, validation preview. (c) Cost Controls — budget settings, usage charts, cache stats. (d) Privacy Admin — PII policy config, retention policy config, deletion requests, compliance report.
-  - Dependencies: P1-009, P2-001, P2-002, P2-003 (all complete)
-  - Priority: MEDIUM — admin features are usable via API but not accessible to non-technical admins.
+  - Completed: 4 new admin pages — RoutingAnalyticsPage (3-tab: analytics metrics/team tables, rule CRUD, recommendation generate/apply/dismiss), PlaybooksPage (list→detail→create view switching, full CRUD with checklists/required-fields/severity gates), CostControlsPage (3-tab: token usage summary/daily breakdown, settings edit, budget status with warnings), PrivacyAdminPage (4-tab: PII policy config with enforcement modes/custom patterns, retention policy CRUD with cleanup, deletion requests, compliance report). 33 new API client functions, ~280 lines of TypeScript interfaces, shared admin CSS classes. Routes added at /routing, /playbooks, /cost, /privacy. Navigation links added to AdminPage header. 33 new frontend tests (291 total). R-024 resolved.
 
 ### P3 Ingestion Hardening
 
@@ -628,7 +625,7 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
 - [x] R-021: Binary document text extraction — **RESOLVED** by P3-003 (iteration 74). SharePoint connector now downloads and extracts text from PDF/DOCX/PPTX/XLSX via PdfPig and Open XML SDK.
 - [x] R-022: Pre-retrieval query classification. **Resolved by** P3-001 (iteration 69). Classification via gpt-4o-mini biases retrieval filters by product area, source type, and time horizon.
 - [x] R-023: ~~No scheduled eval automation.~~ **RESOLVED** by P3-006 — nightly smoke and weekly full eval CI workflows with GitHub Actions annotations and regression-gated issue creation.
-- [ ] R-024: **NEW** — Phase 2 admin features (routing, playbooks, cost, privacy) have no frontend UI. Accessible via API only. **Tracked as** P3-008.
+- [x] R-024: ~~Phase 2 admin features (routing, playbooks, cost, privacy) have no frontend UI.~~ **RESOLVED** by P3-008 (iteration 80). Four admin pages added: RoutingAnalyticsPage, PlaybooksPage, CostControlsPage, PrivacyAdminPage.
 - [ ] R-025: **NEW** — ScheduleCron field on connectors is stored but never executed. Connectors without webhooks have no automatic sync cadence. **Tracked as** P3-018.
 - [ ] R-026: **NEW** — Eval report history not persisted. Trend reporting and regression visibility for support leads not possible. **Tracked as** P3-021.
 - [ ] R-027: **NEW** — OAuth auth flow not implemented despite `SecretAuthType.OAuth` enum value existing. Some provider features (HubSpot scopes) may require OAuth. **Tracked as** P3-019.

@@ -609,3 +609,321 @@ export interface SynonymRuleValidationResult {
   isValid: boolean;
   errors: string[];
 }
+
+// ── Routing analytics types (P1-009) ──
+
+export interface RoutingRuleDto {
+  ruleId: string;
+  productArea: string;
+  targetTeam: string;
+  escalationThreshold: number;
+  minSeverity: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RoutingRuleListResponse {
+  rules: RoutingRuleDto[];
+  totalCount: number;
+}
+
+export interface CreateRoutingRuleRequest {
+  productArea: string;
+  targetTeam: string;
+  escalationThreshold?: number;
+  minSeverity?: string;
+}
+
+export interface UpdateRoutingRuleRequest {
+  targetTeam?: string;
+  escalationThreshold?: number;
+  minSeverity?: string;
+  isActive?: boolean;
+}
+
+export interface TeamRoutingMetrics {
+  targetTeam: string;
+  totalEscalations: number;
+  acceptedCount: number;
+  reroutedCount: number;
+  pendingCount: number;
+  acceptanceRate: number;
+  rerouteRate: number;
+  avgTimeToAssign: string | null;
+  avgTimeToResolve: string | null;
+}
+
+export interface ProductAreaRoutingMetrics {
+  productArea: string;
+  currentTargetTeam: string;
+  totalEscalations: number;
+  acceptedCount: number;
+  reroutedCount: number;
+  acceptanceRate: number;
+  rerouteRate: number;
+}
+
+export interface RoutingAnalyticsSummary {
+  tenantId: string;
+  totalOutcomes: number;
+  totalEscalations: number;
+  totalReroutes: number;
+  totalResolvedWithoutEscalation: number;
+  overallAcceptanceRate: number;
+  overallRerouteRate: number;
+  selfResolutionRate: number;
+  teamMetrics: TeamRoutingMetrics[];
+  productAreaMetrics: ProductAreaRoutingMetrics[];
+  computedAt: string;
+  windowStart: string | null;
+  windowEnd: string | null;
+}
+
+export interface RoutingRecommendationDto {
+  recommendationId: string;
+  recommendationType: string;
+  productArea: string;
+  currentTargetTeam: string;
+  suggestedTargetTeam: string | null;
+  currentThreshold: number | null;
+  suggestedThreshold: number | null;
+  reason: string;
+  confidence: number;
+  supportingOutcomeCount: number;
+  status: string;
+  createdAt: string;
+  appliedAt: string | null;
+  appliedBy: string | null;
+}
+
+export interface RoutingRecommendationListResponse {
+  recommendations: RoutingRecommendationDto[];
+  totalCount: number;
+}
+
+export interface ApplyRecommendationRequest {
+  overrideTargetTeam?: string;
+  overrideThreshold?: number;
+}
+
+// ── Team playbook types (P2-002) ──
+
+export interface TeamPlaybookDto {
+  id: string;
+  teamName: string;
+  description: string;
+  requiredFields: string[];
+  checklist: string[];
+  contactChannel: string | null;
+  requiresApproval: boolean;
+  minSeverity: string | null;
+  autoRouteSeverity: string | null;
+  maxConcurrentEscalations: number | null;
+  fallbackTeam: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TeamPlaybookListResponse {
+  playbooks: TeamPlaybookDto[];
+  totalCount: number;
+}
+
+export interface CreateTeamPlaybookRequest {
+  teamName: string;
+  description?: string;
+  requiredFields?: string[];
+  checklist?: string[];
+  contactChannel?: string;
+  requiresApproval?: boolean;
+  minSeverity?: string;
+  autoRouteSeverity?: string;
+  maxConcurrentEscalations?: number;
+  fallbackTeam?: string;
+}
+
+export interface UpdateTeamPlaybookRequest {
+  description?: string;
+  requiredFields?: string[];
+  checklist?: string[];
+  contactChannel?: string;
+  requiresApproval?: boolean;
+  minSeverity?: string;
+  autoRouteSeverity?: string;
+  maxConcurrentEscalations?: number;
+  fallbackTeam?: string;
+  isActive?: boolean;
+}
+
+// ── Cost controls types (P2-003) ──
+
+export interface CostSettingsResponse {
+  tenantId: string;
+  dailyTokenBudget: number | null;
+  monthlyTokenBudget: number | null;
+  maxPromptTokensPerQuery: number | null;
+  maxEvidenceChunksInPrompt: number;
+  enableEmbeddingCache: boolean;
+  embeddingCacheTtlHours: number;
+  enableRetrievalCompression: boolean;
+  maxChunkCharsCompressed: number;
+  budgetAlertThresholdPercent: number;
+  hasOverrides: boolean;
+}
+
+export interface UpdateCostSettingsRequest {
+  dailyTokenBudget?: number | null;
+  monthlyTokenBudget?: number | null;
+  maxPromptTokensPerQuery?: number | null;
+  maxEvidenceChunksInPrompt?: number;
+  enableEmbeddingCache?: boolean;
+  embeddingCacheTtlHours?: number;
+  enableRetrievalCompression?: boolean;
+  maxChunkCharsCompressed?: number;
+  budgetAlertThresholdPercent?: number;
+}
+
+export interface TokenUsageSummary {
+  tenantId: string;
+  periodStart: string;
+  periodEnd: string;
+  totalPromptTokens: number;
+  totalCompletionTokens: number;
+  totalTokens: number;
+  totalEmbeddingTokens: number;
+  totalRequests: number;
+  embeddingCacheHits: number;
+  embeddingCacheMisses: number;
+  totalEstimatedCostUsd: number;
+  dailyTokenBudget: number | null;
+  monthlyTokenBudget: number | null;
+  dailyBudgetUtilizationPercent: number;
+  monthlyBudgetUtilizationPercent: number;
+}
+
+export interface DailyUsageBreakdown {
+  date: string;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  embeddingTokens: number;
+  requestCount: number;
+  cacheHits: number;
+  estimatedCostUsd: number;
+}
+
+export interface BudgetCheckResult {
+  allowed: boolean;
+  denialReason: string | null;
+  dailyUtilizationPercent: number;
+  monthlyUtilizationPercent: number;
+  budgetWarning: boolean;
+  warningMessage: string | null;
+}
+
+// ── Privacy admin types (P2-001, P2-005) ──
+
+export interface PiiPolicyResponse {
+  tenantId: string;
+  enforcementMode: string;
+  enabledPiiTypes: string[];
+  customPatterns: CustomPiiPattern[];
+  auditRedactions: boolean;
+  updatedAt: string;
+}
+
+export interface PiiPolicyUpdateRequest {
+  enforcementMode: string;
+  enabledPiiTypes: string[];
+  customPatterns?: CustomPiiPattern[];
+  auditRedactions?: boolean;
+}
+
+export interface CustomPiiPattern {
+  name: string;
+  pattern: string;
+  placeholder: string;
+}
+
+export interface RetentionPolicyResponse {
+  tenantId: string;
+  policies: RetentionPolicyEntry[];
+}
+
+export interface RetentionPolicyEntry {
+  entityType: string;
+  retentionDays: number;
+  metricRetentionDays: number | null;
+  updatedAt: string;
+}
+
+export interface RetentionPolicyUpdateRequest {
+  entityType: string;
+  retentionDays: number;
+  metricRetentionDays?: number;
+}
+
+export interface RetentionCleanupResult {
+  tenantId: string;
+  entityType: string;
+  deletedCount: number;
+  cutoffDate: string;
+  executedAt: string;
+}
+
+export interface DataSubjectDeletionRequest {
+  subjectId: string;
+}
+
+export interface DataSubjectDeletionResponse {
+  requestId: string;
+  tenantId: string;
+  subjectId: string;
+  status: string;
+  requestedAt: string;
+  completedAt: string | null;
+  deletionSummary: Record<string, number> | null;
+  errorDetail: string | null;
+}
+
+export interface DataSubjectDeletionListResponse {
+  requests: DataSubjectDeletionResponse[];
+  totalCount: number;
+}
+
+export interface RetentionExecutionLogEntry {
+  id: string;
+  tenantId: string;
+  entityType: string;
+  deletedCount: number;
+  cutoffDate: string;
+  executedAt: string;
+  durationMs: number;
+  actorId: string;
+}
+
+export interface RetentionExecutionHistoryResponse {
+  entries: RetentionExecutionLogEntry[];
+  totalCount: number;
+}
+
+export interface RetentionComplianceEntry {
+  entityType: string;
+  retentionDays: number;
+  metricRetentionDays: number | null;
+  lastExecutedAt: string | null;
+  lastDeletedCount: number | null;
+  isOverdue: boolean;
+  daysSinceLastExecution: number;
+}
+
+export interface RetentionComplianceReport {
+  tenantId: string;
+  generatedAt: string;
+  isCompliant: boolean;
+  totalPolicies: number;
+  overduePolicies: number;
+  entries: RetentionComplianceEntry[];
+}

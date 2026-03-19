@@ -1,14 +1,23 @@
 import type {
   ApiResponse,
+  ApplyRecommendationRequest,
   ApproveEscalationDraftRequest,
   ApprovePatternRequest,
+  BudgetCheckResult,
   ConnectorListResponse,
   ConnectorResponse,
   ConnectorValidationResult,
+  CostSettingsResponse,
   CreateConnectorRequest,
   CreateEscalationDraftRequest,
+  CreateRoutingRuleRequest,
   CreateSessionRequest,
   CreateSynonymRuleRequest,
+  CreateTeamPlaybookRequest,
+  DailyUsageBreakdown,
+  DataSubjectDeletionListResponse,
+  DataSubjectDeletionRequest,
+  DataSubjectDeletionResponse,
   DeadLetterListResponse,
   DeprecatePatternRequest,
   DiagnosticsSummaryResponse,
@@ -22,9 +31,22 @@ import type {
   PatternDetail,
   PatternGovernanceQueueResponse,
   PatternGovernanceResult,
+  PiiPolicyResponse,
+  PiiPolicyUpdateRequest,
   RecordOutcomeRequest,
+  RetentionCleanupResult,
+  RetentionComplianceReport,
+  RetentionExecutionHistoryResponse,
+  RetentionPolicyEntry,
+  RetentionPolicyResponse,
+  RetentionPolicyUpdateRequest,
   RetrievalSettingsResponse,
   ReviewPatternRequest,
+  RoutingAnalyticsSummary,
+  RoutingRecommendationDto,
+  RoutingRecommendationListResponse,
+  RoutingRuleDto,
+  RoutingRuleListResponse,
   SecretsStatusResponse,
   SendMessageRequest,
   SessionChatResponse,
@@ -38,11 +60,17 @@ import type {
   SynonymMapSyncResult,
   SynonymRuleListResponse,
   SynonymRuleResponse,
+  TeamPlaybookDto,
+  TeamPlaybookListResponse,
   TestConnectionResponse,
+  TokenUsageSummary,
   UpdateConnectorRequest,
+  UpdateCostSettingsRequest,
   UpdateEscalationDraftRequest,
   UpdateRetrievalSettingsRequest,
+  UpdateRoutingRuleRequest,
   UpdateSynonymRuleRequest,
+  UpdateTeamPlaybookRequest,
   WebhookStatusListResponse,
 } from './types';
 
@@ -581,6 +609,269 @@ export async function seedSynonymRules(
   const res = await apiFetch<ApiResponse<{ seeded: number }>>(
     '/api/admin/synonym-rules/seed',
     { method: 'POST', body: JSON.stringify({ overwriteExisting }) },
+  );
+  return unwrap(res);
+}
+
+// ── Routing rule endpoints (P1-009) ──
+
+export async function listRoutingRules(): Promise<RoutingRuleListResponse> {
+  const res = await apiFetch<ApiResponse<RoutingRuleListResponse>>('/api/admin/routing-rules');
+  return unwrap(res);
+}
+
+export async function getRoutingRule(ruleId: string): Promise<RoutingRuleDto> {
+  const res = await apiFetch<ApiResponse<RoutingRuleDto>>(`/api/admin/routing-rules/${ruleId}`);
+  return unwrap(res);
+}
+
+export async function createRoutingRule(req: CreateRoutingRuleRequest): Promise<RoutingRuleDto> {
+  const res = await apiFetch<ApiResponse<RoutingRuleDto>>('/api/admin/routing-rules', {
+    method: 'POST',
+    body: JSON.stringify(req),
+  });
+  return unwrap(res);
+}
+
+export async function updateRoutingRule(
+  ruleId: string,
+  req: UpdateRoutingRuleRequest,
+): Promise<RoutingRuleDto> {
+  const res = await apiFetch<ApiResponse<RoutingRuleDto>>(`/api/admin/routing-rules/${ruleId}`, {
+    method: 'PUT',
+    body: JSON.stringify(req),
+  });
+  return unwrap(res);
+}
+
+export async function deleteRoutingRule(ruleId: string): Promise<void> {
+  await apiFetch<ApiResponse<unknown>>(`/api/admin/routing-rules/${ruleId}`, { method: 'DELETE' });
+}
+
+// ── Routing analytics endpoints (P1-009) ──
+
+export async function getRoutingAnalytics(windowDays?: number): Promise<RoutingAnalyticsSummary> {
+  const params = windowDays ? `?windowDays=${windowDays}` : '';
+  const res = await apiFetch<ApiResponse<RoutingAnalyticsSummary>>(
+    `/api/admin/routing/analytics${params}`,
+  );
+  return unwrap(res);
+}
+
+export async function generateRoutingRecommendations(): Promise<RoutingRecommendationListResponse> {
+  const res = await apiFetch<ApiResponse<RoutingRecommendationListResponse>>(
+    '/api/admin/routing/recommendations/generate',
+    { method: 'POST' },
+  );
+  return unwrap(res);
+}
+
+export async function listRoutingRecommendations(
+  status?: string,
+): Promise<RoutingRecommendationListResponse> {
+  const params = status ? `?status=${encodeURIComponent(status)}` : '';
+  const res = await apiFetch<ApiResponse<RoutingRecommendationListResponse>>(
+    `/api/admin/routing/recommendations${params}`,
+  );
+  return unwrap(res);
+}
+
+export async function applyRoutingRecommendation(
+  recommendationId: string,
+  req?: ApplyRecommendationRequest,
+): Promise<RoutingRecommendationDto> {
+  const res = await apiFetch<ApiResponse<RoutingRecommendationDto>>(
+    `/api/admin/routing/recommendations/${recommendationId}/apply`,
+    { method: 'POST', body: JSON.stringify(req ?? {}) },
+  );
+  return unwrap(res);
+}
+
+export async function dismissRoutingRecommendation(
+  recommendationId: string,
+): Promise<void> {
+  await apiFetch<ApiResponse<unknown>>(
+    `/api/admin/routing/recommendations/${recommendationId}/dismiss`,
+    { method: 'POST' },
+  );
+}
+
+// ── Team playbook endpoints (P2-002) ──
+
+export async function listPlaybooks(): Promise<TeamPlaybookListResponse> {
+  const res = await apiFetch<ApiResponse<TeamPlaybookListResponse>>('/api/admin/playbooks');
+  return unwrap(res);
+}
+
+export async function getPlaybook(playbookId: string): Promise<TeamPlaybookDto> {
+  const res = await apiFetch<ApiResponse<TeamPlaybookDto>>(
+    `/api/admin/playbooks/${playbookId}`,
+  );
+  return unwrap(res);
+}
+
+export async function createPlaybook(req: CreateTeamPlaybookRequest): Promise<TeamPlaybookDto> {
+  const res = await apiFetch<ApiResponse<TeamPlaybookDto>>('/api/admin/playbooks', {
+    method: 'POST',
+    body: JSON.stringify(req),
+  });
+  return unwrap(res);
+}
+
+export async function updatePlaybook(
+  playbookId: string,
+  req: UpdateTeamPlaybookRequest,
+): Promise<TeamPlaybookDto> {
+  const res = await apiFetch<ApiResponse<TeamPlaybookDto>>(
+    `/api/admin/playbooks/${playbookId}`,
+    { method: 'PUT', body: JSON.stringify(req) },
+  );
+  return unwrap(res);
+}
+
+export async function deletePlaybook(playbookId: string): Promise<void> {
+  await apiFetch<ApiResponse<unknown>>(`/api/admin/playbooks/${playbookId}`, { method: 'DELETE' });
+}
+
+// ── Cost control endpoints (P2-003) ──
+
+export async function getCostSettings(): Promise<CostSettingsResponse> {
+  const res = await apiFetch<ApiResponse<CostSettingsResponse>>('/api/admin/cost-settings');
+  return unwrap(res);
+}
+
+export async function updateCostSettings(
+  req: UpdateCostSettingsRequest,
+): Promise<CostSettingsResponse> {
+  const res = await apiFetch<ApiResponse<CostSettingsResponse>>('/api/admin/cost-settings', {
+    method: 'PUT',
+    body: JSON.stringify(req),
+  });
+  return unwrap(res);
+}
+
+export async function resetCostSettings(): Promise<void> {
+  await apiFetch<ApiResponse<unknown>>('/api/admin/cost-settings', { method: 'DELETE' });
+}
+
+export async function getTokenUsageSummary(days?: number): Promise<TokenUsageSummary> {
+  const params = days ? `?days=${days}` : '';
+  const res = await apiFetch<ApiResponse<TokenUsageSummary>>(
+    `/api/admin/token-usage/summary${params}`,
+  );
+  return unwrap(res);
+}
+
+export async function getDailyUsage(days?: number): Promise<DailyUsageBreakdown[]> {
+  const params = days ? `?days=${days}` : '';
+  const res = await apiFetch<ApiResponse<DailyUsageBreakdown[]>>(
+    `/api/admin/token-usage/daily${params}`,
+  );
+  return unwrap(res);
+}
+
+export async function getBudgetCheck(): Promise<BudgetCheckResult> {
+  const res = await apiFetch<ApiResponse<BudgetCheckResult>>('/api/admin/token-usage/budget-check');
+  return unwrap(res);
+}
+
+// ── Privacy admin endpoints (P2-001, P2-005) ──
+
+export async function getPiiPolicy(): Promise<PiiPolicyResponse | null> {
+  try {
+    const res = await apiFetch<ApiResponse<PiiPolicyResponse>>('/api/admin/privacy/pii-policy');
+    return unwrap(res);
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null;
+    throw e;
+  }
+}
+
+export async function updatePiiPolicy(req: PiiPolicyUpdateRequest): Promise<PiiPolicyResponse> {
+  const res = await apiFetch<ApiResponse<PiiPolicyResponse>>('/api/admin/privacy/pii-policy', {
+    method: 'PUT',
+    body: JSON.stringify(req),
+  });
+  return unwrap(res);
+}
+
+export async function resetPiiPolicy(): Promise<void> {
+  await apiFetch<ApiResponse<unknown>>('/api/admin/privacy/pii-policy', { method: 'DELETE' });
+}
+
+export async function getRetentionPolicies(): Promise<RetentionPolicyResponse> {
+  const res = await apiFetch<ApiResponse<RetentionPolicyResponse>>('/api/admin/privacy/retention');
+  return unwrap(res);
+}
+
+export async function updateRetentionPolicy(
+  req: RetentionPolicyUpdateRequest,
+): Promise<RetentionPolicyEntry> {
+  const res = await apiFetch<ApiResponse<RetentionPolicyEntry>>('/api/admin/privacy/retention', {
+    method: 'PUT',
+    body: JSON.stringify(req),
+  });
+  return unwrap(res);
+}
+
+export async function deleteRetentionPolicy(entityType: string): Promise<void> {
+  await apiFetch<ApiResponse<unknown>>(
+    `/api/admin/privacy/retention/${encodeURIComponent(entityType)}`,
+    { method: 'DELETE' },
+  );
+}
+
+export async function runRetentionCleanup(): Promise<RetentionCleanupResult[]> {
+  const res = await apiFetch<ApiResponse<RetentionCleanupResult[]>>(
+    '/api/admin/privacy/retention/cleanup',
+    { method: 'POST' },
+  );
+  return unwrap(res);
+}
+
+export async function createDeletionRequest(
+  req: DataSubjectDeletionRequest,
+): Promise<DataSubjectDeletionResponse> {
+  const res = await apiFetch<ApiResponse<DataSubjectDeletionResponse>>(
+    '/api/admin/privacy/data-subject-deletion',
+    { method: 'POST', body: JSON.stringify(req) },
+  );
+  return unwrap(res);
+}
+
+export async function listDeletionRequests(): Promise<DataSubjectDeletionListResponse> {
+  const res = await apiFetch<ApiResponse<DataSubjectDeletionListResponse>>(
+    '/api/admin/privacy/data-subject-deletion',
+  );
+  return unwrap(res);
+}
+
+export async function getDeletionRequest(requestId: string): Promise<DataSubjectDeletionResponse> {
+  const res = await apiFetch<ApiResponse<DataSubjectDeletionResponse>>(
+    `/api/admin/privacy/data-subject-deletion/${requestId}`,
+  );
+  return unwrap(res);
+}
+
+export async function getRetentionHistory(
+  entityType?: string,
+  skip?: number,
+  take?: number,
+): Promise<RetentionExecutionHistoryResponse> {
+  const params = new URLSearchParams();
+  if (entityType) params.set('entityType', entityType);
+  if (skip != null) params.set('skip', String(skip));
+  if (take != null) params.set('take', String(take));
+  const qs = params.toString();
+  const res = await apiFetch<ApiResponse<RetentionExecutionHistoryResponse>>(
+    `/api/admin/privacy/retention/history${qs ? `?${qs}` : ''}`,
+  );
+  return unwrap(res);
+}
+
+export async function getRetentionCompliance(): Promise<RetentionComplianceReport> {
+  const res = await apiFetch<ApiResponse<RetentionComplianceReport>>(
+    '/api/admin/privacy/retention/compliance',
   );
   return unwrap(res);
 }

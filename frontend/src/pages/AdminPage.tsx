@@ -111,6 +111,18 @@ export function AdminPage() {
           <Link to="/synonyms" className="btn btn-sm" data-testid="synonyms-link">
             Synonyms
           </Link>
+          <Link to="/routing" className="btn btn-sm" data-testid="routing-link">
+            Routing
+          </Link>
+          <Link to="/playbooks" className="btn btn-sm" data-testid="playbooks-link">
+            Playbooks
+          </Link>
+          <Link to="/cost" className="btn btn-sm" data-testid="cost-link">
+            Cost
+          </Link>
+          <Link to="/privacy" className="btn btn-sm" data-testid="privacy-link">
+            Privacy
+          </Link>
           <Link to="/" className="btn btn-sm" data-testid="back-to-chat">
             Back to Chat
           </Link>
