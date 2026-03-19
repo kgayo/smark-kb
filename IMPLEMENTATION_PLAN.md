@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-19 (Asia/Manila) — iteration 77 (P3-036 frontend hosting IaC)
-Status: Active backlog (Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 in progress: P3-001, P3-002, P3-003, P3-004, P3-005, P3-006, P3-018, P3-034, P3-036 complete; Tests complete: T-001–T-008; ~2162 tests passing (1806 backend + 258 frontend + 98 IaC); 0 bugs blocking, 0 tech-debt blocking)
+Last updated: 2026-03-19 (Asia/Manila) — iteration 78 (P3-032 CD/deploy workflow)
+Status: Active backlog (Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 in progress: P3-001, P3-002, P3-003, P3-004, P3-005, P3-006, P3-018, P3-032, P3-034, P3-036 complete; Tests complete: T-001–T-008; ~2162 tests passing (1806 backend + 258 frontend + 98 IaC); 0 bugs blocking, 0 tech-debt blocking)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -415,12 +415,10 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
   - Dependencies: P1-005 (distillation complete)
   - Priority: LOW — cosmetic schema improvement; root cause info is captured, just not in a named field.
 
-- [ ] P3-032: Add CD/deploy workflow for dev/staging/prod environments.
+- [x] P3-032: Add CD/deploy workflow for dev/staging/prod environments.
   - Specs: jtbd-11, AGENTS.md
-  - Gap: CI validates Terraform/ARM and runs tests, but no GitHub Actions workflow deploys infrastructure (`terraform apply`) or applications (`az webapp deploy`). Deployments are entirely manual.
-  - Scope: Add `.github/workflows/deploy.yml` with environment-gated jobs: (a) `terraform plan` → manual approval → `terraform apply` for infra changes, (b) `dotnet publish` → `az webapp deploy` for API and Ingestion, (c) `npm run build` → deploy frontend to Static Web App or storage + CDN. Use GitHub Environments with protection rules (required reviewers, wait timer). Support dev (auto), staging (auto), prod (manual approval).
   - Dependencies: P0-005A (IaC baseline complete), P3-036 (frontend hosting IaC)
-  - Priority: HIGH — without CD, every deployment is manual and error-prone.
+  - Completed: `.github/workflows/deploy.yml` with `workflow_dispatch` trigger and per-component toggle inputs (`deploy_infra`, `deploy_backend`, `deploy_frontend`). Environment selector (dev/staging/prod). **CI gate job** runs full .NET + frontend test suite before any deployment. **Infrastructure jobs**: `infra-plan` runs `terraform plan` with detailed-exitcode and uploads plan artifact; `infra-apply` uses GitHub Environments for approval gates, downloads plan artifact, and applies. **Backend jobs**: `deploy-api` and `deploy-ingestion` run in parallel, each publishes .NET project and deploys via `azure/webapps-deploy@v3` to `app-smartkb-api-{env}` / `app-smartkb-ingestion-{env}`. **Frontend job**: builds Vite with env-specific `VITE_*` variables, deploys to Azure Static Web App via `Azure/static-web-apps-deploy@v1`. **Smoke test job**: health check with 5 retries (15s interval), optional eval CLI smoke run (5 cases). All deploy jobs use `azure/login@v2` with service principal. Jobs gracefully skip when upstream infra-apply is skipped (no changes). Secrets: `ARM_CLIENT_ID`, `ARM_CLIENT_SECRET`, `ARM_SUBSCRIPTION_ID`, `ARM_TENANT_ID`, `SQL_ADMIN_PASSWORD`, `SWA_DEPLOYMENT_TOKEN`, `EVAL_API_TOKEN`. Variables: `API_BASE_URL`, `ENTRA_CLIENT_ID`, `ENTRA_AUTHORITY`.
 
 - [ ] P3-033: Remove dead `BaselineEnrichmentService` code.
   - Specs: jtbd-02
@@ -640,7 +638,7 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
 - [ ] R-029: **NEW** — No in-app rendered Source Viewer for evidence. Agents must leave the copilot to view full source content. **Tracked as** P3-025.
 - [ ] R-030: **NEW** — Audit export is API-only. Compliance investigations require API tooling rather than self-serve UI. **Tracked as** P3-029.
 - [ ] R-031: **NEW** — Customer-managed keys (CMK) not evaluated. Enterprise tenants with strict encryption requirements have no CMK path. **Tracked as** P3-030.
-- [ ] R-032: **NEW** — No CD/deploy workflow. All deployments are manual (terraform apply, az webapp deploy). Risk of configuration drift between environments and human error during release. **Tracked as** P3-032.
+- [x] R-032: No CD/deploy workflow. **Resolved by** P3-032 — deploy.yml with environment-gated Terraform apply, backend publish, frontend SWA deploy, and post-deploy smoke test.
 - [x] R-033: ~~Distilled patterns are not auto-indexed to Azure AI Search.~~ **RESOLVED** by P3-034 (iteration 73). Distillation auto-indexes; governance deletes from index on deprecation.
 - [x] R-034: No frontend hosting resource in IaC. **Resolved by** P3-036 — Azure Static Web App provisioned in Terraform and ARM.
 - [ ] R-035: **NEW** — Multi-turn conversation quality is unevaluated. Gold dataset has 0 multi-turn cases despite session_history schema support. **Tracked as** P3-038.

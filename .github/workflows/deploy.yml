@@ -1,0 +1,329 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+      deploy_infra:
+        description: 'Deploy infrastructure (Terraform apply)'
+        required: false
+        type: boolean
+        default: true
+      deploy_backend:
+        description: 'Deploy backend (API + Ingestion)'
+        required: false
+        type: boolean
+        default: true
+      deploy_frontend:
+        description: 'Deploy frontend (Static Web App)'
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  DOTNET_VERSION: "10.0.x"
+  NODE_VERSION: "20"
+  TF_VERSION: "~1.5"
+
+jobs:
+  # ── Gate: run CI checks before any deployment ──────────────────────
+  ci-check:
+    name: CI Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: .NET Restore & Build
+        run: dotnet restore && dotnet build --no-restore --configuration Release
+
+      - name: .NET Test
+        run: dotnet test --no-build --configuration Release --verbosity normal
+
+      - name: Frontend Install & Lint & Test & Build
+        working-directory: frontend
+        run: npm ci && npm run lint && npm run test && npm run build
+
+  # ── Infrastructure: Terraform plan → approve → apply ───────────────
+  infra-plan:
+    name: Terraform Plan (${{ inputs.environment }})
+    needs: ci-check
+    if: inputs.deploy_infra
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+    env:
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      TF_VAR_entra_tenant_id: ${{ secrets.ARM_TENANT_ID }}
+      TF_VAR_sql_admin_password: ${{ secrets.SQL_ADMIN_PASSWORD }}
+    outputs:
+      has_changes: ${{ steps.plan.outputs.has_changes }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        run: terraform init -backend-config="backend.${{ inputs.environment }}.hcl"
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          terraform plan \
+            -var-file="${{ inputs.environment }}.tfvars" \
+            -detailed-exitcode \
+            -out=deploy.tfplan \
+            -no-color 2>&1 | tee plan-output.txt
+          EXIT_CODE=${PIPESTATUS[0]}
+          if [ "$EXIT_CODE" = "0" ]; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            echo "No infrastructure changes detected."
+          elif [ "$EXIT_CODE" = "2" ]; then
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            echo "Infrastructure changes detected — review plan output."
+          else
+            echo "Terraform plan failed with exit code $EXIT_CODE"
+            exit 1
+          fi
+        continue-on-error: false
+
+      - name: Upload plan artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-${{ inputs.environment }}
+          path: |
+            infra/terraform/deploy.tfplan
+            infra/terraform/plan-output.txt
+
+  infra-apply:
+    name: Terraform Apply (${{ inputs.environment }})
+    needs: infra-plan
+    if: inputs.deploy_infra && needs.infra-plan.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    defaults:
+      run:
+        working-directory: infra/terraform
+    env:
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      TF_VAR_entra_tenant_id: ${{ secrets.ARM_TENANT_ID }}
+      TF_VAR_sql_admin_password: ${{ secrets.SQL_ADMIN_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        run: terraform init -backend-config="backend.${{ inputs.environment }}.hcl"
+
+      - name: Download plan artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan-${{ inputs.environment }}
+          path: infra/terraform
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve deploy.tfplan
+
+      - name: Export Terraform Outputs
+        id: outputs
+        run: |
+          echo "api_app_name=$(terraform output -raw app_service_name)" >> "$GITHUB_OUTPUT"
+          echo "ingestion_app_name=$(terraform output -raw ingestion_app_service_name)" >> "$GITHUB_OUTPUT"
+          echo "swa_name=$(terraform output -raw static_web_app_name)" >> "$GITHUB_OUTPUT"
+          echo "resource_group=$(terraform output -raw resource_group_name)" >> "$GITHUB_OUTPUT"
+
+  # ── Backend: publish & deploy API + Ingestion web apps ─────────────
+  deploy-api:
+    name: Deploy API (${{ inputs.environment }})
+    needs: [ci-check, infra-apply]
+    if: |
+      always() &&
+      inputs.deploy_backend &&
+      needs.ci-check.result == 'success' &&
+      (needs.infra-apply.result == 'success' || needs.infra-apply.result == 'skipped')
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Publish API
+        run: |
+          dotnet publish src/SmartKb.Api/SmartKb.Api.csproj \
+            --configuration Release \
+            --output ./publish/api
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.ARM_CLIENT_ID }}
+          tenant-id: ${{ secrets.ARM_TENANT_ID }}
+          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          client-secret: ${{ secrets.ARM_CLIENT_SECRET }}
+
+      - name: Deploy to Azure Web App (API)
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: app-smartkb-api-${{ inputs.environment }}
+          package: ./publish/api
+
+  deploy-ingestion:
+    name: Deploy Ingestion (${{ inputs.environment }})
+    needs: [ci-check, infra-apply]
+    if: |
+      always() &&
+      inputs.deploy_backend &&
+      needs.ci-check.result == 'success' &&
+      (needs.infra-apply.result == 'success' || needs.infra-apply.result == 'skipped')
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Publish Ingestion Worker
+        run: |
+          dotnet publish src/SmartKb.Ingestion/SmartKb.Ingestion.csproj \
+            --configuration Release \
+            --output ./publish/ingestion
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.ARM_CLIENT_ID }}
+          tenant-id: ${{ secrets.ARM_TENANT_ID }}
+          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          client-secret: ${{ secrets.ARM_CLIENT_SECRET }}
+
+      - name: Deploy to Azure Web App (Ingestion)
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: app-smartkb-ingestion-${{ inputs.environment }}
+          package: ./publish/ingestion
+
+  # ── Frontend: build & deploy to Static Web App ─────────────────────
+  deploy-frontend:
+    name: Deploy Frontend (${{ inputs.environment }})
+    needs: [ci-check, infra-apply]
+    if: |
+      always() &&
+      inputs.deploy_frontend &&
+      needs.ci-check.result == 'success' &&
+      (needs.infra-apply.result == 'success' || needs.infra-apply.result == 'skipped')
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install & Build
+        working-directory: frontend
+        env:
+          VITE_API_BASE_URL: ${{ vars.API_BASE_URL }}
+          VITE_ENTRA_CLIENT_ID: ${{ vars.ENTRA_CLIENT_ID }}
+          VITE_ENTRA_AUTHORITY: ${{ vars.ENTRA_AUTHORITY }}
+        run: npm ci && npm run build
+
+      - name: Deploy to Azure Static Web App
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.SWA_DEPLOYMENT_TOKEN }}
+          action: upload
+          app_location: frontend
+          output_location: dist
+          skip_app_build: true
+
+  # ── Post-deploy: smoke test ────────────────────────────────────────
+  smoke-test:
+    name: Smoke Test (${{ inputs.environment }})
+    needs: [deploy-api, deploy-ingestion, deploy-frontend]
+    if: |
+      always() &&
+      (needs.deploy-api.result == 'success' || needs.deploy-api.result == 'skipped') &&
+      (needs.deploy-ingestion.result == 'success' || needs.deploy-ingestion.result == 'skipped') &&
+      (needs.deploy-frontend.result == 'success' || needs.deploy-frontend.result == 'skipped') &&
+      (needs.deploy-api.result == 'success' || needs.deploy-ingestion.result == 'success' || needs.deploy-frontend.result == 'success')
+    runs-on: ubuntu-latest
+    env:
+      API_BASE_URL: ${{ vars.API_BASE_URL || format('https://app-smartkb-api-{0}.azurewebsites.net', inputs.environment) }}
+    steps:
+      - name: Health check — API
+        if: inputs.deploy_backend
+        run: |
+          echo "Checking API health at ${API_BASE_URL}..."
+          for i in 1 2 3 4 5; do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${API_BASE_URL}/health" || true)
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "API health check passed (attempt $i)."
+              exit 0
+            fi
+            echo "Attempt $i: HTTP $HTTP_CODE — retrying in 15s..."
+            sleep 15
+          done
+          echo "API health check failed after 5 attempts."
+          exit 1
+
+      - uses: actions/checkout@v4
+        if: inputs.deploy_backend
+
+      - uses: actions/setup-dotnet@v4
+        if: inputs.deploy_backend
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Run eval smoke test
+        if: inputs.deploy_backend
+        run: |
+          dotnet build src/SmartKb.Eval.Cli/SmartKb.Eval.Cli.csproj --configuration Release
+          dotnet run --project src/SmartKb.Eval.Cli/SmartKb.Eval.Cli.csproj --configuration Release -- \
+            --mode smoke \
+            --smoke-count 5 \
+            --api-url "${API_BASE_URL}" \
+            --api-token "${{ secrets.EVAL_API_TOKEN }}" || echo "::warning::Eval smoke test failed — review results."
+        continue-on-error: true
