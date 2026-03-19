@@ -22,6 +22,9 @@
     },
     "serviceBusSku": {
       "value": "Basic"
+    },
+    "staticWebAppSku": {
+      "value": "Free"
     }
   }
 }

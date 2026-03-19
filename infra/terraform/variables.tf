@@ -59,6 +59,16 @@ variable "servicebus_sku" {
   default     = "Basic"
 }
 
+variable "static_web_app_sku" {
+  description = "Azure Static Web App SKU tier (Free or Standard)."
+  type        = string
+  default     = "Free"
+  validation {
+    condition     = contains(["Free", "Standard"], var.static_web_app_sku)
+    error_message = "Static Web App SKU must be Free or Standard."
+  }
+}
+
 # --- SLO Alert Thresholds (P0-022) ---
 
 variable "chat_latency_p95_threshold_ms" {

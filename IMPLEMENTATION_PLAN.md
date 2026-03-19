@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-18 (Asia/Manila) — iteration 74 (P3-003 binary text extraction)
-Status: Active backlog (Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 in progress: P3-001, P3-002, P3-003, P3-006, P3-018, P3-034 complete; Tests complete: T-001–T-008; ~2099 tests passing (1746 backend + 253 frontend + 98 IaC = ~2097 total); 0 bugs blocking, 0 tech-debt blocking)
+Last updated: 2026-03-19 (Asia/Manila) — iteration 77 (P3-036 frontend hosting IaC)
+Status: Active backlog (Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 in progress: P3-001, P3-002, P3-003, P3-004, P3-005, P3-006, P3-018, P3-034, P3-036 complete; Tests complete: T-001–T-008; ~2162 tests passing (1806 backend + 258 frontend + 98 IaC); 0 bugs blocking, 0 tech-debt blocking)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -441,12 +441,10 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
   - Dependencies: P2-003 (cost optimization complete)
   - Priority: LOW — read-time filtering prevents stale data from being used; background eviction is storage hygiene.
 
-- [ ] P3-036: Add IaC for frontend hosting (Azure Static Web Apps or Storage + CDN).
+- [x] P3-036: Add IaC for frontend hosting (Azure Static Web Apps).
   - Specs: jtbd-11
-  - Gap: The frontend is built in CI (`npm run build`) but no Azure resource exists for hosting it. Neither Terraform nor ARM define a Static Web App, Storage static website, or CDN endpoint for the React frontend.
-  - Scope: Add `azurerm_static_web_app` (or `azurerm_storage_account` with static website + `azurerm_cdn_endpoint`) to Terraform and corresponding ARM resource. Configure custom domain support. Wire into CD workflow (P3-032).
   - Dependencies: P0-005A (IaC baseline complete)
-  - Priority: MEDIUM — frontend has no production hosting target; currently development-only.
+  - Completed: `azurerm_static_web_app.frontend` resource in `infra/terraform/static-web-app.tf` (`stapp-smartkb-{env}`). `Microsoft.Web/staticSites` resource in ARM `main.json` with matching SKU parameter. `static_web_app_sku` variable (Free for dev, Standard for staging/prod). Outputs: `static_web_app_name` and `static_web_app_default_hostname` in both Terraform and ARM. Parity checker updated with `azurerm_static_web_app` → `Microsoft.Web/staticSites` mapping. All 3 env parameter files updated. 98 IaC parity tests passing. 1806 backend tests passing.
 
 - [ ] P3-037: Fix ARM availability alert threshold default to match Terraform (99.5).
   - Specs: jtbd-11
@@ -644,7 +642,7 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
 - [ ] R-031: **NEW** — Customer-managed keys (CMK) not evaluated. Enterprise tenants with strict encryption requirements have no CMK path. **Tracked as** P3-030.
 - [ ] R-032: **NEW** — No CD/deploy workflow. All deployments are manual (terraform apply, az webapp deploy). Risk of configuration drift between environments and human error during release. **Tracked as** P3-032.
 - [x] R-033: ~~Distilled patterns are not auto-indexed to Azure AI Search.~~ **RESOLVED** by P3-034 (iteration 73). Distillation auto-indexes; governance deletes from index on deprecation.
-- [ ] R-034: **NEW** — No frontend hosting resource in IaC. React build output has no production deployment target. **Tracked as** P3-036.
+- [x] R-034: No frontend hosting resource in IaC. **Resolved by** P3-036 — Azure Static Web App provisioned in Terraform and ARM.
 - [ ] R-035: **NEW** — Multi-turn conversation quality is unevaluated. Gold dataset has 0 multi-turn cases despite session_history schema support. **Tracked as** P3-038.
 - [ ] R-036: **NEW** — ARM/Terraform availability threshold default discrepancy (99 vs 99.5). Could cause inconsistent alerting on new environments. **Tracked as** P3-037.
 

@@ -22,6 +22,9 @@
     },
     "serviceBusSku": {
       "value": "Standard"
+    },
+    "staticWebAppSku": {
+      "value": "Standard"
     }
   }
 }

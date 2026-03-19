@@ -97,6 +97,14 @@
       "metadata": {
         "description": "Service Bus active message backlog threshold."
       }
+    },
+    "staticWebAppSku": {
+      "type": "string",
+      "defaultValue": "Free",
+      "allowedValues": ["Free", "Standard"],
+      "metadata": {
+        "description": "Azure Static Web App SKU tier."
+      }
     }
   },
   "variables": {
@@ -112,6 +120,7 @@
     "logAnalyticsName": "[format('log-smartkb-{0}', parameters('environment'))]",
     "appInsightsName": "[format('appi-smartkb-{0}', parameters('environment'))]",
     "actionGroupName": "[format('ag-smartkb-slo-{0}', parameters('environment'))]",
+    "staticWebAppName": "[format('stapp-smartkb-{0}', parameters('environment'))]",
     "alertsEnabled": "[not(equals(parameters('environment'), 'dev'))]",
     "commonTags": {
       "project": "smart-kb",
@@ -826,6 +835,18 @@
         "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]",
         "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
       ]
+    },
+    {
+      "type": "Microsoft.Web/staticSites",
+      "apiVersion": "2023-12-01",
+      "name": "[variables('staticWebAppName')]",
+      "location": "[parameters('location')]",
+      "tags": "[variables('commonTags')]",
+      "sku": {
+        "name": "[parameters('staticWebAppSku')]",
+        "tier": "[parameters('staticWebAppSku')]"
+      },
+      "properties": {}
     }
   ],
   "outputs": {
@@ -884,6 +905,14 @@
     "applicationInsightsConnectionString": {
       "type": "string",
       "value": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName'))).ConnectionString]"
+    },
+    "staticWebAppName": {
+      "type": "string",
+      "value": "[variables('staticWebAppName')]"
+    },
+    "staticWebAppDefaultHostname": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Web/staticSites', variables('staticWebAppName'))).defaultHostname]"
     }
   }
 }

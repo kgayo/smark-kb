@@ -41,6 +41,7 @@ TF_TO_ARM_TYPE: dict[str, str] = {
     "azurerm_monitor_action_group": "Microsoft.Insights/actionGroups",
     "azurerm_monitor_metric_alert": "Microsoft.Insights/metricAlerts",
     "azurerm_role_assignment": "Microsoft.Authorization/roleAssignments",
+    "azurerm_static_web_app": "Microsoft.Web/staticSites",
 }
 
 # ARM types that exist as intermediate plumbing (no direct TF equivalent needed)
