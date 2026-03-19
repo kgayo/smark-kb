@@ -60,6 +60,7 @@ public sealed record PatternDetail
     public required string TenantId { get; init; }
     public required string Title { get; init; }
     public required string ProblemStatement { get; init; }
+    public string? RootCause { get; init; }
     public IReadOnlyList<string> Symptoms { get; init; } = [];
     public IReadOnlyList<string> DiagnosisSteps { get; init; } = [];
     public IReadOnlyList<string> ResolutionSteps { get; init; } = [];

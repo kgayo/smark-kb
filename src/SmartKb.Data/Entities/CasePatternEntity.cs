@@ -12,6 +12,7 @@ public sealed class CasePatternEntity
     public string TenantId { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string ProblemStatement { get; set; } = string.Empty;
+    public string? RootCause { get; set; }
     public string SymptomsJson { get; set; } = "[]";
     public string DiagnosisStepsJson { get; set; } = "[]";
     public string ResolutionStepsJson { get; set; } = "[]";

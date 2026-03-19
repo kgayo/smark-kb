@@ -10,6 +10,7 @@ function makeDetail(overrides: Partial<PatternDetail> = {}): PatternDetail {
     tenantId: 't1',
     title: 'Auth Token Fix',
     problemStatement: 'Token cache invalidation issue',
+    rootCause: null,
     symptoms: ['Expired tokens'],
     diagnosisSteps: ['Check logs'],
     resolutionSteps: ['Clear cache', 'Restart service'],
@@ -137,6 +138,18 @@ describe('PatternDetailView', () => {
     expect(screen.getByTestId('resolution-steps')).toBeTruthy();
     expect(screen.getByText('Clear cache')).toBeTruthy();
     expect(screen.getByText('Restart service')).toBeTruthy();
+  });
+
+  it('renders root cause when present', () => {
+    const pattern = makeDetail({ rootCause: 'Memory leak in token cache' });
+    render(<PatternDetailView {...defaultProps} pattern={pattern} />);
+    expect(screen.getByTestId('root-cause').textContent).toBe('Memory leak in token cache');
+    expect(screen.getByText('Root Cause')).toBeTruthy();
+  });
+
+  it('hides root cause section when null', () => {
+    render(<PatternDetailView {...defaultProps} />);
+    expect(screen.queryByTestId('root-cause')).toBeNull();
   });
 
   it('calls onBack when back button clicked', () => {

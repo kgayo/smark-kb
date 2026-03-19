@@ -300,6 +300,7 @@ public sealed class PatternDistillationService : IPatternDistillationService
         var title = BuildTitle(candidate, chunks);
         var problemStatement = BuildProblemStatement(candidate, chunks);
         var symptoms = ExtractSymptoms(chunks);
+        var rootCause = ExtractRootCause(chunks);
         var resolutionSteps = ExtractResolutionSteps(candidate, chunks);
         var diagnosisSteps = ExtractDiagnosisSteps(chunks);
         var verificationSteps = ExtractVerificationSteps(chunks);
@@ -343,6 +344,7 @@ public sealed class PatternDistillationService : IPatternDistillationService
             TenantId = tenantId,
             Title = title,
             ProblemStatement = problemStatement,
+            RootCause = rootCause,
             SymptomsJson = JsonSerializer.Serialize(symptoms, JsonOpts),
             DiagnosisStepsJson = JsonSerializer.Serialize(diagnosisSteps, JsonOpts),
             ResolutionStepsJson = JsonSerializer.Serialize(resolutionSteps, JsonOpts),
@@ -505,6 +507,37 @@ public sealed class PatternDistillationService : IPatternDistillationService
         return ["Verify the fix by confirming the symptoms no longer occur."];
     }
 
+    internal static string? ExtractRootCause(List<EvidenceChunkEntity> chunks)
+    {
+        // Look for chunks whose context indicates a "Root Cause" section (from ticket-structure chunking).
+        foreach (var chunk in chunks)
+        {
+            if (string.IsNullOrWhiteSpace(chunk.ChunkContext)) continue;
+            if (chunk.ChunkContext.Contains("Root Cause", StringComparison.OrdinalIgnoreCase))
+            {
+                var text = chunk.ChunkText.Trim();
+                if (text.Length > 0)
+                    return text.Length > 2000 ? text[..2000] : text;
+            }
+        }
+
+        // Fallback: scan chunk text for root-cause keyword indicators.
+        foreach (var chunk in chunks)
+        {
+            var text = chunk.ChunkText;
+            if (text.Contains("root cause", StringComparison.OrdinalIgnoreCase)
+                || text.Contains("caused by", StringComparison.OrdinalIgnoreCase)
+                || text.Contains("underlying issue", StringComparison.OrdinalIgnoreCase))
+            {
+                var trimmed = text.Trim();
+                if (trimmed.Length > 0)
+                    return trimmed.Length > 2000 ? trimmed[..2000] : trimmed;
+            }
+        }
+
+        return null;
+    }
+
     internal static List<string> ExtractErrorTokens(List<EvidenceChunkEntity> chunks)
     {
         var tokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -554,6 +587,7 @@ public sealed class PatternDistillationService : IPatternDistillationService
             TenantId = entity.TenantId,
             Title = entity.Title,
             ProblemStatement = entity.ProblemStatement,
+            RootCause = entity.RootCause,
             Symptoms = DeserializeStringList(entity.SymptomsJson),
             DiagnosisSteps = DeserializeStringList(entity.DiagnosisStepsJson),
             ResolutionSteps = DeserializeStringList(entity.ResolutionStepsJson),

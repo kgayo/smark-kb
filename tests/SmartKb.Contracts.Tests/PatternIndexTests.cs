@@ -41,6 +41,7 @@ public class PatternIndexTests
         Assert.False(string.IsNullOrEmpty(PatternFieldNames.PatternId));
         Assert.False(string.IsNullOrEmpty(PatternFieldNames.Title));
         Assert.False(string.IsNullOrEmpty(PatternFieldNames.ProblemStatement));
+        Assert.False(string.IsNullOrEmpty(PatternFieldNames.RootCause));
         Assert.False(string.IsNullOrEmpty(PatternFieldNames.Symptoms));
         Assert.False(string.IsNullOrEmpty(PatternFieldNames.ResolutionSteps));
         Assert.False(string.IsNullOrEmpty(PatternFieldNames.EmbeddingVector));
@@ -162,6 +163,7 @@ public class PatternIndexTests
         Assert.Empty(pattern.Exclusions);
         Assert.Empty(pattern.Tags);
         Assert.Empty(pattern.AllowedGroups);
+        Assert.Null(pattern.RootCause);
         Assert.Null(pattern.Workaround);
         Assert.Null(pattern.EscalationTargetTeam);
         Assert.Null(pattern.SupersedesPatternId);
@@ -218,6 +220,7 @@ public class PatternIndexTests
         Assert.Equal("pattern-001", doc[PatternFieldNames.PatternId]);
         Assert.Equal("Auth Timeout Fix", doc[PatternFieldNames.Title]);
         Assert.Equal("Users experience timeout during OAuth flow", doc[PatternFieldNames.ProblemStatement]);
+        Assert.Equal(string.Empty, doc[PatternFieldNames.RootCause]); // null RootCause maps to empty
         Assert.Contains("timeout error", doc[PatternFieldNames.Symptoms] as string ?? "");
         Assert.Contains("Step 1", doc[PatternFieldNames.ResolutionSteps] as string ?? "");
         Assert.Equal("tenant-1", doc[PatternFieldNames.TenantId]);
@@ -253,6 +256,26 @@ public class PatternIndexTests
 
         var steps = doc[PatternFieldNames.ResolutionSteps] as string;
         Assert.Equal("step-1\nstep-2", steps);
+    }
+
+    [Fact]
+    public void ToSearchDocument_MapsRootCause()
+    {
+        var pattern = new CasePattern
+        {
+            PatternId = "p1",
+            TenantId = "t1",
+            Title = "Test",
+            ProblemStatement = "Problem",
+            RootCause = "Misconfigured DNS resolver",
+            TrustLevel = TrustLevel.Draft,
+            RelatedEvidenceIds = ["ev-1"],
+            EmbeddingVector = new float[1536],
+        };
+
+        var doc = AzureSearchPatternIndexingService.ToSearchDocument(pattern);
+
+        Assert.Equal("Misconfigured DNS resolver", doc[PatternFieldNames.RootCause]);
     }
 
     #endregion
@@ -304,6 +327,8 @@ public class PatternIndexTests
         Assert.NotNull(index.SemanticSearch);
         Assert.Single(index.SemanticSearch.Configurations);
         Assert.Equal(PatternFieldNames.SemanticConfigName, index.SemanticSearch.Configurations[0].Name);
+        var contentFields = index.SemanticSearch.Configurations[0].PrioritizedFields.ContentFields;
+        Assert.Contains(contentFields, f => f.FieldName == PatternFieldNames.RootCause);
     }
 
     [Fact]
@@ -342,6 +367,7 @@ public class PatternIndexTests
         var fieldNames = index.Fields.Select(f => f.Name).ToList();
         Assert.Contains(PatternFieldNames.Title, fieldNames);
         Assert.Contains(PatternFieldNames.ProblemStatement, fieldNames);
+        Assert.Contains(PatternFieldNames.RootCause, fieldNames);
         Assert.Contains(PatternFieldNames.Symptoms, fieldNames);
         Assert.Contains(PatternFieldNames.ResolutionSteps, fieldNames);
     }

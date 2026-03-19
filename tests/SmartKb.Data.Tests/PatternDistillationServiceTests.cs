@@ -587,6 +587,112 @@ public class PatternDistillationServiceTests : IDisposable
         Assert.Equal("Public", visibility);
     }
 
+    // --- ExtractRootCause Tests ---
+
+    [Fact]
+    public void ExtractRootCause_FromChunkContext()
+    {
+        var chunk = CreateMinimalChunk();
+        chunk.ChunkContext = "Root Cause";
+        chunk.ChunkText = "Memory leak in token cache due to missing disposal.";
+
+        var result = PatternDistillationService.ExtractRootCause([chunk]);
+
+        Assert.Equal("Memory leak in token cache due to missing disposal.", result);
+    }
+
+    [Fact]
+    public void ExtractRootCause_FallsBackToKeywordInText()
+    {
+        var chunk = CreateMinimalChunk();
+        chunk.ChunkContext = "Resolution";
+        chunk.ChunkText = "The root cause was a misconfigured connection string.";
+
+        var result = PatternDistillationService.ExtractRootCause([chunk]);
+
+        Assert.Equal("The root cause was a misconfigured connection string.", result);
+    }
+
+    [Fact]
+    public void ExtractRootCause_DetectsCausedByKeyword()
+    {
+        var chunk = CreateMinimalChunk();
+        chunk.ChunkText = "This was caused by a race condition in the queue processor.";
+
+        var result = PatternDistillationService.ExtractRootCause([chunk]);
+
+        Assert.Contains("caused by", result!);
+    }
+
+    [Fact]
+    public void ExtractRootCause_DetectsUnderlyingIssueKeyword()
+    {
+        var chunk = CreateMinimalChunk();
+        chunk.ChunkText = "The underlying issue is a stale DNS cache entry.";
+
+        var result = PatternDistillationService.ExtractRootCause([chunk]);
+
+        Assert.Contains("underlying issue", result!);
+    }
+
+    [Fact]
+    public void ExtractRootCause_ReturnsNullWhenNoRootCauseFound()
+    {
+        var chunk = CreateMinimalChunk();
+        chunk.ChunkText = "Applied the fix and restarted the service.";
+        chunk.ChunkContext = "Resolution";
+
+        var result = PatternDistillationService.ExtractRootCause([chunk]);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void ExtractRootCause_TruncatesLongText()
+    {
+        var chunk = CreateMinimalChunk();
+        chunk.ChunkContext = "Root Cause";
+        chunk.ChunkText = new string('x', 3000);
+
+        var result = PatternDistillationService.ExtractRootCause([chunk]);
+
+        Assert.NotNull(result);
+        Assert.Equal(2000, result.Length);
+    }
+
+    [Fact]
+    public void ExtractRootCause_PrefersContextOverKeyword()
+    {
+        var chunkWithContext = CreateMinimalChunk();
+        chunkWithContext.ChunkContext = "Root Cause";
+        chunkWithContext.ChunkText = "DNS misconfiguration.";
+
+        var chunkWithKeyword = CreateMinimalChunk();
+        chunkWithKeyword.ChunkText = "The root cause was something else.";
+
+        var result = PatternDistillationService.ExtractRootCause([chunkWithContext, chunkWithKeyword]);
+
+        Assert.Equal("DNS misconfiguration.", result);
+    }
+
+    [Fact]
+    public async Task Distill_SetsRootCauseWhenAvailable()
+    {
+        var (sessionId, _) = SeedQualifiedSession();
+
+        // Update one chunk to have root cause context.
+        var chunk = _db.EvidenceChunks.First();
+        chunk.ChunkContext = "Root Cause";
+        chunk.ChunkText = "Expired certificate on load balancer.";
+        _db.SaveChanges();
+
+        var result = await _service.DistillAsync(TenantId, "admin", "corr-rc");
+
+        Assert.Equal(1, result.PatternsCreated);
+        var pattern = _db.CasePatterns.First(p => p.PatternId == result.CreatedPatternIds[0]);
+        Assert.Equal("Expired certificate on load balancer.", pattern.RootCause);
+    }
+
     // --- Helpers ---
 
     private static DistillationCandidate CreateMinimalCandidate(

@@ -366,6 +366,7 @@ export interface PatternDetail {
   tenantId: string;
   title: string;
   problemStatement: string;
+  rootCause: string | null;
   symptoms: string[];
   diagnosisSteps: string[];
   resolutionSteps: string[];
@@ -928,4 +929,41 @@ export interface RetentionComplianceReport {
   totalPolicies: number;
   overduePolicies: number;
   entries: RetentionComplianceEntry[];
+}
+
+// ── Audit & Compliance ──
+
+export interface AuditEventResponse {
+  eventId: string;
+  eventType: string;
+  tenantId: string;
+  actorId: string;
+  correlationId: string;
+  timestamp: string;
+  detail: string;
+}
+
+export interface AuditEventListResponse {
+  events: AuditEventResponse[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+}
+
+export interface AuditEventQueryParams {
+  eventType?: string;
+  actorId?: string;
+  correlationId?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface AuditExportParams {
+  eventType?: string;
+  actorId?: string;
+  from?: string;
+  to?: string;
 }

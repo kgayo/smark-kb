@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-19 (Asia/Manila) — iteration 86 (P3-029 audit compliance admin UI)
-Status: Active backlog (Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 in progress: P3-001, P3-002, P3-003, P3-004, P3-005, P3-006, P3-008, P3-017, P3-018, P3-019, P3-021, P3-024, P3-029, P3-032, P3-034, P3-035, P3-036, P3-037, P3-038 complete; Tests complete: T-001–T-008; ~2224 tests passing (1911 backend + 313 frontend + 98 IaC - some overlap in counting); 0 bugs blocking, 0 tech-debt blocking)
+Last updated: 2026-03-19 (Asia/Manila) — iteration 87 (P3-014 add RootCause field to case pattern schema)
+Status: Active backlog (Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 in progress: P3-001, P3-002, P3-003, P3-004, P3-005, P3-006, P3-008, P3-014, P3-017, P3-018, P3-019, P3-021, P3-024, P3-029, P3-032, P3-034, P3-035, P3-036, P3-037, P3-038 complete; Tests complete: T-001–T-008; ~2244 tests passing (1929 backend + 315 frontend + 98 IaC - some overlap in counting); 0 bugs blocking, 0 tech-debt blocking)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -405,24 +405,22 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
   - Dependencies: P1-006 (governance complete)
   - Priority: LOW — current audit events capture who approved/deprecated, but not what changed in the pattern content.
 
-- [ ] P3-014: Add explicit `RootCause` field to case pattern schema.
+- [x] P3-014: Add explicit `RootCause` field to case pattern schema.
   - Specs: jtbd-09 (Req 09-1: extract root cause)
-  - Gap: Spec requires extracting "root cause" as a distinct field. Current `CasePatternEntity` has `ProblemStatement` but no dedicated `RootCause` field — root cause is subsumed into the problem statement or resolution steps.
-  - Scope: Add `RootCause` string field to `CasePatternEntity`, `PatternDetail` DTO, and distillation prompt. Migration to add column. Update pattern index schema.
   - Dependencies: P1-005 (distillation complete)
-  - Priority: LOW — cosmetic schema improvement; root cause info is captured, just not in a named field.
+  - Completed: `RootCause` nullable string field (nvarchar(2000)) added to `CasePatternEntity`, `CasePattern` domain model, and `PatternDetail` DTO. EF migration `20260319160000_AddRootCause`. `ExtractRootCause` in `PatternDistillationService` — prioritizes chunks with "Root Cause" section context (from ticket-structure chunking P3-017), falls back to keyword detection ("root cause", "caused by", "underlying issue"). `root_cause` searchable field added to `PatternFieldNames` and `AzureSearchPatternIndexingService` schema (EnMicrosoft analyzer, semantic content field). `ToSearchDocument` maps `RootCause`. All entity-to-model/DTO mappings updated (`MapEntityToModel` in distillation, `MapToDetail` in governance, inline mapping in `TransitionAsync`). Frontend: `rootCause` field on `PatternDetail` TypeScript interface, `PatternDetailView` renders "Root Cause" section between Problem Statement and Symptoms. 12 new tests (8 backend `ExtractRootCause` + 1 `Distill_SetsRootCauseWhenAvailable` + 1 `ToSearchDocument_MapsRootCause` + 2 frontend root cause rendering). 1929 backend tests passing.
 
 - [x] P3-032: Add CD/deploy workflow for dev/staging/prod environments.
   - Specs: jtbd-11, AGENTS.md
   - Dependencies: P0-005A (IaC baseline complete), P3-036 (frontend hosting IaC)
   - Completed: `.github/workflows/deploy.yml` with `workflow_dispatch` trigger and per-component toggle inputs (`deploy_infra`, `deploy_backend`, `deploy_frontend`). Environment selector (dev/staging/prod). **CI gate job** runs full .NET + frontend test suite before any deployment. **Infrastructure jobs**: `infra-plan` runs `terraform plan` with detailed-exitcode and uploads plan artifact; `infra-apply` uses GitHub Environments for approval gates, downloads plan artifact, and applies. **Backend jobs**: `deploy-api` and `deploy-ingestion` run in parallel, each publishes .NET project and deploys via `azure/webapps-deploy@v3` to `app-smartkb-api-{env}` / `app-smartkb-ingestion-{env}`. **Frontend job**: builds Vite with env-specific `VITE_*` variables, deploys to Azure Static Web App via `Azure/static-web-apps-deploy@v1`. **Smoke test job**: health check with 5 retries (15s interval), optional eval CLI smoke run (5 cases). All deploy jobs use `azure/login@v2` with service principal. Jobs gracefully skip when upstream infra-apply is skipped (no changes). Secrets: `ARM_CLIENT_ID`, `ARM_CLIENT_SECRET`, `ARM_SUBSCRIPTION_ID`, `ARM_TENANT_ID`, `SQL_ADMIN_PASSWORD`, `SWA_DEPLOYMENT_TOKEN`, `EVAL_API_TOKEN`. Variables: `API_BASE_URL`, `ENTRA_CLIENT_ID`, `ENTRA_AUTHORITY`.
 
-- [ ] P3-033: Remove dead `BaselineEnrichmentService` code.
+- [ ] P3-033: Inline `BaselineEnrichmentService` into `EnhancedEnrichmentService`.
   - Specs: jtbd-02
-  - Gap: `BaselineEnrichmentService` in `SmartKb.Contracts.Services` still exists alongside `EnhancedEnrichmentService` which supersedes it. Both API and Ingestion DI register only `EnhancedEnrichmentService`. The baseline variant is dead code with its own test file still present.
-  - Scope: Delete `BaselineEnrichmentService.cs` and its tests. Verify no references remain.
+  - Gap: `BaselineEnrichmentService` is not truly dead code — `EnhancedEnrichmentService` internally creates `new BaselineEnrichmentService()` as a composition dependency (line 14), and 4 test files instantiate it directly for `NormalizationPipeline` construction. Both API and Ingestion DI register only `EnhancedEnrichmentService`, so `BaselineEnrichmentService` is used transitively.
+  - Scope: Inline `BaselineEnrichmentService` logic into `EnhancedEnrichmentService` to eliminate the separate class. Update test files to use `EnhancedEnrichmentService` directly.
   - Dependencies: None
-  - Priority: LOW — dead code cleanup; no functional impact.
+  - Priority: LOW — code consolidation; no functional impact.
 
 - [x] P3-034: Add automatic pattern indexing to Azure AI Search after distillation.
   - Specs: jtbd-09, jtbd-03

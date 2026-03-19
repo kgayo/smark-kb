@@ -138,6 +138,7 @@ public sealed class AzureSearchPatternIndexingService : IPatternIndexingService
                 // Searchable text
                 new SearchableField(PatternFieldNames.Title) { AnalyzerName = LexicalAnalyzerName.EnMicrosoft, IsFilterable = true, IsSortable = true },
                 new SearchableField(PatternFieldNames.ProblemStatement) { AnalyzerName = LexicalAnalyzerName.EnMicrosoft },
+                new SearchableField(PatternFieldNames.RootCause) { AnalyzerName = LexicalAnalyzerName.EnMicrosoft },
                 new SearchableField(PatternFieldNames.Symptoms) { AnalyzerName = LexicalAnalyzerName.EnMicrosoft },
                 new SearchableField(PatternFieldNames.ResolutionSteps) { AnalyzerName = LexicalAnalyzerName.EnMicrosoft },
 
@@ -193,6 +194,7 @@ public sealed class AzureSearchPatternIndexingService : IPatternIndexingService
                         ContentFields =
                         {
                             new SemanticField(PatternFieldNames.ProblemStatement),
+                            new SemanticField(PatternFieldNames.RootCause),
                             new SemanticField(PatternFieldNames.ResolutionSteps),
                         },
                         KeywordsFields =
@@ -214,6 +216,7 @@ public sealed class AzureSearchPatternIndexingService : IPatternIndexingService
             [PatternFieldNames.PatternId] = pattern.PatternId,
             [PatternFieldNames.Title] = pattern.Title,
             [PatternFieldNames.ProblemStatement] = pattern.ProblemStatement,
+            [PatternFieldNames.RootCause] = pattern.RootCause ?? string.Empty,
             [PatternFieldNames.Symptoms] = string.Join("\n", pattern.Symptoms),
             [PatternFieldNames.ResolutionSteps] = string.Join("\n", pattern.ResolutionSteps),
             [PatternFieldNames.EmbeddingVector] = pattern.EmbeddingVector,

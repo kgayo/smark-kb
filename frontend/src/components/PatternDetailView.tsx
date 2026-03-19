@@ -236,6 +236,13 @@ export function PatternDetailView({
         <p data-testid="problem-statement">{pattern.problemStatement}</p>
       </div>
 
+      {pattern.rootCause && (
+        <div className="pattern-content-section">
+          <h3>Root Cause</h3>
+          <p data-testid="root-cause">{pattern.rootCause}</p>
+        </div>
+      )}
+
       {pattern.symptoms.length > 0 && (
         <div className="pattern-content-section">
           <h3>Symptoms</h3>

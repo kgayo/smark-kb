@@ -19,6 +19,9 @@ public sealed record CasePattern
     /// <summary>Concise description of the problem this pattern addresses.</summary>
     public required string ProblemStatement { get; init; }
 
+    /// <summary>Identified root cause of the problem, distinct from the problem statement.</summary>
+    public string? RootCause { get; init; }
+
     /// <summary>Observable symptoms that indicate this pattern applies.</summary>
     public IReadOnlyList<string> Symptoms { get; init; } = [];
 

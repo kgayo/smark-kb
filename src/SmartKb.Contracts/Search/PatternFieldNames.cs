@@ -12,6 +12,7 @@ public static class PatternFieldNames
     // Searchable text fields
     public const string Title = "title";
     public const string ProblemStatement = "problem_statement";
+    public const string RootCause = "root_cause";
     public const string Symptoms = "symptoms";
     public const string ResolutionSteps = "resolution_steps";
 
