@@ -517,12 +517,10 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
 
 ### P3 PRD Cross-Reference Gaps (discovered iteration 67)
 
-- [ ] P3-024: Add confidence "why" rationale to chat response contract (FR-CHAT-002 partial).
+- [x] P3-024: Add confidence "why" rationale to chat response contract (FR-CHAT-002 partial).
   - Specs: jtbd-04, PRD §20 "Chat-based support copilot"
-  - Gap: PRD specifies a "Confidence indicator and 'why' rationale." The confidence label (High/Medium/Low/Insufficient) is implemented via `ConfidenceLabel` in `ChatResponse`, but no `ConfidenceRationale` string field explains *why* confidence is at that level (e.g., "3 high-relevance evidence chunks matched from recent sources" vs "only 1 low-score match found").
-  - Scope: Add `ConfidenceRationale` field to `ChatResponse`. Populate in `ChatOrchestrator` from retrieval metrics (chunk count, score distribution, recency, source diversity). Surface in `ChatThread` component below `ConfidenceBadge`.
   - Dependencies: P0-016 (confidence scoring complete)
-  - Priority: MEDIUM — improves agent trust calibration; agents can better judge when to rely on vs. question the copilot.
+  - **DONE** (iteration 82): `ConfidenceRationale` nullable string field added to `ChatResponse` and `MessageResponse` DTOs. `ChatOrchestrator.BuildConfidenceRationale()` generates human-readable rationale from retrieval metrics: chunk count with relevance quality (high/moderate/low based on avg RRF score), source diversity (distinct source systems), evidence recency (days since most recent), pattern inclusion count, plus model's self-reported rationale (when substantive). Rationale persisted to `MessageEntity.ConfidenceRationale` (nvarchar(1024)) via EF migration `20260319120000_AddConfidenceRationale`. Frontend: `ConfidenceBadge` component extended with optional `rationale` prop — displays as italic subtitle text below the badge and includes rationale in tooltip. `ChatThread` passes `msg.confidenceRationale` to `ConfidenceBadge`. CSS: `.confidence-badge-wrapper` flex container with `.confidence-rationale` muted italic text. `BuildNoEvidenceResponse` returns "No matching evidence found in the knowledge base." rationale. 11 new backend tests (9 BuildConfidenceRationale + 2 ChatResponse DTO) + 5 new frontend tests (4 ConfidenceBadge rationale + 1 ChatThread rationale); all 1846 backend + 296 frontend = 2142 tests passing.
 
 - [ ] P3-025: Implement Evidence Drawer Source Viewer drill-down (FR-CHAT-003 partial).
   - Specs: jtbd-05, PRD §20 "Chat-based support copilot"

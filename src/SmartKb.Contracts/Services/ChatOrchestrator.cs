@@ -470,6 +470,10 @@ public sealed class ChatOrchestrator : IChatOrchestrator
                 .AsReadOnly();
         }
 
+        // P3-024: Build confidence rationale from retrieval metrics + model rationale.
+        var confidenceRationale = BuildConfidenceRationale(
+            evidenceChunks, blendedConfidence, confidenceLabel, modelResponse.ConfidenceRationale);
+
         return new ChatResponse
         {
             ResponseType = responseType,
@@ -477,6 +481,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
             Citations = citations,
             Confidence = blendedConfidence,
             ConfidenceLabel = confidenceLabel,
+            ConfidenceRationale = confidenceRationale,
             NextSteps = nextSteps,
             Escalation = escalation,
             TraceId = traceId,
@@ -731,6 +736,57 @@ public sealed class ChatOrchestrator : IChatOrchestrator
     }
 
     /// <summary>
+    /// Builds a human-readable rationale explaining why confidence is at the given level (P3-024, FR-CHAT-002).
+    /// Combines retrieval metrics (chunk count, score distribution, source diversity, recency) with model rationale.
+    /// </summary>
+    internal static string BuildConfidenceRationale(
+        IReadOnlyList<RetrievedChunk> chunks,
+        float blendedConfidence,
+        string confidenceLabel,
+        string? modelRationale)
+    {
+        if (chunks.Count == 0)
+            return "No matching evidence found in the knowledge base.";
+
+        var parts = new List<string>();
+
+        // Chunk count and quality.
+        var avgScore = chunks.Average(c => c.RrfScore);
+        var scoreQuality = avgScore >= 0.7 ? "high" : avgScore >= 0.4 ? "moderate" : "low";
+        parts.Add($"{chunks.Count} evidence chunk{(chunks.Count != 1 ? "s" : "")} matched with {scoreQuality} relevance (avg score: {avgScore:F2})");
+
+        // Source diversity.
+        var distinctSources = chunks.Select(c => c.SourceSystem).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+        if (distinctSources > 1)
+            parts.Add($"sources span {distinctSources} systems");
+        else
+            parts.Add("all from a single source system");
+
+        // Recency.
+        var mostRecent = chunks.Max(c => c.UpdatedAt);
+        var daysSinceMostRecent = (int)(DateTimeOffset.UtcNow - mostRecent).TotalDays;
+        if (daysSinceMostRecent <= 7)
+            parts.Add($"most recent evidence from {daysSinceMostRecent} day{(daysSinceMostRecent != 1 ? "s" : "")} ago");
+        else if (daysSinceMostRecent <= 30)
+            parts.Add($"most recent evidence from {daysSinceMostRecent} days ago");
+        else
+            parts.Add($"most recent evidence is {daysSinceMostRecent} days old");
+
+        // Pattern vs evidence mix.
+        var patternCount = chunks.Count(c => c.ResultSource == "Pattern");
+        if (patternCount > 0)
+            parts.Add($"{patternCount} case pattern{(patternCount != 1 ? "s" : "")} included");
+
+        var rationale = string.Join(". ", parts) + ".";
+
+        // Append model's self-reported rationale if non-trivial.
+        if (!string.IsNullOrWhiteSpace(modelRationale) && modelRationale.Length > 10)
+            rationale += $" Model assessment: {modelRationale}";
+
+        return rationale;
+    }
+
+    /// <summary>
     /// Computes retrieval confidence heuristic based on chunk scores and count (D-003).
     /// Normalized: average RRF score of returned chunks * saturation factor.
     /// </summary>
@@ -973,6 +1029,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
             Citations = [],
             Confidence = 0f,
             ConfidenceLabel = "Low",
+            ConfidenceRationale = "No matching evidence found in the knowledge base.",
             NextSteps =
             [
                 "Try rephrasing your question with more specific keywords or error messages.",

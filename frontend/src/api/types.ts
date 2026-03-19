@@ -52,6 +52,7 @@ export interface MessageResponse {
   citations: CitationDto[] | null;
   confidence: number | null;
   confidenceLabel: string | null;
+  confidenceRationale: string | null;
   responseType: string | null;
   traceId: string | null;
   correlationId: string | null;
@@ -77,6 +78,7 @@ export interface ChatResponse {
   citations: CitationDto[];
   confidence: number;
   confidenceLabel: 'High' | 'Medium' | 'Low';
+  confidenceRationale: string | null;
   nextSteps: string[];
   escalation: EscalationSignal | null;
   traceId: string;

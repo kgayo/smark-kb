@@ -347,6 +347,169 @@ public class ChatOrchestratorTests
 
     #endregion
 
+    #region BuildConfidenceRationale (P3-024)
+
+    [Fact]
+    public void BuildConfidenceRationale_NoChunks_ReturnsNoEvidenceMessage()
+    {
+        var rationale = ChatOrchestrator.BuildConfidenceRationale([], 0f, "Low", null);
+        Assert.Equal("No matching evidence found in the knowledge base.", rationale);
+    }
+
+    [Fact]
+    public void BuildConfidenceRationale_HighRelevance_DescribesHighRelevance()
+    {
+        var chunks = new List<RetrievedChunk>
+        {
+            CreateChunk("c1", rrfScore: 0.85) with { UpdatedAt = DateTimeOffset.UtcNow.AddDays(-2) },
+            CreateChunk("c2", rrfScore: 0.75) with { UpdatedAt = DateTimeOffset.UtcNow.AddDays(-5) },
+            CreateChunk("c3", rrfScore: 0.80) with { UpdatedAt = DateTimeOffset.UtcNow.AddDays(-1) },
+        };
+
+        var rationale = ChatOrchestrator.BuildConfidenceRationale(chunks, 0.8f, "High", null);
+
+        Assert.Contains("3 evidence chunks matched", rationale);
+        Assert.Contains("high relevance", rationale);
+        Assert.Contains("avg score: 0.80", rationale);
+        Assert.Contains("1 day ago", rationale);
+    }
+
+    [Fact]
+    public void BuildConfidenceRationale_LowRelevance_DescribesLowRelevance()
+    {
+        var chunks = new List<RetrievedChunk>
+        {
+            CreateChunk("c1", rrfScore: 0.2) with { UpdatedAt = DateTimeOffset.UtcNow.AddDays(-60) },
+        };
+
+        var rationale = ChatOrchestrator.BuildConfidenceRationale(chunks, 0.2f, "Low", null);
+
+        Assert.Contains("1 evidence chunk matched", rationale);
+        Assert.Contains("low relevance", rationale);
+        Assert.Contains("60 days", rationale);
+    }
+
+    [Fact]
+    public void BuildConfidenceRationale_MultipleSystems_DescribesDiversity()
+    {
+        var chunks = new List<RetrievedChunk>
+        {
+            CreateChunk("c1", rrfScore: 0.6) with { SourceSystem = "AzureDevOps", UpdatedAt = DateTimeOffset.UtcNow },
+            CreateChunk("c2", rrfScore: 0.5) with { SourceSystem = "SharePoint", UpdatedAt = DateTimeOffset.UtcNow },
+        };
+
+        var rationale = ChatOrchestrator.BuildConfidenceRationale(chunks, 0.5f, "Medium", null);
+
+        Assert.Contains("sources span 2 systems", rationale);
+    }
+
+    [Fact]
+    public void BuildConfidenceRationale_SingleSystem_DescribesSingleSource()
+    {
+        var chunks = new List<RetrievedChunk>
+        {
+            CreateChunk("c1", rrfScore: 0.6) with { UpdatedAt = DateTimeOffset.UtcNow },
+            CreateChunk("c2", rrfScore: 0.5) with { UpdatedAt = DateTimeOffset.UtcNow },
+        };
+
+        var rationale = ChatOrchestrator.BuildConfidenceRationale(chunks, 0.5f, "Medium", null);
+
+        Assert.Contains("all from a single source system", rationale);
+    }
+
+    [Fact]
+    public void BuildConfidenceRationale_WithPatterns_MentionsPatternCount()
+    {
+        var chunks = new List<RetrievedChunk>
+        {
+            CreateChunk("c1", rrfScore: 0.7) with { ResultSource = "Evidence", UpdatedAt = DateTimeOffset.UtcNow },
+            CreateChunk("c2", rrfScore: 0.6) with { ResultSource = "Pattern", UpdatedAt = DateTimeOffset.UtcNow },
+        };
+
+        var rationale = ChatOrchestrator.BuildConfidenceRationale(chunks, 0.65f, "Medium", null);
+
+        Assert.Contains("1 case pattern included", rationale);
+    }
+
+    [Fact]
+    public void BuildConfidenceRationale_WithModelRationale_AppendsIt()
+    {
+        var chunks = new List<RetrievedChunk>
+        {
+            CreateChunk("c1", rrfScore: 0.7) with { UpdatedAt = DateTimeOffset.UtcNow },
+        };
+
+        var rationale = ChatOrchestrator.BuildConfidenceRationale(
+            chunks, 0.7f, "High", "The evidence directly addresses the question.");
+
+        Assert.Contains("Model assessment: The evidence directly addresses the question.", rationale);
+    }
+
+    [Fact]
+    public void BuildConfidenceRationale_ShortModelRationale_IgnoresIt()
+    {
+        var chunks = new List<RetrievedChunk>
+        {
+            CreateChunk("c1", rrfScore: 0.7) with { UpdatedAt = DateTimeOffset.UtcNow },
+        };
+
+        var rationale = ChatOrchestrator.BuildConfidenceRationale(chunks, 0.7f, "High", "ok");
+
+        Assert.DoesNotContain("Model assessment", rationale);
+    }
+
+    [Fact]
+    public void BuildConfidenceRationale_OldEvidence_DescribesAge()
+    {
+        var chunks = new List<RetrievedChunk>
+        {
+            CreateChunk("c1", rrfScore: 0.5) with { UpdatedAt = DateTimeOffset.UtcNow.AddDays(-120) },
+        };
+
+        var rationale = ChatOrchestrator.BuildConfidenceRationale(chunks, 0.3f, "Low", null);
+
+        Assert.Contains("120 days old", rationale);
+    }
+
+    [Fact]
+    public void ChatResponse_ConfidenceRationale_DefaultsToNull()
+    {
+        var response = new ChatResponse
+        {
+            ResponseType = "final_answer",
+            Answer = "Test",
+            Citations = [],
+            Confidence = 0.85f,
+            ConfidenceLabel = "High",
+            TraceId = "t1",
+            HasEvidence = true,
+            SystemPromptVersion = "1.0",
+        };
+
+        Assert.Null(response.ConfidenceRationale);
+    }
+
+    [Fact]
+    public void ChatResponse_ConfidenceRationale_CanBeSet()
+    {
+        var response = new ChatResponse
+        {
+            ResponseType = "final_answer",
+            Answer = "Test",
+            Citations = [],
+            Confidence = 0.85f,
+            ConfidenceLabel = "High",
+            ConfidenceRationale = "3 high-relevance chunks matched.",
+            TraceId = "t1",
+            HasEvidence = true,
+            SystemPromptVersion = "1.0",
+        };
+
+        Assert.Equal("3 high-relevance chunks matched.", response.ConfidenceRationale);
+    }
+
+    #endregion
+
     #region StructuredOutputSchema
 
     [Fact]

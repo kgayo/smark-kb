@@ -46,6 +46,7 @@ public sealed record MessageResponse
     public IReadOnlyList<CitationDto>? Citations { get; init; }
     public float? Confidence { get; init; }
     public string? ConfidenceLabel { get; init; }
+    public string? ConfidenceRationale { get; init; }
     public string? ResponseType { get; init; }
     public string? TraceId { get; init; }
     public string? CorrelationId { get; init; }

@@ -12,6 +12,7 @@ public sealed class MessageEntity
     public string? CitationsJson { get; set; }
     public float? Confidence { get; set; }
     public string? ConfidenceLabel { get; set; }
+    public string? ConfidenceRationale { get; set; }
     public string? ResponseType { get; set; }
     public string? TraceId { get; set; }
     public string? CorrelationId { get; set; }

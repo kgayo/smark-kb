@@ -3,6 +3,7 @@ import type { ConfidenceLevel } from '../api/types';
 interface ConfidenceBadgeProps {
   confidence: number;
   label: ConfidenceLevel;
+  rationale?: string | null;
 }
 
 const levelClass: Record<ConfidenceLevel, string> = {
@@ -11,15 +12,25 @@ const levelClass: Record<ConfidenceLevel, string> = {
   Low: 'confidence-low',
 };
 
-export function ConfidenceBadge({ confidence, label }: ConfidenceBadgeProps) {
+export function ConfidenceBadge({ confidence, label, rationale }: ConfidenceBadgeProps) {
   const pct = Math.round(confidence * 100);
+  const tooltipText = rationale
+    ? `Confidence: ${pct}% (${label}) — ${rationale}`
+    : `Confidence: ${pct}% (${label})`;
   return (
-    <span
-      className={`confidence-badge ${levelClass[label]}`}
-      title={`Confidence: ${pct}% (${label})`}
-      data-testid="confidence-badge"
-    >
-      {label} ({pct}%)
+    <span className="confidence-badge-wrapper">
+      <span
+        className={`confidence-badge ${levelClass[label]}`}
+        title={tooltipText}
+        data-testid="confidence-badge"
+      >
+        {label} ({pct}%)
+      </span>
+      {rationale && (
+        <span className="confidence-rationale" data-testid="confidence-rationale">
+          {rationale}
+        </span>
+      )}
     </span>
   );
 }

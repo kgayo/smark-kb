@@ -109,6 +109,7 @@ export function ChatThread({ messages, loading, onShowEvidence, onCreateEscalati
                 <ConfidenceBadge
                   confidence={msg.confidence}
                   label={msg.confidenceLabel as ConfidenceLevel}
+                  rationale={msg.confidenceRationale}
                 />
               )}
             </div>

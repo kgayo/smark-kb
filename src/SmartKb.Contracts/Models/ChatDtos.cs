@@ -44,6 +44,9 @@ public sealed record ChatResponse
     /// <summary>Categorical label: High (>=0.7), Medium (0.4–0.7), Low (&lt;0.4).</summary>
     public required string ConfidenceLabel { get; init; }
 
+    /// <summary>Human-readable rationale explaining why confidence is at this level (P3-024, FR-CHAT-002).</summary>
+    public string? ConfidenceRationale { get; init; }
+
     /// <summary>Suggested diagnostic or troubleshooting next steps.</summary>
     public IReadOnlyList<string> NextSteps { get; init; } = [];
 

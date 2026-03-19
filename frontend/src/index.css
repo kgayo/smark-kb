@@ -396,6 +396,23 @@ body {
   color: var(--color-low);
 }
 
+.confidence-badge-wrapper {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.confidence-rationale {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #6b7280);
+  font-style: italic;
+  max-width: 400px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ── Citation inline button ── */
 
 .citation-count-btn {

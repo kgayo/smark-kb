@@ -11,6 +11,7 @@ const userMsg: MessageResponse = {
   citations: null,
   confidence: null,
   confidenceLabel: null,
+  confidenceRationale: null,
   responseType: null,
   traceId: null,
   correlationId: null,
@@ -36,6 +37,7 @@ const assistantMsg: MessageResponse = {
   ],
   confidence: 0.82,
   confidenceLabel: 'High',
+  confidenceRationale: '3 evidence chunks matched with high relevance (avg score: 0.80).',
   responseType: 'final_answer',
   traceId: 'trace-1',
   correlationId: 'corr-1',
@@ -188,6 +190,19 @@ describe('ChatThread', () => {
     expect(ctaBtn).toHaveTextContent('Create escalation draft');
     fireEvent.click(ctaBtn);
     expect(onCreateDraft).toHaveBeenCalledWith('msg-2');
+  });
+
+  it('renders confidence rationale on assistant messages', () => {
+    render(
+      <ChatThread
+        messages={[assistantMsg]}
+        loading={false}
+        onShowEvidence={() => {}}
+        metaMap={new Map()}
+      />,
+    );
+    const rationale = screen.getByTestId('confidence-rationale');
+    expect(rationale).toHaveTextContent('3 evidence chunks matched');
   });
 
   it('does not render CTA button when onCreateEscalationDraft not provided', () => {

@@ -164,6 +164,7 @@ public class SmartKbDbContext : DbContext
             e.Property(m => m.CitationsJson);
             e.Property(m => m.Confidence);
             e.Property(m => m.ConfidenceLabel).HasMaxLength(32);
+            e.Property(m => m.ConfidenceRationale).HasMaxLength(1024);
             e.Property(m => m.ResponseType).HasMaxLength(64);
             e.Property(m => m.TraceId).HasMaxLength(128);
             e.Property(m => m.CorrelationId).HasMaxLength(128);
