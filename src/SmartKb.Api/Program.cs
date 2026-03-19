@@ -280,6 +280,7 @@ if (!string.IsNullOrEmpty(connectionString))
     builder.Services.AddScoped<HubSpotWebhookHandler>();
     builder.Services.AddScoped<ClickUpWebhookHandler>();
     builder.Services.AddHostedService<WebhookPollingFallbackService>();
+    builder.Services.AddHostedService<SmartKb.Api.EmbeddingCacheEvictionService>();
 }
 else
 {

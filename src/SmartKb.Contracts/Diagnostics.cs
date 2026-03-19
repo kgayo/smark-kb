@@ -161,6 +161,12 @@ public static class Diagnostics
             "smartkb.cost.embedding_cache_misses_total",
             description: "Embedding cache miss count.");
 
+    /// <summary>Embedding cache entries evicted by background cleanup (counter).</summary>
+    public static readonly Counter<long> EmbeddingCacheEvictionsTotal =
+        Meter.CreateCounter<long>(
+            "smartkb.cost.embedding_cache_evictions_total",
+            description: "Expired embedding cache entries evicted by background worker.");
+
     /// <summary>Estimated cost per request in USD (histogram).</summary>
     public static readonly Histogram<double> EstimatedCostUsd =
         Meter.CreateHistogram<double>(

@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-19 (Asia/Manila) — iteration 84 (P3-019 OAuth authorization code flow)
-Status: Active backlog (Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 in progress: P3-001, P3-002, P3-003, P3-004, P3-005, P3-006, P3-008, P3-017, P3-018, P3-019, P3-021, P3-024, P3-032, P3-034, P3-036, P3-038 complete; Tests complete: T-001–T-008; ~2201 tests passing (1905 backend + 296 frontend + 98 IaC - some overlap in counting); 0 bugs blocking, 0 tech-debt blocking)
+Last updated: 2026-03-19 (Asia/Manila) — iteration 85 (P3-035 embedding cache eviction + P3-037 ARM threshold fix)
+Status: Active backlog (Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 in progress: P3-001, P3-002, P3-003, P3-004, P3-005, P3-006, P3-008, P3-017, P3-018, P3-019, P3-021, P3-024, P3-032, P3-034, P3-035, P3-036, P3-037, P3-038 complete; Tests complete: T-001–T-008; ~2207 tests passing (1911 backend + 296 frontend + 98 IaC - some overlap in counting); 0 bugs blocking, 0 tech-debt blocking)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -429,24 +429,20 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
   - Completed: iteration 73. PatternDistillationService auto-indexes patterns after distillation (was already wired). PatternGovernanceService now deletes patterns from search index on deprecation (via DeletePatternsAsync) and re-indexes on other trust transitions. 7 new tests verify indexing/deletion behavior and graceful failure handling.
   - Dependencies: P1-005 (distillation complete), P1-006 (governance complete)
 
-- [ ] P3-035: Add background worker for embedding cache eviction.
+- [x] P3-035: Add background worker for embedding cache eviction.
   - Specs: jtbd-02 (P2-003 cost optimization)
-  - Gap: `EmbeddingCacheEntity` has an `ExpiresAt` column and reads filter expired entries, but no background job proactively deletes expired cache entries. Over time, the cache table will grow unbounded with stale rows.
-  - Scope: Add `EmbeddingCacheEvictionService` (BackgroundService) that periodically deletes rows where `ExpiresAt < DateTimeOffset.UtcNow`. Run every 6 hours. Log evicted count. Add OTel counter `embedding_cache_evictions_total`.
+  - Completed: `EmbeddingCacheEvictionService` (BackgroundService) in `SmartKb.Api` runs every 6 hours, calls `IEmbeddingCacheService.EvictExpiredAsync()` to delete expired rows. Logs evicted count. OTel counter `smartkb.cost.embedding_cache_evictions_total` added to `Diagnostics`. Registered as hosted service in API Program.cs. Uses `IServiceScopeFactory` for scoped EF Core access. Supports `TimeProvider` injection for testability. 6 new tests (evict expired, no-expired, empty-table, all-expired, cancellation, full-cycle). 1911 backend tests passing.
   - Dependencies: P2-003 (cost optimization complete)
-  - Priority: LOW — read-time filtering prevents stale data from being used; background eviction is storage hygiene.
 
 - [x] P3-036: Add IaC for frontend hosting (Azure Static Web Apps).
   - Specs: jtbd-11
   - Dependencies: P0-005A (IaC baseline complete)
   - Completed: `azurerm_static_web_app.frontend` resource in `infra/terraform/static-web-app.tf` (`stapp-smartkb-{env}`). `Microsoft.Web/staticSites` resource in ARM `main.json` with matching SKU parameter. `static_web_app_sku` variable (Free for dev, Standard for staging/prod). Outputs: `static_web_app_name` and `static_web_app_default_hostname` in both Terraform and ARM. Parity checker updated with `azurerm_static_web_app` → `Microsoft.Web/staticSites` mapping. All 3 env parameter files updated. 98 IaC parity tests passing. 1806 backend tests passing.
 
-- [ ] P3-037: Fix ARM availability alert threshold default to match Terraform (99.5).
+- [x] P3-037: Fix ARM availability alert threshold default to match Terraform (99.5).
   - Specs: jtbd-11
-  - Gap: Terraform `variables.tf` defaults `availability_threshold_percent` to `99.5` (float). ARM `main.json` defaults `availabilityThresholdPercent` to `99` (integer). Environment parameter files may override, but the template defaults diverge, which could cause inconsistent alert behavior on new environments.
-  - Scope: Update ARM `main.json` `availabilityThresholdPercent` default from `99` to `99.5`. Verify env parameter files are consistent.
+  - Completed: ARM `main.json` `availabilityThresholdPercent` parameter changed from `type: int, defaultValue: 99` to `type: string, defaultValue: "99.5"` to support decimal value. Threshold reference updated to use `float()` conversion: `[float(parameters('availabilityThresholdPercent'))]`. Now matches Terraform default of `99.5`. R-036 resolved.
   - Dependencies: None
-  - Priority: LOW — cosmetic parity fix; env params likely override.
 
 - [x] P3-038: Add multi-turn evaluation cases to gold dataset.
   - Specs: jtbd-06
@@ -628,7 +624,7 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
 - [x] R-033: ~~Distilled patterns are not auto-indexed to Azure AI Search.~~ **RESOLVED** by P3-034 (iteration 73). Distillation auto-indexes; governance deletes from index on deprecation.
 - [x] R-034: No frontend hosting resource in IaC. **Resolved by** P3-036 — Azure Static Web App provisioned in Terraform and ARM.
 - [x] R-035: Multi-turn conversation quality is unevaluated. **RESOLVED** by P3-038 (iteration 79). 12 multi-turn eval cases added covering follow-up clarification, context accumulation, escalation after failure, topic switching, and session summary scenarios.
-- [ ] R-036: **NEW** — ARM/Terraform availability threshold default discrepancy (99 vs 99.5). Could cause inconsistent alerting on new environments. **Tracked as** P3-037.
+- [x] R-036: ~~ARM/Terraform availability threshold default discrepancy (99 vs 99.5).~~ **RESOLVED** by P3-037 (iteration 85). ARM default updated to 99.5 with float() conversion.
 
 ## Open Design Decisions (must resolve before dependent items)
 

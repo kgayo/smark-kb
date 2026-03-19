@@ -71,8 +71,8 @@
       }
     },
     "availabilityThresholdPercent": {
-      "type": "int",
-      "defaultValue": 99,
+      "type": "string",
+      "defaultValue": "99.5",
       "metadata": {
         "description": "Availability percentage threshold for alert."
       }
@@ -659,7 +659,7 @@
               "metricNamespace": "microsoft.insights/components",
               "metricName": "availabilityResults/availabilityPercentage",
               "operator": "LessThan",
-              "threshold": "[parameters('availabilityThresholdPercent')]",
+              "threshold": "[float(parameters('availabilityThresholdPercent'))]",
               "timeAggregation": "Average",
               "criterionType": "StaticThresholdCriterion"
             }
