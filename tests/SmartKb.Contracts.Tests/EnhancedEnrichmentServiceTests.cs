@@ -95,6 +95,159 @@ public class EnhancedEnrichmentServiceTests
         Assert.Equal(1.0f, result.CategoryConfidence);
     }
 
+    [Fact]
+    public void Enrich_DetectsCategory_FeatureRequest()
+    {
+        var record = CreateRecord(textContent: "Feature request: add dark mode support as enhancement");
+        var result = _sut.Enrich(record);
+        Assert.Equal("feature_request", result.Category);
+    }
+
+    [Fact]
+    public void Enrich_DetectsCategory_Incident()
+    {
+        var record = CreateRecord(textContent: "Production outage affecting all users, incident declared");
+        var result = _sut.Enrich(record);
+        Assert.Equal("incident", result.Category);
+    }
+
+    [Fact]
+    public void Enrich_DetectsCategory_Question()
+    {
+        var record = CreateRecord(textContent: "How to configure the VPN settings? Guidance needed, clarification requested");
+        var result = _sut.Enrich(record);
+        Assert.Equal("question", result.Category);
+    }
+
+    // --- Severity Detection ---
+
+    [Fact]
+    public void Enrich_PreservesExistingSeverity()
+    {
+        var record = CreateRecord(severity: "high", textContent: "Some low priority thing");
+        var result = _sut.Enrich(record);
+        Assert.Equal("high", result.Severity);
+    }
+
+    [Fact]
+    public void Enrich_DetectsSeverity_Critical()
+    {
+        var record = CreateRecord(textContent: "This is sev-1 critical issue");
+        var result = _sut.Enrich(record);
+        Assert.Equal("critical", result.Severity);
+    }
+
+    [Fact]
+    public void Enrich_DetectsSeverity_Medium()
+    {
+        var record = CreateRecord(textContent: "Medium priority fix for P3 issues");
+        var result = _sut.Enrich(record);
+        Assert.Equal("medium", result.Severity);
+    }
+
+    // --- Environment Detection ---
+
+    [Fact]
+    public void Enrich_DetectsEnvironment_Production()
+    {
+        var record = CreateRecord(textContent: "Error occurred in production environment");
+        var result = _sut.Enrich(record);
+        Assert.Equal("production", result.Environment);
+    }
+
+    [Fact]
+    public void Enrich_DetectsEnvironment_Staging()
+    {
+        var record = CreateRecord(textContent: "Issue found in staging environment");
+        var result = _sut.Enrich(record);
+        Assert.Equal("staging", result.Environment);
+    }
+
+    [Fact]
+    public void Enrich_Environment_ReturnsNull_WhenNoMatch()
+    {
+        var record = CreateRecord(textContent: "Updated a field.");
+        var result = _sut.Enrich(record);
+        Assert.Null(result.Environment);
+    }
+
+    // --- Error Token Extraction ---
+
+    [Fact]
+    public void ExtractErrorTokens_FindsExceptionNames()
+    {
+        var tokens = EnhancedEnrichmentService.ExtractErrorTokens("Got NullReferenceException and IOException");
+        Assert.Contains("NullReferenceException", tokens);
+        Assert.Contains("IOException", tokens);
+    }
+
+    [Fact]
+    public void ExtractErrorTokens_FindsHttpStatusCodes()
+    {
+        var tokens = EnhancedEnrichmentService.ExtractErrorTokens("API returned HTTP 500 and status 404");
+        Assert.Contains("HTTP 500", tokens);
+        Assert.Contains("HTTP 404", tokens);
+    }
+
+    [Fact]
+    public void ExtractErrorTokens_FindsErrorCodes()
+    {
+        var tokens = EnhancedEnrichmentService.ExtractErrorTokens("Got error AADSTS50076 during auth");
+        Assert.Contains("AADSTS50076", tokens);
+    }
+
+    [Fact]
+    public void ExtractErrorTokens_FindsHexCodes()
+    {
+        var tokens = EnhancedEnrichmentService.ExtractErrorTokens("Windows error 0x80070005 access denied");
+        Assert.Contains("0x80070005", tokens);
+    }
+
+    [Fact]
+    public void ExtractErrorTokens_ReturnsEmpty_WhenNoTokens()
+    {
+        var tokens = EnhancedEnrichmentService.ExtractErrorTokens("Everything is working fine.");
+        Assert.Empty(tokens);
+    }
+
+    [Fact]
+    public void ExtractErrorTokens_DeduplicatesTokens()
+    {
+        var tokens = EnhancedEnrichmentService.ExtractErrorTokens(
+            "NullReferenceException happened. Another NullReferenceException later.");
+        Assert.Single(tokens, t => t == "NullReferenceException");
+    }
+
+    // --- PII Detection ---
+
+    [Fact]
+    public void DetectPii_FindsEmail()
+    {
+        var flags = EnhancedEnrichmentService.DetectPii("Contact user@example.com for help");
+        Assert.Contains("email", flags);
+    }
+
+    [Fact]
+    public void DetectPii_FindsSsn()
+    {
+        var flags = EnhancedEnrichmentService.DetectPii("SSN: 123-45-6789 on file");
+        Assert.Contains("ssn", flags);
+    }
+
+    [Fact]
+    public void DetectPii_FindsCreditCard()
+    {
+        var flags = EnhancedEnrichmentService.DetectPii("Card: 4111-1111-1111-1111");
+        Assert.Contains("credit_card", flags);
+    }
+
+    [Fact]
+    public void DetectPii_ReturnsEmpty_WhenNoPii()
+    {
+        var flags = EnhancedEnrichmentService.DetectPii("No personal information here.");
+        Assert.Empty(flags);
+    }
+
     // --- Technology Tag Detection ---
 
     [Fact]
@@ -209,18 +362,10 @@ public class EnhancedEnrichmentServiceTests
         Assert.Null(result.ProductArea);
     }
 
-    // --- Baseline Passthrough ---
+    // --- Error Token and PII Passthrough ---
 
     [Fact]
-    public void Enrich_PreservesSeverityFromBaseline()
-    {
-        var record = CreateRecord(severity: "high", textContent: "Some low priority thing");
-        var result = _sut.Enrich(record);
-        Assert.Equal("high", result.Severity);
-    }
-
-    [Fact]
-    public void Enrich_PreservesErrorTokensFromBaseline()
+    public void Enrich_PreservesErrorTokens()
     {
         var record = CreateRecord(textContent: "Got NullReferenceException and HTTP 500");
         var result = _sut.Enrich(record);
@@ -229,18 +374,10 @@ public class EnhancedEnrichmentServiceTests
     }
 
     [Fact]
-    public void Enrich_PreservesPiiFromBaseline()
+    public void Enrich_PreservesPii()
     {
         var record = CreateRecord(textContent: "Contact user@example.com for help");
         var result = _sut.Enrich(record);
         Assert.Contains("email", result.PiiFlags);
-    }
-
-    [Fact]
-    public void Enrich_PreservesEnvironmentFromBaseline()
-    {
-        var record = CreateRecord(textContent: "Error in production environment causing outage");
-        var result = _sut.Enrich(record);
-        Assert.Equal("production", result.Environment);
     }
 }

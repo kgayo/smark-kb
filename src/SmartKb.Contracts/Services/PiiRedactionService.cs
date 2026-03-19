@@ -123,7 +123,7 @@ public sealed partial class PiiRedactionService : IPiiRedactionService
             counts[piiType] = matches.Count;
     }
 
-    // Same patterns as BaselineEnrichmentService — keep in sync.
+    // Same patterns as EnhancedEnrichmentService — keep in sync.
 
     [GeneratedRegex(@"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b", RegexOptions.Compiled)]
     private static partial Regex EmailRegex();

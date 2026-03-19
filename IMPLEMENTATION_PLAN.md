@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-19 (Asia/Manila) — iteration 92 (P3-020 rate-limit alert surfacing)
-Status: Active backlog (Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 in progress: P3-001, P3-002, P3-003, P3-004, P3-005, P3-006, P3-007, P3-008, P3-009, P3-011, P3-012, P3-014, P3-016, P3-017, P3-018, P3-019, P3-020, P3-021, P3-024, P3-029, P3-032, P3-034, P3-035, P3-036, P3-037, P3-038 complete; Tests complete: T-001–T-008; ~2358 tests passing (2026 backend + 332 frontend + 98 IaC - some overlap in counting); 0 bugs blocking, 0 tech-debt blocking)
+Last updated: 2026-03-19 (Asia/Manila) — iteration 93 (P3-033 inline BaselineEnrichmentService)
+Status: Active backlog (Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 in progress: P3-001, P3-002, P3-003, P3-004, P3-005, P3-006, P3-007, P3-008, P3-009, P3-011, P3-012, P3-014, P3-016, P3-017, P3-018, P3-019, P3-020, P3-021, P3-024, P3-029, P3-032, P3-033, P3-034, P3-035, P3-036, P3-037, P3-038 complete; Tests complete: T-001–T-008; ~2351 tests passing (2019 backend + 332 frontend + 98 IaC - some overlap in counting); 0 bugs blocking, 0 tech-debt blocking)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -408,12 +408,10 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
   - Dependencies: P0-005A (IaC baseline complete), P3-036 (frontend hosting IaC)
   - Completed: `.github/workflows/deploy.yml` with `workflow_dispatch` trigger and per-component toggle inputs (`deploy_infra`, `deploy_backend`, `deploy_frontend`). Environment selector (dev/staging/prod). **CI gate job** runs full .NET + frontend test suite before any deployment. **Infrastructure jobs**: `infra-plan` runs `terraform plan` with detailed-exitcode and uploads plan artifact; `infra-apply` uses GitHub Environments for approval gates, downloads plan artifact, and applies. **Backend jobs**: `deploy-api` and `deploy-ingestion` run in parallel, each publishes .NET project and deploys via `azure/webapps-deploy@v3` to `app-smartkb-api-{env}` / `app-smartkb-ingestion-{env}`. **Frontend job**: builds Vite with env-specific `VITE_*` variables, deploys to Azure Static Web App via `Azure/static-web-apps-deploy@v1`. **Smoke test job**: health check with 5 retries (15s interval), optional eval CLI smoke run (5 cases). All deploy jobs use `azure/login@v2` with service principal. Jobs gracefully skip when upstream infra-apply is skipped (no changes). Secrets: `ARM_CLIENT_ID`, `ARM_CLIENT_SECRET`, `ARM_SUBSCRIPTION_ID`, `ARM_TENANT_ID`, `SQL_ADMIN_PASSWORD`, `SWA_DEPLOYMENT_TOKEN`, `EVAL_API_TOKEN`. Variables: `API_BASE_URL`, `ENTRA_CLIENT_ID`, `ENTRA_AUTHORITY`.
 
-- [ ] P3-033: Inline `BaselineEnrichmentService` into `EnhancedEnrichmentService`.
+- [x] P3-033: Inline `BaselineEnrichmentService` into `EnhancedEnrichmentService`.
   - Specs: jtbd-02
-  - Gap: `BaselineEnrichmentService` is not truly dead code — `EnhancedEnrichmentService` internally creates `new BaselineEnrichmentService()` as a composition dependency (line 14), and 4 test files instantiate it directly for `NormalizationPipeline` construction. Both API and Ingestion DI register only `EnhancedEnrichmentService`, so `BaselineEnrichmentService` is used transitively.
-  - Scope: Inline `BaselineEnrichmentService` logic into `EnhancedEnrichmentService` to eliminate the separate class. Update test files to use `EnhancedEnrichmentService` directly.
+  - Completed: Inlined all baseline v1 logic (severity/environment detection, error token extraction, PII detection, 8 compiled regexes, `ContainsAny` helper) into `EnhancedEnrichmentService`. Removed `_baseline` composition field — `Enrich()` now calls inlined methods directly and builds a single `EnrichmentResult`. Deleted `BaselineEnrichmentService.cs`. Merged 24 baseline tests into `EnhancedEnrichmentServiceTests` (updated static method references from `BaselineEnrichmentService.*` to `EnhancedEnrichmentService.*`). Updated 4 test files (`NormalizationPipelineTests`, `SyncJobProcessorTests`, `AdoSyncJobProcessorIntegrationTests`, `AdoIncrementalSyncTests`, `SharePointSyncJobProcessorIntegrationTests`) to use `new EnhancedEnrichmentService()`. Updated `PiiRedactionService` comment. All 2019 backend tests passing.
   - Dependencies: None
-  - Priority: LOW — code consolidation; no functional impact.
 
 - [x] P3-034: Add automatic pattern indexing to Azure AI Search after distillation.
   - Specs: jtbd-09, jtbd-03

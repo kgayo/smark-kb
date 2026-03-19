@@ -14,7 +14,7 @@ public class NormalizationPipelineTests
     {
         _sut = new NormalizationPipeline(
             new TextChunkingService(),
-            new BaselineEnrichmentService(),
+            new EnhancedEnrichmentService(),
             new ChunkingSettings(),
             new LoggerFactory().CreateLogger<NormalizationPipeline>());
     }
@@ -114,7 +114,7 @@ public class NormalizationPipelineTests
     {
         var record = CreateRecord();
         var chunks = _sut.Process(record);
-        Assert.Equal(BaselineEnrichmentService.CurrentEnrichmentVersion, chunks[0].EnrichmentVersion);
+        Assert.Equal(EnhancedEnrichmentService.CurrentEnrichmentVersion, chunks[0].EnrichmentVersion);
     }
 
     [Fact]

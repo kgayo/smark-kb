@@ -49,7 +49,7 @@ public class AdoSyncJobProcessorIntegrationTests : IDisposable
         _processorLogger = new LoggerFactory().CreateLogger<SyncJobProcessor>();
         _pipeline = new NormalizationPipeline(
             new TextChunkingService(),
-            new BaselineEnrichmentService(),
+            new EnhancedEnrichmentService(),
             new ChunkingSettings(),
             new LoggerFactory().CreateLogger<NormalizationPipeline>());
 
