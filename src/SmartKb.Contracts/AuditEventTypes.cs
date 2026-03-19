@@ -92,6 +92,10 @@ public static class AuditEventTypes
     public const string EvalNotificationSent = "eval.notification_sent";
     public const string EvalNotificationFailed = "eval.notification_failed";
 
+    // Credential rotation events (P3-009).
+    public const string CredentialRotationCompleted = "credential.rotation_completed";
+    public const string CredentialRotationFailed = "credential.rotation_failed";
+
     // Webhook events.
     public const string WebhookReceived = "webhook.received";
     public const string WebhookSignatureFailed = "webhook.signature_failed";

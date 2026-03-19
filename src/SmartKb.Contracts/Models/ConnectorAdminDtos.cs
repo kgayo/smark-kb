@@ -37,6 +37,11 @@ public sealed record PreviewRequest
     public int SampleSize { get; init; } = 5;
 }
 
+public sealed record RotateSecretRequest
+{
+    public required string NewSecretValue { get; init; }
+}
+
 // --- Response DTOs ---
 
 public sealed record ConnectorResponse

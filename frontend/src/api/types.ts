@@ -527,6 +527,9 @@ export interface DiagnosticsSummaryResponse {
   openAiConfigured: boolean;
   searchServiceConfigured: boolean;
   connectorHealth: ConnectorHealthSummary[];
+  credentialWarnings: number;
+  credentialCritical: number;
+  credentialExpired: number;
 }
 
 export interface DeadLetterMessage {
@@ -564,6 +567,40 @@ export interface SecretsStatusResponse {
   keyVaultConfigured: boolean;
   openAiKeyConfigured: boolean;
   openAiModel: string;
+}
+
+// ── Credential status types (P3-009) ──
+
+export type CredentialHealth = 'Healthy' | 'Warning' | 'Critical' | 'Expired' | 'Missing' | 'Unknown';
+
+export interface ConnectorCredentialStatus {
+  connectorId: string;
+  connectorName: string;
+  connectorType: string;
+  authType: string;
+  health: CredentialHealth;
+  secretName: string | null;
+  createdOn: string | null;
+  expiresOn: string | null;
+  daysUntilExpiry: number | null;
+  ageDays: number | null;
+  message: string | null;
+}
+
+export interface CredentialStatusSummary {
+  connectors: ConnectorCredentialStatus[];
+  totalConnectors: number;
+  healthyCount: number;
+  warningCount: number;
+  criticalCount: number;
+  expiredCount: number;
+  missingCount: number;
+}
+
+export interface CredentialRotationResult {
+  success: boolean;
+  message: string;
+  newSecretCreatedOn: string | null;
 }
 
 // ── Synonym map types (P3-004) ──

@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-19 (Asia/Manila) — iteration 89 (P3-007 eval regression alert notifications)
-Status: Active backlog (Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 in progress: P3-001, P3-002, P3-003, P3-004, P3-005, P3-006, P3-007, P3-008, P3-011, P3-014, P3-016, P3-017, P3-018, P3-019, P3-021, P3-024, P3-029, P3-032, P3-034, P3-035, P3-036, P3-037, P3-038 complete; Tests complete: T-001–T-008; ~2267 tests passing (1952 backend + 315 frontend + 98 IaC - some overlap in counting); 0 bugs blocking, 0 tech-debt blocking)
+Last updated: 2026-03-19 (Asia/Manila) — iteration 90 (P3-009 credential rotation workflow)
+Status: Active backlog (Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 in progress: P3-001, P3-002, P3-003, P3-004, P3-005, P3-006, P3-007, P3-008, P3-009, P3-011, P3-014, P3-016, P3-017, P3-018, P3-019, P3-021, P3-024, P3-029, P3-032, P3-034, P3-035, P3-036, P3-037, P3-038 complete; Tests complete: T-001–T-008; ~2292 tests passing (1974 backend + 318 frontend + 98 IaC - some overlap in counting); 0 bugs blocking, 0 tech-debt blocking)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -358,12 +358,10 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
 
 ### P3 Ingestion Hardening
 
-- [ ] P3-009: Implement credential rotation workflow and expiry monitoring.
+- [x] P3-009: Implement credential rotation workflow and expiry monitoring.
   - Specs: jtbd-07
-  - Gap: Key Vault secrets can be rotated externally, but no UI/workflow for triggering rotation, no monitoring for approaching secret expiry, and no alert when a connector's credential is about to expire.
-  - Scope: Add `ISecretRotationService` that checks Key Vault secret expiry dates. Surface expiry warnings in diagnostics dashboard. Optional: admin action to rotate secret (generate new, update Key Vault, test connection, deactivate old).
   - Dependencies: P0-004 (secret architecture complete), P1-008 (diagnostics complete)
-  - Priority: LOW — manual Key Vault rotation works; automation is convenience.
+  - Completed: `ISecretProvider.GetSecretPropertiesAsync` added to read Key Vault secret metadata (creation date, expiry, enabled state). `SecretProperties` record in Contracts. `KeyVaultSecretProvider` implementation reads `SecretClient.GetSecretAsync` properties. `SecretRotationSettings` config (WarningThresholdDays=30, CriticalThresholdDays=7, MaxAgeDays=90). `ISecretRotationService` interface + `SecretRotationService` in `SmartKb.Api.Connectors` — evaluates per-connector credential health from Key Vault metadata: Healthy/Warning/Critical/Expired/Missing/Unknown with configurable thresholds. `CredentialHealth` enum, `ConnectorCredentialStatus`, `CredentialStatusSummary`, `CredentialRotationResult` DTOs. `RotateSecretAsync` manual rotation: updates Key Vault secret, writes audit event, blocks OAuth connectors (use auto-refresh). `DiagnosticsSummaryResponse` extended with `CredentialWarnings`/`CredentialCritical`/`CredentialExpired` counts (populated in diagnostics summary endpoint). 3 API endpoints: `GET /api/admin/credentials/status` (all connectors), `GET /api/admin/connectors/{id}/credential-status` (single), `POST /api/admin/connectors/{id}/rotate-secret` (manual rotation with `RotateSecretRequest`). All require `connector:manage` permission. Audit events: `credential.rotation_completed`, `credential.rotation_failed`. OTel counters: `smartkb.security.credential_rotations_total`, `smartkb.security.credential_expiry_warnings_total`. Frontend: `CredentialStatusSummary`/`ConnectorCredentialStatus`/`CredentialRotationResult` TypeScript interfaces, 3 API client functions (`getCredentialStatus`, `getConnectorCredentialStatus`, `rotateConnectorSecret`). DiagnosticsPage overview panel: Credentials card showing expired/critical/warning counts or "All healthy". 22 new backend tests (7 EvaluateHealth, 5 GetCredentialStatus, 2 GetAllStatuses, 7 RotateSecret, 1 Settings), 3 new frontend tests (credential card healthy/warnings/expired-only). 1974 backend + 318 frontend = 2292 tests passing.
 
 - [ ] P3-010: Add connector scope selection UI refinement (jtbd-07).
   - Specs: jtbd-07

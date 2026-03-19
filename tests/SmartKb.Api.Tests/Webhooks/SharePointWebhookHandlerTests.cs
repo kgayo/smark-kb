@@ -316,5 +316,7 @@ public sealed class SharePointWebhookHandlerTests : IAsyncLifetime
             Secrets.Remove(secretName);
             return Task.CompletedTask;
         }
+        public Task<SecretProperties?> GetSecretPropertiesAsync(string secretName, CancellationToken ct = default) =>
+            Task.FromResult<SecretProperties?>(Secrets.ContainsKey(secretName) ? new SecretProperties(secretName, DateTimeOffset.UtcNow, null, null, true) : null);
     }
 }

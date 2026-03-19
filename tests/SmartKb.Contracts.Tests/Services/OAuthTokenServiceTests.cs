@@ -363,6 +363,11 @@ public sealed class OAuthTokenServiceTests
             Secrets.Remove(secretName);
             return Task.CompletedTask;
         }
+
+        public Task<SecretProperties?> GetSecretPropertiesAsync(string secretName, CancellationToken cancellationToken = default) =>
+            Task.FromResult<SecretProperties?>(Secrets.ContainsKey(secretName)
+                ? new SecretProperties(secretName, DateTimeOffset.UtcNow, null, null, true)
+                : null);
     }
 
     private sealed class TestHttpClientFactory : IHttpClientFactory

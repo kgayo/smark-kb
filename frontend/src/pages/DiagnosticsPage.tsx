@@ -104,6 +104,7 @@ export function DiagnosticsPage() {
         <div className="admin-header-right">
           <Link to="/admin" className="btn btn-sm" data-testid="admin-link">Connectors</Link>
           <Link to="/patterns" className="btn btn-sm">Patterns</Link>
+          <Link to="/audit" className="btn btn-sm" data-testid="audit-link">Audit</Link>
           <Link to="/" className="btn btn-sm">Back to Chat</Link>
         </div>
       </header>
@@ -190,6 +191,24 @@ function OverviewPanel({
           <div className="diag-label">active</div>
           {summary.fallbackWebhooks > 0 && (
             <div className="diag-warn">{summary.fallbackWebhooks} in fallback</div>
+          )}
+        </div>
+        <div className="diag-card" data-testid="card-credentials">
+          <h3>Credentials</h3>
+          {(summary.credentialExpired > 0 || summary.credentialCritical > 0 || summary.credentialWarnings > 0) ? (
+            <>
+              {summary.credentialExpired > 0 && (
+                <div className="diag-danger-text">{summary.credentialExpired} expired</div>
+              )}
+              {summary.credentialCritical > 0 && (
+                <div className="diag-danger-text">{summary.credentialCritical} critical</div>
+              )}
+              {summary.credentialWarnings > 0 && (
+                <div className="diag-warn">{summary.credentialWarnings} warning(s)</div>
+              )}
+            </>
+          ) : (
+            <div className="diag-label">All healthy</div>
           )}
         </div>
         <div className="diag-card" data-testid="card-services">

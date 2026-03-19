@@ -2,6 +2,7 @@ using Azure;
 using Azure.Security.KeyVault.Secrets;
 using Microsoft.Extensions.Logging.Abstractions;
 using SmartKb.Contracts.Services;
+using AzureSecretProperties = Azure.Security.KeyVault.Secrets.SecretProperties;
 
 namespace SmartKb.Contracts.Tests;
 
@@ -94,7 +95,7 @@ internal class MockSecretClient : SecretClient
         }
 
         var secret = SecretModelFactory.KeyVaultSecret(
-            new SecretProperties(name), value);
+            new AzureSecretProperties(name), value);
 
         return Task.FromResult(Response.FromValue(secret, new MockResponse()));
     }
@@ -105,7 +106,7 @@ internal class MockSecretClient : SecretClient
         Secrets[name] = value;
 
         var secret = SecretModelFactory.KeyVaultSecret(
-            new SecretProperties(name), value);
+            new AzureSecretProperties(name), value);
 
         return Task.FromResult(Response.FromValue(secret, new MockResponse()));
     }

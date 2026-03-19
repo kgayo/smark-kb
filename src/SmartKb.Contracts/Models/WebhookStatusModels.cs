@@ -42,7 +42,10 @@ public sealed record DiagnosticsSummaryResponse(
     bool KeyVaultConfigured,
     bool OpenAiConfigured,
     bool SearchServiceConfigured,
-    ConnectorHealthSummary[] ConnectorHealth);
+    ConnectorHealthSummary[] ConnectorHealth,
+    int CredentialWarnings = 0,
+    int CredentialCritical = 0,
+    int CredentialExpired = 0);
 
 /// <summary>
 /// Per-connector health summary.

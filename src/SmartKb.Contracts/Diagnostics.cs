@@ -200,6 +200,20 @@ public static class Diagnostics
             "smartkb.eval.notification_failures_total",
             description: "Eval regression alert notifications that failed to send.");
 
+    // --- Credential Rotation Metrics (P3-009) ---
+
+    /// <summary>Successful credential rotations (counter).</summary>
+    public static readonly Counter<long> CredentialRotationsTotal =
+        Meter.CreateCounter<long>(
+            "smartkb.security.credential_rotations_total",
+            description: "Successful credential rotation operations.");
+
+    /// <summary>Credential expiry warnings surfaced (counter).</summary>
+    public static readonly Counter<long> CredentialExpiryWarningsTotal =
+        Meter.CreateCounter<long>(
+            "smartkb.security.credential_expiry_warnings_total",
+            description: "Credential expiry warnings surfaced during status checks.");
+
     // --- Session Summarization Metrics (P3-002) ---
 
     /// <summary>Session summarizations performed (counter).</summary>

@@ -54,6 +54,9 @@ const mockSummary: DiagnosticsSummaryResponse = {
       totalFailures: 3,
     },
   ],
+  credentialWarnings: 0,
+  credentialCritical: 0,
+  credentialExpired: 0,
 };
 
 const mockSlo: SloStatusResponse = {
@@ -342,5 +345,60 @@ describe('DiagnosticsPage', () => {
       expect(screen.getByTestId('secrets-status')).toBeInTheDocument();
     });
     expect(screen.getByText('Model: gpt-4o')).toBeInTheDocument();
+  });
+
+  it('shows credentials card as healthy when no warnings', async () => {
+    setupAdminUser();
+    mockedClient.getDiagnosticsSummary.mockResolvedValue(mockSummary);
+    mockedClient.getSloStatus.mockResolvedValue(mockSlo);
+    mockedClient.getSecretsStatus.mockResolvedValue(mockSecrets);
+
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('card-credentials')).toBeInTheDocument();
+    });
+    expect(screen.getByText('All healthy')).toBeInTheDocument();
+  });
+
+  it('shows credential warnings and expired counts', async () => {
+    setupAdminUser();
+    const summaryWithCreds: DiagnosticsSummaryResponse = {
+      ...mockSummary,
+      credentialWarnings: 2,
+      credentialCritical: 1,
+      credentialExpired: 1,
+    };
+    mockedClient.getDiagnosticsSummary.mockResolvedValue(summaryWithCreds);
+    mockedClient.getSloStatus.mockResolvedValue(mockSlo);
+    mockedClient.getSecretsStatus.mockResolvedValue(mockSecrets);
+
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('card-credentials')).toBeInTheDocument();
+    });
+    expect(screen.getByText('1 expired')).toBeInTheDocument();
+    expect(screen.getByText('1 critical')).toBeInTheDocument();
+    expect(screen.getByText('2 warning(s)')).toBeInTheDocument();
+  });
+
+  it('shows only expired when no warnings or critical', async () => {
+    setupAdminUser();
+    const summaryExpiredOnly: DiagnosticsSummaryResponse = {
+      ...mockSummary,
+      credentialWarnings: 0,
+      credentialCritical: 0,
+      credentialExpired: 3,
+    };
+    mockedClient.getDiagnosticsSummary.mockResolvedValue(summaryExpiredOnly);
+    mockedClient.getSloStatus.mockResolvedValue(mockSlo);
+    mockedClient.getSecretsStatus.mockResolvedValue(mockSecrets);
+
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('card-credentials')).toBeInTheDocument();
+    });
+    expect(screen.getByText('3 expired')).toBeInTheDocument();
+    expect(screen.queryByText(/warning/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/critical/)).not.toBeInTheDocument();
   });
 });

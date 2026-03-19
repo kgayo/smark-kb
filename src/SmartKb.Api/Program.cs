@@ -245,6 +245,11 @@ if (evalNotificationSettings.IsConfigured)
     builder.Services.AddSingleton<IEvalNotificationService, WebhookEvalNotificationClient>();
 }
 
+// Secret rotation settings (P3-009).
+var secretRotationSettings = new SecretRotationSettings();
+builder.Configuration.GetSection(SecretRotationSettings.SectionName).Bind(secretRotationSettings);
+builder.Services.AddSingleton(secretRotationSettings);
+
 builder.Services.AddHttpClient("OpenAi");
 
 builder.Services.AddSingleton<IPiiRedactionService, PiiRedactionService>();
@@ -279,6 +284,7 @@ if (!string.IsNullOrEmpty(connectionString))
 {
     builder.Services.AddSmartKbData(connectionString);
     builder.Services.AddScoped<ConnectorAdminService>();
+    builder.Services.AddScoped<ISecretRotationService, SecretRotationService>();
     builder.Services.AddScoped<ISynonymMapService>(sp =>
         new SmartKb.Data.Repositories.SynonymMapService(
             sp.GetRequiredService<SmartKbDbContext>(),
@@ -1445,15 +1451,76 @@ app.MapGet("/api/admin/diagnostics/summary", async (
     var searchConfigured = sp.GetService<SearchIndexClient>() is not null;
     var sbConfigured = sp.GetService<ServiceBusClient>() is not null;
 
+    // Credential status summary (P3-009).
+    int credWarn = 0, credCrit = 0, credExp = 0;
+    var rotationService = sp.GetService<ISecretRotationService>();
+    if (rotationService is not null)
+    {
+        try
+        {
+            var credStatus = await rotationService.GetAllCredentialStatusesAsync(tenant.TenantId);
+            credWarn = credStatus.WarningCount;
+            credCrit = credStatus.CriticalCount;
+            credExp = credStatus.ExpiredCount;
+        }
+        catch (Exception ex)
+        {
+            // Non-fatal: diagnostics still returns even if credential check fails.
+            sp.GetRequiredService<ILogger<Program>>()
+                .LogWarning(ex, "Failed to check credential status for diagnostics summary");
+        }
+    }
+
     var enriched = summary with
     {
         ServiceBusConfigured = sbConfigured,
         KeyVaultConfigured = keyVaultConfigured,
         OpenAiConfigured = openAiConfigured,
         SearchServiceConfigured = searchConfigured,
+        CredentialWarnings = credWarn,
+        CredentialCritical = credCrit,
+        CredentialExpired = credExp,
     };
 
     return Results.Ok(ApiResponse<DiagnosticsSummaryResponse>.Success(enriched, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+// --- Credential Status and Rotation (P3-009) ---
+
+app.MapGet("/api/admin/credentials/status", async (
+    HttpContext httpContext,
+    ITenantContextAccessor tenantAccessor) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var rotationService = httpContext.RequestServices.GetRequiredService<ISecretRotationService>();
+    var result = await rotationService.GetAllCredentialStatusesAsync(tenant.TenantId);
+    return Results.Ok(ApiResponse<CredentialStatusSummary>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapGet("/api/admin/connectors/{connectorId:guid}/credential-status", async (
+    Guid connectorId,
+    HttpContext httpContext,
+    ITenantContextAccessor tenantAccessor) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var rotationService = httpContext.RequestServices.GetRequiredService<ISecretRotationService>();
+    var result = await rotationService.GetCredentialStatusAsync(connectorId, tenant.TenantId);
+    return Results.Ok(ApiResponse<ConnectorCredentialStatus>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapPost("/api/admin/connectors/{connectorId:guid}/rotate-secret", async (
+    Guid connectorId,
+    RotateSecretRequest request,
+    HttpContext httpContext,
+    ITenantContextAccessor tenantAccessor) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var rotationService = httpContext.RequestServices.GetRequiredService<ISecretRotationService>();
+    var result = await rotationService.RotateSecretAsync(
+        connectorId, tenant.TenantId, request.NewSecretValue, tenant.UserId ?? "system");
+    return result.Success
+        ? Results.Ok(ApiResponse<CredentialRotationResult>.Success(result, tenant.CorrelationId))
+        : Results.UnprocessableEntity(ApiResponse<CredentialRotationResult>.Failure(result.Message, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 // --- Routing Rules CRUD (P1-009) ---

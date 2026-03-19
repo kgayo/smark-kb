@@ -4,9 +4,12 @@ import type {
   ApproveEscalationDraftRequest,
   ApprovePatternRequest,
   BudgetCheckResult,
+  ConnectorCredentialStatus,
   ConnectorListResponse,
   ConnectorResponse,
   ConnectorValidationResult,
+  CredentialRotationResult,
+  CredentialStatusSummary,
   CostSettingsResponse,
   CreateConnectorRequest,
   CreateEscalationDraftRequest,
@@ -71,6 +74,9 @@ import type {
   UpdateRoutingRuleRequest,
   UpdateSynonymRuleRequest,
   UpdateTeamPlaybookRequest,
+  AuditEventListResponse,
+  AuditEventQueryParams,
+  AuditExportParams,
   WebhookStatusListResponse,
 } from './types';
 
@@ -549,6 +555,38 @@ export async function getSecretsStatus(): Promise<SecretsStatusResponse> {
   return apiFetch<SecretsStatusResponse>('/api/admin/secrets/status');
 }
 
+// ── Credential status endpoints (P3-009) ──
+
+export async function getCredentialStatus(): Promise<CredentialStatusSummary> {
+  const res = await apiFetch<ApiResponse<CredentialStatusSummary>>(
+    '/api/admin/credentials/status',
+  );
+  return unwrap(res);
+}
+
+export async function getConnectorCredentialStatus(
+  connectorId: string,
+): Promise<ConnectorCredentialStatus> {
+  const res = await apiFetch<ApiResponse<ConnectorCredentialStatus>>(
+    `/api/admin/connectors/${connectorId}/credential-status`,
+  );
+  return unwrap(res);
+}
+
+export async function rotateConnectorSecret(
+  connectorId: string,
+  newSecretValue: string,
+): Promise<CredentialRotationResult> {
+  const res = await apiFetch<ApiResponse<CredentialRotationResult>>(
+    `/api/admin/connectors/${connectorId}/rotate-secret`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ newSecretValue }),
+    },
+  );
+  return unwrap(res);
+}
+
 // ── Synonym map endpoints (P3-004) ──
 
 export async function listSynonymRules(
@@ -874,4 +912,46 @@ export async function getRetentionCompliance(): Promise<RetentionComplianceRepor
     '/api/admin/privacy/retention/compliance',
   );
   return unwrap(res);
+}
+
+// ── Audit & Compliance endpoints ──
+
+export async function queryAuditEvents(
+  params?: AuditEventQueryParams,
+): Promise<AuditEventListResponse> {
+  const qs = new URLSearchParams();
+  if (params?.eventType) qs.set('eventType', params.eventType);
+  if (params?.actorId) qs.set('actorId', params.actorId);
+  if (params?.correlationId) qs.set('correlationId', params.correlationId);
+  if (params?.from) qs.set('from', params.from);
+  if (params?.to) qs.set('to', params.to);
+  if (params?.page != null) qs.set('page', String(params.page));
+  if (params?.pageSize != null) qs.set('pageSize', String(params.pageSize));
+  const q = qs.toString();
+  const res = await apiFetch<ApiResponse<AuditEventListResponse>>(
+    `/api/audit/events${q ? `?${q}` : ''}`,
+  );
+  return unwrap(res);
+}
+
+export async function exportAuditEvents(params?: AuditExportParams): Promise<Blob> {
+  const qs = new URLSearchParams();
+  if (params?.eventType) qs.set('eventType', params.eventType);
+  if (params?.actorId) qs.set('actorId', params.actorId);
+  if (params?.from) qs.set('from', params.from);
+  if (params?.to) qs.set('to', params.to);
+  const q = qs.toString();
+
+  const headers: Record<string, string> = {};
+  if (getAccessToken) {
+    const token = await getAccessToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`/api/audit/events/export${q ? `?${q}` : ''}`, { headers });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new ApiError(res.status, body || res.statusText);
+  }
+  return res.blob();
 }

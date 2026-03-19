@@ -35,4 +35,24 @@ public sealed class KeyVaultSecretProvider : ISecretProvider
         await _client.StartDeleteSecretAsync(secretName, cancellationToken);
         _logger.LogInformation("Successfully initiated deletion of secret '{SecretName}'", secretName);
     }
+
+    public async Task<SecretProperties?> GetSecretPropertiesAsync(string secretName, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await _client.GetSecretAsync(secretName, cancellationToken: cancellationToken);
+            var props = response.Value.Properties;
+            return new SecretProperties(
+                secretName,
+                props.CreatedOn,
+                props.UpdatedOn,
+                props.ExpiresOn,
+                props.Enabled ?? true);
+        }
+        catch (Azure.RequestFailedException ex) when (ex.Status == 404)
+        {
+            _logger.LogWarning("Secret '{SecretName}' not found in Key Vault", secretName);
+            return null;
+        }
+    }
 }
