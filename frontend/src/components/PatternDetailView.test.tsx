@@ -5,10 +5,12 @@ import type { PatternDetail, PatternUsageMetrics } from '../api/types';
 
 vi.mock('../api/client', () => ({
   getPatternUsage: vi.fn(),
+  getPatternHistory: vi.fn(),
 }));
 
-import { getPatternUsage } from '../api/client';
+import { getPatternUsage, getPatternHistory } from '../api/client';
 const mockGetPatternUsage = vi.mocked(getPatternUsage);
+const mockGetPatternHistory = vi.mocked(getPatternHistory);
 
 function makeDetail(overrides: Partial<PatternDetail> = {}): PatternDetail {
   return {
@@ -65,6 +67,11 @@ describe('PatternDetailView', () => {
       lastCitedAt: null,
       firstCitedAt: null,
       dailyBreakdown: [],
+    });
+    mockGetPatternHistory.mockResolvedValue({
+      patternId: 'pattern-abc',
+      entries: [],
+      totalCount: 0,
     });
   });
 
@@ -250,5 +257,50 @@ describe('PatternDetailView', () => {
     render(<PatternDetailView {...defaultProps} />);
     await waitFor(() => expect(screen.getByTestId('usage-daily')).toBeTruthy());
     expect(screen.getByText('Daily Citations (Last 30 Days)')).toBeTruthy();
+  });
+
+  // ── Version history tests (P3-013) ──
+
+  it('shows no history message when no version history entries', async () => {
+    render(<PatternDetailView {...defaultProps} />);
+    await waitFor(() => expect(screen.getByTestId('no-history')).toBeTruthy());
+    expect(screen.getByText('No version history recorded.')).toBeTruthy();
+  });
+
+  it('renders version history table when entries exist', async () => {
+    mockGetPatternHistory.mockResolvedValue({
+      patternId: 'pattern-abc',
+      entries: [
+        {
+          id: 'h1',
+          patternId: 'pattern-abc',
+          version: 1,
+          changedBy: 'lead-1',
+          changedAt: '2026-03-17T10:00:00Z',
+          changedFields: ['TrustLevel', 'ReviewedBy', 'ReviewNotes'],
+          previousValues: { TrustLevel: 'Draft', ReviewedBy: null, ReviewNotes: null },
+          changeType: 'trust_transition',
+          summary: 'Draft → Reviewed',
+        },
+      ],
+      totalCount: 1,
+    });
+    render(<PatternDetailView {...defaultProps} />);
+    await waitFor(() => expect(screen.getByTestId('history-table')).toBeTruthy());
+    expect(screen.getByText('Draft → Reviewed')).toBeTruthy();
+    expect(screen.getByText('lead-1')).toBeTruthy();
+    expect(screen.getByText('TrustLevel, ReviewedBy, ReviewNotes')).toBeTruthy();
+  });
+
+  it('shows loading state for version history', () => {
+    mockGetPatternHistory.mockReturnValue(new Promise(() => {})); // never resolves
+    render(<PatternDetailView {...defaultProps} />);
+    expect(screen.getByText('Loading history...')).toBeTruthy();
+  });
+
+  it('shows no history message when history fetch fails', async () => {
+    mockGetPatternHistory.mockRejectedValue(new Error('Network error'));
+    render(<PatternDetailView {...defaultProps} />);
+    await waitFor(() => expect(screen.getByTestId('no-history')).toBeTruthy());
   });
 });

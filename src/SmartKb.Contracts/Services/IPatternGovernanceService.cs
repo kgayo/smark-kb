@@ -37,4 +37,8 @@ public interface IPatternGovernanceService
     Task<PatternGovernanceResult?> DeprecatePatternAsync(
         string tenantId, string patternId, string actorId, string correlationId,
         DeprecatePatternRequest request, CancellationToken ct = default);
+
+    /// <summary>P3-013: Gets the version history for a pattern.</summary>
+    Task<PatternVersionHistoryResponse?> GetPatternHistoryAsync(
+        string tenantId, string patternId, CancellationToken ct = default);
 }

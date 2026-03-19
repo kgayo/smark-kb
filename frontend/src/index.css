@@ -1927,6 +1927,28 @@ body {
   min-width: 4px;
 }
 
+/* ── Version History Table (P3-013) ── */
+
+.version-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.version-history-table th {
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 2px solid var(--color-border);
+  color: #475569;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.version-history-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--color-border);
+}
+
 /* ── Diagnostics Page (P1-008) ── */
 
 .diag-tabs {

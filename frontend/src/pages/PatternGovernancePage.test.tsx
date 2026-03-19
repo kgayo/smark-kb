@@ -10,6 +10,8 @@ vi.mock('../api/client', () => ({
   reviewPattern: vi.fn(),
   approvePattern: vi.fn(),
   deprecatePattern: vi.fn(),
+  getPatternUsage: vi.fn(),
+  getPatternHistory: vi.fn(),
 }));
 
 vi.mock('../auth/useRoles', () => {
@@ -34,6 +36,14 @@ function renderPage() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockedApi.getPatternUsage.mockResolvedValue({
+    patternId: '', totalCitations: 0, citationsLast7Days: 0,
+    citationsLast30Days: 0, citationsLast90Days: 0, uniqueUsers: 0,
+    averageConfidence: 0, lastCitedAt: null, firstCitedAt: null, dailyBreakdown: [],
+  });
+  mockedApi.getPatternHistory.mockResolvedValue({
+    patternId: '', entries: [], totalCount: 0,
+  });
 });
 
 describe('PatternGovernancePage', () => {

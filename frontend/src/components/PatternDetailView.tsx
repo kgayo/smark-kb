@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import type { PatternDetail, PatternUsageMetrics } from '../api/types';
-import { getPatternUsage } from '../api/client';
+import type { PatternDetail, PatternUsageMetrics, PatternVersionHistoryEntry } from '../api/types';
+import { getPatternUsage, getPatternHistory } from '../api/client';
 
 interface PatternDetailViewProps {
   pattern: PatternDetail;
@@ -45,6 +45,8 @@ export function PatternDetailView({
   const [actionError, setActionError] = useState<string | null>(null);
   const [usage, setUsage] = useState<PatternUsageMetrics | null>(null);
   const [usageLoading, setUsageLoading] = useState(false);
+  const [versionHistory, setVersionHistory] = useState<PatternVersionHistoryEntry[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -53,6 +55,11 @@ export function PatternDetailView({
       .then((m) => { if (!cancelled) setUsage(m); })
       .catch(() => { if (!cancelled) setUsage(null); })
       .finally(() => { if (!cancelled) setUsageLoading(false); });
+    setHistoryLoading(true);
+    getPatternHistory(pattern.patternId)
+      .then((h) => { if (!cancelled) setVersionHistory(h.entries); })
+      .catch(() => { if (!cancelled) setVersionHistory([]); })
+      .finally(() => { if (!cancelled) setHistoryLoading(false); });
     return () => { cancelled = true; };
   }, [pattern.patternId]);
 
@@ -306,6 +313,37 @@ export function PatternDetailView({
           )}
         </div>
       )}
+
+      {/* Version history (P3-013) */}
+      <div className="pattern-content-section" data-testid="version-history">
+        <h3>Version History</h3>
+        {historyLoading && <p className="muted">Loading history...</p>}
+        {!historyLoading && versionHistory.length === 0 && (
+          <p className="muted" data-testid="no-history">No version history recorded.</p>
+        )}
+        {!historyLoading && versionHistory.length > 0 && (
+          <table className="version-history-table" data-testid="history-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Change</th>
+                <th>By</th>
+                <th>Changed Fields</th>
+              </tr>
+            </thead>
+            <tbody>
+              {versionHistory.map((entry) => (
+                <tr key={entry.id} data-testid="history-entry">
+                  <td>{formatDate(entry.changedAt)}</td>
+                  <td>{entry.summary ?? entry.changeType}</td>
+                  <td>{entry.changedBy}</td>
+                  <td>{entry.changedFields.join(', ')}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
 
       {pattern.supersedesPatternId && (
         <div className="pattern-supersedes">

@@ -38,6 +38,7 @@ public class SmartKbDbContext : DbContext
     public DbSet<SynonymMapEntity> SynonymMaps => Set<SynonymMapEntity>();
     public DbSet<IndexSchemaVersionEntity> IndexSchemaVersions => Set<IndexSchemaVersionEntity>();
     public DbSet<EvalReportEntity> EvalReports => Set<EvalReportEntity>();
+    public DbSet<PatternVersionHistoryEntity> PatternVersionHistory => Set<PatternVersionHistoryEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -74,6 +75,7 @@ public class SmartKbDbContext : DbContext
         ConfigureSynonymMap(modelBuilder);
         ConfigureIndexSchemaVersion(modelBuilder);
         ConfigureEvalReport(modelBuilder);
+        ConfigurePatternVersionHistory(modelBuilder);
     }
 
     private static void ConfigureTenant(ModelBuilder modelBuilder)
@@ -675,6 +677,24 @@ public class SmartKbDbContext : DbContext
             e.HasIndex(r => new { r.TenantId, r.CreatedAt });
             e.HasIndex(r => new { r.TenantId, r.RunType });
             e.HasOne(r => r.Tenant).WithMany().HasForeignKey(r => r.TenantId);
+        });
+    }
+
+    private static void ConfigurePatternVersionHistory(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<PatternVersionHistoryEntity>(e =>
+        {
+            e.ToTable("PatternVersionHistory");
+            e.HasKey(h => h.Id);
+            e.Property(h => h.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(h => h.PatternId).HasMaxLength(256).IsRequired();
+            e.Property(h => h.ChangedBy).HasMaxLength(128).IsRequired();
+            e.Property(h => h.ChangedFieldsJson).IsRequired();
+            e.Property(h => h.PreviousValuesJson).IsRequired();
+            e.Property(h => h.ChangeType).HasMaxLength(64).IsRequired();
+            e.Property(h => h.Summary).HasMaxLength(512);
+            e.HasIndex(h => new { h.TenantId, h.PatternId });
+            e.HasIndex(h => new { h.TenantId, h.ChangedAt });
         });
     }
 }

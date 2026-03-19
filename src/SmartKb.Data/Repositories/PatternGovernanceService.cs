@@ -207,9 +207,29 @@ public sealed class PatternGovernanceService : IPatternGovernanceService
         var now = DateTimeOffset.UtcNow;
         var previousLevel = entity.TrustLevel;
 
+        // Capture previous values before mutation for version history (P3-013).
+        var previousValues = CaptureGovernanceSnapshot(entity, targetLevel);
+
         entity.TrustLevel = targetLevel.ToString();
         entity.UpdatedAt = now;
         applyGovernanceFields(entity, now);
+
+        // Record version history entry (P3-013).
+        var changedFields = previousValues.Keys.ToList();
+        var historyEntry = new PatternVersionHistoryEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            PatternId = patternId,
+            Version = entity.Version,
+            ChangedBy = actorId,
+            ChangedAt = now,
+            ChangedFieldsJson = JsonSerializer.Serialize(changedFields, JsonOpts),
+            PreviousValuesJson = JsonSerializer.Serialize(previousValues, JsonOpts),
+            ChangeType = "trust_transition",
+            Summary = $"{previousLevel} → {targetLevel}",
+        };
+        _db.PatternVersionHistory.Add(historyEntry);
 
         await _db.SaveChangesAsync(ct);
 
@@ -325,6 +345,80 @@ public sealed class PatternGovernanceService : IPatternGovernanceService
         DeprecationReason = entity.DeprecationReason,
     };
 
+    public async Task<PatternVersionHistoryResponse?> GetPatternHistoryAsync(
+        string tenantId, string patternId, CancellationToken ct = default)
+    {
+        // Verify pattern exists in this tenant.
+        var exists = await _db.CasePatterns
+            .AnyAsync(p => p.TenantId == tenantId && p.PatternId == patternId, ct);
+
+        if (!exists)
+            return null;
+
+        var entries = await _db.PatternVersionHistory
+            .Where(h => h.TenantId == tenantId && h.PatternId == patternId)
+            .ToListAsync(ct);
+
+        // Order client-side for SQLite compatibility.
+        var ordered = entries
+            .OrderByDescending(h => h.ChangedAt)
+            .ToList();
+
+        var mapped = ordered.Select(h => new PatternVersionHistoryEntry
+        {
+            Id = h.Id,
+            PatternId = h.PatternId,
+            Version = h.Version,
+            ChangedBy = h.ChangedBy,
+            ChangedAt = h.ChangedAt,
+            ChangedFields = DeserializeStringList(h.ChangedFieldsJson),
+            PreviousValues = DeserializeStringDictionary(h.PreviousValuesJson),
+            ChangeType = h.ChangeType,
+            Summary = h.Summary,
+        }).ToList();
+
+        return new PatternVersionHistoryResponse
+        {
+            PatternId = patternId,
+            Entries = mapped,
+            TotalCount = mapped.Count,
+        };
+    }
+
+    /// <summary>
+    /// Captures the governance-relevant fields that will change during a trust transition.
+    /// Returns a dictionary of field name → previous value (as string).
+    /// </summary>
+    internal static Dictionary<string, string?> CaptureGovernanceSnapshot(
+        CasePatternEntity entity, TrustLevel targetLevel)
+    {
+        var previous = new Dictionary<string, string?>
+        {
+            ["TrustLevel"] = entity.TrustLevel,
+        };
+
+        switch (targetLevel)
+        {
+            case TrustLevel.Reviewed:
+                previous["ReviewedAt"] = entity.ReviewedAt?.ToString("O");
+                previous["ReviewedBy"] = entity.ReviewedBy;
+                previous["ReviewNotes"] = entity.ReviewNotes;
+                break;
+            case TrustLevel.Approved:
+                previous["ApprovedAt"] = entity.ApprovedAt?.ToString("O");
+                previous["ApprovedBy"] = entity.ApprovedBy;
+                previous["ApprovalNotes"] = entity.ApprovalNotes;
+                break;
+            case TrustLevel.Deprecated:
+                previous["DeprecatedAt"] = entity.DeprecatedAt?.ToString("O");
+                previous["DeprecatedBy"] = entity.DeprecatedBy;
+                previous["DeprecationReason"] = entity.DeprecationReason;
+                break;
+        }
+
+        return previous;
+    }
+
     private static IReadOnlyList<string> DeserializeStringList(string? json)
     {
         if (string.IsNullOrEmpty(json)) return [];
@@ -335,6 +429,20 @@ public sealed class PatternGovernanceService : IPatternGovernanceService
         catch
         {
             return [];
+        }
+    }
+
+    private static IReadOnlyDictionary<string, string?> DeserializeStringDictionary(string? json)
+    {
+        if (string.IsNullOrEmpty(json)) return new Dictionary<string, string?>();
+        try
+        {
+            return JsonSerializer.Deserialize<Dictionary<string, string?>>(json, JsonOpts)
+                ?? new Dictionary<string, string?>();
+        }
+        catch
+        {
+            return new Dictionary<string, string?>();
         }
     }
 }

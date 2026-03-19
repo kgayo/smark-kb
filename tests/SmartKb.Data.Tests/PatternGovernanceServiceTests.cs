@@ -461,6 +461,183 @@ public class PatternGovernanceServiceTests : IDisposable
         Assert.True(result.Patterns[0].CreatedAt >= result.Patterns[1].CreatedAt);
     }
 
+    // ── Version History Tests (P3-013) ──
+
+    [Fact]
+    public async Task ReviewPattern_CreatesVersionHistoryEntry()
+    {
+        var entity = SeedPattern(TrustLevel.Draft);
+
+        await _service.ReviewPatternAsync(
+            TenantId, entity.PatternId, ActorId, CorrelationId,
+            new ReviewPatternRequest { Notes = "Good" });
+
+        var history = await _service.GetPatternHistoryAsync(TenantId, entity.PatternId);
+        Assert.NotNull(history);
+        Assert.Equal(entity.PatternId, history.PatternId);
+        Assert.Single(history.Entries);
+        Assert.Equal(1, history.TotalCount);
+
+        var entry = history.Entries[0];
+        Assert.Equal("trust_transition", entry.ChangeType);
+        Assert.Equal("Draft → Reviewed", entry.Summary);
+        Assert.Equal(ActorId, entry.ChangedBy);
+        Assert.Contains("TrustLevel", entry.ChangedFields);
+        Assert.Contains("ReviewedAt", entry.ChangedFields);
+        Assert.Contains("ReviewedBy", entry.ChangedFields);
+        Assert.Contains("ReviewNotes", entry.ChangedFields);
+        Assert.Equal("Draft", entry.PreviousValues["TrustLevel"]);
+    }
+
+    [Fact]
+    public async Task ApprovePattern_CreatesVersionHistoryEntry()
+    {
+        var entity = SeedPattern(TrustLevel.Reviewed);
+
+        await _service.ApprovePatternAsync(
+            TenantId, entity.PatternId, ActorId, CorrelationId,
+            new ApprovePatternRequest { Notes = "Ship it" });
+
+        var history = await _service.GetPatternHistoryAsync(TenantId, entity.PatternId);
+        Assert.NotNull(history);
+        Assert.Single(history.Entries);
+
+        var entry = history.Entries[0];
+        Assert.Equal("Reviewed → Approved", entry.Summary);
+        Assert.Contains("ApprovedBy", entry.ChangedFields);
+        Assert.Equal("Reviewed", entry.PreviousValues["TrustLevel"]);
+    }
+
+    [Fact]
+    public async Task DeprecatePattern_CreatesVersionHistoryEntry()
+    {
+        var entity = SeedPattern(TrustLevel.Approved);
+
+        await _service.DeprecatePatternAsync(
+            TenantId, entity.PatternId, ActorId, CorrelationId,
+            new DeprecatePatternRequest { Reason = "Obsolete" });
+
+        var history = await _service.GetPatternHistoryAsync(TenantId, entity.PatternId);
+        Assert.NotNull(history);
+        Assert.Single(history.Entries);
+
+        var entry = history.Entries[0];
+        Assert.Equal("Approved → Deprecated", entry.Summary);
+        Assert.Contains("DeprecatedBy", entry.ChangedFields);
+        Assert.Contains("DeprecationReason", entry.ChangedFields);
+        Assert.Equal("Approved", entry.PreviousValues["TrustLevel"]);
+    }
+
+    [Fact]
+    public async Task MultipleTransitions_AccumulateHistoryEntries()
+    {
+        var entity = SeedPattern(TrustLevel.Draft);
+
+        await _service.ReviewPatternAsync(
+            TenantId, entity.PatternId, ActorId, CorrelationId,
+            new ReviewPatternRequest { Notes = "Reviewed" });
+
+        await _service.ApprovePatternAsync(
+            TenantId, entity.PatternId, ActorId, CorrelationId,
+            new ApprovePatternRequest { Notes = "Approved" });
+
+        var history = await _service.GetPatternHistoryAsync(TenantId, entity.PatternId);
+        Assert.NotNull(history);
+        Assert.Equal(2, history.TotalCount);
+        Assert.Equal(2, history.Entries.Count);
+        // Ordered by ChangedAt descending — approve is most recent.
+        Assert.Equal("Reviewed → Approved", history.Entries[0].Summary);
+        Assert.Equal("Draft → Reviewed", history.Entries[1].Summary);
+    }
+
+    [Fact]
+    public async Task GetPatternHistory_ReturnsNull_WhenPatternNotFound()
+    {
+        var result = await _service.GetPatternHistoryAsync(TenantId, "nonexistent");
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetPatternHistory_EnforcesTenantIsolation()
+    {
+        var entity = SeedPattern(TrustLevel.Draft);
+        await _service.ReviewPatternAsync(
+            TenantId, entity.PatternId, ActorId, CorrelationId,
+            new ReviewPatternRequest());
+
+        var result = await _service.GetPatternHistoryAsync("other-tenant", entity.PatternId);
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetPatternHistory_ReturnsEmptyEntries_WhenNoTransitions()
+    {
+        var entity = SeedPattern(TrustLevel.Draft);
+
+        var history = await _service.GetPatternHistoryAsync(TenantId, entity.PatternId);
+        Assert.NotNull(history);
+        Assert.Empty(history.Entries);
+        Assert.Equal(0, history.TotalCount);
+    }
+
+    [Fact]
+    public async Task CaptureGovernanceSnapshot_CapturesReviewFields()
+    {
+        var entity = new CasePatternEntity
+        {
+            TrustLevel = "Draft",
+            ReviewedBy = "old-reviewer",
+            ReviewedAt = DateTimeOffset.UtcNow.AddDays(-1),
+            ReviewNotes = "old notes",
+        };
+
+        var snapshot = PatternGovernanceService.CaptureGovernanceSnapshot(entity, TrustLevel.Reviewed);
+
+        Assert.Equal("Draft", snapshot["TrustLevel"]);
+        Assert.Equal("old-reviewer", snapshot["ReviewedBy"]);
+        Assert.Equal("old notes", snapshot["ReviewNotes"]);
+        Assert.NotNull(snapshot["ReviewedAt"]);
+    }
+
+    [Fact]
+    public async Task CaptureGovernanceSnapshot_CapturesApproveFields()
+    {
+        var entity = new CasePatternEntity { TrustLevel = "Reviewed" };
+
+        var snapshot = PatternGovernanceService.CaptureGovernanceSnapshot(entity, TrustLevel.Approved);
+
+        Assert.Equal("Reviewed", snapshot["TrustLevel"]);
+        Assert.Null(snapshot["ApprovedBy"]);
+        Assert.Null(snapshot["ApprovalNotes"]);
+    }
+
+    [Fact]
+    public async Task CaptureGovernanceSnapshot_CapturesDeprecateFields()
+    {
+        var entity = new CasePatternEntity { TrustLevel = "Approved" };
+
+        var snapshot = PatternGovernanceService.CaptureGovernanceSnapshot(entity, TrustLevel.Deprecated);
+
+        Assert.Equal("Approved", snapshot["TrustLevel"]);
+        Assert.Null(snapshot["DeprecatedBy"]);
+        Assert.Null(snapshot["DeprecationReason"]);
+    }
+
+    [Fact]
+    public async Task InvalidTransition_DoesNotCreateHistoryEntry()
+    {
+        var entity = SeedPattern(TrustLevel.Deprecated);
+
+        await _service.DeprecatePatternAsync(
+            TenantId, entity.PatternId, ActorId, CorrelationId,
+            new DeprecatePatternRequest());
+
+        var entries = _db.PatternVersionHistory
+            .Where(h => h.PatternId == entity.PatternId)
+            .ToList();
+        Assert.Empty(entries);
+    }
+
     // ── Search Index Integration Tests (P3-034) ──
 
     [Fact]

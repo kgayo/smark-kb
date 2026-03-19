@@ -448,6 +448,26 @@ export interface PatternUsageDayBucket {
   citations: number;
 }
 
+// ── Pattern version history types (P3-013) ──
+
+export interface PatternVersionHistoryEntry {
+  id: string;
+  patternId: string;
+  version: number;
+  changedBy: string;
+  changedAt: string;
+  changedFields: string[];
+  previousValues: Record<string, string | null>;
+  changeType: string;
+  summary: string | null;
+}
+
+export interface PatternVersionHistoryResponse {
+  patternId: string;
+  entries: PatternVersionHistoryEntry[];
+  totalCount: number;
+}
+
 export interface FeedbackResponse {
   feedbackId: string;
   messageId: string;

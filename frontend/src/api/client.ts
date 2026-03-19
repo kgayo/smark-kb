@@ -35,6 +35,7 @@ import type {
   PatternGovernanceQueueResponse,
   PatternGovernanceResult,
   PatternUsageMetrics,
+  PatternVersionHistoryResponse,
   PiiPolicyResponse,
   PiiPolicyUpdateRequest,
   RecordOutcomeRequest,
@@ -481,6 +482,15 @@ export async function deprecatePattern(
   const res = await apiFetch<ApiResponse<PatternGovernanceResult>>(
     `/api/patterns/${encodeURIComponent(patternId)}/deprecate`,
     { method: 'POST', body: JSON.stringify(req) },
+  );
+  return unwrap(res);
+}
+
+// ── Pattern version history endpoint (P3-013) ──
+
+export async function getPatternHistory(patternId: string): Promise<PatternVersionHistoryResponse> {
+  const res = await apiFetch<ApiResponse<PatternVersionHistoryResponse>>(
+    `/api/patterns/${encodeURIComponent(patternId)}/history`,
   );
   return unwrap(res);
 }

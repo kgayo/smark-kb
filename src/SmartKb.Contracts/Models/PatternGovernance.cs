@@ -115,3 +115,25 @@ public sealed record PatternGovernanceResult
     public required string TransitionedBy { get; init; }
     public DateTimeOffset TransitionedAt { get; init; }
 }
+
+/// <summary>P3-013: A single version history entry for a pattern.</summary>
+public sealed record PatternVersionHistoryEntry
+{
+    public Guid Id { get; init; }
+    public required string PatternId { get; init; }
+    public int Version { get; init; }
+    public required string ChangedBy { get; init; }
+    public DateTimeOffset ChangedAt { get; init; }
+    public IReadOnlyList<string> ChangedFields { get; init; } = [];
+    public IReadOnlyDictionary<string, string?> PreviousValues { get; init; } = new Dictionary<string, string?>();
+    public required string ChangeType { get; init; }
+    public string? Summary { get; init; }
+}
+
+/// <summary>Paginated response for pattern version history.</summary>
+public sealed record PatternVersionHistoryResponse
+{
+    public required string PatternId { get; init; }
+    public IReadOnlyList<PatternVersionHistoryEntry> Entries { get; init; } = [];
+    public int TotalCount { get; init; }
+}

@@ -1272,6 +1272,21 @@ app.MapPost("/api/patterns/{patternId}/deprecate", async (
         : Results.Ok(ApiResponse<PatternGovernanceResult>.Success(result, tenant.CorrelationId));
 }).RequirePermission("pattern:deprecate");
 
+// --- Pattern Version History Endpoint (P3-013) ---
+
+app.MapGet("/api/patterns/{patternId}/history", async (
+    string patternId,
+    ITenantContextAccessor tenantAccessor,
+    IPatternGovernanceService governanceService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await governanceService.GetPatternHistoryAsync(
+        tenant.TenantId, patternId);
+    return result is null
+        ? Results.NotFound()
+        : Results.Ok(ApiResponse<PatternVersionHistoryResponse>.Success(result, tenant.CorrelationId));
+}).RequirePermission("pattern:approve");
+
 // --- Pattern Usage Metrics Endpoint (P3-012) ---
 
 app.MapGet("/api/admin/patterns/{patternId}/usage", async (
