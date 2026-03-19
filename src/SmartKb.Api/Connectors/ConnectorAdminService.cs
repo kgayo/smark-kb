@@ -29,6 +29,7 @@ public sealed class ConnectorAdminService
     private readonly SmartKbDbContext _db;
     private readonly IAuditEventWriter _auditWriter;
     private readonly ISecretProvider? _secretProvider;
+    private readonly IOAuthTokenService? _oauthTokenService;
     private readonly IEnumerable<IConnectorClient> _connectorClients;
     private readonly IEnumerable<IWebhookManager> _webhookManagers;
     private readonly ISyncJobPublisher _syncJobPublisher;
@@ -43,11 +44,13 @@ public sealed class ConnectorAdminService
         ISyncJobPublisher syncJobPublisher,
         WebhookSettings webhookSettings,
         ILogger<ConnectorAdminService> logger,
-        ISecretProvider? secretProvider = null)
+        ISecretProvider? secretProvider = null,
+        IOAuthTokenService? oauthTokenService = null)
     {
         _db = db;
         _auditWriter = auditWriter;
         _secretProvider = secretProvider;
+        _oauthTokenService = oauthTokenService;
         _connectorClients = connectorClients;
         _webhookManagers = webhookManagers;
         _syncJobPublisher = syncJobPublisher;
@@ -235,25 +238,18 @@ public sealed class ConnectorAdminService
         }
         else
         {
-            string? secretValue = null;
-            if (!string.IsNullOrEmpty(entity.KeyVaultSecretName) && _secretProvider is not null)
+            var (secretValue, secretError) = await ResolveSecretValueAsync(entity, ct);
+            if (secretError is not null)
             {
-                try
+                result = new TestConnectionResponse
                 {
-                    secretValue = await _secretProvider.GetSecretAsync(entity.KeyVaultSecretName, ct);
-                }
-                catch (Exception ex)
-                {
-                    result = new TestConnectionResponse
-                    {
-                        Success = false,
-                        Message = "Failed to retrieve credentials from Key Vault.",
-                        DiagnosticDetail = ex.Message,
-                    };
-                    await WriteAuditAsync(tenantId, actorId, correlationId, AuditEventTypes.ConnectorTestFailed,
-                        $"Connector '{entity.Name}' (id={entity.Id}) test failed: credential retrieval error.");
-                    return result;
-                }
+                    Success = false,
+                    Message = "Failed to retrieve credentials.",
+                    DiagnosticDetail = secretError,
+                };
+                await WriteAuditAsync(tenantId, actorId, correlationId, AuditEventTypes.ConnectorTestFailed,
+                    $"Connector '{entity.Name}' (id={entity.Id}) test failed: credential retrieval error.");
+                return result;
             }
 
             result = await client.TestConnectionAsync(tenantId, entity.SourceConfig, secretValue, ct);
@@ -339,21 +335,14 @@ public sealed class ConnectorAdminService
             };
         }
 
-        string? secretValue = null;
-        if (!string.IsNullOrEmpty(entity.KeyVaultSecretName) && _secretProvider is not null)
+        var (secretValue, secretError) = await ResolveSecretValueAsync(entity, ct);
+        if (secretError is not null)
         {
-            try
+            return new PreviewResponse
             {
-                secretValue = await _secretProvider.GetSecretAsync(entity.KeyVaultSecretName, ct);
-            }
-            catch
-            {
-                return new PreviewResponse
-                {
-                    Records = [],
-                    ValidationErrors = ["Failed to retrieve credentials from Key Vault."],
-                };
-            }
+                Records = [],
+                ValidationErrors = [$"Failed to retrieve credentials: {secretError}"],
+            };
         }
 
         var mapping = request.FieldMapping ?? DeserializeFieldMapping(entity.FieldMapping);
@@ -434,7 +423,113 @@ public sealed class ConnectorAdminService
         return ConnectorValidationResult.Valid();
     }
 
+    public async Task<OAuthAuthorizeUrlResponse?> GetOAuthAuthorizeUrlAsync(
+        string tenantId, Guid connectorId, CancellationToken ct = default)
+    {
+        if (_oauthTokenService is null)
+            return null;
+
+        var entity = await FindConnectorAsync(tenantId, connectorId, ct);
+        if (entity is null) return null;
+
+        if (entity.AuthType != SecretAuthType.OAuth)
+            return null;
+
+        var url = _oauthTokenService.BuildAuthorizeUrl(
+            entity.ConnectorType, entity.Id, tenantId, entity.SourceConfig);
+
+        return new OAuthAuthorizeUrlResponse { AuthorizeUrl = url };
+    }
+
+    public async Task<(OAuthCallbackResponse? Response, bool NotFound, bool InvalidState)> HandleOAuthCallbackAsync(
+        string tenantId, string actorId, string correlationId,
+        Guid connectorId, string code, string state, CancellationToken ct = default)
+    {
+        if (_oauthTokenService is null)
+            return (new OAuthCallbackResponse { Success = false, Message = "OAuth is not configured." }, false, false);
+
+        var entity = await FindConnectorAsync(tenantId, connectorId, ct);
+        if (entity is null) return (null, true, false);
+
+        if (!_oauthTokenService.ValidateState(state, connectorId, tenantId))
+        {
+            _logger.LogWarning("Invalid OAuth state parameter for connector {ConnectorId}.", connectorId);
+            await WriteAuditAsync(tenantId, actorId, correlationId, AuditEventTypes.ConnectorOAuthFailed,
+                $"OAuth callback for connector '{entity.Name}' (id={entity.Id}) failed: invalid state parameter.");
+            return (null, false, true);
+        }
+
+        if (string.IsNullOrEmpty(entity.KeyVaultSecretName))
+        {
+            return (new OAuthCallbackResponse
+            {
+                Success = false,
+                Message = "Connector has no Key Vault secret configured. Set KeyVaultSecretName with client_id and client_secret JSON first.",
+            }, false, false);
+        }
+
+        var success = await _oauthTokenService.ExchangeCodeAsync(
+            connectorId, tenantId, code, entity.KeyVaultSecretName,
+            entity.SourceConfig, entity.ConnectorType, ct);
+
+        if (success)
+        {
+            await WriteAuditAsync(tenantId, actorId, correlationId, AuditEventTypes.ConnectorOAuthCompleted,
+                $"OAuth authorization completed for connector '{entity.Name}' (id={entity.Id}).");
+        }
+        else
+        {
+            await WriteAuditAsync(tenantId, actorId, correlationId, AuditEventTypes.ConnectorOAuthFailed,
+                $"OAuth token exchange failed for connector '{entity.Name}' (id={entity.Id}).");
+        }
+
+        return (new OAuthCallbackResponse
+        {
+            Success = success,
+            Message = success ? "OAuth authorization completed successfully." : "Failed to exchange authorization code for tokens.",
+        }, false, false);
+    }
+
     // --- Private helpers ---
+
+    /// <summary>
+    /// Resolves the usable secret value for a connector. For OAuth connectors, resolves and
+    /// refreshes the access token via <see cref="IOAuthTokenService"/>. For other auth types,
+    /// reads the raw secret from Key Vault.
+    /// </summary>
+    private async Task<(string? SecretValue, string? Error)> ResolveSecretValueAsync(
+        ConnectorEntity entity, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(entity.KeyVaultSecretName))
+            return (null, null);
+
+        if (entity.AuthType == SecretAuthType.OAuth && _oauthTokenService is not null)
+        {
+            try
+            {
+                var accessToken = await _oauthTokenService.ResolveAccessTokenAsync(
+                    entity.KeyVaultSecretName, entity.SourceConfig, entity.ConnectorType, ct);
+                return (accessToken, accessToken is null ? "OAuth token resolution failed." : null);
+            }
+            catch (Exception ex)
+            {
+                return (null, $"OAuth token resolution error: {ex.Message}");
+            }
+        }
+
+        if (_secretProvider is null)
+            return (null, null);
+
+        try
+        {
+            var secret = await _secretProvider.GetSecretAsync(entity.KeyVaultSecretName, ct);
+            return (secret, null);
+        }
+        catch (Exception ex)
+        {
+            return (null, ex.Message);
+        }
+    }
 
     private ConnectorValidationResult ValidateFieldMappingForActivation(string? fieldMappingJson)
     {
@@ -536,18 +631,12 @@ public sealed class ConnectorAdminService
             return;
         }
 
-        string? secretValue = null;
-        if (!string.IsNullOrEmpty(entity.KeyVaultSecretName) && _secretProvider is not null)
+        var (secretValue, secretError) = await ResolveSecretValueAsync(entity, ct);
+        if (secretError is not null)
         {
-            try
-            {
-                secretValue = await _secretProvider.GetSecretAsync(entity.KeyVaultSecretName, ct);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to retrieve secret for webhook registration (connector={ConnectorId})", entity.Id);
-                return;
-            }
+            _logger.LogWarning("Failed to retrieve secret for webhook registration (connector={ConnectorId}): {Error}",
+                entity.Id, secretError);
+            return;
         }
 
         try
@@ -620,18 +709,7 @@ public sealed class ConnectorAdminService
         var webhookManager = _webhookManagers.FirstOrDefault(m => m.Type == entity.ConnectorType);
         if (webhookManager is not null)
         {
-            string? secretValue = null;
-            if (!string.IsNullOrEmpty(entity.KeyVaultSecretName) && _secretProvider is not null)
-            {
-                try
-                {
-                    secretValue = await _secretProvider.GetSecretAsync(entity.KeyVaultSecretName, ct);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to retrieve secret for webhook deregistration (connector={ConnectorId})", entity.Id);
-                }
-            }
+            var (secretValue, _) = await ResolveSecretValueAsync(entity, ct);
 
             var externalIds = subscriptions
                 .Where(s => !string.IsNullOrEmpty(s.ExternalSubscriptionId))

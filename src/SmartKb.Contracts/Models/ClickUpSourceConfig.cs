@@ -50,4 +50,9 @@ public sealed record ClickUpSourceConfig
     /// Batch size for API pagination. ClickUp max is 100.
     /// </summary>
     public int BatchSize { get; init; } = 100;
+
+    /// <summary>
+    /// OAuth app client ID (required when AuthType is OAuth).
+    /// </summary>
+    public string? OAuthClientId { get; init; }
 }

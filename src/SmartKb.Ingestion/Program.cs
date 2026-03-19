@@ -126,6 +126,18 @@ if (!string.IsNullOrEmpty(vaultUri) && Uri.TryCreate(vaultUri, UriKind.Absolute,
     builder.Services.AddSingleton<ISecretProvider, KeyVaultSecretProvider>();
 }
 
+// OAuth token service (P3-019).
+var oauthSettings = new OAuthSettings();
+builder.Configuration.GetSection("OAuth").Bind(oauthSettings);
+builder.Services.AddSingleton(oauthSettings);
+
+builder.Services.AddHttpClient("oauth");
+
+if (oauthSettings.IsConfigured)
+{
+    builder.Services.AddSingleton<IOAuthTokenService, OAuthTokenService>();
+}
+
 // Azure AI Search — prefer Managed Identity via Endpoint; fall back to admin API key.
 var searchSettings = new SearchServiceSettings();
 builder.Configuration.GetSection(SearchServiceSettings.SectionName).Bind(searchSettings);

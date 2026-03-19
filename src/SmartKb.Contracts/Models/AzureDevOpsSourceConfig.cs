@@ -40,4 +40,14 @@ public sealed record AzureDevOpsSourceConfig
     /// Batch size for API pagination. Default 200 (ADO max is 200 for WIQL).
     /// </summary>
     public int BatchSize { get; init; } = 200;
+
+    /// <summary>
+    /// OAuth app client ID (required when AuthType is OAuth).
+    /// </summary>
+    public string? OAuthClientId { get; init; }
+
+    /// <summary>
+    /// OAuth scopes to request. Defaults to vso.work_full.
+    /// </summary>
+    public string? OAuthScopes { get; init; }
 }

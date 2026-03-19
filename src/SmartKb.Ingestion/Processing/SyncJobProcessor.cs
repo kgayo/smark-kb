@@ -24,6 +24,7 @@ public sealed class SyncJobProcessor
     private readonly SmartKbDbContext _db;
     private readonly IEnumerable<IConnectorClient> _connectorClients;
     private readonly ISecretProvider? _secretProvider;
+    private readonly IOAuthTokenService? _oauthTokenService;
     private readonly IBlobStorageService? _blobStorage;
     private readonly IIndexingService? _indexingService;
     private readonly IAuditEventWriter _auditWriter;
@@ -37,6 +38,7 @@ public sealed class SyncJobProcessor
         INormalizationPipeline pipeline,
         ILogger<SyncJobProcessor> logger,
         ISecretProvider? secretProvider = null,
+        IOAuthTokenService? oauthTokenService = null,
         IBlobStorageService? blobStorage = null,
         IIndexingService? indexingService = null)
     {
@@ -46,6 +48,7 @@ public sealed class SyncJobProcessor
         _pipeline = pipeline;
         _logger = logger;
         _secretProvider = secretProvider;
+        _oauthTokenService = oauthTokenService;
         _blobStorage = blobStorage;
         _indexingService = indexingService;
     }
@@ -95,15 +98,28 @@ public sealed class SyncJobProcessor
         }
 
         string? secretValue = null;
-        if (!string.IsNullOrEmpty(message.KeyVaultSecretName) && _secretProvider is not null)
+        if (!string.IsNullOrEmpty(message.KeyVaultSecretName))
         {
             try
             {
-                secretValue = await _secretProvider.GetSecretAsync(message.KeyVaultSecretName, cancellationToken);
+                if (message.AuthType == SecretAuthType.OAuth && _oauthTokenService is not null)
+                {
+                    secretValue = await _oauthTokenService.ResolveAccessTokenAsync(
+                        message.KeyVaultSecretName, message.SourceConfig, message.ConnectorType, cancellationToken);
+                    if (secretValue is null)
+                    {
+                        await FailRunAsync(syncRun, "OAuth token resolution failed. The connector may need to be re-authorized.", cancellationToken);
+                        return false;
+                    }
+                }
+                else if (_secretProvider is not null)
+                {
+                    secretValue = await _secretProvider.GetSecretAsync(message.KeyVaultSecretName, cancellationToken);
+                }
             }
             catch (Exception ex)
             {
-                await FailRunAsync(syncRun, $"Failed to retrieve credentials from Key Vault: {ex.Message}", cancellationToken);
+                await FailRunAsync(syncRun, $"Failed to retrieve credentials: {ex.Message}", cancellationToken);
                 return false;
             }
         }

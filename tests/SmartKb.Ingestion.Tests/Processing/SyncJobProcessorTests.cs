@@ -307,7 +307,7 @@ public class SyncJobProcessorTests : IDisposable
 
         var updated = await _db.SyncRuns.FirstAsync(s => s.Id == syncRun.Id);
         Assert.Equal(SyncRunStatus.Failed, updated.Status);
-        Assert.Contains("Key Vault", updated.ErrorDetail);
+        Assert.Contains("Vault down", updated.ErrorDetail);
     }
 
     [Fact]

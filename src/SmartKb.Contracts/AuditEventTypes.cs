@@ -32,6 +32,8 @@ public static class AuditEventTypes
     public const string ConnectorTestFailed = "connector.test_failed";
     public const string ConnectorSyncTriggered = "connector.sync_triggered";
     public const string ConnectorPreview = "connector.preview";
+    public const string ConnectorOAuthCompleted = "connector.oauth_completed";
+    public const string ConnectorOAuthFailed = "connector.oauth_failed";
 
     // Sync (ingestion) events.
     public const string SyncCompleted = "sync.completed";

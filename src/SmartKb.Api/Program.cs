@@ -101,6 +101,18 @@ var webhookSettings = new WebhookSettings();
 builder.Configuration.GetSection(WebhookSettings.SectionName).Bind(webhookSettings);
 builder.Services.AddSingleton(webhookSettings);
 
+// OAuth settings (P3-019).
+var oauthSettings = new OAuthSettings();
+builder.Configuration.GetSection("OAuth").Bind(oauthSettings);
+builder.Services.AddSingleton(oauthSettings);
+
+builder.Services.AddHttpClient("oauth");
+
+if (oauthSettings.IsConfigured)
+{
+    builder.Services.AddSingleton<IOAuthTokenService, OAuthTokenService>();
+}
+
 // Normalization pipeline (chunking + enrichment).
 var chunkingSettings = new SmartKb.Contracts.Configuration.ChunkingSettings();
 builder.Configuration.GetSection(SmartKb.Contracts.Configuration.ChunkingSettings.SectionName).Bind(chunkingSettings);
@@ -498,6 +510,41 @@ app.MapGet("/api/admin/connectors/{connectorId:guid}/sync-runs/{syncRunId:guid}"
     return result is null
         ? Results.NotFound(ApiResponse<object>.Failure("Sync run not found.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<SyncRunSummary>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+// --- OAuth Endpoints (P3-019) ---
+
+app.MapGet("/api/admin/connectors/{connectorId:guid}/oauth/authorize", async (
+    Guid connectorId,
+    ITenantContextAccessor tenantAccessor,
+    ConnectorAdminService service) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await service.GetOAuthAuthorizeUrlAsync(tenant.TenantId, connectorId);
+    if (result is null)
+        return Results.NotFound(ApiResponse<object>.Failure(
+            "Connector not found, not configured for OAuth, or OAuth is not enabled.", tenant.CorrelationId));
+
+    return Results.Ok(ApiResponse<OAuthAuthorizeUrlResponse>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapGet("/api/admin/connectors/{connectorId:guid}/oauth/callback", async (
+    Guid connectorId,
+    string code,
+    string state,
+    ITenantContextAccessor tenantAccessor,
+    ConnectorAdminService service) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var (response, notFound, invalidState) = await service.HandleOAuthCallbackAsync(
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, code, state);
+
+    if (notFound)
+        return Results.NotFound(ApiResponse<object>.Failure("Connector not found.", tenant.CorrelationId));
+    if (invalidState)
+        return Results.BadRequest(ApiResponse<object>.Failure("Invalid or expired state parameter.", tenant.CorrelationId));
+
+    return Results.Ok(ApiResponse<OAuthCallbackResponse>.Success(response!, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 // --- Synonym Map Admin Endpoints (P3-004) ---
