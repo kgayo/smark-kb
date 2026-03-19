@@ -36,6 +36,7 @@ public class SmartKbDbContext : DbContext
     public DbSet<PatternMaintenanceTaskEntity> PatternMaintenanceTasks => Set<PatternMaintenanceTaskEntity>();
     public DbSet<RetentionExecutionLogEntity> RetentionExecutionLogs => Set<RetentionExecutionLogEntity>();
     public DbSet<SynonymMapEntity> SynonymMaps => Set<SynonymMapEntity>();
+    public DbSet<IndexSchemaVersionEntity> IndexSchemaVersions => Set<IndexSchemaVersionEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -70,6 +71,7 @@ public class SmartKbDbContext : DbContext
         ConfigurePatternMaintenanceTask(modelBuilder);
         ConfigureRetentionExecutionLog(modelBuilder);
         ConfigureSynonymMap(modelBuilder);
+        ConfigureIndexSchemaVersion(modelBuilder);
     }
 
     private static void ConfigureTenant(ModelBuilder modelBuilder)
@@ -635,6 +637,23 @@ public class SmartKbDbContext : DbContext
             e.HasIndex(s => s.TenantId);
             e.HasIndex(s => new { s.TenantId, s.GroupName });
             e.HasOne(s => s.Tenant).WithMany().HasForeignKey(s => s.TenantId);
+        });
+    }
+
+    private static void ConfigureIndexSchemaVersion(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<IndexSchemaVersionEntity>(e =>
+        {
+            e.ToTable("IndexSchemaVersions");
+            e.HasKey(v => v.Id);
+            e.Property(v => v.IndexType).HasMaxLength(64).IsRequired();
+            e.Property(v => v.IndexName).HasMaxLength(256).IsRequired();
+            e.Property(v => v.SchemaHash).HasMaxLength(128).IsRequired();
+            e.Property(v => v.Status).HasMaxLength(32).IsRequired();
+            e.Property(v => v.CreatedBy).HasMaxLength(128).IsRequired();
+            e.HasIndex(v => v.IndexType);
+            e.HasIndex(v => new { v.IndexType, v.Status });
+            e.HasIndex(v => v.IndexName).IsUnique();
         });
     }
 }

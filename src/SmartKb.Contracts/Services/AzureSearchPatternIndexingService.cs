@@ -126,7 +126,7 @@ public sealed class AzureSearchPatternIndexingService : IPatternIndexingService
         return deleted;
     }
 
-    internal SearchIndex BuildIndexDefinition()
+    public SearchIndex BuildIndexDefinition()
     {
         var index = new SearchIndex(_settings.PatternIndexName)
         {
@@ -207,7 +207,7 @@ public sealed class AzureSearchPatternIndexingService : IPatternIndexingService
         return index;
     }
 
-    internal static SearchDocument ToSearchDocument(CasePattern pattern)
+    public static SearchDocument ToSearchDocument(CasePattern pattern)
     {
         return new SearchDocument
         {

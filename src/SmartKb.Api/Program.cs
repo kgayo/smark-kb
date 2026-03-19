@@ -22,6 +22,7 @@ using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
 using SmartKb.Data;
+using SmartKb.Data.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -147,14 +148,19 @@ if (searchSettings.IsConfigured)
         : new SearchIndexClient(new Uri(searchSettings.Endpoint), new AzureKeyCredential(searchSettings.AdminApiKey));
 
     builder.Services.AddSingleton(searchIndexClient);
-    builder.Services.AddSingleton<IIndexingService, AzureSearchIndexingService>();
-    builder.Services.AddSingleton<IPatternIndexingService, AzureSearchPatternIndexingService>();
+    builder.Services.AddSingleton<AzureSearchIndexingService>();
+    builder.Services.AddSingleton<IIndexingService>(sp => sp.GetRequiredService<AzureSearchIndexingService>());
+    builder.Services.AddSingleton<AzureSearchPatternIndexingService>();
+    builder.Services.AddSingleton<IPatternIndexingService>(sp => sp.GetRequiredService<AzureSearchPatternIndexingService>());
 
     // P1-004: Use FusedRetrievalService (Evidence + Pattern) when fusion is enabled; fall back to evidence-only.
     if (retrievalSettings.EnablePatternFusion)
         builder.Services.AddSingleton<IRetrievalService, FusedRetrievalService>();
     else
         builder.Services.AddSingleton<IRetrievalService, AzureSearchRetrievalService>();
+
+    // P3-005: Index migration service requires SearchIndexClient and concrete indexing services.
+    builder.Services.AddScoped<IIndexMigrationService, IndexMigrationService>();
 }
 
 // SLO settings (P0-022).
@@ -1815,6 +1821,110 @@ app.MapGet("/api/admin/token-usage/budget-check", async (
     var tenant = tenantAccessor.Current!;
     var result = await tokenUsageService.CheckBudgetAsync(tenant.TenantId);
     return Results.Ok(ApiResponse<BudgetCheckResult>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+// --- Index Migration Admin Endpoints (P3-005) ---
+// Service resolved from DI at request time; returns 503 when SearchService is not configured.
+
+app.MapGet("/api/admin/index-migrations/{indexType}/current", async (
+    string indexType,
+    ITenantContextAccessor tenantAccessor,
+    HttpContext httpContext) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
+    if (service is null)
+        return Results.Json(ApiResponse<object>.Failure("Search service is not configured.", tenant.CorrelationId), statusCode: 503);
+    var result = await service.GetCurrentVersionAsync(indexType);
+    return result is null
+        ? Results.NotFound(ApiResponse<object>.Failure($"No version tracked for index type '{indexType}'.", tenant.CorrelationId))
+        : Results.Ok(ApiResponse<IndexSchemaVersionInfo>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapGet("/api/admin/index-migrations/{indexType}/versions", async (
+    string indexType,
+    ITenantContextAccessor tenantAccessor,
+    HttpContext httpContext) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
+    if (service is null)
+        return Results.Json(ApiResponse<object>.Failure("Search service is not configured.", tenant.CorrelationId), statusCode: 503);
+    var result = await service.ListVersionsAsync(indexType);
+    return Results.Ok(ApiResponse<IReadOnlyList<IndexSchemaVersionInfo>>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapGet("/api/admin/index-migrations/{indexType}/plan", async (
+    string indexType,
+    ITenantContextAccessor tenantAccessor,
+    HttpContext httpContext) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
+    if (service is null)
+        return Results.Json(ApiResponse<object>.Failure("Search service is not configured.", tenant.CorrelationId), statusCode: 503);
+    var result = await service.PlanMigrationAsync(indexType);
+    return Results.Ok(ApiResponse<MigrationPlan>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapPost("/api/admin/index-migrations/{indexType}/execute", async (
+    string indexType,
+    ITenantContextAccessor tenantAccessor,
+    HttpContext httpContext) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
+    if (service is null)
+        return Results.Json(ApiResponse<object>.Failure("Search service is not configured.", tenant.CorrelationId), statusCode: 503);
+    var result = await service.ExecuteMigrationAsync(indexType, tenant.UserId);
+    return result.Success
+        ? Results.Ok(ApiResponse<MigrationResult>.Success(result, tenant.CorrelationId))
+        : Results.UnprocessableEntity(ApiResponse<MigrationResult>.Failure(
+            result.Error ?? "Migration failed.", tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapPost("/api/admin/index-migrations/{indexType}/rollback", async (
+    string indexType,
+    ITenantContextAccessor tenantAccessor,
+    HttpContext httpContext) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
+    if (service is null)
+        return Results.Json(ApiResponse<object>.Failure("Search service is not configured.", tenant.CorrelationId), statusCode: 503);
+    var result = await service.RollbackAsync(indexType, tenant.UserId);
+    return result.Success
+        ? Results.Ok(ApiResponse<MigrationResult>.Success(result, tenant.CorrelationId))
+        : Results.UnprocessableEntity(ApiResponse<MigrationResult>.Failure(
+            result.Error ?? "Rollback failed.", tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapPost("/api/admin/index-migrations/{indexType}/bootstrap", async (
+    string indexType,
+    ITenantContextAccessor tenantAccessor,
+    HttpContext httpContext) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
+    if (service is null)
+        return Results.Json(ApiResponse<object>.Failure("Search service is not configured.", tenant.CorrelationId), statusCode: 503);
+    var result = await service.EnsureVersionTrackingAsync(indexType, tenant.UserId);
+    return Results.Ok(ApiResponse<IndexSchemaVersionInfo>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapDelete("/api/admin/index-migrations/retired/{versionId:guid}", async (
+    Guid versionId,
+    ITenantContextAccessor tenantAccessor,
+    HttpContext httpContext) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
+    if (service is null)
+        return Results.Json(ApiResponse<object>.Failure("Search service is not configured.", tenant.CorrelationId), statusCode: 503);
+    var deleted = await service.DeleteRetiredVersionAsync(versionId, tenant.UserId);
+    return deleted
+        ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
+        : Results.NotFound(ApiResponse<object>.Failure("Retired version not found or not eligible for deletion.", tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.Run();

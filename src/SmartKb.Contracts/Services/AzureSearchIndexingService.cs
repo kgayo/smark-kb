@@ -127,7 +127,7 @@ public sealed class AzureSearchIndexingService : IIndexingService
         return deleted;
     }
 
-    internal SearchIndex BuildIndexDefinition()
+    public SearchIndex BuildIndexDefinition()
     {
         var index = new SearchIndex(_settings.EvidenceIndexName)
         {
@@ -208,7 +208,7 @@ public sealed class AzureSearchIndexingService : IIndexingService
         return index;
     }
 
-    internal static SearchDocument ToSearchDocument(EvidenceChunk chunk)
+    public static SearchDocument ToSearchDocument(EvidenceChunk chunk)
     {
         var doc = new SearchDocument
         {

@@ -15,6 +15,7 @@ using SmartKb.Contracts.Services;
 using SmartKb.Ingestion;
 using SmartKb.Ingestion.Processing;
 using SmartKb.Data;
+using SmartKb.Data.Repositories;
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.Services.AddHostedService<IngestionWorker>();
@@ -141,14 +142,19 @@ if (searchSettings.IsConfigured)
         : new SearchIndexClient(new Uri(searchSettings.Endpoint), new AzureKeyCredential(searchSettings.AdminApiKey));
 
     builder.Services.AddSingleton(searchIndexClient);
-    builder.Services.AddSingleton<IIndexingService, AzureSearchIndexingService>();
-    builder.Services.AddSingleton<IPatternIndexingService, AzureSearchPatternIndexingService>();
+    builder.Services.AddSingleton<AzureSearchIndexingService>();
+    builder.Services.AddSingleton<IIndexingService>(sp => sp.GetRequiredService<AzureSearchIndexingService>());
+    builder.Services.AddSingleton<AzureSearchPatternIndexingService>();
+    builder.Services.AddSingleton<IPatternIndexingService>(sp => sp.GetRequiredService<AzureSearchPatternIndexingService>());
 
     // P1-004: Use FusedRetrievalService (Evidence + Pattern) when fusion is enabled; fall back to evidence-only.
     if (retrievalSettings.EnablePatternFusion)
         builder.Services.AddSingleton<IRetrievalService, FusedRetrievalService>();
     else
         builder.Services.AddSingleton<IRetrievalService, AzureSearchRetrievalService>();
+
+    // P3-005: Index migration service requires SearchIndexClient and concrete indexing services.
+    builder.Services.AddScoped<IIndexMigrationService, IndexMigrationService>();
 }
 
 // Blob Storage — prefer Managed Identity via ServiceUri; fall back to connection string.
