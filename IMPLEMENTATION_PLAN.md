@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-19 (Asia/Manila) — iteration 78 (P3-032 CD/deploy workflow)
-Status: Active backlog (Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 in progress: P3-001, P3-002, P3-003, P3-004, P3-005, P3-006, P3-018, P3-032, P3-034, P3-036 complete; Tests complete: T-001–T-008; ~2162 tests passing (1806 backend + 258 frontend + 98 IaC); 0 bugs blocking, 0 tech-debt blocking)
+Last updated: 2026-03-19 (Asia/Manila) — iteration 79 (P3-038 multi-turn eval cases)
+Status: Active backlog (Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 in progress: P3-001, P3-002, P3-003, P3-004, P3-005, P3-006, P3-018, P3-032, P3-034, P3-036, P3-038 complete; Tests complete: T-001–T-008; ~2165 tests passing (1809 backend + 258 frontend + 98 IaC); 0 bugs blocking, 0 tech-debt blocking)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -451,12 +451,10 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
   - Dependencies: None
   - Priority: LOW — cosmetic parity fix; env params likely override.
 
-- [ ] P3-038: Add multi-turn evaluation cases to gold dataset.
+- [x] P3-038: Add multi-turn evaluation cases to gold dataset.
   - Specs: jtbd-06
-  - Gap: `eval/gold-dataset/schema.json` supports `session_history` for multi-turn conversation evaluation, but none of the 30 baseline cases in `baseline.jsonl` use it. Multi-turn conversation quality — a critical UX path for complex troubleshooting — is completely unevaluated.
-  - Scope: Add 10-15 multi-turn eval cases covering: follow-up clarification, context accumulation across turns, session summary accuracy (when P3-002 ships), escalation after multi-turn failure, and topic switching within a session.
+  - Completed: iteration 79. Added 12 multi-turn eval cases (eval-00051 through eval-00062) to `baseline.jsonl`, bringing total to 62 cases. Cases cover all 5 categories: follow-up clarification (2 cases), context accumulation across turns (4 cases), session summary accuracy (1 case with 10-message history), escalation after multi-turn failure (2 cases), and topic switching within a session (3 cases). Session histories range from 2 to 10 messages. Multi-turn tag categories (`follow-up-clarification`, `context-accumulation`, `escalation-after-failure`, `topic-switch`, `session-summary`) added for eval subset filtering. 3 new tests verify multi-turn parsing and category coverage.
   - Dependencies: P0-021 (eval harness complete)
-  - Priority: MEDIUM — multi-turn is the primary agent workflow; quality gaps here are invisible without eval coverage.
 
 - [ ] P3-015: Add IaC template version tracking and changelog.
   - Specs: jtbd-11 (Req 11-5: track template versions and changelog notes for breaking infra changes)
@@ -641,7 +639,7 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
 - [x] R-032: No CD/deploy workflow. **Resolved by** P3-032 — deploy.yml with environment-gated Terraform apply, backend publish, frontend SWA deploy, and post-deploy smoke test.
 - [x] R-033: ~~Distilled patterns are not auto-indexed to Azure AI Search.~~ **RESOLVED** by P3-034 (iteration 73). Distillation auto-indexes; governance deletes from index on deprecation.
 - [x] R-034: No frontend hosting resource in IaC. **Resolved by** P3-036 — Azure Static Web App provisioned in Terraform and ARM.
-- [ ] R-035: **NEW** — Multi-turn conversation quality is unevaluated. Gold dataset has 0 multi-turn cases despite session_history schema support. **Tracked as** P3-038.
+- [x] R-035: Multi-turn conversation quality is unevaluated. **RESOLVED** by P3-038 (iteration 79). 12 multi-turn eval cases added covering follow-up clarification, context accumulation, escalation after failure, topic switching, and session summary scenarios.
 - [ ] R-036: **NEW** — ARM/Terraform availability threshold default discrepancy (99 vs 99.5). Could cause inconsistent alerting on new environments. **Tracked as** P3-037.
 
 ## Open Design Decisions (must resolve before dependent items)

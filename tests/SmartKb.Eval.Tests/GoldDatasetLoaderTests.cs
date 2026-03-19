@@ -214,6 +214,62 @@ public class GoldDatasetLoaderTests
         Assert.Equal(new[] { "auth", "sso" }, cases[0].Tags);
     }
 
+    [Fact]
+    public void LoadFromString_CaseWithSessionHistory_ParsesMultiTurn()
+    {
+        var json = """{"id":"eval-00051","tenant_id":"t","query":"Can you clarify?","context":{"product_area_hint":"Auth","session_history":[{"role":"user","content":"SSO login loop after cert rotation"},{"role":"assistant","content":"Check the certificate thumbprint."}]},"expected":{"response_type":"final_answer","must_include":["certificate"]},"tags":["auth","multi-turn"]}""";
+        var cases = GoldDatasetLoader.LoadFromString(json);
+
+        Assert.Single(cases);
+        var c = cases[0];
+        Assert.NotNull(c.Context?.SessionHistory);
+        Assert.Equal(2, c.Context!.SessionHistory!.Count);
+        Assert.Equal("user", c.Context.SessionHistory[0].Role);
+        Assert.Equal("SSO login loop after cert rotation", c.Context.SessionHistory[0].Content);
+        Assert.Equal("assistant", c.Context.SessionHistory[1].Role);
+        Assert.Contains("multi-turn", c.Tags);
+    }
+
+    [Fact]
+    public void LoadFromString_CaseWithLongSessionHistory_ParsesAllMessages()
+    {
+        var json = """{"id":"eval-00062","tenant_id":"t","query":"Summarize the situation","context":{"session_history":[{"role":"user","content":"msg1"},{"role":"assistant","content":"reply1"},{"role":"user","content":"msg2"},{"role":"assistant","content":"reply2"},{"role":"user","content":"msg3"},{"role":"assistant","content":"reply3"},{"role":"user","content":"msg4"},{"role":"assistant","content":"reply4"},{"role":"user","content":"msg5"},{"role":"assistant","content":"reply5"}]},"expected":{"response_type":"final_answer"}}""";
+        var cases = GoldDatasetLoader.LoadFromString(json);
+
+        Assert.Single(cases);
+        Assert.Equal(10, cases[0].Context!.SessionHistory!.Count);
+    }
+
+    [Fact]
+    public async Task LoadFromFileAsync_BaselineDatasetContainsMultiTurnCases()
+    {
+        var path = Path.Combine(FindRepoRoot(), "eval", "gold-dataset", "baseline.jsonl");
+        if (!File.Exists(path))
+            return;
+
+        var cases = await GoldDatasetLoader.LoadFromFileAsync(path);
+        var multiTurnCases = cases.Where(c => c.Context?.SessionHistory?.Count > 0).ToList();
+        Assert.True(multiTurnCases.Count >= 12, $"Expected at least 12 multi-turn cases, got {multiTurnCases.Count}");
+
+        // Verify all multi-turn cases have valid session_history entries
+        foreach (var c in multiTurnCases)
+        {
+            Assert.All(c.Context!.SessionHistory!, m =>
+            {
+                Assert.Contains(m.Role, new[] { "user", "assistant" });
+                Assert.False(string.IsNullOrWhiteSpace(m.Content));
+            });
+        }
+
+        // Verify multi-turn category coverage via tags
+        var multiTurnTags = multiTurnCases.SelectMany(c => c.Tags).ToHashSet();
+        Assert.Contains("follow-up-clarification", multiTurnTags);
+        Assert.Contains("context-accumulation", multiTurnTags);
+        Assert.Contains("escalation-after-failure", multiTurnTags);
+        Assert.Contains("topic-switch", multiTurnTags);
+        Assert.Contains("session-summary", multiTurnTags);
+    }
+
     private static EvalCase MakeCase(string id) => new()
     {
         Id = id,
