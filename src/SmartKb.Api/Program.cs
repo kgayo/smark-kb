@@ -234,6 +234,17 @@ builder.Services.AddSingleton(patternMaintenanceSettings);
 builder.Services.Configure<RetentionSettings>(
     builder.Configuration.GetSection(RetentionSettings.SectionName));
 
+// Eval notification settings (P3-007).
+var evalNotificationSettings = new EvalNotificationSettings();
+builder.Configuration.GetSection(EvalNotificationSettings.SectionName).Bind(evalNotificationSettings);
+builder.Services.AddSingleton(evalNotificationSettings);
+
+if (evalNotificationSettings.IsConfigured)
+{
+    builder.Services.AddHttpClient("EvalNotification");
+    builder.Services.AddSingleton<IEvalNotificationService, WebhookEvalNotificationClient>();
+}
+
 builder.Services.AddHttpClient("OpenAi");
 
 builder.Services.AddSingleton<IPiiRedactionService, PiiRedactionService>();

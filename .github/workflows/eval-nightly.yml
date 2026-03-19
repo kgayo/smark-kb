@@ -55,6 +55,13 @@ jobs:
         id: eval-live
         run: |
           SMOKE_COUNT="${{ inputs.smoke_count || '30' }}"
+          NOTIFY_ARGS=""
+          if [ -n "${{ secrets.EVAL_NOTIFY_WEBHOOK_URL }}" ]; then
+            NOTIFY_ARGS="--notify-webhook ${{ secrets.EVAL_NOTIFY_WEBHOOK_URL }}"
+            if [ -n "${{ secrets.EVAL_NOTIFY_FORMAT }}" ]; then
+              NOTIFY_ARGS="$NOTIFY_ARGS --notify-format ${{ secrets.EVAL_NOTIFY_FORMAT }}"
+            fi
+          fi
           dotnet run --project src/SmartKb.Eval.Cli/SmartKb.Eval.Cli.csproj --configuration Release -- \
             --dataset "${{ env.DATASET_PATH }}" \
             --baseline "${{ env.BASELINE_PATH }}" \
@@ -62,7 +69,9 @@ jobs:
             --mode smoke \
             --smoke-count "$SMOKE_COUNT" \
             --api-url "${{ steps.config.outputs.api_url }}" \
-            --api-token "${{ secrets.EVAL_API_TOKEN }}"
+            --api-token "${{ secrets.EVAL_API_TOKEN }}" \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            $NOTIFY_ARGS
         env:
           GITHUB_STEP_SUMMARY: ${{ github.step_summary }}
 

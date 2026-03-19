@@ -88,6 +88,10 @@ public static class AuditEventTypes
     // Eval report events (P3-021).
     public const string EvalReportPersisted = "eval.report_persisted";
 
+    // Eval notification events (P3-007).
+    public const string EvalNotificationSent = "eval.notification_sent";
+    public const string EvalNotificationFailed = "eval.notification_failed";
+
     // Webhook events.
     public const string WebhookReceived = "webhook.received";
     public const string WebhookSignatureFailed = "webhook.signature_failed";

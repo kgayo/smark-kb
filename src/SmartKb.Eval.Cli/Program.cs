@@ -1,3 +1,4 @@
+using SmartKb.Contracts.Configuration;
 using SmartKb.Eval;
 using SmartKb.Eval.Cli;
 
@@ -10,6 +11,9 @@ var updateBaseline = HasFlag("--update-baseline");
 var apiBaseUrl = GetArg("--api-url");
 var apiToken = GetArg("--api-token");
 var summaryPath = GetArg("--summary-path"); // GITHUB_STEP_SUMMARY
+var notifyWebhookUrl = GetArg("--notify-webhook") ?? Environment.GetEnvironmentVariable("EVAL_NOTIFY_WEBHOOK_URL");
+var notifyFormat = GetArg("--notify-format") ?? Environment.GetEnvironmentVariable("EVAL_NOTIFY_FORMAT") ?? "generic";
+var runUrl = GetArg("--run-url") ?? Environment.GetEnvironmentVariable("EVAL_RUN_URL");
 
 var settings = new EvalSettings();
 var runner = new EvalCliRunner(settings);
@@ -18,6 +22,17 @@ HttpChatOrchestratorClient? orchestratorClient = null;
 if (!string.IsNullOrEmpty(apiBaseUrl))
 {
     orchestratorClient = new HttpChatOrchestratorClient(apiBaseUrl, apiToken);
+}
+
+WebhookEvalNotificationService? notificationService = null;
+if (!string.IsNullOrEmpty(notifyWebhookUrl))
+{
+    var notificationSettings = new EvalNotificationSettings
+    {
+        WebhookUrl = notifyWebhookUrl,
+        Format = notifyFormat,
+    };
+    notificationService = new WebhookEvalNotificationService(notificationSettings);
 }
 
 var options = new EvalCliOptions
@@ -29,6 +44,8 @@ var options = new EvalCliOptions
     SmokeCaseCount = smokeCaseCount,
     UpdateBaseline = updateBaseline,
     Orchestrator = orchestratorClient,
+    NotificationService = notificationService,
+    RunUrl = runUrl,
 };
 
 try
@@ -48,7 +65,14 @@ try
     // Also write summary to console for local runs
     Console.WriteLine(result.Summary);
 
+    // Log notification result
+    if (result.NotificationSent == true)
+        Console.WriteLine("::notice title=Eval Notification::Regression alert sent to webhook.");
+    else if (result.NotificationSent == false)
+        Console.Error.WriteLine("::warning title=Eval Notification::Failed to send regression alert to webhook.");
+
     orchestratorClient?.Dispose();
+    notificationService?.Dispose();
     return result.ExitCode;
 }
 catch (Exception ex)
@@ -56,6 +80,7 @@ catch (Exception ex)
     Console.Error.WriteLine($"::error title=Eval Fatal Error::{ex.Message}");
     Console.Error.WriteLine(ex.StackTrace);
     orchestratorClient?.Dispose();
+    notificationService?.Dispose();
     return 2;
 }
 

@@ -186,6 +186,20 @@ public static class Diagnostics
             "smartkb.cost.retrieval_compression_truncated_total",
             description: "Evidence chunks truncated by retrieval compression.");
 
+    // --- Eval Notification Metrics (P3-007) ---
+
+    /// <summary>Eval regression notifications sent successfully (counter).</summary>
+    public static readonly Counter<long> EvalNotificationsSentTotal =
+        Meter.CreateCounter<long>(
+            "smartkb.eval.notifications_sent_total",
+            description: "Eval regression alert notifications sent successfully.");
+
+    /// <summary>Eval regression notifications that failed to send (counter).</summary>
+    public static readonly Counter<long> EvalNotificationFailuresTotal =
+        Meter.CreateCounter<long>(
+            "smartkb.eval.notification_failures_total",
+            description: "Eval regression alert notifications that failed to send.");
+
     // --- Session Summarization Metrics (P3-002) ---
 
     /// <summary>Session summarizations performed (counter).</summary>

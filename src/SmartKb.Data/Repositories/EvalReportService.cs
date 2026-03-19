@@ -12,6 +12,7 @@ public sealed class EvalReportService : IEvalReportService
 {
     private readonly SmartKbDbContext _db;
     private readonly IAuditEventWriter _audit;
+    private readonly IEvalNotificationService? _notificationService;
     private readonly ILogger<EvalReportService> _logger;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -22,11 +23,13 @@ public sealed class EvalReportService : IEvalReportService
     public EvalReportService(
         SmartKbDbContext db,
         IAuditEventWriter audit,
-        ILogger<EvalReportService> logger)
+        ILogger<EvalReportService> logger,
+        IEvalNotificationService? notificationService = null)
     {
         _db = db;
         _audit = audit;
         _logger = logger;
+        _notificationService = notificationService;
     }
 
     public async Task<EvalReportDetail> PersistReportAsync(
@@ -69,7 +72,44 @@ public sealed class EvalReportService : IEvalReportService
             "Eval report persisted. TenantId={TenantId}, RunId={RunId}, RunType={RunType}, Cases={Cases}, Violations={Violations}",
             tenantId, request.RunId, request.RunType, request.TotalCases, request.ViolationCount);
 
-        return MapToDetail(entity);
+        var detail = MapToDetail(entity);
+
+        // Send webhook notification if configured and report has issues (P3-007).
+        if (_notificationService is not null && (request.HasBlockingRegression || request.ViolationCount > 0))
+        {
+            try
+            {
+                var payload = new EvalNotificationPayload
+                {
+                    RunId = request.RunId,
+                    RunType = request.RunType,
+                    TotalCases = request.TotalCases,
+                    SuccessfulCases = request.SuccessfulCases,
+                    FailedCases = request.FailedCases,
+                    HasBlockingRegression = request.HasBlockingRegression,
+                    ViolationCount = request.ViolationCount,
+                    Violations = detail.Violations,
+                    BaselineComparison = detail.BaselineComparison,
+                };
+
+                var sent = await _notificationService.NotifyAsync(payload, ct);
+                var notifyEventType = sent ? AuditEventTypes.EvalNotificationSent : AuditEventTypes.EvalNotificationFailed;
+                await _audit.WriteAsync(new AuditEvent(
+                    EventId: Guid.NewGuid().ToString(),
+                    EventType: notifyEventType,
+                    TenantId: tenantId,
+                    ActorId: actorId,
+                    CorrelationId: entity.Id.ToString(),
+                    Timestamp: DateTimeOffset.UtcNow,
+                    Detail: $"Eval notification {(sent ? "sent" : "failed")}: {request.RunId} ({request.RunType}), {request.ViolationCount} violations, blocking={request.HasBlockingRegression}"), ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send eval notification for RunId={RunId}", request.RunId);
+            }
+        }
+
+        return detail;
     }
 
     public async Task<EvalReportListResponse> ListReportsAsync(

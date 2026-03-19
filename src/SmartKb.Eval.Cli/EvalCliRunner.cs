@@ -1,4 +1,7 @@
 using System.Text.Json;
+using SmartKb.Contracts;
+using SmartKb.Contracts.Models;
+using SmartKb.Contracts.Services;
 using SmartKb.Eval.Models;
 
 namespace SmartKb.Eval.Cli;
@@ -85,6 +88,10 @@ public sealed class EvalCliRunner
         var summary = GitHubActionsFormatter.FormatJobSummary(report, violations, regression,
             options.Mode == EvalMode.Smoke ? "Nightly Smoke" : "Weekly Full");
 
+        // Send webhook notification if configured (P3-007)
+        var notificationSent = await SendNotificationAsync(
+            options.NotificationService, report, violations, regression, options.RunUrl, cancellationToken);
+
         return new EvalCliResult
         {
             ExitCode = shouldBlock ? 1 : 0,
@@ -93,6 +100,7 @@ public sealed class EvalCliRunner
             Regression = regression,
             Annotations = annotations,
             Summary = summary,
+            NotificationSent = notificationSent,
         };
     }
 
@@ -125,6 +133,68 @@ public sealed class EvalCliRunner
             Annotations = $"::notice title=Eval Offline::Dataset validated: {cases.Count} cases. Baseline from {baseline.RunId} checked.\n",
             Summary = $"# Eval Offline Validation\n\nDataset validated: {cases.Count} cases.\nBaseline `{baseline.RunId}` threshold check: {(violations.Count == 0 ? "PASS" : $"{violations.Count} violations")}.\n",
         };
+    }
+
+    internal static async Task<bool?> SendNotificationAsync(
+        IEvalNotificationService? notificationService,
+        EvalReport report,
+        IReadOnlyList<ThresholdViolation> violations,
+        RegressionResult? regression,
+        string? runUrl,
+        CancellationToken cancellationToken)
+    {
+        if (notificationService is null)
+            return null; // No notification service configured.
+
+        var hasBlockingRegression = regression?.ShouldBlock == true;
+        var payload = new EvalNotificationPayload
+        {
+            RunId = report.RunId,
+            RunType = report.Results.Count > 30 ? "full" : "smoke",
+            TotalCases = report.TotalCases,
+            SuccessfulCases = report.SuccessfulCases,
+            FailedCases = report.FailedCases,
+            HasBlockingRegression = hasBlockingRegression,
+            ViolationCount = violations.Count,
+            Violations = violations.Select(v => new EvalViolationDto
+            {
+                MetricName = v.MetricName,
+                ActualValue = v.ActualValue,
+                ThresholdValue = v.ThresholdValue,
+                Direction = v.Direction,
+            }).ToList(),
+            BaselineComparison = regression is not null
+                ? new EvalBaselineComparisonDto
+                {
+                    HasRegression = regression.HasRegression,
+                    ShouldBlock = regression.ShouldBlock,
+                    Details = regression.Details.Select(d => new EvalRegressionDetailDto
+                    {
+                        MetricName = d.MetricName,
+                        BaselineValue = d.BaselineValue,
+                        CurrentValue = d.CurrentValue,
+                        Delta = d.Delta,
+                        Severity = d.Severity,
+                    }).ToList(),
+                }
+                : null,
+            RunUrl = runUrl,
+        };
+
+        try
+        {
+            var success = await notificationService.NotifyAsync(payload, cancellationToken);
+            if (success)
+                Diagnostics.EvalNotificationsSentTotal.Add(1);
+            else
+                Diagnostics.EvalNotificationFailuresTotal.Add(1);
+            return success;
+        }
+        catch
+        {
+            Diagnostics.EvalNotificationFailuresTotal.Add(1);
+            return false;
+        }
     }
 
     internal static IReadOnlyList<EvalCase> SelectSmokeCases(IReadOnlyList<EvalCase> allCases, int count)
@@ -180,6 +250,12 @@ public sealed record EvalCliOptions
     public int SmokeCaseCount { get; init; } = 30;
     public bool UpdateBaseline { get; init; }
     public SmartKb.Contracts.Services.IChatOrchestrator? Orchestrator { get; init; }
+
+    /// <summary>Optional notification service for sending regression alerts (P3-007).</summary>
+    public IEvalNotificationService? NotificationService { get; init; }
+
+    /// <summary>Optional URL linking to this eval run (e.g., GitHub Actions run URL).</summary>
+    public string? RunUrl { get; init; }
 }
 
 public enum EvalMode
@@ -196,6 +272,9 @@ public sealed record EvalCliResult
     public RegressionResult? Regression { get; init; }
     public string Annotations { get; init; } = string.Empty;
     public string Summary { get; init; } = string.Empty;
+
+    /// <summary>True if notification was sent successfully, false if it failed, null if not configured.</summary>
+    public bool? NotificationSent { get; init; }
 
     public static EvalCliResult Error(string message) => new()
     {
