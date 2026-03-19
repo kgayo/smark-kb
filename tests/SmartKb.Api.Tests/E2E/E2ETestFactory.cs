@@ -93,6 +93,7 @@ internal sealed class E2ETestFactory : WebApplicationFactory<Program>, IAsyncLif
             services.AddSingleton(new PatternMaintenanceSettings());
             services.AddScoped<IContradictionDetectionService, ContradictionDetectionService>();
             services.AddScoped<IPatternMaintenanceService, PatternMaintenanceService>();
+            services.AddScoped<ISynonymMapService, SmartKb.Data.Repositories.SynonymMapService>();
 
             // Use stub orchestrator — no real OpenAI or search calls.
             services.AddScoped<IChatOrchestrator, StubChatOrchestrator>();

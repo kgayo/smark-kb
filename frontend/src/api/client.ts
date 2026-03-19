@@ -8,6 +8,7 @@ import type {
   CreateConnectorRequest,
   CreateEscalationDraftRequest,
   CreateSessionRequest,
+  CreateSynonymRuleRequest,
   DeadLetterListResponse,
   DeprecatePatternRequest,
   DiagnosticsSummaryResponse,
@@ -34,10 +35,14 @@ import type {
   SyncNowRequest,
   SyncRunListResponse,
   SyncRunSummary,
+  SynonymMapSyncResult,
+  SynonymRuleListResponse,
+  SynonymRuleResponse,
   TestConnectionResponse,
   UpdateConnectorRequest,
   UpdateEscalationDraftRequest,
   UpdateRetrievalSettingsRequest,
+  UpdateSynonymRuleRequest,
   WebhookStatusListResponse,
 } from './types';
 
@@ -514,4 +519,68 @@ export async function getSloStatus(): Promise<SloStatusResponse> {
 
 export async function getSecretsStatus(): Promise<SecretsStatusResponse> {
   return apiFetch<SecretsStatusResponse>('/api/admin/secrets/status');
+}
+
+// ── Synonym map endpoints (P3-004) ──
+
+export async function listSynonymRules(
+  groupName?: string,
+): Promise<SynonymRuleListResponse> {
+  const params = groupName ? `?groupName=${encodeURIComponent(groupName)}` : '';
+  const res = await apiFetch<ApiResponse<SynonymRuleListResponse>>(
+    `/api/admin/synonym-rules${params}`,
+  );
+  return unwrap(res);
+}
+
+export async function getSynonymRule(ruleId: string): Promise<SynonymRuleResponse> {
+  const res = await apiFetch<ApiResponse<SynonymRuleResponse>>(
+    `/api/admin/synonym-rules/${ruleId}`,
+  );
+  return unwrap(res);
+}
+
+export async function createSynonymRule(
+  req: CreateSynonymRuleRequest,
+): Promise<SynonymRuleResponse> {
+  const res = await apiFetch<ApiResponse<SynonymRuleResponse>>(
+    '/api/admin/synonym-rules',
+    { method: 'POST', body: JSON.stringify(req) },
+  );
+  return unwrap(res);
+}
+
+export async function updateSynonymRule(
+  ruleId: string,
+  req: UpdateSynonymRuleRequest,
+): Promise<SynonymRuleResponse> {
+  const res = await apiFetch<ApiResponse<SynonymRuleResponse>>(
+    `/api/admin/synonym-rules/${ruleId}`,
+    { method: 'PUT', body: JSON.stringify(req) },
+  );
+  return unwrap(res);
+}
+
+export async function deleteSynonymRule(ruleId: string): Promise<void> {
+  await apiFetch<ApiResponse<unknown>>(`/api/admin/synonym-rules/${ruleId}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function syncSynonymMaps(): Promise<SynonymMapSyncResult> {
+  const res = await apiFetch<ApiResponse<SynonymMapSyncResult>>(
+    '/api/admin/synonym-rules/sync',
+    { method: 'POST' },
+  );
+  return unwrap(res);
+}
+
+export async function seedSynonymRules(
+  overwriteExisting: boolean = false,
+): Promise<{ seeded: number }> {
+  const res = await apiFetch<ApiResponse<{ seeded: number }>>(
+    '/api/admin/synonym-rules/seed',
+    { method: 'POST', body: JSON.stringify({ overwriteExisting }) },
+  );
+  return unwrap(res);
 }

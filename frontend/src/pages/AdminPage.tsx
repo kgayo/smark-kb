@@ -108,6 +108,9 @@ export function AdminPage() {
           <Link to="/patterns" className="btn btn-sm" data-testid="patterns-link">
             Patterns
           </Link>
+          <Link to="/synonyms" className="btn btn-sm" data-testid="synonyms-link">
+            Synonyms
+          </Link>
           <Link to="/" className="btn btn-sm" data-testid="back-to-chat">
             Back to Chat
           </Link>

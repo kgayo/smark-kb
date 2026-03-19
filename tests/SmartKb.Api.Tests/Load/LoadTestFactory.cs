@@ -99,6 +99,7 @@ internal sealed class LoadTestFactory : WebApplicationFactory<Program>, IAsyncLi
             services.AddSingleton(new PatternMaintenanceSettings());
             services.AddScoped<IContradictionDetectionService, ContradictionDetectionService>();
             services.AddScoped<IPatternMaintenanceService, PatternMaintenanceService>();
+            services.AddScoped<ISynonymMapService, SmartKb.Data.Repositories.SynonymMapService>();
 
             services.AddScoped<IChatOrchestrator, StubChatOrchestrator>();
         });

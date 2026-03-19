@@ -43,4 +43,7 @@ public static class SearchFieldNames
 
     /// <summary>Embedding dimensions (text-embedding-3-large at 1536).</summary>
     public const int EmbeddingDimensions = 1536;
+
+    /// <summary>Default synonym map name for the Evidence index (P3-004).</summary>
+    public const string SynonymMapName = "evidence-synonyms";
 }

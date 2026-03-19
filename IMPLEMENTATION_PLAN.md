@@ -328,12 +328,10 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
 
 ### P3 Search Quality and Tuning
 
-- [ ] P3-004: Add Azure AI Search synonym maps for domain vocabulary.
+- [x] P3-004: Add Azure AI Search synonym maps for domain vocabulary.
   - Specs: jtbd-03 Phase 2
-  - Gap: No synonym maps exist. Support teams use varied terminology (e.g., "crash" vs "BSOD" vs "blue screen", "ticket" vs "case" vs "incident"). BM25 retrieval misses these without synonyms.
-  - Scope: Create `ISynonymMapService` with CRUD for per-tenant synonym rules. Register synonym maps on Evidence and Pattern indexes. Admin UI for synonym management. Seed with common support domain synonyms.
   - Dependencies: P0-011 (complete)
-  - Priority: MEDIUM — improves recall for BM25 leg of hybrid search.
+  - **DONE** (iteration 75): `ISynonymMapService` interface in `SmartKb.Contracts.Services` with CRUD, sync-to-search, seed-defaults. `SynonymMapService` implementation in `SmartKb.Data.Repositories` — per-tenant synonym rules stored in `SynonymMaps` SQL table (`SynonymMapEntity`: Id, TenantId, GroupName, Rule, Description, IsActive, CreatedAt/UpdatedAt, CreatedBy/UpdatedBy). Rules use Solr synonym format (equivalent: `"crash, BSOD, blue screen"` or explicit: `"BSOD => blue screen of death"`). `SyncToSearchAsync` creates/updates Azure AI Search `SynonymMap` resources for both Evidence and Pattern indexes, then applies synonym map references to all searchable fields on each index. `SeedDefaultsAsync` populates 20 default rules across 3 groups (general, error-codes, product-names) covering common support domain vocabulary. DTOs: `CreateSynonymRuleRequest`, `UpdateSynonymRuleRequest`, `SeedSynonymRulesRequest`, `SynonymRuleResponse`, `SynonymRuleListResponse`, `SynonymMapSyncResult`, `SynonymRuleValidationResult`. Admin API: 8 endpoints under `/api/admin/synonym-rules` (list with group filter, get, create, update, delete, sync, seed) — all require `connector:manage` permission. Frontend: `SynonymManagementPage` at `/synonyms` with rule table (inline edit, toggle active, delete), create form, group filter dropdown, sync-to-search button, seed-defaults button. Navigation link added to AdminPage. `SearchFieldNames.SynonymMapName` and `PatternFieldNames.SynonymMapName` constants added. All mutations audit-logged. 29 new backend tests (SynonymMapServiceTests: CRUD, validation, seeding, tenant isolation, sync-without-search) + 5 new frontend tests (SynonymManagementPage); all 1775 backend + 258 frontend tests passing.
 
 - [ ] P3-005: Implement search schema versioning and rollback strategy (NFR-OPS-003).
   - Specs: jtbd-03, PRD NFR-OPS-003

@@ -35,6 +35,7 @@ public class SmartKbDbContext : DbContext
     public DbSet<PatternContradictionEntity> PatternContradictions => Set<PatternContradictionEntity>();
     public DbSet<PatternMaintenanceTaskEntity> PatternMaintenanceTasks => Set<PatternMaintenanceTaskEntity>();
     public DbSet<RetentionExecutionLogEntity> RetentionExecutionLogs => Set<RetentionExecutionLogEntity>();
+    public DbSet<SynonymMapEntity> SynonymMaps => Set<SynonymMapEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -68,6 +69,7 @@ public class SmartKbDbContext : DbContext
         ConfigurePatternContradiction(modelBuilder);
         ConfigurePatternMaintenanceTask(modelBuilder);
         ConfigureRetentionExecutionLog(modelBuilder);
+        ConfigureSynonymMap(modelBuilder);
     }
 
     private static void ConfigureTenant(ModelBuilder modelBuilder)
@@ -615,6 +617,24 @@ public class SmartKbDbContext : DbContext
             e.HasIndex(l => new { l.TenantId, l.ExecutedAt });
             e.HasIndex(l => new { l.TenantId, l.EntityType });
             e.HasOne(l => l.Tenant).WithMany().HasForeignKey(l => l.TenantId);
+        });
+    }
+
+    private static void ConfigureSynonymMap(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<SynonymMapEntity>(e =>
+        {
+            e.ToTable("SynonymMaps");
+            e.HasKey(s => s.Id);
+            e.Property(s => s.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(s => s.GroupName).HasMaxLength(128).IsRequired();
+            e.Property(s => s.Rule).HasMaxLength(1024).IsRequired();
+            e.Property(s => s.Description).HasMaxLength(512);
+            e.Property(s => s.CreatedBy).HasMaxLength(128).IsRequired();
+            e.Property(s => s.UpdatedBy).HasMaxLength(128);
+            e.HasIndex(s => s.TenantId);
+            e.HasIndex(s => new { s.TenantId, s.GroupName });
+            e.HasOne(s => s.Tenant).WithMany().HasForeignKey(s => s.TenantId);
         });
     }
 }

@@ -125,6 +125,7 @@ public sealed class AuthTestFactory : WebApplicationFactory<Program>, IAsyncLife
             services.AddSingleton(new SmartKb.Contracts.Configuration.PatternMaintenanceSettings());
             services.AddScoped<IContradictionDetectionService, SmartKb.Data.Repositories.ContradictionDetectionService>();
             services.AddScoped<IPatternMaintenanceService, SmartKb.Data.Repositories.PatternMaintenanceService>();
+            services.AddScoped<ISynonymMapService, SmartKb.Data.Repositories.SynonymMapService>();
         });
     }
 }

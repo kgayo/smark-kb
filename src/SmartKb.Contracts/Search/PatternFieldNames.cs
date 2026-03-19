@@ -43,4 +43,7 @@ public static class PatternFieldNames
 
     /// <summary>Embedding dimensions (same text-embedding-3-large at 1536 as Evidence index).</summary>
     public const int EmbeddingDimensions = 1536;
+
+    /// <summary>Default synonym map name for the Pattern index (P3-004).</summary>
+    public const string SynonymMapName = "patterns-synonyms";
 }

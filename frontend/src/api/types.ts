@@ -562,3 +562,50 @@ export interface SecretsStatusResponse {
   openAiKeyConfigured: boolean;
   openAiModel: string;
 }
+
+// ── Synonym map types (P3-004) ──
+
+export interface SynonymRuleResponse {
+  id: string;
+  tenantId: string;
+  groupName: string;
+  rule: string;
+  description: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  updatedBy: string | null;
+}
+
+export interface SynonymRuleListResponse {
+  rules: SynonymRuleResponse[];
+  totalCount: number;
+  groups: string[];
+}
+
+export interface CreateSynonymRuleRequest {
+  rule: string;
+  groupName?: string;
+  description?: string;
+}
+
+export interface UpdateSynonymRuleRequest {
+  rule?: string;
+  groupName?: string;
+  description?: string;
+  isActive?: boolean;
+}
+
+export interface SynonymMapSyncResult {
+  success: boolean;
+  ruleCount: number;
+  evidenceSynonymMapName: string;
+  patternSynonymMapName: string;
+  errorDetail: string | null;
+}
+
+export interface SynonymRuleValidationResult {
+  isValid: boolean;
+  errors: string[];
+}

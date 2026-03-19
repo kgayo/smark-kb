@@ -250,6 +250,13 @@ if (!string.IsNullOrEmpty(connectionString))
 {
     builder.Services.AddSmartKbData(connectionString);
     builder.Services.AddScoped<ConnectorAdminService>();
+    builder.Services.AddScoped<ISynonymMapService>(sp =>
+        new SmartKb.Data.Repositories.SynonymMapService(
+            sp.GetRequiredService<SmartKbDbContext>(),
+            sp.GetRequiredService<IAuditEventWriter>(),
+            sp.GetRequiredService<SearchServiceSettings>(),
+            sp.GetRequiredService<ILogger<SmartKb.Data.Repositories.SynonymMapService>>(),
+            sp.GetService<SearchIndexClient>()));
     builder.Services.AddScoped<AdoWebhookHandler>();
     builder.Services.AddScoped<SharePointWebhookHandler>();
     builder.Services.AddScoped<HubSpotWebhookHandler>();
@@ -485,6 +492,102 @@ app.MapGet("/api/admin/connectors/{connectorId:guid}/sync-runs/{syncRunId:guid}"
     return result is null
         ? Results.NotFound(ApiResponse<object>.Failure("Sync run not found.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<SyncRunSummary>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+// --- Synonym Map Admin Endpoints (P3-004) ---
+
+app.MapGet("/api/admin/synonym-rules", async (
+    string? groupName,
+    ITenantContextAccessor tenantAccessor,
+    ISynonymMapService service) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await service.ListAsync(tenant.TenantId, groupName);
+    return Results.Ok(ApiResponse<SynonymRuleListResponse>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapGet("/api/admin/synonym-rules/{ruleId:guid}", async (
+    Guid ruleId,
+    ITenantContextAccessor tenantAccessor,
+    ISynonymMapService service) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await service.GetAsync(tenant.TenantId, ruleId);
+    return result is null
+        ? Results.NotFound(ApiResponse<object>.Failure("Synonym rule not found.", tenant.CorrelationId))
+        : Results.Ok(ApiResponse<SynonymRuleResponse>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapPost("/api/admin/synonym-rules", async (
+    CreateSynonymRuleRequest request,
+    ITenantContextAccessor tenantAccessor,
+    ISynonymMapService service) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var (response, validation) = await service.CreateAsync(
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, request);
+
+    if (validation is not null)
+        return Results.UnprocessableEntity(ApiResponse<SynonymRuleValidationResult>.Failure(
+            string.Join("; ", validation.Errors), tenant.CorrelationId));
+
+    return Results.Created($"/api/admin/synonym-rules/{response!.Id}",
+        ApiResponse<SynonymRuleResponse>.Success(response, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapPut("/api/admin/synonym-rules/{ruleId:guid}", async (
+    Guid ruleId,
+    UpdateSynonymRuleRequest request,
+    ITenantContextAccessor tenantAccessor,
+    ISynonymMapService service) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var (response, validation, notFound) = await service.UpdateAsync(
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, ruleId, request);
+
+    if (notFound)
+        return Results.NotFound(ApiResponse<object>.Failure("Synonym rule not found.", tenant.CorrelationId));
+    if (validation is not null)
+        return Results.UnprocessableEntity(ApiResponse<SynonymRuleValidationResult>.Failure(
+            string.Join("; ", validation.Errors), tenant.CorrelationId));
+
+    return Results.Ok(ApiResponse<SynonymRuleResponse>.Success(response!, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapDelete("/api/admin/synonym-rules/{ruleId:guid}", async (
+    Guid ruleId,
+    ITenantContextAccessor tenantAccessor,
+    ISynonymMapService service) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var deleted = await service.DeleteAsync(
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, ruleId);
+    return deleted
+        ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
+        : Results.NotFound(ApiResponse<object>.Failure("Synonym rule not found.", tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapPost("/api/admin/synonym-rules/sync", async (
+    ITenantContextAccessor tenantAccessor,
+    ISynonymMapService service) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await service.SyncToSearchAsync(tenant.TenantId, tenant.CorrelationId);
+    return result.Success
+        ? Results.Ok(ApiResponse<SynonymMapSyncResult>.Success(result, tenant.CorrelationId))
+        : Results.UnprocessableEntity(ApiResponse<SynonymMapSyncResult>.Failure(
+            result.ErrorDetail ?? "Sync failed.", tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapPost("/api/admin/synonym-rules/seed", async (
+    SeedSynonymRulesRequest request,
+    ITenantContextAccessor tenantAccessor,
+    ISynonymMapService service) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var count = await service.SeedDefaultsAsync(
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, request.OverwriteExisting);
+    return Results.Ok(ApiResponse<object>.Success(new { seeded = count }, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 // --- Webhook Receiver Endpoints (anonymous — HMAC-verified inside handler) ---
