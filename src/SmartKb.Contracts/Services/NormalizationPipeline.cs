@@ -32,8 +32,8 @@ public sealed class NormalizationPipeline : INormalizationPipeline
         // 1. Enrich the record to extract metadata.
         var enrichment = _enricher.Enrich(record);
 
-        // 2. Chunk the text content.
-        var textChunks = _chunker.Chunk(record.TextContent, record.Title, _settings);
+        // 2. Chunk the text content (tickets/work items use troubleshooting-structure chunking).
+        var textChunks = _chunker.Chunk(record.TextContent, record.Title, _settings, record.SourceType);
 
         // 3. Map each text chunk to an EvidenceChunk with full lineage and metadata.
         var chunks = new List<EvidenceChunk>(textChunks.Count);

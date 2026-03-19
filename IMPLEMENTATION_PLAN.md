@@ -467,12 +467,9 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
   - Dependencies: P0-020 (audit complete)
   - Priority: LOW — convention-based immutability is acceptable for most compliance regimes; DB-level enforcement is defense-in-depth.
 
-- [ ] P3-017: Implement ticket-specific troubleshooting-structure chunking mode.
+- [x] P3-017: Implement ticket-specific troubleshooting-structure chunking mode.
   - Specs: jtbd-02 (Req 02-R3: chunk tickets by troubleshooting structure)
-  - Gap: Spec requires tickets to be chunked "by troubleshooting structure" (splitting on symptoms / root cause / resolution / verification boundaries). Current `TextChunkingService` uses a single generic chunker that splits all content uniformly by markdown headers and paragraphs. There is no content-type-aware chunking mode that understands standard ticket narrative structure.
-  - Scope: Add `TicketStructureChunker` that detects common ticket section patterns (e.g., "Steps to Reproduce", "Root Cause", "Resolution", "Workaround") and splits on those boundaries. Wire via `IChunkingService` with content-type dispatch (tickets vs. documents). Apply to SourceType.Ticket and SourceType.WorkItem.
-  - Dependencies: P0-010 (normalization complete)
-  - Priority: MEDIUM — improves chunk quality for ticket content, which is the primary evidence source for most support queries.
+  - Completed: Added `SourceType?` parameter to `IChunkingService.Chunk()`. `TextChunkingService` dispatches to ticket-structure chunking for `SourceType.Ticket` and `SourceType.WorkItem`. `SplitByTicketSections` detects 9 normalized section categories (Symptoms, Steps to Reproduce, Expected Behavior, Root Cause, Resolution, Workaround, Verification, Impact, Environment) from ~40 header variants (case-insensitive, with/without colons, markdown headers). Falls back to generic structural chunking when no ticket sections detected. `NormalizationPipeline` passes `record.SourceType` to chunker. Refactored common chunk-building logic into shared `BuildChunksFromSections`. 26 new tests (including Theory with 16 header variants); 1835 backend tests passing.
 
 ### P3 Connector and Ingestion Completeness
 
