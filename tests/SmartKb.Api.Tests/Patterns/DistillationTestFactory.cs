@@ -87,6 +87,7 @@ internal sealed class DistillationTestFactory : WebApplicationFactory<Program>, 
             services.AddScoped<IContradictionDetectionService, SmartKb.Data.Repositories.ContradictionDetectionService>();
             services.AddScoped<IPatternMaintenanceService, SmartKb.Data.Repositories.PatternMaintenanceService>();
             services.AddScoped<ISynonymMapService, SmartKb.Data.Repositories.SynonymMapService>();
+            services.AddScoped<IPatternUsageMetricsService, SmartKb.Data.Repositories.PatternUsageMetricsService>();
         });
     }
 

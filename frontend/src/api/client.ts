@@ -34,6 +34,7 @@ import type {
   PatternDetail,
   PatternGovernanceQueueResponse,
   PatternGovernanceResult,
+  PatternUsageMetrics,
   PiiPolicyResponse,
   PiiPolicyUpdateRequest,
   RecordOutcomeRequest,
@@ -480,6 +481,15 @@ export async function deprecatePattern(
   const res = await apiFetch<ApiResponse<PatternGovernanceResult>>(
     `/api/patterns/${encodeURIComponent(patternId)}/deprecate`,
     { method: 'POST', body: JSON.stringify(req) },
+  );
+  return unwrap(res);
+}
+
+// ── Pattern usage metrics endpoint (P3-012) ──
+
+export async function getPatternUsage(patternId: string): Promise<PatternUsageMetrics> {
+  const res = await apiFetch<ApiResponse<PatternUsageMetrics>>(
+    `/api/admin/patterns/${encodeURIComponent(patternId)}/usage`,
   );
   return unwrap(res);
 }

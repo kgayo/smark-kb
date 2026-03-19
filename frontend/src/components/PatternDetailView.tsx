@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import type { PatternDetail } from '../api/types';
+import { useState, useEffect } from 'react';
+import type { PatternDetail, PatternUsageMetrics } from '../api/types';
+import { getPatternUsage } from '../api/client';
 
 interface PatternDetailViewProps {
   pattern: PatternDetail;
@@ -42,6 +43,18 @@ export function PatternDetailView({
   const [supersedingId, setSupersedingId] = useState('');
   const [showDeprecateForm, setShowDeprecateForm] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [usage, setUsage] = useState<PatternUsageMetrics | null>(null);
+  const [usageLoading, setUsageLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setUsageLoading(true);
+    getPatternUsage(pattern.patternId)
+      .then((m) => { if (!cancelled) setUsage(m); })
+      .catch(() => { if (!cancelled) setUsage(null); })
+      .finally(() => { if (!cancelled) setUsageLoading(false); });
+    return () => { cancelled = true; };
+  }, [pattern.patternId]);
 
   const canReview = pattern.trustLevel === 'Draft';
   const canApprove = pattern.trustLevel === 'Draft' || pattern.trustLevel === 'Reviewed';
@@ -194,6 +207,76 @@ export function PatternDetailView({
           <span className="info-label">Updated</span>
           <span className="info-value">{formatDate(pattern.updatedAt)}</span>
         </div>
+      </div>
+
+      {/* Usage metrics */}
+      <div className="pattern-content-section" data-testid="usage-metrics">
+        <h3>Usage Metrics</h3>
+        {usageLoading && <p className="muted">Loading usage data...</p>}
+        {!usageLoading && usage && (
+          <>
+            <div className="pattern-info-grid">
+              <div className="info-item">
+                <span className="info-label">Total Citations</span>
+                <span className="info-value" data-testid="usage-total">{usage.totalCitations}</span>
+              </div>
+              <div className="info-item">
+                <span className="info-label">Last 7 Days</span>
+                <span className="info-value" data-testid="usage-7d">{usage.citationsLast7Days}</span>
+              </div>
+              <div className="info-item">
+                <span className="info-label">Last 30 Days</span>
+                <span className="info-value" data-testid="usage-30d">{usage.citationsLast30Days}</span>
+              </div>
+              <div className="info-item">
+                <span className="info-label">Last 90 Days</span>
+                <span className="info-value" data-testid="usage-90d">{usage.citationsLast90Days}</span>
+              </div>
+              <div className="info-item">
+                <span className="info-label">Unique Users</span>
+                <span className="info-value" data-testid="usage-users">{usage.uniqueUsers}</span>
+              </div>
+              <div className="info-item">
+                <span className="info-label">Avg Confidence</span>
+                <span className="info-value" data-testid="usage-confidence">
+                  {usage.totalCitations > 0 ? `${(usage.averageConfidence * 100).toFixed(0)}%` : '—'}
+                </span>
+              </div>
+              <div className="info-item">
+                <span className="info-label">Last Cited</span>
+                <span className="info-value" data-testid="usage-last-cited">
+                  {usage.lastCitedAt ? formatDate(usage.lastCitedAt) : 'Never'}
+                </span>
+              </div>
+              <div className="info-item">
+                <span className="info-label">First Cited</span>
+                <span className="info-value" data-testid="usage-first-cited">
+                  {usage.firstCitedAt ? formatDate(usage.firstCitedAt) : 'Never'}
+                </span>
+              </div>
+            </div>
+            {usage.dailyBreakdown.some(d => d.citations > 0) && (
+              <div className="usage-daily-breakdown" data-testid="usage-daily">
+                <h4>Daily Citations (Last 30 Days)</h4>
+                <div className="usage-bar-chart">
+                  {usage.dailyBreakdown.map((d) => (
+                    <div
+                      key={d.date}
+                      className="usage-bar"
+                      title={`${d.date}: ${d.citations}`}
+                      style={{
+                        height: `${Math.max(d.citations > 0 ? 4 : 0, (d.citations / Math.max(...usage.dailyBreakdown.map(b => b.citations))) * 48)}px`,
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+        {!usageLoading && !usage && (
+          <p className="muted" data-testid="usage-unavailable">Usage data unavailable.</p>
+        )}
       </div>
 
       {/* Governance history */}

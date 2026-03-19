@@ -45,6 +45,7 @@ public static class DataServiceExtensions
         services.AddScoped<IContradictionDetectionService, ContradictionDetectionService>();
         services.AddScoped<IPatternMaintenanceService, PatternMaintenanceService>();
         services.AddScoped<IEvalReportService, EvalReportService>();
+        services.AddScoped<IPatternUsageMetricsService, PatternUsageMetricsService>();
 
         return services;
     }

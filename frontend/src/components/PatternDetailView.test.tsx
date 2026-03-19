@@ -1,7 +1,14 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { PatternDetailView } from './PatternDetailView';
-import type { PatternDetail } from '../api/types';
+import type { PatternDetail, PatternUsageMetrics } from '../api/types';
+
+vi.mock('../api/client', () => ({
+  getPatternUsage: vi.fn(),
+}));
+
+import { getPatternUsage } from '../api/client';
+const mockGetPatternUsage = vi.mocked(getPatternUsage);
 
 function makeDetail(overrides: Partial<PatternDetail> = {}): PatternDetail {
   return {
@@ -46,6 +53,21 @@ function makeDetail(overrides: Partial<PatternDetail> = {}): PatternDetail {
 }
 
 describe('PatternDetailView', () => {
+  beforeEach(() => {
+    mockGetPatternUsage.mockResolvedValue({
+      patternId: 'pattern-abc',
+      totalCitations: 0,
+      citationsLast7Days: 0,
+      citationsLast30Days: 0,
+      citationsLast90Days: 0,
+      uniqueUsers: 0,
+      averageConfidence: 0,
+      lastCitedAt: null,
+      firstCitedAt: null,
+      dailyBreakdown: [],
+    });
+  });
+
   const defaultProps = {
     pattern: makeDetail(),
     onBack: vi.fn(),
@@ -157,5 +179,76 @@ describe('PatternDetailView', () => {
     render(<PatternDetailView {...defaultProps} onBack={onBack} />);
     fireEvent.click(screen.getByTestId('pattern-back'));
     expect(onBack).toHaveBeenCalled();
+  });
+
+  // ── Usage metrics tests (P3-012) ──
+
+  function makeUsage(overrides: Partial<PatternUsageMetrics> = {}): PatternUsageMetrics {
+    return {
+      patternId: 'pattern-abc',
+      totalCitations: 15,
+      citationsLast7Days: 3,
+      citationsLast30Days: 10,
+      citationsLast90Days: 15,
+      uniqueUsers: 5,
+      averageConfidence: 0.82,
+      lastCitedAt: '2026-03-18T10:00:00Z',
+      firstCitedAt: '2026-01-15T08:00:00Z',
+      dailyBreakdown: Array.from({ length: 30 }, (_, i) => ({
+        date: `2026-02-${String(18 + Math.floor(i / 28)).padStart(2, '0')}-${String((i % 28) + 1).padStart(2, '0')}`,
+        citations: i === 28 ? 2 : 0,
+      })),
+      ...overrides,
+    };
+  }
+
+  it('renders usage metrics when loaded', async () => {
+    mockGetPatternUsage.mockResolvedValue(makeUsage());
+    render(<PatternDetailView {...defaultProps} />);
+    await waitFor(() => expect(screen.getByTestId('usage-total')).toBeTruthy());
+    expect(screen.getByTestId('usage-total').textContent).toBe('15');
+    expect(screen.getByTestId('usage-7d').textContent).toBe('3');
+    expect(screen.getByTestId('usage-30d').textContent).toBe('10');
+    expect(screen.getByTestId('usage-90d').textContent).toBe('15');
+    expect(screen.getByTestId('usage-users').textContent).toBe('5');
+    expect(screen.getByTestId('usage-confidence').textContent).toBe('82%');
+  });
+
+  it('shows loading state for usage metrics', () => {
+    mockGetPatternUsage.mockReturnValue(new Promise(() => {})); // never resolves
+    render(<PatternDetailView {...defaultProps} />);
+    expect(screen.getByText('Loading usage data...')).toBeTruthy();
+  });
+
+  it('shows unavailable message when usage fetch fails', async () => {
+    mockGetPatternUsage.mockRejectedValue(new Error('Network error'));
+    render(<PatternDetailView {...defaultProps} />);
+    await waitFor(() => expect(screen.getByTestId('usage-unavailable')).toBeTruthy());
+    expect(screen.getByText('Usage data unavailable.')).toBeTruthy();
+  });
+
+  it('shows Never for last cited when no citations', async () => {
+    mockGetPatternUsage.mockResolvedValue(makeUsage({
+      totalCitations: 0,
+      lastCitedAt: null,
+      firstCitedAt: null,
+      averageConfidence: 0,
+    }));
+    render(<PatternDetailView {...defaultProps} />);
+    await waitFor(() => expect(screen.getByTestId('usage-last-cited')).toBeTruthy());
+    expect(screen.getByTestId('usage-last-cited').textContent).toBe('Never');
+    expect(screen.getByTestId('usage-confidence').textContent).toBe('—');
+  });
+
+  it('renders daily breakdown bar chart when data has citations', async () => {
+    mockGetPatternUsage.mockResolvedValue(makeUsage({
+      dailyBreakdown: Array.from({ length: 30 }, (_, i) => ({
+        date: `2026-03-${String(i + 1).padStart(2, '0')}`,
+        citations: i === 5 ? 3 : i === 10 ? 1 : 0,
+      })),
+    }));
+    render(<PatternDetailView {...defaultProps} />);
+    await waitFor(() => expect(screen.getByTestId('usage-daily')).toBeTruthy());
+    expect(screen.getByText('Daily Citations (Last 30 Days)')).toBeTruthy();
   });
 });

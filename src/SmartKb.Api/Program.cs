@@ -1272,6 +1272,19 @@ app.MapPost("/api/patterns/{patternId}/deprecate", async (
         : Results.Ok(ApiResponse<PatternGovernanceResult>.Success(result, tenant.CorrelationId));
 }).RequirePermission("pattern:deprecate");
 
+// --- Pattern Usage Metrics Endpoint (P3-012) ---
+
+app.MapGet("/api/admin/patterns/{patternId}/usage", async (
+    string patternId,
+    ITenantContextAccessor tenantAccessor,
+    HttpContext httpContext) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var usageService = httpContext.RequestServices.GetRequiredService<IPatternUsageMetricsService>();
+    var metrics = await usageService.GetUsageAsync(tenant.TenantId, patternId);
+    return Results.Ok(ApiResponse<PatternUsageMetrics>.Success(metrics, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
 // --- Pattern Maintenance Endpoints (P2-004) ---
 
 app.MapPost("/api/admin/patterns/detect-contradictions", async (

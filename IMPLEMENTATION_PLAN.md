@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-19 (Asia/Manila) — iteration 90 (P3-009 credential rotation workflow)
-Status: Active backlog (Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 in progress: P3-001, P3-002, P3-003, P3-004, P3-005, P3-006, P3-007, P3-008, P3-009, P3-011, P3-014, P3-016, P3-017, P3-018, P3-019, P3-021, P3-024, P3-029, P3-032, P3-034, P3-035, P3-036, P3-037, P3-038 complete; Tests complete: T-001–T-008; ~2292 tests passing (1974 backend + 318 frontend + 98 IaC - some overlap in counting); 0 bugs blocking, 0 tech-debt blocking)
+Last updated: 2026-03-19 (Asia/Manila) — iteration 91 (P3-012 pattern usage metrics)
+Status: Active backlog (Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 in progress: P3-001, P3-002, P3-003, P3-004, P3-005, P3-006, P3-007, P3-008, P3-009, P3-011, P3-012, P3-014, P3-016, P3-017, P3-018, P3-019, P3-021, P3-024, P3-029, P3-032, P3-034, P3-035, P3-036, P3-037, P3-038 complete; Tests complete: T-001–T-008; ~2334 tests passing (1995 backend + 323 frontend + 98 IaC - some overlap in counting); 0 bugs blocking, 0 tech-debt blocking)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -388,12 +388,10 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
   - Dependencies: None
   - Priority: MEDIUM — resolved.
 
-- [ ] P3-012: Define and document pattern usage/reuse metrics schema (SPEC-013).
+- [x] P3-012: Define and document pattern usage/reuse metrics schema (SPEC-013).
   - Specs: jtbd-09
-  - Gap: `PatternMaintenanceService` checks answer trace citations for usage detection but there is no formal metrics entity or API for pattern usage analytics (e.g., "Pattern X was cited in N answers over the last 30 days").
-  - Scope: Add `PatternUsageMetricEntity` tracking per-pattern citation counts by time window. Add `GET /api/admin/patterns/{id}/usage` endpoint. Surface in PatternGovernancePage detail view.
   - Dependencies: P1-005 (distillation complete), P1-006 (governance complete)
-  - Priority: LOW — maintenance service covers the critical "unused detection" case.
+  - Completed: `IPatternUsageMetricsService` interface + `PatternUsageMetricsService` implementation computes usage metrics on-demand from `AnswerTraceEntity` citation data (no materialized table — derived directly from immutable answer traces). Metrics: total citations, 7/30/90-day citation counts, unique users, average confidence, first/last citation timestamps, 30-day daily breakdown. `PatternUsageMetrics` and `PatternUsageDayBucket` DTOs in `SmartKb.Contracts.Models`. `GET /api/admin/patterns/{patternId}/usage` admin endpoint (requires `connector:manage` permission). Frontend: `PatternDetailView` component fetches and displays usage metrics section with info grid (8 metrics) and daily bar chart. CSS for bar chart visualization. 21 new tests (16 backend unit: no-citations zero counts, single/multiple citation aggregation, time window boundaries, tenant isolation, other-pattern exclusion, daily breakdown population, first/last cited timestamps, non-pattern chunk filtering, case-insensitive extraction, empty/malformed JSON handling + 5 endpoint integration: returns metrics, no-citations zeros, auth required, admin role required, tenant isolation). 1995 backend tests passing.
 
 - [ ] P3-013: Add pattern version history table for field-level change tracking.
   - Specs: jtbd-09 (Req 09-4: version history and deprecation/replacement links)

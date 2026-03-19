@@ -1904,6 +1904,29 @@ body {
   font-size: 11px;
 }
 
+/* ── Pattern Usage Metrics (P3-012) ── */
+
+.usage-daily-breakdown h4 {
+  margin: 12px 0 6px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.usage-bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 52px;
+  padding: 2px 0;
+}
+
+.usage-bar {
+  flex: 1;
+  background: #6366f1;
+  border-radius: 2px 2px 0 0;
+  min-width: 4px;
+}
+
 /* ── Diagnostics Page (P1-008) ── */
 
 .diag-tabs {
@@ -2470,4 +2493,53 @@ body {
   border: 1px solid var(--color-border);
   border-radius: 8px;
   background: #f9fafb;
+}
+
+/* ── Audit & Compliance ── */
+
+.audit-summary {
+  margin: 12px 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.audit-correlation {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.audit-detail-row td {
+  background: #f9fafb;
+  padding: 16px !important;
+}
+
+.audit-event-detail h4 {
+  margin: 12px 0 4px;
+  font-size: 14px;
+}
+
+.audit-detail-json {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  overflow-x: auto;
+  max-height: 300px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.audit-pagination {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  justify-content: center;
+}
+
+.audit-pagination span {
+  font-size: 14px;
+  color: var(--color-text-muted);
 }

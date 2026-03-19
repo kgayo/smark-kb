@@ -428,6 +428,26 @@ export interface DeprecatePatternRequest {
   supersedingPatternId?: string;
 }
 
+// ── Pattern usage metrics types (P3-012) ──
+
+export interface PatternUsageMetrics {
+  patternId: string;
+  totalCitations: number;
+  citationsLast7Days: number;
+  citationsLast30Days: number;
+  citationsLast90Days: number;
+  uniqueUsers: number;
+  averageConfidence: number;
+  lastCitedAt: string | null;
+  firstCitedAt: string | null;
+  dailyBreakdown: PatternUsageDayBucket[];
+}
+
+export interface PatternUsageDayBucket {
+  date: string;
+  citations: number;
+}
+
 export interface FeedbackResponse {
   feedbackId: string;
   messageId: string;
