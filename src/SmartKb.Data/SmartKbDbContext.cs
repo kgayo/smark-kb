@@ -39,6 +39,7 @@ public class SmartKbDbContext : DbContext
     public DbSet<IndexSchemaVersionEntity> IndexSchemaVersions => Set<IndexSchemaVersionEntity>();
     public DbSet<EvalReportEntity> EvalReports => Set<EvalReportEntity>();
     public DbSet<PatternVersionHistoryEntity> PatternVersionHistory => Set<PatternVersionHistoryEntity>();
+    public DbSet<RateLimitEventEntity> RateLimitEvents => Set<RateLimitEventEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -76,6 +77,7 @@ public class SmartKbDbContext : DbContext
         ConfigureIndexSchemaVersion(modelBuilder);
         ConfigureEvalReport(modelBuilder);
         ConfigurePatternVersionHistory(modelBuilder);
+        ConfigureRateLimitEvents(modelBuilder);
     }
 
     private static void ConfigureTenant(ModelBuilder modelBuilder)
@@ -695,6 +697,23 @@ public class SmartKbDbContext : DbContext
             e.Property(h => h.Summary).HasMaxLength(512);
             e.HasIndex(h => new { h.TenantId, h.PatternId });
             e.HasIndex(h => new { h.TenantId, h.ChangedAt });
+        });
+    }
+
+    private static void ConfigureRateLimitEvents(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<RateLimitEventEntity>(e =>
+        {
+            e.ToTable("RateLimitEvents");
+            e.HasKey(r => r.Id);
+            e.Property(r => r.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(r => r.ConnectorType).HasMaxLength(64).IsRequired();
+            e.HasOne(r => r.Connector)
+                .WithMany()
+                .HasForeignKey(r => r.ConnectorId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(r => new { r.TenantId, r.OccurredAt });
+            e.HasIndex(r => r.ConnectorId);
         });
     }
 }

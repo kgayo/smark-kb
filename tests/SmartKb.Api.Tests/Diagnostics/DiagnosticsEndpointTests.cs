@@ -171,4 +171,76 @@ public sealed class DiagnosticsEndpointTests : IClassFixture<AuthTestFactory>
         Assert.Equal("smartkb.ingestion.source_rate_limit_total",
             metrics.GetProperty("sourceRateLimitMetric").GetString());
     }
+
+    [Fact]
+    public async Task SloStatus_IncludesRateLimitAlertThreshold()
+    {
+        var client = CreateAdminClient();
+        var response = await client.GetAsync("/api/admin/slo/status");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        var json = JsonDocument.Parse(body);
+        var targets = json.RootElement.GetProperty("data").GetProperty("targets");
+        Assert.True(targets.TryGetProperty("rateLimitAlertThreshold", out var threshold));
+        Assert.True(threshold.GetInt32() > 0);
+        Assert.True(targets.TryGetProperty("rateLimitAlertWindowMinutes", out var window));
+        Assert.True(window.GetInt32() > 0);
+    }
+
+    [Fact]
+    public async Task GetRateLimitAlerts_ReturnsOk_ForAdmin()
+    {
+        var client = CreateAdminClient();
+        var response = await client.GetAsync("/api/admin/diagnostics/rate-limit-alerts");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        var json = JsonDocument.Parse(body);
+        var data = json.RootElement.GetProperty("data");
+        Assert.True(data.TryGetProperty("totalAlertingConnectors", out _));
+        Assert.True(data.TryGetProperty("alerts", out _));
+    }
+
+    [Fact]
+    public async Task GetRateLimitAlerts_RequiresConnectorManage()
+    {
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        client.DefaultRequestHeaders.Add("X-Test-Auth", "true");
+        client.DefaultRequestHeaders.Add("X-Test-Roles", "SupportAgent");
+        client.DefaultRequestHeaders.Add("X-Test-Tenant", "tenant-1");
+
+        var response = await client.GetAsync("/api/admin/diagnostics/rate-limit-alerts");
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetRateLimitAlerts_RequiresAuth()
+    {
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var response = await client.GetAsync("/api/admin/diagnostics/rate-limit-alerts");
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetDiagnosticsSummary_IncludesRateLimitAlertingConnectors()
+    {
+        var client = CreateAdminClient();
+        var response = await client.GetAsync("/api/admin/diagnostics/summary");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        var json = JsonDocument.Parse(body);
+        var data = json.RootElement.GetProperty("data");
+        Assert.True(data.TryGetProperty("rateLimitAlertingConnectors", out _));
+
+        // Connector health should include rate-limit fields.
+        var health = data.GetProperty("connectorHealth");
+        if (health.GetArrayLength() > 0)
+        {
+            var first = health[0];
+            Assert.True(first.TryGetProperty("rateLimitHits", out _));
+            Assert.True(first.TryGetProperty("rateLimitAlerting", out _));
+        }
+    }
 }

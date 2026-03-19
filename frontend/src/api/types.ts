@@ -552,6 +552,8 @@ export interface ConnectorHealthSummary {
   webhookCount: number;
   webhooksInFallback: number;
   totalFailures: number;
+  rateLimitHits: number;
+  rateLimitAlerting: boolean;
 }
 
 export interface DiagnosticsSummaryResponse {
@@ -570,6 +572,7 @@ export interface DiagnosticsSummaryResponse {
   credentialWarnings: number;
   credentialCritical: number;
   credentialExpired: number;
+  rateLimitAlertingConnectors: number;
 }
 
 export interface DeadLetterMessage {
@@ -597,9 +600,28 @@ export interface SloStatusResponse {
     syncLagP95TargetMinutes: number;
     noEvidenceRateThreshold: number;
     deadLetterDepthThreshold: number;
+    rateLimitAlertThreshold: number;
+    rateLimitAlertWindowMinutes: number;
   };
   metrics: Record<string, string>;
   dashboardHint: string;
+}
+
+// ── Rate-limit alert types (P3-020) ──
+
+export interface ConnectorRateLimitAlert {
+  connectorId: string;
+  connectorName: string;
+  connectorType: string;
+  hitCount: number;
+  mostRecentHit: string | null;
+  threshold: number;
+  windowMinutes: number;
+}
+
+export interface RateLimitAlertSummary {
+  totalAlertingConnectors: number;
+  alerts: ConnectorRateLimitAlert[];
 }
 
 export interface SecretsStatusResponse {

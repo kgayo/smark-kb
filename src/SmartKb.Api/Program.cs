@@ -1162,6 +1162,8 @@ app.MapGet("/api/admin/slo/status", (
             syncLagP95TargetMinutes = sloSettingsInstance.SyncLagP95TargetMinutes,
             noEvidenceRateThreshold = sloSettingsInstance.NoEvidenceRateThreshold,
             deadLetterDepthThreshold = sloSettingsInstance.DeadLetterDepthThreshold,
+            rateLimitAlertThreshold = sloSettingsInstance.RateLimitAlertThreshold,
+            rateLimitAlertWindowMinutes = sloSettingsInstance.RateLimitAlertWindowMinutes,
         },
         metrics = new
         {
@@ -1499,6 +1501,39 @@ app.MapGet("/api/admin/diagnostics/summary", async (
         }
     }
 
+    // Rate-limit alert summary (P3-020).
+    int rateLimitAlerting = 0;
+    RateLimitAlertSummary? rlAlerts = null;
+    var rateLimitService = sp.GetService<IRateLimitAlertService>();
+    if (rateLimitService is not null)
+    {
+        try
+        {
+            rlAlerts = await rateLimitService.GetRateLimitAlertsAsync(tenant.TenantId);
+            rateLimitAlerting = rlAlerts.TotalAlertingConnectors;
+        }
+        catch (Exception ex)
+        {
+            sp.GetRequiredService<ILogger<Program>>()
+                .LogWarning(ex, "Failed to check rate-limit alerts for diagnostics summary");
+        }
+    }
+
+    // Enrich connector health with rate-limit info.
+    var enrichedHealth = summary.ConnectorHealth;
+    if (rlAlerts is not null && rlAlerts.Alerts.Count > 0)
+    {
+        var alertLookup = rlAlerts.Alerts.ToDictionary(a => a.ConnectorId);
+        enrichedHealth = summary.ConnectorHealth.Select(c =>
+        {
+            if (alertLookup.TryGetValue(c.ConnectorId, out var alert))
+            {
+                return c with { RateLimitHits = alert.HitCount, RateLimitAlerting = true };
+            }
+            return c;
+        }).ToArray();
+    }
+
     var enriched = summary with
     {
         ServiceBusConfigured = sbConfigured,
@@ -1508,9 +1543,23 @@ app.MapGet("/api/admin/diagnostics/summary", async (
         CredentialWarnings = credWarn,
         CredentialCritical = credCrit,
         CredentialExpired = credExp,
+        RateLimitAlertingConnectors = rateLimitAlerting,
+        ConnectorHealth = enrichedHealth,
     };
 
     return Results.Ok(ApiResponse<DiagnosticsSummaryResponse>.Success(enriched, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+// --- Rate-Limit Alerts (P3-020) ---
+
+app.MapGet("/api/admin/diagnostics/rate-limit-alerts", async (
+    HttpContext httpContext,
+    ITenantContextAccessor tenantAccessor) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var rateLimitService = httpContext.RequestServices.GetRequiredService<IRateLimitAlertService>();
+    var result = await rateLimitService.GetRateLimitAlertsAsync(tenant.TenantId);
+    return Results.Ok(ApiResponse<RateLimitAlertSummary>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 // --- Credential Status and Rotation (P3-009) ---

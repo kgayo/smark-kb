@@ -27,6 +27,7 @@ public sealed class SyncJobProcessor
     private readonly IOAuthTokenService? _oauthTokenService;
     private readonly IBlobStorageService? _blobStorage;
     private readonly IIndexingService? _indexingService;
+    private readonly IRateLimitAlertService? _rateLimitAlertService;
     private readonly IAuditEventWriter _auditWriter;
     private readonly INormalizationPipeline _pipeline;
     private readonly ILogger<SyncJobProcessor> _logger;
@@ -40,7 +41,8 @@ public sealed class SyncJobProcessor
         ISecretProvider? secretProvider = null,
         IOAuthTokenService? oauthTokenService = null,
         IBlobStorageService? blobStorage = null,
-        IIndexingService? indexingService = null)
+        IIndexingService? indexingService = null,
+        IRateLimitAlertService? rateLimitAlertService = null)
     {
         _db = db;
         _connectorClients = connectorClients;
@@ -51,6 +53,7 @@ public sealed class SyncJobProcessor
         _oauthTokenService = oauthTokenService;
         _blobStorage = blobStorage;
         _indexingService = indexingService;
+        _rateLimitAlertService = rateLimitAlertService;
     }
 
     public async Task<bool> ProcessAsync(SyncJobMessage message, CancellationToken cancellationToken)
@@ -238,12 +241,26 @@ public sealed class SyncJobProcessor
             await WriteAuditAsync(message, AuditEventTypes.SyncFailed,
                 $"Sync run {message.SyncRunId} failed: {ex.Message}");
 
-            // P1-008: Track source API rate-limit hits (HTTP 429).
+            // P1-008 + P3-020: Track source API rate-limit hits (HTTP 429).
             if (ex is HttpRequestException hre && hre.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
             {
                 Diagnostics.SourceRateLimitTotal.Add(1,
                     new KeyValuePair<string, object?>("smartkb.connector_type", message.ConnectorType.ToString()),
                     new KeyValuePair<string, object?>("smartkb.tenant_id", message.TenantId));
+
+                // P3-020: Persist rate-limit event for diagnostics alerting.
+                if (_rateLimitAlertService is not null)
+                {
+                    try
+                    {
+                        await _rateLimitAlertService.RecordRateLimitEventAsync(
+                            message.TenantId, message.ConnectorId, message.ConnectorType.ToString(), cancellationToken);
+                    }
+                    catch (Exception rlEx)
+                    {
+                        _logger.LogWarning(rlEx, "Failed to record rate-limit event for connector {ConnectorId}.", message.ConnectorId);
+                    }
+                }
             }
 
             // P0-022: Record failure metrics.

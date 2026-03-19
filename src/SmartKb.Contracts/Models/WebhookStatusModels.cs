@@ -45,7 +45,8 @@ public sealed record DiagnosticsSummaryResponse(
     ConnectorHealthSummary[] ConnectorHealth,
     int CredentialWarnings = 0,
     int CredentialCritical = 0,
-    int CredentialExpired = 0);
+    int CredentialExpired = 0,
+    int RateLimitAlertingConnectors = 0);
 
 /// <summary>
 /// Per-connector health summary.
@@ -59,4 +60,6 @@ public sealed record ConnectorHealthSummary(
     DateTimeOffset? LastSyncAt,
     int WebhookCount,
     int WebhooksInFallback,
-    int TotalFailures);
+    int TotalFailures,
+    int RateLimitHits = 0,
+    bool RateLimitAlerting = false);

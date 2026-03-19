@@ -79,6 +79,7 @@ import type {
   AuditEventListResponse,
   AuditEventQueryParams,
   AuditExportParams,
+  RateLimitAlertSummary,
   WebhookStatusListResponse,
 } from './types';
 
@@ -573,6 +574,15 @@ export async function getSloStatus(): Promise<SloStatusResponse> {
 
 export async function getSecretsStatus(): Promise<SecretsStatusResponse> {
   return apiFetch<SecretsStatusResponse>('/api/admin/secrets/status');
+}
+
+// ── Rate-limit alert endpoints (P3-020) ──
+
+export async function getRateLimitAlerts(): Promise<RateLimitAlertSummary> {
+  const res = await apiFetch<ApiResponse<RateLimitAlertSummary>>(
+    '/api/admin/diagnostics/rate-limit-alerts',
+  );
+  return unwrap(res);
 }
 
 // ── Credential status endpoints (P3-009) ──

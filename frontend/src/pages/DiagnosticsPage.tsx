@@ -193,6 +193,16 @@ function OverviewPanel({
             <div className="diag-warn">{summary.fallbackWebhooks} in fallback</div>
           )}
         </div>
+        <div className="diag-card" data-testid="card-rate-limits">
+          <h3>Rate Limits</h3>
+          {summary.rateLimitAlertingConnectors > 0 ? (
+            <div className="diag-danger-text" data-testid="rate-limit-alert-count">
+              {summary.rateLimitAlertingConnectors} connector{summary.rateLimitAlertingConnectors !== 1 ? 's' : ''} throttled
+            </div>
+          ) : (
+            <div className="diag-label">No rate-limit alerts</div>
+          )}
+        </div>
         <div className="diag-card" data-testid="card-credentials">
           <h3>Credentials</h3>
           {(summary.credentialExpired > 0 || summary.credentialCritical > 0 || summary.credentialWarnings > 0) ? (
@@ -233,6 +243,7 @@ function OverviewPanel({
               <tr><td>Sync Lag P95</td><td>{sloStatus.targets.syncLagP95TargetMinutes}min</td></tr>
               <tr><td>No-Evidence Rate</td><td>{(sloStatus.targets.noEvidenceRateThreshold * 100).toFixed(0)}%</td></tr>
               <tr><td>Dead-Letter Depth</td><td>{sloStatus.targets.deadLetterDepthThreshold}</td></tr>
+              <tr><td>Rate-Limit Alert</td><td>{sloStatus.targets.rateLimitAlertThreshold} hits / {sloStatus.targets.rateLimitAlertWindowMinutes}min</td></tr>
             </tbody>
           </table>
         </div>
@@ -254,7 +265,7 @@ function OverviewPanel({
             <thead>
               <tr>
                 <th>Name</th><th>Type</th><th>Status</th>
-                <th>Last Sync</th><th>Webhooks</th><th>Failures</th>
+                <th>Last Sync</th><th>Webhooks</th><th>Failures</th><th>Rate Limits</th>
               </tr>
             </thead>
             <tbody>
@@ -276,6 +287,15 @@ function OverviewPanel({
                   </td>
                   <td className={c.totalFailures > 0 ? 'diag-danger-text' : ''}>
                     {c.totalFailures}
+                  </td>
+                  <td data-testid={`rate-limit-${c.connectorId}`}>
+                    {c.rateLimitAlerting ? (
+                      <span className="diag-badge-inline badge-warn" data-testid={`rate-limit-badge-${c.connectorId}`}>
+                        {c.rateLimitHits} hits
+                      </span>
+                    ) : (
+                      <span className="diag-muted">0</span>
+                    )}
                   </td>
                 </tr>
               ))}

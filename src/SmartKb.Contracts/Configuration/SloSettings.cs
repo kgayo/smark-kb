@@ -28,4 +28,10 @@ public sealed class SloSettings
 
     /// <summary>PII redaction spike threshold (count per hour). Default: 50.</summary>
     public int PiiRedactionSpikeThreshold { get; set; } = 50;
+
+    /// <summary>Rate-limit (HTTP 429) hit count per connector within the alert window before alerting. Default: 3.</summary>
+    public int RateLimitAlertThreshold { get; set; } = 3;
+
+    /// <summary>Time window in minutes for rate-limit alert evaluation. Default: 15.</summary>
+    public int RateLimitAlertWindowMinutes { get; set; } = 15;
 }

@@ -52,11 +52,14 @@ const mockSummary: DiagnosticsSummaryResponse = {
       webhookCount: 2,
       webhooksInFallback: 1,
       totalFailures: 3,
+      rateLimitHits: 0,
+      rateLimitAlerting: false,
     },
   ],
   credentialWarnings: 0,
   credentialCritical: 0,
   credentialExpired: 0,
+  rateLimitAlertingConnectors: 0,
 };
 
 const mockSlo: SloStatusResponse = {
@@ -66,6 +69,8 @@ const mockSlo: SloStatusResponse = {
     syncLagP95TargetMinutes: 15,
     noEvidenceRateThreshold: 0.25,
     deadLetterDepthThreshold: 10,
+    rateLimitAlertThreshold: 3,
+    rateLimitAlertWindowMinutes: 15,
   },
   metrics: { chatLatencyMetric: 'smartkb.chat.latency_ms' },
   dashboardHint: 'Query metrics...',
@@ -400,5 +405,97 @@ describe('DiagnosticsPage', () => {
     expect(screen.getByText('3 expired')).toBeInTheDocument();
     expect(screen.queryByText(/warning/)).not.toBeInTheDocument();
     expect(screen.queryByText(/critical/)).not.toBeInTheDocument();
+  });
+
+  it('shows rate-limit card with no alerts when none active', async () => {
+    setupAdminUser();
+    mockedClient.getDiagnosticsSummary.mockResolvedValue(mockSummary);
+    mockedClient.getSloStatus.mockResolvedValue(mockSlo);
+    mockedClient.getSecretsStatus.mockResolvedValue(mockSecrets);
+
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('card-rate-limits')).toBeInTheDocument();
+    });
+    expect(screen.getByText('No rate-limit alerts')).toBeInTheDocument();
+  });
+
+  it('shows rate-limit alert count when connectors are throttled', async () => {
+    setupAdminUser();
+    const summaryWithRL: DiagnosticsSummaryResponse = {
+      ...mockSummary,
+      rateLimitAlertingConnectors: 2,
+      connectorHealth: [
+        {
+          ...mockSummary.connectorHealth[0],
+          rateLimitHits: 5,
+          rateLimitAlerting: true,
+        },
+      ],
+    };
+    mockedClient.getDiagnosticsSummary.mockResolvedValue(summaryWithRL);
+    mockedClient.getSloStatus.mockResolvedValue(mockSlo);
+    mockedClient.getSecretsStatus.mockResolvedValue(mockSecrets);
+
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('rate-limit-alert-count')).toBeInTheDocument();
+    });
+    expect(screen.getByText('2 connectors throttled')).toBeInTheDocument();
+  });
+
+  it('shows rate-limit badge on connector health row', async () => {
+    setupAdminUser();
+    const summaryWithRL: DiagnosticsSummaryResponse = {
+      ...mockSummary,
+      rateLimitAlertingConnectors: 1,
+      connectorHealth: [
+        {
+          ...mockSummary.connectorHealth[0],
+          rateLimitHits: 7,
+          rateLimitAlerting: true,
+        },
+      ],
+    };
+    mockedClient.getDiagnosticsSummary.mockResolvedValue(summaryWithRL);
+    mockedClient.getSloStatus.mockResolvedValue(mockSlo);
+    mockedClient.getSecretsStatus.mockResolvedValue(mockSecrets);
+
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('rate-limit-badge-c1')).toBeInTheDocument();
+    });
+    expect(screen.getByText('7 hits')).toBeInTheDocument();
+  });
+
+  it('shows rate-limit SLO target row', async () => {
+    setupAdminUser();
+    mockedClient.getDiagnosticsSummary.mockResolvedValue(mockSummary);
+    mockedClient.getSloStatus.mockResolvedValue(mockSlo);
+    mockedClient.getSecretsStatus.mockResolvedValue(mockSecrets);
+
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('slo-targets')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Rate-Limit Alert')).toBeInTheDocument();
+    expect(screen.getByText('3 hits / 15min')).toBeInTheDocument();
+  });
+
+  it('shows singular connector text for single throttled connector', async () => {
+    setupAdminUser();
+    const summaryWithRL: DiagnosticsSummaryResponse = {
+      ...mockSummary,
+      rateLimitAlertingConnectors: 1,
+    };
+    mockedClient.getDiagnosticsSummary.mockResolvedValue(summaryWithRL);
+    mockedClient.getSloStatus.mockResolvedValue(mockSlo);
+    mockedClient.getSecretsStatus.mockResolvedValue(mockSecrets);
+
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('rate-limit-alert-count')).toBeInTheDocument();
+    });
+    expect(screen.getByText('1 connector throttled')).toBeInTheDocument();
   });
 });
