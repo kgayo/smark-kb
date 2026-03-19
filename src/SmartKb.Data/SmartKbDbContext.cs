@@ -37,6 +37,7 @@ public class SmartKbDbContext : DbContext
     public DbSet<RetentionExecutionLogEntity> RetentionExecutionLogs => Set<RetentionExecutionLogEntity>();
     public DbSet<SynonymMapEntity> SynonymMaps => Set<SynonymMapEntity>();
     public DbSet<IndexSchemaVersionEntity> IndexSchemaVersions => Set<IndexSchemaVersionEntity>();
+    public DbSet<EvalReportEntity> EvalReports => Set<EvalReportEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -72,6 +73,7 @@ public class SmartKbDbContext : DbContext
         ConfigureRetentionExecutionLog(modelBuilder);
         ConfigureSynonymMap(modelBuilder);
         ConfigureIndexSchemaVersion(modelBuilder);
+        ConfigureEvalReport(modelBuilder);
     }
 
     private static void ConfigureTenant(ModelBuilder modelBuilder)
@@ -655,6 +657,24 @@ public class SmartKbDbContext : DbContext
             e.HasIndex(v => v.IndexType);
             e.HasIndex(v => new { v.IndexType, v.Status });
             e.HasIndex(v => v.IndexName).IsUnique();
+        });
+    }
+
+    private static void ConfigureEvalReport(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<EvalReportEntity>(e =>
+        {
+            e.ToTable("EvalReports");
+            e.HasKey(r => r.Id);
+            e.Property(r => r.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(r => r.RunId).HasMaxLength(128).IsRequired();
+            e.Property(r => r.RunType).HasMaxLength(32).IsRequired();
+            e.Property(r => r.MetricsJson).IsRequired();
+            e.Property(r => r.TriggeredBy).HasMaxLength(128).IsRequired();
+            e.HasIndex(r => r.TenantId);
+            e.HasIndex(r => new { r.TenantId, r.CreatedAt });
+            e.HasIndex(r => new { r.TenantId, r.RunType });
+            e.HasOne(r => r.Tenant).WithMany().HasForeignKey(r => r.TenantId);
         });
     }
 }

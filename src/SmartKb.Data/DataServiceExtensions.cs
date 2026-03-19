@@ -39,6 +39,7 @@ public static class DataServiceExtensions
         services.AddScoped<IEmbeddingCacheService, EmbeddingCacheService>();
         services.AddScoped<IContradictionDetectionService, ContradictionDetectionService>();
         services.AddScoped<IPatternMaintenanceService, PatternMaintenanceService>();
+        services.AddScoped<IEvalReportService, EvalReportService>();
 
         return services;
     }

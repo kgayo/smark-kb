@@ -83,6 +83,9 @@ public static class AuditEventTypes
     public const string ScheduledSyncTriggered = "scheduled_sync.triggered";
     public const string ScheduledSyncSkipped = "scheduled_sync.skipped";
 
+    // Eval report events (P3-021).
+    public const string EvalReportPersisted = "eval.report_persisted";
+
     // Webhook events.
     public const string WebhookReceived = "webhook.received";
     public const string WebhookSignatureFailed = "webhook.signature_failed";

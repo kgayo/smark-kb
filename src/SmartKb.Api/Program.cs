@@ -1927,6 +1927,46 @@ app.MapDelete("/api/admin/index-migrations/retired/{versionId:guid}", async (
         : Results.NotFound(ApiResponse<object>.Failure("Retired version not found or not eligible for deletion.", tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
+// Eval report endpoints (P3-021).
+app.MapGet("/api/admin/eval/reports", async (
+    ITenantContextAccessor tenantAccessor,
+    HttpContext httpContext,
+    string? runType,
+    int? page,
+    int? pageSize) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var evalReportService = httpContext.RequestServices.GetRequiredService<IEvalReportService>();
+    var result = await evalReportService.ListReportsAsync(
+        tenant.TenantId, runType, page ?? 1, pageSize ?? 20);
+    return Results.Ok(ApiResponse<EvalReportListResponse>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapGet("/api/admin/eval/reports/{reportId:guid}", async (
+    Guid reportId,
+    ITenantContextAccessor tenantAccessor,
+    HttpContext httpContext) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var evalReportService = httpContext.RequestServices.GetRequiredService<IEvalReportService>();
+    var report = await evalReportService.GetReportAsync(tenant.TenantId, reportId);
+    return report is not null
+        ? Results.Ok(ApiResponse<EvalReportDetail>.Success(report, tenant.CorrelationId))
+        : Results.NotFound(ApiResponse<object>.Failure("Eval report not found.", tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapPost("/api/admin/eval/reports", async (
+    PersistEvalReportRequest request,
+    ITenantContextAccessor tenantAccessor,
+    HttpContext httpContext) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var evalReportService = httpContext.RequestServices.GetRequiredService<IEvalReportService>();
+    var report = await evalReportService.PersistReportAsync(tenant.TenantId, request, tenant.UserId);
+    return Results.Created($"/api/admin/eval/reports/{report.Id}",
+        ApiResponse<EvalReportDetail>.Success(report, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
 app.Run();
 
 public partial class Program { }
