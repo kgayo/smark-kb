@@ -15,10 +15,16 @@ As a support lead, I need measurable feedback and evaluation loops so answer qua
 - Maintain a gold dataset for retrieval/generation/routing evaluations.
 - Run nightly smoke eval and weekly full eval with trend reporting.
 - Block release or flag regressions when quality thresholds degrade.
+- Default quality thresholds (configurable via `EvalSettings`):
+  - Groundedness: >= 0.80 (80%)
+  - Citation coverage: >= 0.70 (70%)
+  - Routing accuracy: >= 0.60 (60%)
+  - Maximum no-evidence rate: <= 0.25 (25%)
+- Violations trigger GitHub Actions `::error` annotations; regressions trigger `::warning` or `::error` based on delta magnitude.
 
 ## Acceptance Criteria
 - [ ] Feedback and outcome events are queryable per tenant.
-- [ ] Weekly quality report includes groundedness, citation coverage, routing accuracy, and no-evidence rate.
+- [ ] Weekly quality report includes groundedness (>= 0.80), citation coverage (>= 0.70), routing accuracy (>= 0.60), and no-evidence rate (<= 0.25).
 - [ ] Evaluation runs compare against last known good baseline.
 - [ ] Improvement actions are traceable to measured deltas.
 - [ ] Regression alerts are visible to support lead/engineering.

@@ -14,7 +14,11 @@ As a retrieval engineer, I need normalized and enriched content so retrieval ret
 - Chunk documents by semantic boundaries and tickets by troubleshooting structure.
 - Enrich with issue category, product/module, severity, environment, and key error tokens.
 - Generate structured case cards with symptoms, root cause, resolution, verification, and escalation playbook hints.
-- Version enrichment outputs to enable safe reprocessing.
+- Version enrichment outputs to enable safe reprocessing:
+  - Enrichment version is a monotonically increasing integer (`EnhancedEnrichmentService.CurrentEnrichmentVersion`, currently `2`).
+  - Each `EvidenceChunkEntity` stores `EnrichmentVersion` (the version that produced it) and `ReprocessedAt` (timestamp of last reprocessing).
+  - Chunk content hash includes the version: `SHA256({ChunkId}|{ChunkText}|{EnrichmentVersion})`. A version bump forces re-hash and re-indexing of all chunks on next sync.
+  - Reprocessing is deterministic: same input + same version = same output hash.
 
 ## Acceptance Criteria
 - [ ] Every chunk maps to parent source record and tenant.

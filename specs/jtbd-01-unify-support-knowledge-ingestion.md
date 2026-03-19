@@ -18,6 +18,10 @@ As a support operations lead, I need content from multiple systems unified into 
   - SharePoint Graph delta + change notifications
 - Support polling fallback when webhooks fail or are unavailable.
 - Ensure idempotent processing and replay safety.
+- Deduplicate content at ingestion time using SHA-256 content hashes:
+  - Raw content: `RawContentSnapshotEntity.ContentHash` compared before blob upload; unchanged content skips re-upload.
+  - Chunks: `EvidenceChunkEntity` hash computed as `SHA256({ChunkId}|{ChunkText}|{EnrichmentVersion})`; upsert skips re-indexing when hash matches.
+  - Sync runs: minute-granularity idempotency keys (`scheduled-{connectorId}-{yyyyMMddHHmm}`) prevent duplicate scheduled triggers.
 - Store connector secrets in Azure Key Vault; store only secret references/metadata in Azure SQL.
 
 ## Acceptance Criteria

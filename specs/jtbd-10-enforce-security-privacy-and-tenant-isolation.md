@@ -20,9 +20,19 @@ As a security/compliance owner, I need strict auth, authorization, auditability,
 - Record immutable audit events for queries, retrieval IDs, answers, escalations, and admin changes.
 - Support configurable retention and right-to-delete propagation into indexes.
 - Retention policy must support configurable detailed-log windows and longer aggregated-metric windows.
+- Per-entity retention configuration via `RetentionConfigEntity` (per-tenant, per-entity-type):
+  - Supported entity types: `AppSession`, `Message`, `AuditEvent`, `EvidenceChunk`, `AnswerTrace`.
+  - `RetentionDays`: detail window (minimum 1 day, no hardcoded default — must be configured per tenant).
+  - `MetricRetentionDays`: aggregated-metric window (must be >= `RetentionDays`).
+  - `RetentionCleanupService` executes cleanup based on configured policies; compliance verification detects overdue entities.
 
 ## Acceptance Criteria
-- [ ] Cross-tenant access attempts are blocked and audited.
+- [ ] Cross-tenant access attempts are blocked and audited:
+  - `TenantContextMiddleware` extracts `tid` claim from JWT; returns **403 Forbidden** with `TenantMissing` audit event when absent.
+  - All EF Core queries apply per-tenant WHERE filters on major entities (sessions, messages, chunks, patterns, connectors, etc.).
+  - Resource-level cross-tenant access returns **404 Not Found** (not 403) to prevent tenant-existence information disclosure.
+  - ACL/group-based security trimming in retrieval prevents cross-tenant group access.
+  - Audit trail tracks attempted cross-tenant access via correlation IDs and actor IDs.
 - [ ] Restricted documents are never passed to generation layer.
 - [ ] PII redaction rules are test-covered and auditable.
 - [ ] Audit exports support investigation and compliance workflows.

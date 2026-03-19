@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-19 (Asia/Manila) — iteration 87 (P3-014 add RootCause field to case pattern schema)
-Status: Active backlog (Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 in progress: P3-001, P3-002, P3-003, P3-004, P3-005, P3-006, P3-008, P3-014, P3-017, P3-018, P3-019, P3-021, P3-024, P3-029, P3-032, P3-034, P3-035, P3-036, P3-037, P3-038 complete; Tests complete: T-001–T-008; ~2244 tests passing (1929 backend + 315 frontend + 98 IaC - some overlap in counting); 0 bugs blocking, 0 tech-debt blocking)
+Last updated: 2026-03-19 (Asia/Manila) — iteration 88 (P3-011 resolve open spec clarifications)
+Status: Active backlog (Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 in progress: P3-001, P3-002, P3-003, P3-004, P3-005, P3-006, P3-008, P3-011, P3-014, P3-016, P3-017, P3-018, P3-019, P3-021, P3-024, P3-029, P3-032, P3-034, P3-035, P3-036, P3-037, P3-038 complete; Tests complete: T-001–T-008; ~2244 tests passing (1929 backend + 315 frontend + 98 IaC - some overlap in counting); 0 bugs blocking, 0 tech-debt blocking)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -376,20 +376,21 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
 
 ### P3 Spec Debt and Documentation
 
-- [ ] P3-011: Resolve remaining open spec clarifications.
-  - Gap: 8 open SPEC items remain unresolved:
-    - SPEC-003: Content-level dedup strategy — implementation exists (ContentHash in SyncJobProcessor) but spec not updated.
-    - SPEC-004: Enrichment version scheme — implementation exists (EnrichmentVersion int, ReprocessedAt timestamp) but spec not formalized.
-    - SPEC-007: jtbd-03 spec expansion — spec is 33 lines; all detail lives in PRD §50. Risk of divergence.
-    - SPEC-009: Numeric SLO thresholds — partially resolved by P0-021 (groundedness >= 0.80 etc.) but jtbd-06 spec not patched.
-    - SPEC-010: Routing rule precedence — no spec language for multi-rule resolution order.
-    - SPEC-011: Severity classification ownership — unclear whether LLM, enrichment, agent, or source ticket determines severity.
-    - SPEC-012: Trust state 3 vs 4 — resolved in code (4 states: Draft/Reviewed/Approved/Deprecated) but spec not patched.
-    - SPEC-013: Pattern usage/reuse metrics — PatternMaintenanceService checks answer trace citations but no formal metrics schema.
-    - SPEC-015: Default retention windows — implementation uses configurable per-entity policies but spec has no defaults.
-    - SPEC-016: Cross-tenant detection — beyond missing-tid check; no spec language.
-  - Scope: Patch each spec file with implementation decisions. Mark resolved in this plan.
-  - Priority: MEDIUM — reduces drift between specs and code.
+- [x] P3-011: Resolve remaining open spec clarifications.
+  - Specs: jtbd-01, jtbd-02, jtbd-03, jtbd-06, jtbd-08, jtbd-09, jtbd-10
+  - Completed: Patched 7 spec files with 10 implementation decisions:
+    - SPEC-003: jtbd-01 updated with SHA-256 content hash dedup strategy (raw content, chunks, scheduled sync idempotency keys).
+    - SPEC-004: jtbd-02 updated with enrichment version scheme (monotonic int, hash includes version, ReprocessedAt timestamp).
+    - SPEC-007: jtbd-03 expanded from 33 lines to full retrieval pipeline spec (4 stages, two-index strategy, evidence index schema, security filtering, no-evidence detection, telemetry).
+    - SPEC-009: jtbd-06 updated with numeric SLO thresholds (groundedness >= 0.80, citation >= 0.70, routing >= 0.60, no-evidence <= 0.25).
+    - SPEC-010: jtbd-08 updated with routing rule precedence (exact ProductArea match, first active rule wins, fallback to "Support").
+    - SPEC-011: jtbd-08 updated with multi-stage severity ownership (enrichment → LLM classification → structured output → agent override).
+    - SPEC-012: jtbd-09 updated with 4-state trust model (Draft/Reviewed/Approved/Deprecated) and transition/indexing behavior.
+    - SPEC-013: jtbd-09 updated with pattern usage metrics (citation-based detection via AnswerTraceEntity, UnusedDaysThreshold, maintenance tasks with MetricsJson).
+    - SPEC-015: jtbd-10 updated with retention config details (5 entity types, per-tenant RetentionDays + MetricRetentionDays, minimum 1 day).
+    - SPEC-016: jtbd-10 updated with cross-tenant detection strategy (403 on missing tid, 404 on resource-level cross-tenant, query filters, ACL trimming, audit trail).
+  - Dependencies: None
+  - Priority: MEDIUM — resolved.
 
 - [ ] P3-012: Define and document pattern usage/reuse metrics schema (SPEC-013).
   - Specs: jtbd-09

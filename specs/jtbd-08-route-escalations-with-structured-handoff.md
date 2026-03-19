@@ -12,6 +12,12 @@ As a support agent, I need escalation recommendations and high-quality handoff d
 ## Requirements
 - Determine escalation need using confidence, policy, and issue characteristics.
 - Recommend target team with rationale.
+- Routing rule precedence: per-tenant `EscalationRoutingRule` entries match by exact `ProductArea == SuspectedComponent`. First active matching rule wins (`FirstOrDefault` in DB order). When no rule matches, fall back to `FallbackTargetTeam` (default: "Support"). Each rule specifies target team, confidence threshold, and minimum severity.
+- Severity classification is multi-stage:
+  1. **Ingestion enrichment**: `EnhancedEnrichmentService` assigns baseline severity via keyword detection during normalization.
+  2. **Pre-retrieval classification**: `gpt-4o-mini` query classification produces a `SeverityHint` before retrieval.
+  3. **LLM structured output**: The generation model's escalation response includes a severity recommendation.
+  4. **Agent override**: Support agent can edit severity in the escalation draft before submission (final authority).
 - Generate handoff draft including summary, repro steps, logs/IDs requested, suspected component, severity, and evidence links.
 - Support draft creation flow for Azure DevOps or ClickUp with human review before submission.
 - Track escalation outcomes (accepted/rerouted/resolved) for routing improvement.
