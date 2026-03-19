@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-19 (Asia/Manila) — iteration 85 (P3-035 embedding cache eviction + P3-037 ARM threshold fix)
-Status: Active backlog (Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 in progress: P3-001, P3-002, P3-003, P3-004, P3-005, P3-006, P3-008, P3-017, P3-018, P3-019, P3-021, P3-024, P3-032, P3-034, P3-035, P3-036, P3-037, P3-038 complete; Tests complete: T-001–T-008; ~2207 tests passing (1911 backend + 296 frontend + 98 IaC - some overlap in counting); 0 bugs blocking, 0 tech-debt blocking)
+Last updated: 2026-03-19 (Asia/Manila) — iteration 86 (P3-029 audit compliance admin UI)
+Status: Active backlog (Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 in progress: P3-001, P3-002, P3-003, P3-004, P3-005, P3-006, P3-008, P3-017, P3-018, P3-019, P3-021, P3-024, P3-029, P3-032, P3-034, P3-035, P3-036, P3-037, P3-038 complete; Tests complete: T-001–T-008; ~2224 tests passing (1911 backend + 313 frontend + 98 IaC - some overlap in counting); 0 bugs blocking, 0 tech-debt blocking)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -456,12 +456,10 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
   - Dependencies: P0-005A (IaC baseline complete)
   - Priority: LOW — operational hygiene; drift detection covers the critical safety net.
 
-- [ ] P3-016: Strengthen audit event immutability at database level.
+- [x] P3-016: Strengthen audit event immutability at database level.
   - Specs: jtbd-10 (Req 10-7: immutable audit events)
-  - Gap: Audit event immutability is enforced by convention (no update/delete API endpoints) rather than database-level constraints. A code change or direct SQL access could mutate audit records.
-  - Scope: Options: (a) Add SQL trigger to prevent UPDATE/DELETE on AuditEvents table, (b) Use temporal tables for tamper-evident audit, or (c) Add append-only constraint via EF Core interceptor that throws on audit entity modifications.
   - Dependencies: P0-020 (audit complete)
-  - Priority: LOW — convention-based immutability is acceptable for most compliance regimes; DB-level enforcement is defense-in-depth.
+  - Completed: `AuditImmutabilityInterceptor` (EF Core `SaveChangesInterceptor`) in `SmartKb.Data.Interceptors` — intercepts both `SavingChanges` and `SavingChangesAsync`, scans ChangeTracker for `AuditEventEntity` entries in `Modified` or `Deleted` state, throws `InvalidOperationException` with event ID. Registered as singleton in `DataServiceExtensions.AddSmartKbData()` via `AddInterceptors()` on `DbContextOptionsBuilder`. Applies to both API and Ingestion hosts. Inserts remain allowed; only mutations and deletions are blocked. 9 new tests (insert succeeds, modify throws async, delete throws async, modify throws sync, delete throws sync, non-audit entity modification succeeds, multiple inserts succeed, event-type modification throws, mixed insert+modify throws); all 1920 backend tests passing.
 
 - [x] P3-017: Implement ticket-specific troubleshooting-structure chunking mode.
   - Specs: jtbd-02 (Req 02-R3: chunk tickets by troubleshooting structure)
@@ -542,12 +540,10 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
   - Dependencies: P3-004 (synonym maps)
   - Priority: LOW — error token extraction exists in enrichment; explicit management adds admin control.
 
-- [ ] P3-029: Add admin UI for audit export and compliance investigations.
+- [x] P3-029: Add admin UI for audit export and compliance investigations.
   - Specs: jtbd-10, PRD §60 "Compliance notes"
-  - Gap: `GET /api/audit/events/export` NDJSON streaming endpoint exists (P0-020A), but there is no frontend UI for triggering, filtering, and downloading audit exports. The PRD compliance note implies a user-facing admin interface for compliance investigations, not just an API.
-  - Scope: Add "Audit & Compliance" tab to DiagnosticsPage or a new dedicated page. Include: date range picker, event type filter, tenant filter (for multi-tenant admins), export button (downloads NDJSON), event table with pagination, and event detail modal.
   - Dependencies: P0-020A (audit export API complete)
-  - Priority: MEDIUM — compliance officers and security auditors need self-serve access without API tooling.
+  - Completed: `AuditCompliancePage` React component at `/audit` route with 2 tabs — **Events** (paginated audit event table with 5 filters: event type, actor ID, correlation ID, date-from, date-to; expandable row detail with JSON pretty-print or raw text; pagination controls) and **Export** (date range + event type + actor ID filters, NDJSON download with auto-generated filename). 4 TypeScript interfaces (`AuditEventResponse`, `AuditEventListResponse`, `AuditEventQueryParams`, `AuditExportParams`). 2 API client functions (`queryAuditEvents` calls `GET /api/audit/events`, `exportAuditEvents` calls `GET /api/audit/events/export` with blob download). `exportAuditEvents` uses raw `fetch` for blob handling (bypasses `apiFetch` JSON parsing). Role-gated (Admin only via `useRoles`). Navigation links added to AdminPage and DiagnosticsPage headers. Audit-specific CSS (detail JSON viewer, pagination, correlation ID monospace). 17 new frontend tests (loading, access denied, events table rendering, event detail expand/collapse, JSON vs plain text detail, filter application, pagination, empty state, error banner, export tab, export download, export error, tab navigation, header links); 313 frontend tests passing. All 1911 backend tests unaffected. R-030 resolved.
 
 - [ ] P3-030: Evaluate customer-managed key (CMK) support for data encryption.
   - Specs: jtbd-10, PRD §60 "Data encryption"
@@ -618,7 +614,7 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
 - [x] R-027: ~~OAuth auth flow not implemented~~ — **Resolved by P3-019** (iteration 84). Full OAuth authorization code flow with token refresh for all 4 connector types.
 - [x] R-028: ~~Confidence rationale absent from response contract.~~ **RESOLVED** by P3-024 (iteration 82). `ConfidenceRationale` field added to ChatResponse and MessageEntity.
 - [ ] R-029: **NEW** — No in-app rendered Source Viewer for evidence. Agents must leave the copilot to view full source content. **Tracked as** P3-025.
-- [ ] R-030: **NEW** — Audit export is API-only. Compliance investigations require API tooling rather than self-serve UI. **Tracked as** P3-029.
+- [x] R-030: Audit export is API-only. **Resolved by** P3-029 — AuditCompliancePage at `/audit` provides self-serve event browsing, filtering, and NDJSON export.
 - [ ] R-031: **NEW** — Customer-managed keys (CMK) not evaluated. Enterprise tenants with strict encryption requirements have no CMK path. **Tracked as** P3-030.
 - [x] R-032: No CD/deploy workflow. **Resolved by** P3-032 — deploy.yml with environment-gated Terraform apply, backend publish, frontend SWA deploy, and post-deploy smoke test.
 - [x] R-033: ~~Distilled patterns are not auto-indexed to Azure AI Search.~~ **RESOLVED** by P3-034 (iteration 73). Distillation auto-indexes; governance deletes from index on deprecation.
