@@ -1508,14 +1508,27 @@ public class ChatOrchestratorIntegrationTests
 
         public Task<TokenUsageSummary> GetSummaryAsync(string tenantId, DateTimeOffset periodStart,
             DateTimeOffset periodEnd, CancellationToken ct = default)
-            => throw new NotImplementedException();
+            => Task.FromResult(new TokenUsageSummary
+            {
+                TenantId = tenantId, PeriodStart = periodStart, PeriodEnd = periodEnd,
+                TotalPromptTokens = 0, TotalCompletionTokens = 0, TotalTokens = 0,
+                TotalEmbeddingTokens = 0, TotalRequests = 0, EmbeddingCacheHits = 0,
+                EmbeddingCacheMisses = 0, TotalEstimatedCostUsd = 0,
+                DailyTokenBudget = null, MonthlyTokenBudget = null,
+                DailyBudgetUtilizationPercent = 0, MonthlyBudgetUtilizationPercent = 0,
+            });
 
         public Task<IReadOnlyList<DailyUsageBreakdown>> GetDailyBreakdownAsync(string tenantId,
             DateTimeOffset periodStart, DateTimeOffset periodEnd, CancellationToken ct = default)
-            => throw new NotImplementedException();
+            => Task.FromResult<IReadOnlyList<DailyUsageBreakdown>>(Array.Empty<DailyUsageBreakdown>());
 
         public Task<BudgetCheckResult> CheckBudgetAsync(string tenantId, CancellationToken ct = default)
-            => throw new NotImplementedException();
+            => Task.FromResult(new BudgetCheckResult
+            {
+                Allowed = true, DenialReason = null,
+                DailyUtilizationPercent = 0, MonthlyUtilizationPercent = 0,
+                BudgetWarning = false, WarningMessage = null,
+            });
     }
 
     private class StubHttpMessageHandler(string responseBody, System.Net.HttpStatusCode statusCode)

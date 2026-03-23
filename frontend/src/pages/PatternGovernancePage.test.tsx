@@ -28,7 +28,7 @@ const mockedApi = vi.mocked(api);
 
 function renderPage() {
   return render(
-    <MemoryRouter>
+    <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <PatternGovernancePage />
     </MemoryRouter>,
   );

@@ -22,7 +22,7 @@ const mockedUseRoles = vi.mocked(useRoles);
 const mockedApi = vi.mocked(api);
 
 function renderPage() {
-  return render(<MemoryRouter><CostControlsPage /></MemoryRouter>);
+  return render(<MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><CostControlsPage /></MemoryRouter>);
 }
 
 beforeEach(() => {
