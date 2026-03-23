@@ -22,7 +22,7 @@ vi.mock('@azure/msal-react', () => ({
     accounts: [],
   }),
   useIsAuthenticated: () => false,
-  AuthenticatedTemplate: ({ children }: { children: React.ReactNode }) => null,
+  AuthenticatedTemplate: (_props: { children: React.ReactNode }) => null,
   UnauthenticatedTemplate: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 

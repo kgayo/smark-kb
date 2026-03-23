@@ -30,7 +30,10 @@ function renderPage() {
 
 const makeSession = (id: string, title: string) => ({
   sessionId: id,
+  tenantId: 'tenant-1',
+  userId: 'user-1',
   title,
+  customerRef: null as string | null,
   messageCount: 0,
   createdAt: '2026-03-18T00:00:00Z',
   updatedAt: '2026-03-18T00:00:00Z',
@@ -98,7 +101,7 @@ describe('ChatPage', () => {
       sessions: [makeSession('s1', 'Session One')],
       totalCount: 1,
     });
-    mockedApi.getMessages.mockResolvedValue({ messages: [] });
+    mockedApi.getMessages.mockResolvedValue({ messages: [], sessionId: 's1', totalCount: 0 });
 
     renderPage();
     await waitFor(() => expect(screen.getByText('Session One')).toBeInTheDocument());
@@ -112,7 +115,7 @@ describe('ChatPage', () => {
   it('sends a message in active session', async () => {
     const session = makeSession('s1', 'Active');
     mockedApi.listSessions.mockResolvedValue({ sessions: [session], totalCount: 1 });
-    mockedApi.getMessages.mockResolvedValue({ messages: [] });
+    mockedApi.getMessages.mockResolvedValue({ messages: [], sessionId: 's1', totalCount: 0 });
     mockedApi.sendMessage.mockResolvedValue({
       session,
       userMessage: {
@@ -164,7 +167,7 @@ describe('ChatPage', () => {
   it('shows error banner when sendMessage fails', async () => {
     const session = makeSession('s1', 'Active');
     mockedApi.listSessions.mockResolvedValue({ sessions: [session], totalCount: 1 });
-    mockedApi.getMessages.mockResolvedValue({ messages: [] });
+    mockedApi.getMessages.mockResolvedValue({ messages: [], sessionId: 's1', totalCount: 0 });
     mockedApi.sendMessage.mockRejectedValue(new Error('Send failed'));
 
     renderPage();
@@ -185,7 +188,7 @@ describe('ChatPage', () => {
   it('deletes session and clears active state', async () => {
     const session = makeSession('s1', 'To Delete');
     mockedApi.listSessions.mockResolvedValue({ sessions: [session], totalCount: 1 });
-    mockedApi.getMessages.mockResolvedValue({ messages: [] });
+    mockedApi.getMessages.mockResolvedValue({ messages: [], sessionId: 's1', totalCount: 0 });
     mockedApi.deleteSession.mockResolvedValue(undefined);
 
     renderPage();
@@ -207,7 +210,7 @@ describe('ChatPage', () => {
   it('shows session indicator when a session is selected', async () => {
     const session = makeSession('s1', 'My Topic');
     mockedApi.listSessions.mockResolvedValue({ sessions: [session], totalCount: 1 });
-    mockedApi.getMessages.mockResolvedValue({ messages: [] });
+    mockedApi.getMessages.mockResolvedValue({ messages: [], sessionId: 's1', totalCount: 0 });
 
     renderPage();
     await waitFor(() => expect(screen.getByText('My Topic')).toBeInTheDocument());
@@ -232,16 +235,22 @@ describe('ChatPage', () => {
     const session = makeSession('s1', 'Session');
     mockedApi.listSessions.mockResolvedValue({ sessions: [session], totalCount: 1 });
     mockedApi.getMessages.mockResolvedValue({
+      sessionId: 's1',
+      totalCount: 1,
       messages: [
         {
           messageId: 'am1',
-          role: 'assistant',
+          sessionId: 's1',
+          role: 'assistant' as const,
           content: 'Answer',
-          timestamp: '2026-03-18T00:00:00Z',
+          createdAt: '2026-03-18T00:00:00Z',
           citations: [],
           confidence: 0.8,
           confidenceLabel: 'High',
+          confidenceRationale: null,
           responseType: 'final_answer',
+          traceId: null,
+          correlationId: null,
         },
       ],
     });

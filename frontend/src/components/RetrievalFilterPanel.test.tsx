@@ -88,7 +88,7 @@ describe('RetrievalFilterPanel', () => {
     expect(screen.queryByTestId('filter-clear')).not.toBeInTheDocument();
 
     // Now with active filters
-    const { rerender } = render(
+    render(
       <RetrievalFilterPanel
         filters={{ sourceTypes: ['Ticket'] }}
         onChange={() => {}}

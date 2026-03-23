@@ -68,7 +68,7 @@ function defaultClickUpConfig(): ClickUpSourceConfig {
 
 // ── Helpers ──
 
-function parseJsonSafe<T extends Record<string, unknown>>(json: string, fallback: T): T {
+function parseJsonSafe<T extends object>(json: string, fallback: T): T {
   if (!json.trim()) return fallback;
   try {
     const parsed = JSON.parse(json);

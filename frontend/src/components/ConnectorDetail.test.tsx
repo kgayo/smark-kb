@@ -54,7 +54,7 @@ function renderDetail(connector = baseConnector, overrides: Partial<Record<strin
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockedApi.listSyncRuns.mockResolvedValue({ syncRuns: [] });
+  mockedApi.listSyncRuns.mockResolvedValue({ syncRuns: [], totalCount: 0 });
 });
 
 describe('ConnectorDetail', () => {
@@ -185,7 +185,7 @@ describe('ConnectorDetail', () => {
 
   it('triggers sync now with isBackfill=false', async () => {
     mockedApi.syncNow.mockResolvedValue({ syncRunId: 'sr1', status: 'Pending' });
-    mockedApi.listSyncRuns.mockResolvedValue({ syncRuns: [] });
+    mockedApi.listSyncRuns.mockResolvedValue({ syncRuns: [], totalCount: 0 });
     renderDetail();
     fireEvent.click(screen.getByTestId('sync-now-btn'));
 
@@ -196,7 +196,7 @@ describe('ConnectorDetail', () => {
 
   it('triggers backfill with isBackfill=true', async () => {
     mockedApi.syncNow.mockResolvedValue({ syncRunId: 'sr1', status: 'Pending' });
-    mockedApi.listSyncRuns.mockResolvedValue({ syncRuns: [] });
+    mockedApi.listSyncRuns.mockResolvedValue({ syncRuns: [], totalCount: 0 });
     renderDetail();
     fireEvent.click(screen.getByTestId('backfill-btn'));
 
