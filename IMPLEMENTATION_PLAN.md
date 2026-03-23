@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-23 (Asia/Manila) — iteration 121 (TECH-022 Fix setTimeout memory leaks in frontend components)
-Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2572 tests passing (2142 backend + 420 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 121: TECH-022 (fix setTimeout memory leaks — SourceViewerPanel and EscalationDraftModal timer refs with unmount cleanup). Code quality clean; frontend build clean (no warnings).
+Last updated: 2026-03-23 (Asia/Manila) — iteration 122 (TECH-023 Add structured logging to silent catch(JsonException) blocks)
+Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2572 tests passing (2142 backend + 420 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 122: TECH-023 (add structured logging to 25 silent catch(JsonException) blocks across 24 files — converted static helpers to instance methods, added _logger.LogWarning with exception details for production diagnostics). Code quality clean; frontend build clean (no warnings).
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -157,6 +157,10 @@ Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-00
 - [x] TECH-022: Fix setTimeout memory leaks in SourceViewerPanel and EscalationDraftModal.
   - Root cause: Both components used `setTimeout(() => setState(false), 2000)` in event handlers for copy-feedback UX without tracking the timer ID. If the component unmounts before the 2s timer fires, React would attempt a state update on an unmounted component, causing a memory leak and potential console warning.
   - Completed (iteration 121): Added `useRef<ReturnType<typeof setTimeout> | null>` to both components to track timer IDs. Added unmount cleanup via `useEffect(() => () => clearTimeout(ref.current), [])`. Timer refs are also cleared before setting new timers to prevent stacking on rapid clicks. 2 new tests verify unmount-after-copy doesn't cause errors. 420 frontend tests passing; build clean.
+
+- [x] TECH-023: Add structured logging to all silent `catch (JsonException)` blocks.
+  - Root cause: 25 `catch (JsonException)` blocks across 24 files silently swallowed deserialization errors with no logging. When JSON stored in SQL columns or received from external APIs was malformed, the code returned fallback values (null, empty list, empty dict) with no diagnostic trace, making production debugging impossible.
+  - Completed (iteration 122): Added `_logger.LogWarning(ex, ...)` with exception details and method name to all 25 catch blocks. For `private static` helpers in Data repositories, webhook managers, SyncJobProcessor, ConnectorAdminService, and OAuthTokenService: converted to instance methods to access `_logger`. For `internal static` `ParseSourceConfig` methods on 4 connector clients (called by tests): added optional `ILogger? logger = null` parameter; internal call sites pass `_logger`, test callers use default (null). SharePointWebhookManager's calls to `SharePointConnectorClient.ParseSourceConfig` updated to pass `_logger`. 3 test files updated for static→instance call changes. Zero remaining silent `catch (JsonException)` blocks in backend code.
 
 - [x] BUG-004: Terraform `app-service.tf` missing `https_only = true` on both web apps — **security drift**.
   - Root cause: ARM template explicitly sets `"httpsOnly": true` on both `app-smartkb-api-{env}` and `app-smartkb-ingestion-{env}`. Terraform `azurerm_linux_web_app` blocks omit `https_only`, which defaults to `false` in the azurerm provider.
