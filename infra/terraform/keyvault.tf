@@ -5,7 +5,7 @@ resource "azurerm_key_vault" "main" {
   tenant_id                  = var.entra_tenant_id
   sku_name                   = "standard"
   soft_delete_retention_days = 90
-  purge_protection_enabled   = var.environment == "prod"
+  purge_protection_enabled   = var.environment == "prod" || var.enable_cmk
 
   enable_rbac_authorization = true
 

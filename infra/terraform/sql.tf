@@ -6,6 +6,18 @@ resource "azurerm_mssql_server" "main" {
   administrator_login          = var.sql_admin_login
   administrator_login_password = var.sql_admin_password
 
+  identity {
+    type         = var.enable_cmk ? "SystemAssigned, UserAssigned" : "SystemAssigned"
+    identity_ids = var.enable_cmk ? [azurerm_user_assigned_identity.cmk[0].id] : []
+  }
+
+  dynamic "transparent_data_encryption" {
+    for_each = var.enable_cmk ? [1] : []
+    content {
+      key_vault_key_id = var.cmk_key_vault_key_id
+    }
+  }
+
   azuread_administrator {
     login_username = "smartkb-admin"
     tenant_id      = var.entra_tenant_id

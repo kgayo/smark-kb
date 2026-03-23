@@ -15,6 +15,19 @@ Version numbers use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.7.0] — 2026-03-23
+
+### Added
+- Customer-managed key (CMK) encryption support for Storage Account, SQL Server (TDE), and Azure AI Search (P3-030).
+- `enable_cmk` boolean variable/parameter (default: false) to opt in to CMK encryption.
+- `cmk_key_vault_key_id` variable/parameter for specifying the Key Vault encryption key URI.
+- `azurerm_user_assigned_identity` / `Microsoft.ManagedIdentity/userAssignedIdentities` resource for CMK key access (conditional).
+- Key Vault Crypto Officer role assignment for CMK identity (conditional).
+- Key Vault purge protection auto-enabled when CMK is active.
+- CMK parity check in `check_parity.py` validating Terraform ↔ ARM CMK parameter alignment.
+- `enable_cmk` in all tfvars and ARM parameter files (default: false).
+- Parity checker mapping for `azurerm_user_assigned_identity` ↔ `Microsoft.ManagedIdentity/userAssignedIdentities`.
+
 ## [1.6.0] — 2026-03-23
 
 ### Added

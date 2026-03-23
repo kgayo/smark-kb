@@ -18,6 +18,7 @@ from check_parity import (
     ParityReport,
     TerraformResource,
     check_arm_security_hardening,
+    check_cmk_parity,
     check_parity,
     check_version_parity,
     format_report,
@@ -801,7 +802,13 @@ class TestProjectArmSecurityHardening(unittest.TestCase):
     def test_search_service_has_system_identity(self):
         search = [r for r in self.resources if r.get("type") == "Microsoft.Search/searchServices"]
         self.assertEqual(len(search), 1)
-        self.assertEqual(search[0]["identity"]["type"], "SystemAssigned")
+        identity = search[0]["identity"]
+        # Identity may be a dict (static) or a string (ARM conditional expression).
+        # When conditional (CMK support), the expression always includes SystemAssigned.
+        if isinstance(identity, dict):
+            self.assertEqual(identity["type"], "SystemAssigned")
+        else:
+            self.assertIn("SystemAssigned", str(identity))
 
     def test_sql_server_version_12(self):
         sql = [r for r in self.resources if r.get("type") == "Microsoft.Sql/servers"]
@@ -979,9 +986,14 @@ class TestPropertyLevelParity(unittest.TestCase):
     def test_search_identity_matches(self):
         """Both TF and ARM define SystemAssigned identity on search service."""
         tf_content = self._read_tf("search.tf")
-        self.assertIn('type = "SystemAssigned"', tf_content)
+        self.assertIn("SystemAssigned", tf_content)
         search = [r for r in self.arm_resources if r.get("type") == "Microsoft.Search/searchServices"]
-        self.assertEqual(search[0]["identity"]["type"], "SystemAssigned")
+        identity = search[0]["identity"]
+        # May be a dict or ARM conditional expression string; either way must include SystemAssigned
+        if isinstance(identity, dict):
+            self.assertEqual(identity["type"], "SystemAssigned")
+        else:
+            self.assertIn("SystemAssigned", str(identity))
 
 
 class TestArmParameterFileConsistency(unittest.TestCase):
@@ -1321,6 +1333,215 @@ class TestCheckVersionParity(unittest.TestCase):
             # No resource mismatch, no security issues, matching versions → exit 0
             rc = main(["--tf-dir", tf_dir, "--arm-template", arm_path])
             self.assertEqual(rc, 0)
+
+
+class TestCheckCmkParity(unittest.TestCase):
+    """Tests for check_cmk_parity function (P3-030)."""
+
+    def _setup(self, tmpdir, tf_vars_content, arm_template, create_cmk_tf=False):
+        tf_dir = os.path.join(tmpdir, "tf")
+        os.makedirs(tf_dir, exist_ok=True)
+        with open(os.path.join(tf_dir, "variables.tf"), "w") as f:
+            f.write(textwrap.dedent(tf_vars_content))
+        if create_cmk_tf:
+            with open(os.path.join(tf_dir, "cmk.tf"), "w") as f:
+                f.write('resource "azurerm_user_assigned_identity" "cmk" {\n  count = var.enable_cmk ? 1 : 0\n}\n')
+        arm_path = os.path.join(tmpdir, "main.json")
+        with open(arm_path, "w") as f:
+            json.dump(arm_template, f)
+        return tf_dir, arm_path
+
+    def test_both_have_cmk_no_issues(self):
+        with tempfile.TemporaryDirectory() as d:
+            tf_dir, arm_path = self._setup(
+                d,
+                '''\
+                variable "enable_cmk" {
+                  default = false
+                }
+                variable "cmk_key_vault_key_id" {
+                  default = ""
+                }
+                ''',
+                {"parameters": {"enableCmk": {}, "cmkKeyVaultKeyId": {}}, "resources": []},
+                create_cmk_tf=True,
+            )
+            issues = check_cmk_parity(tf_dir, arm_path)
+            self.assertEqual(len(issues), 0)
+
+    def test_tf_has_cmk_arm_missing(self):
+        with tempfile.TemporaryDirectory() as d:
+            tf_dir, arm_path = self._setup(
+                d,
+                '''\
+                variable "enable_cmk" {
+                  default = false
+                }
+                variable "cmk_key_vault_key_id" {
+                  default = ""
+                }
+                ''',
+                {"parameters": {}, "resources": []},
+                create_cmk_tf=True,
+            )
+            issues = check_cmk_parity(tf_dir, arm_path)
+            errors = [i for i in issues if i.severity == "error"]
+            self.assertEqual(len(errors), 2)
+            categories = {i.category for i in errors}
+            self.assertEqual(categories, {"cmk_parity"})
+
+    def test_arm_has_cmk_tf_missing(self):
+        with tempfile.TemporaryDirectory() as d:
+            tf_dir, arm_path = self._setup(
+                d,
+                'variable "environment" {\n  default = "dev"\n}\n',
+                {"parameters": {"enableCmk": {}, "cmkKeyVaultKeyId": {}}, "resources": []},
+            )
+            issues = check_cmk_parity(tf_dir, arm_path)
+            errors = [i for i in issues if i.severity == "error"]
+            self.assertEqual(len(errors), 2)
+
+    def test_tf_has_cmk_var_but_no_cmk_tf_file(self):
+        with tempfile.TemporaryDirectory() as d:
+            tf_dir, arm_path = self._setup(
+                d,
+                '''\
+                variable "enable_cmk" {
+                  default = false
+                }
+                variable "cmk_key_vault_key_id" {
+                  default = ""
+                }
+                ''',
+                {"parameters": {"enableCmk": {}, "cmkKeyVaultKeyId": {}}, "resources": []},
+                create_cmk_tf=False,
+            )
+            issues = check_cmk_parity(tf_dir, arm_path)
+            errors = [i for i in issues if i.severity == "error"]
+            self.assertEqual(len(errors), 1)
+            self.assertIn("cmk.tf", errors[0].message)
+
+    def test_neither_has_cmk_no_issues(self):
+        with tempfile.TemporaryDirectory() as d:
+            tf_dir, arm_path = self._setup(
+                d,
+                'variable "environment" {\n  default = "dev"\n}\n',
+                {"parameters": {}, "resources": []},
+            )
+            issues = check_cmk_parity(tf_dir, arm_path)
+            self.assertEqual(len(issues), 0)
+
+    def test_cmk_enable_true_default(self):
+        with tempfile.TemporaryDirectory() as d:
+            tf_dir, arm_path = self._setup(
+                d,
+                '''\
+                variable "enable_cmk" {
+                  default = true
+                }
+                variable "cmk_key_vault_key_id" {
+                  default = ""
+                }
+                ''',
+                {"parameters": {"enableCmk": {}, "cmkKeyVaultKeyId": {}}, "resources": []},
+                create_cmk_tf=True,
+            )
+            issues = check_cmk_parity(tf_dir, arm_path)
+            self.assertEqual(len(issues), 0)
+
+    def test_cmk_parity_in_main_cli(self):
+        """Ensure main() runs CMK parity check."""
+        with tempfile.TemporaryDirectory() as d:
+            tf_dir = os.path.join(d, "tf")
+            os.makedirs(tf_dir)
+            with open(os.path.join(tf_dir, "variables.tf"), "w") as f:
+                f.write(textwrap.dedent('''\
+                    variable "infra_version" {
+                      default = "2.0.0"
+                    }
+                    variable "enable_cmk" {
+                      default = false
+                    }
+                    variable "cmk_key_vault_key_id" {
+                      default = ""
+                    }
+                '''))
+            with open(os.path.join(tf_dir, "main.tf"), "w") as f:
+                f.write("")
+            with open(os.path.join(tf_dir, "cmk.tf"), "w") as f:
+                f.write("")
+            arm_path = os.path.join(d, "main.json")
+            with open(arm_path, "w") as f:
+                json.dump({
+                    "metadata": {"infraVersion": "2.0.0"},
+                    "parameters": {"enableCmk": {}, "cmkKeyVaultKeyId": {}},
+                    "resources": [],
+                }, f)
+            rc = main(["--tf-dir", tf_dir, "--arm-template", arm_path])
+            self.assertEqual(rc, 0)
+
+
+class TestProjectCmkParity(unittest.TestCase):
+    """Validate CMK parity on actual project files (P3-030)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.project_root = Path(__file__).resolve().parent.parent.parent
+        cls.tf_dir = cls.project_root / "infra" / "terraform"
+        cls.arm_path = cls.project_root / "infra" / "arm" / "main.json"
+
+    def test_project_cmk_parity(self):
+        issues = check_cmk_parity(self.tf_dir, self.arm_path)
+        self.assertEqual(len(issues), 0, f"CMK parity issues: {[i.message for i in issues]}")
+
+    def test_tf_has_enable_cmk_variable(self):
+        content = (self.tf_dir / "variables.tf").read_text()
+        self.assertIn('variable "enable_cmk"', content)
+
+    def test_tf_has_cmk_key_variable(self):
+        content = (self.tf_dir / "variables.tf").read_text()
+        self.assertIn('variable "cmk_key_vault_key_id"', content)
+
+    def test_arm_has_enable_cmk_parameter(self):
+        with open(self.arm_path) as f:
+            template = json.load(f)
+        self.assertIn("enableCmk", template["parameters"])
+
+    def test_arm_has_cmk_key_parameter(self):
+        with open(self.arm_path) as f:
+            template = json.load(f)
+        self.assertIn("cmkKeyVaultKeyId", template["parameters"])
+
+    def test_tf_cmk_file_exists(self):
+        self.assertTrue((self.tf_dir / "cmk.tf").is_file())
+
+    def test_arm_has_cmk_identity_resource(self):
+        with open(self.arm_path) as f:
+            template = json.load(f)
+        types = [r["type"] for r in template["resources"]]
+        self.assertIn("Microsoft.ManagedIdentity/userAssignedIdentities", types)
+
+    def test_tfvars_have_enable_cmk(self):
+        for env in ("dev", "staging", "prod"):
+            content = (self.tf_dir / f"{env}.tfvars").read_text()
+            self.assertIn("enable_cmk", content, f"{env}.tfvars missing enable_cmk")
+
+    def test_arm_params_have_enable_cmk(self):
+        arm_dir = self.arm_path.parent
+        for env in ("dev", "staging", "prod"):
+            with open(arm_dir / f"parameters.{env}.json") as f:
+                params = json.load(f)
+            self.assertIn(
+                "enableCmk",
+                params["parameters"],
+                f"parameters.{env}.json missing enableCmk",
+            )
+
+    def test_user_assigned_identity_mapping(self):
+        self.assertEqual(
+            TF_TO_ARM_TYPE.get("azurerm_user_assigned_identity"),
+            "Microsoft.ManagedIdentity/userAssignedIdentities",
+        )
 
 
 if __name__ == "__main__":

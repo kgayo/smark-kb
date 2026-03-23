@@ -42,6 +42,7 @@ TF_TO_ARM_TYPE: dict[str, str] = {
     "azurerm_monitor_metric_alert": "Microsoft.Insights/metricAlerts",
     "azurerm_role_assignment": "Microsoft.Authorization/roleAssignments",
     "azurerm_static_web_app": "Microsoft.Web/staticSites",
+    "azurerm_user_assigned_identity": "Microsoft.ManagedIdentity/userAssignedIdentities",
 }
 
 # ARM types that exist as intermediate plumbing (no direct TF equivalent needed)
@@ -302,12 +303,19 @@ _ARM_SECURITY_RULES: list[tuple[str, list[tuple[list[str], object, str]]]] = [
 
 
 def _get_nested(obj: dict, keys: list[str]) -> object:
-    """Walk a dict by key path, returning None on missing keys."""
+    """Walk a dict by key path, returning None on missing keys.
+
+    If an intermediate value is an ARM expression string (starts with '['),
+    returns that string so callers can do substring matching.
+    """
     current = obj
     for k in keys:
         if not isinstance(current, dict) or k not in current:
             return None
         current = current[k]
+        # ARM conditional expressions are strings like "[if(...)]"
+        if isinstance(current, str) and current.startswith("[") and keys[-1] != k:
+            return current  # return the expression for caller to inspect
     return current
 
 
@@ -329,7 +337,12 @@ def check_arm_security_hardening(arm_path: str | Path) -> list[ParityIssue]:
             name = res.get("name", "<unnamed>")
             for path_keys, expected, desc in checks:
                 actual = _get_nested(res, path_keys)
+                # Handle ARM conditional expressions (e.g. "[if(...)]" strings).
+                # When the value is an ARM expression string, check if it contains
+                # the expected value (the property is expression-driven, not static).
                 if actual != expected:
+                    if isinstance(actual, str) and actual.startswith("[") and isinstance(expected, str) and expected in actual:
+                        continue  # ARM expression contains the expected value
                     issues.append(
                         ParityIssue(
                             severity="error",
@@ -366,6 +379,97 @@ def check_arm_security_hardening(arm_path: str | Path) -> list[ParityIssue]:
                         message=f"Queue '{res.get('name', '')}': deadLetteringOnMessageExpiration must be true",
                     )
                 )
+
+    return issues
+
+
+# ---------------------------------------------------------------------------
+# CMK parity check (P3-030)
+# ---------------------------------------------------------------------------
+
+_TF_CMK_ENABLE_RE = re.compile(
+    r'variable\s+"enable_cmk"\s*\{[^}]*default\s*=\s*(true|false)', re.DOTALL
+)
+
+_TF_CMK_KEY_RE = re.compile(
+    r'variable\s+"cmk_key_vault_key_id"\s*\{', re.DOTALL
+)
+
+
+def check_cmk_parity(
+    tf_dir: str | Path,
+    arm_path: str | Path,
+) -> list[ParityIssue]:
+    """Verify CMK configuration parity between Terraform and ARM."""
+    issues: list[ParityIssue] = []
+
+    # Check Terraform has enable_cmk variable
+    tf_path = Path(tf_dir)
+    variables_file = tf_path / "variables.tf"
+    tf_has_cmk_var = False
+    tf_has_cmk_key_var = False
+    if variables_file.is_file():
+        content = variables_file.read_text(encoding="utf-8")
+        tf_has_cmk_var = bool(_TF_CMK_ENABLE_RE.search(content))
+        tf_has_cmk_key_var = bool(_TF_CMK_KEY_RE.search(content))
+
+    # Check ARM has enableCmk parameter
+    arm_file = Path(arm_path)
+    arm_has_cmk_param = False
+    arm_has_cmk_key_param = False
+    if arm_file.is_file():
+        with open(arm_file, encoding="utf-8") as f:
+            template = json.load(f)
+        params = template.get("parameters", {})
+        arm_has_cmk_param = "enableCmk" in params
+        arm_has_cmk_key_param = "cmkKeyVaultKeyId" in params
+
+    # Both must have CMK variables or neither
+    if tf_has_cmk_var and not arm_has_cmk_param:
+        issues.append(
+            ParityIssue(
+                severity="error",
+                category="cmk_parity",
+                message="Terraform has enable_cmk variable but ARM template missing enableCmk parameter",
+            )
+        )
+    elif arm_has_cmk_param and not tf_has_cmk_var:
+        issues.append(
+            ParityIssue(
+                severity="error",
+                category="cmk_parity",
+                message="ARM template has enableCmk parameter but Terraform missing enable_cmk variable",
+            )
+        )
+
+    if tf_has_cmk_key_var and not arm_has_cmk_key_param:
+        issues.append(
+            ParityIssue(
+                severity="error",
+                category="cmk_parity",
+                message="Terraform has cmk_key_vault_key_id variable but ARM template missing cmkKeyVaultKeyId parameter",
+            )
+        )
+    elif arm_has_cmk_key_param and not tf_has_cmk_key_var:
+        issues.append(
+            ParityIssue(
+                severity="error",
+                category="cmk_parity",
+                message="ARM template has cmkKeyVaultKeyId parameter but Terraform missing cmk_key_vault_key_id variable",
+            )
+        )
+
+    # Check that CMK identity resource exists in both when CMK vars are present
+    if tf_has_cmk_var:
+        cmk_tf = tf_path / "cmk.tf"
+        if not cmk_tf.is_file():
+            issues.append(
+                ParityIssue(
+                    severity="error",
+                    category="cmk_parity",
+                    message="Terraform enable_cmk variable exists but cmk.tf file not found",
+                )
+            )
 
     return issues
 
@@ -564,6 +668,10 @@ def main(argv: Optional[list[str]] = None) -> int:
     # Also run version parity check
     version_issues = check_version_parity(args.tf_dir, args.arm_template)
     report.issues.extend(version_issues)
+
+    # Also run CMK parity check
+    cmk_issues = check_cmk_parity(args.tf_dir, args.arm_template)
+    report.issues.extend(cmk_issues)
 
     if args.json:
         print(json.dumps(report_to_dict(report), indent=2))

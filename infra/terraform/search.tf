@@ -5,8 +5,11 @@ resource "azurerm_search_service" "main" {
   sku                 = var.search_sku
 
   identity {
-    type = "SystemAssigned"
+    type         = var.enable_cmk ? "SystemAssigned, UserAssigned" : "SystemAssigned"
+    identity_ids = var.enable_cmk ? [azurerm_user_assigned_identity.cmk[0].id] : []
   }
+
+  customer_managed_key_enforcement_enabled = var.enable_cmk
 
   tags = local.common_tags
 }

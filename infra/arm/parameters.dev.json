@@ -25,6 +25,9 @@
     },
     "staticWebAppSku": {
       "value": "Free"
+    },
+    "enableCmk": {
+      "value": false
     }
   }
 }

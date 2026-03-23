@@ -6,6 +6,19 @@ resource "azurerm_storage_account" "main" {
   account_replication_type = "LRS"
   min_tls_version          = "TLS1_2"
 
+  identity {
+    type = var.enable_cmk ? "SystemAssigned, UserAssigned" : "SystemAssigned"
+    identity_ids = var.enable_cmk ? [azurerm_user_assigned_identity.cmk[0].id] : []
+  }
+
+  dynamic "customer_managed_key" {
+    for_each = var.enable_cmk ? [1] : []
+    content {
+      key_vault_key_id          = var.cmk_key_vault_key_id
+      user_assigned_identity_id = azurerm_user_assigned_identity.cmk[0].id
+    }
+  }
+
   blob_properties {
     delete_retention_policy {
       days = 7

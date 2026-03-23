@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-  "contentVersion": "1.6.0.0",
+  "contentVersion": "1.7.0.0",
   "metadata": {
-    "infraVersion": "1.6.0",
+    "infraVersion": "1.7.0",
     "description": "Smart KB infrastructure template. Keep infraVersion in sync with Terraform infra_version variable and infra/CHANGELOG.md."
   },
   "parameters": {
@@ -109,6 +109,20 @@
       "metadata": {
         "description": "Azure Static Web App SKU tier."
       }
+    },
+    "enableCmk": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Enable customer-managed key (CMK) encryption for Storage, SQL, and Search (P3-030)."
+      }
+    },
+    "cmkKeyVaultKeyId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Key Vault Key ID (versionless URI) for CMK encryption. Required when enableCmk is true."
+      }
     }
   },
   "variables": {
@@ -125,12 +139,13 @@
     "appInsightsName": "[format('appi-smartkb-{0}', parameters('environment'))]",
     "actionGroupName": "[format('ag-smartkb-slo-{0}', parameters('environment'))]",
     "staticWebAppName": "[format('stapp-smartkb-{0}', parameters('environment'))]",
+    "cmkIdentityName": "[format('id-smartkb-cmk-{0}', parameters('environment'))]",
     "alertsEnabled": "[not(equals(parameters('environment'), 'dev'))]",
     "commonTags": {
       "project": "smart-kb",
       "environment": "[parameters('environment')]",
       "managed_by": "arm",
-      "infra_version": "1.6.0"
+      "infra_version": "1.7.0"
     }
   },
   "resources": [
@@ -177,7 +192,7 @@
         "enableRbacAuthorization": true,
         "enableSoftDelete": true,
         "softDeleteRetentionInDays": 90,
-        "enablePurgeProtection": "[if(equals(parameters('environment'), 'prod'), true(), null())]"
+        "enablePurgeProtection": "[if(or(equals(parameters('environment'), 'prod'), parameters('enableCmk')), true(), null())]"
       }
     },
     {
@@ -190,10 +205,15 @@
         "name": "Standard_LRS"
       },
       "kind": "StorageV2",
+      "identity": "[if(parameters('enableCmk'), createObject('type', 'SystemAssigned,UserAssigned', 'userAssignedIdentities', createObject(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('cmkIdentityName')), createObject())), createObject('type', 'SystemAssigned'))]",
       "properties": {
         "minimumTlsVersion": "TLS1_2",
-        "supportsHttpsTrafficOnly": true
-      }
+        "supportsHttpsTrafficOnly": true,
+        "encryption": "[if(parameters('enableCmk'), createObject('keySource', 'Microsoft.Keyvault', 'keyvaultproperties', createObject('keyname', last(split(parameters('cmkKeyVaultKeyId'), '/')), 'keyvaulturi', substring(parameters('cmkKeyVaultKeyId'), 0, indexOf(parameters('cmkKeyVaultKeyId'), '/keys/'))), 'identity', createObject('userAssignedIdentity', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('cmkIdentityName')))), createObject('keySource', 'Microsoft.Storage'))]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('cmkIdentityName'))]"
+      ]
     },
     {
       "type": "Microsoft.Storage/storageAccounts/blobServices",
@@ -226,11 +246,17 @@
       "name": "[variables('sqlServerName')]",
       "location": "[parameters('location')]",
       "tags": "[variables('commonTags')]",
+      "identity": "[if(parameters('enableCmk'), createObject('type', 'SystemAssigned,UserAssigned', 'userAssignedIdentities', createObject(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('cmkIdentityName')), createObject())), createObject('type', 'SystemAssigned'))]",
       "properties": {
         "administratorLogin": "[parameters('sqlAdminLogin')]",
         "administratorLoginPassword": "[parameters('sqlAdminPassword')]",
-        "version": "12.0"
-      }
+        "version": "12.0",
+        "keyId": "[if(parameters('enableCmk'), parameters('cmkKeyVaultKeyId'), null())]",
+        "primaryUserAssignedIdentityId": "[if(parameters('enableCmk'), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('cmkIdentityName')), null())]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('cmkIdentityName'))]"
+      ]
     },
     {
       "type": "Microsoft.Sql/servers/databases",
@@ -281,13 +307,15 @@
       "sku": {
         "name": "[parameters('searchSku')]"
       },
-      "identity": {
-        "type": "SystemAssigned"
-      },
+      "identity": "[if(parameters('enableCmk'), createObject('type', 'SystemAssigned,UserAssigned', 'userAssignedIdentities', createObject(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('cmkIdentityName')), createObject())), createObject('type', 'SystemAssigned'))]",
       "properties": {
         "replicaCount": 1,
-        "partitionCount": 1
-      }
+        "partitionCount": 1,
+        "encryptionWithCmk": "[if(parameters('enableCmk'), createObject('enforcement', 'Enabled'), createObject('enforcement', 'Disabled'))]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('cmkIdentityName'))]"
+      ]
     },
     {
       "type": "Microsoft.ServiceBus/namespaces",
@@ -839,6 +867,30 @@
       "dependsOn": [
         "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]",
         "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+      ]
+    },
+    {
+      "condition": "[parameters('enableCmk')]",
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "apiVersion": "2023-01-31",
+      "name": "[variables('cmkIdentityName')]",
+      "location": "[parameters('location')]",
+      "tags": "[variables('commonTags')]"
+    },
+    {
+      "condition": "[parameters('enableCmk')]",
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "name": "[guid(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), variables('cmkIdentityName'), '14b46e9e-c2b7-41b4-b07b-48a6ebf60603')]",
+      "scope": "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '14b46e9e-c2b7-41b4-b07b-48a6ebf60603')]",
+        "principalId": "[if(parameters('enableCmk'), reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('cmkIdentityName')), '2023-01-31').principalId, '')]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('cmkIdentityName'))]",
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
       ]
     },
     {

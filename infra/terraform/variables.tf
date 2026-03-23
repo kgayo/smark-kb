@@ -1,7 +1,7 @@
 variable "infra_version" {
   description = "Infrastructure template version (semver). Must match ARM contentVersion and infra/CHANGELOG.md."
   type        = string
-  default     = "1.6.0"
+  default     = "1.7.0"
   validation {
     condition     = can(regex("^\\d+\\.\\d+\\.\\d+$", var.infra_version))
     error_message = "infra_version must be a semantic version (e.g. 1.6.0)."
@@ -67,6 +67,24 @@ variable "servicebus_sku" {
   description = "Service Bus namespace SKU."
   type        = string
   default     = "Basic"
+}
+
+# --- Customer-Managed Keys (CMK) (P3-030) ---
+
+variable "enable_cmk" {
+  description = "Enable customer-managed key (CMK) encryption for Storage, SQL, and Search. Requires cmk_key_vault_key_id."
+  type        = bool
+  default     = false
+}
+
+variable "cmk_key_vault_key_id" {
+  description = "Key Vault Key ID (versionless URI) for CMK encryption. Required when enable_cmk is true. Example: https://kv-smartkb-prod.vault.azure.net/keys/smartkb-cmk"
+  type        = string
+  default     = ""
+  validation {
+    condition     = var.cmk_key_vault_key_id == "" || can(regex("^https://.+\\.vault\\.azure\\.net/keys/.+$", var.cmk_key_vault_key_id))
+    error_message = "cmk_key_vault_key_id must be a valid Key Vault key URI (https://<vault>.vault.azure.net/keys/<key>) or empty."
+  }
 }
 
 variable "static_web_app_sku" {
