@@ -56,6 +56,17 @@ Click any citation to open the evidence drawer on the right, showing:
 - Source system and access level
 - Direct link to the original document
 
+#### Source Viewer
+Click **"View content"** on any citation card to drill into the full evidence content inline. The Source Viewer panel replaces the citation list and displays:
+- Full chunk text and surrounding context
+- Metadata badges: source type, source system, access label, product area
+- Tag chips for all associated tags
+- **Copy citation link** button (clipboard copy with "Copied!" feedback)
+- **Open external** link to the original source URL
+- **Back to citations** button to return to the citation list
+
+The viewer fetches content via `GET /api/evidence/{chunkId}/content`, which enforces tenant isolation and ACL checks (restricted content returns 404).
+
 ### Feedback
 After each response, provide feedback:
 - **Thumbs up/down**: rate answer quality
@@ -83,4 +94,5 @@ When confidence is low or the query warrants it, the assistant shows an escalati
 - `GET /api/sessions/{id}/messages` — load history
 - `POST /api/sessions/{id}/messages/{mid}/feedback` — submit feedback
 - `POST /api/sessions/{id}/outcome` — record outcome
+- `GET /api/evidence/{chunkId}/content` — full evidence content for source viewer
 - `POST /api/escalations/draft` — create escalation draft
