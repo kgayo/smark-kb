@@ -41,7 +41,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
         string tenantId, string? sourceConfig, string? secretValue,
         CancellationToken cancellationToken = default)
     {
-        var config = ParseSourceConfig(sourceConfig);
+        var config = ParseSourceConfig(sourceConfig, _logger);
         if (config is null)
             return new TestConnectionResponse { Success = false, Message = "Invalid or missing source configuration." };
 
@@ -86,7 +86,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
         string? secretValue, int sampleSize,
         CancellationToken cancellationToken = default)
     {
-        var config = ParseSourceConfig(sourceConfig);
+        var config = ParseSourceConfig(sourceConfig, _logger);
         if (config is null || string.IsNullOrEmpty(secretValue))
             return [];
 
@@ -124,7 +124,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
         string? secretValue, string? checkpoint, bool isBackfill,
         CancellationToken cancellationToken = default)
     {
-        var config = ParseSourceConfig(sourceConfig);
+        var config = ParseSourceConfig(sourceConfig, _logger);
         if (config is null)
             return ErrorResult("Invalid or missing source configuration.");
 
@@ -231,7 +231,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
         string sourceConfig, string secretValue,
         ExternalWorkItemRequest request, CancellationToken ct = default)
     {
-        var config = ParseSourceConfig(sourceConfig);
+        var config = ParseSourceConfig(sourceConfig, _logger);
         if (config is null)
             return new ExternalWorkItemResult { Success = false, ErrorDetail = "Invalid source configuration." };
 
@@ -532,15 +532,16 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
         return client;
     }
 
-    internal static ClickUpSourceConfig? ParseSourceConfig(string? json)
+    internal static ClickUpSourceConfig? ParseSourceConfig(string? json, ILogger? logger = null)
     {
         if (string.IsNullOrWhiteSpace(json)) return null;
         try
         {
             return JsonSerializer.Deserialize<ClickUpSourceConfig>(json, JsonOptions);
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            logger?.LogWarning(ex, "Failed to deserialize ClickUpSourceConfig from JSON");
             return null;
         }
     }

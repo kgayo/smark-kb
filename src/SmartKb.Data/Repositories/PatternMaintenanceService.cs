@@ -313,7 +313,7 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
         };
     }
 
-    internal static HashSet<string> ExtractPatternIds(string citedChunkIdsJson)
+    internal HashSet<string> ExtractPatternIds(string citedChunkIdsJson)
     {
         if (string.IsNullOrEmpty(citedChunkIdsJson)) return [];
         try
@@ -321,10 +321,10 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
             var ids = JsonSerializer.Deserialize<List<string>>(citedChunkIdsJson, JsonOpts) ?? [];
             return ids.Where(id => id.StartsWith("pattern-", StringComparison.OrdinalIgnoreCase)).ToHashSet();
         }
-        catch (JsonException) { return []; }
+        catch (JsonException ex) { _logger.LogWarning(ex, "Failed to deserialize JSON in {MethodName}", nameof(ExtractPatternIds)); return []; }
     }
 
-    private static IReadOnlyDictionary<string, object> DeserializeMetrics(string json)
+    private IReadOnlyDictionary<string, object> DeserializeMetrics(string json)
     {
         if (string.IsNullOrEmpty(json)) return new Dictionary<string, object>();
         try
@@ -333,6 +333,6 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
             if (dict is null) return new Dictionary<string, object>();
             return dict.ToDictionary(kv => kv.Key, kv => (object)kv.Value.ToString()!);
         }
-        catch (JsonException) { return new Dictionary<string, object>(); }
+        catch (JsonException ex) { _logger.LogWarning(ex, "Failed to deserialize JSON in {MethodName}", nameof(DeserializeMetrics)); return new Dictionary<string, object>(); }
     }
 }

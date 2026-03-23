@@ -483,7 +483,7 @@ public class PatternMaintenanceServiceTests : IDisposable
     [Fact]
     public void ExtractPatternIds_ExtractsPatternPrefixed()
     {
-        var ids = PatternMaintenanceService.ExtractPatternIds(
+        var ids = _service.ExtractPatternIds(
             "[\"ev-123\",\"pattern-abc\",\"chunk-456\",\"pattern-def\"]");
         Assert.Equal(2, ids.Count);
         Assert.Contains("pattern-abc", ids);
@@ -493,8 +493,8 @@ public class PatternMaintenanceServiceTests : IDisposable
     [Fact]
     public void ExtractPatternIds_Empty_ReturnsEmpty()
     {
-        Assert.Empty(PatternMaintenanceService.ExtractPatternIds(""));
-        Assert.Empty(PatternMaintenanceService.ExtractPatternIds("[]"));
+        Assert.Empty(_service.ExtractPatternIds(""));
+        Assert.Empty(_service.ExtractPatternIds("[]"));
     }
 
     private sealed class StubAuditWriter : IAuditEventWriter

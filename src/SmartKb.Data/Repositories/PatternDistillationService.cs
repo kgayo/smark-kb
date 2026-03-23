@@ -609,15 +609,16 @@ public sealed class PatternDistillationService : IPatternDistillationService
         };
     }
 
-    private static IReadOnlyList<string> DeserializeStringList(string? json)
+    private IReadOnlyList<string> DeserializeStringList(string? json)
     {
         if (string.IsNullOrEmpty(json)) return [];
         try
         {
             return JsonSerializer.Deserialize<List<string>>(json, JsonOpts) ?? [];
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            _logger.LogWarning(ex, "Failed to deserialize JSON in {MethodName}", nameof(DeserializeStringList));
             return [];
         }
     }

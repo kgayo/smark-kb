@@ -215,7 +215,7 @@ public class EvalReportServiceTests : IDisposable
     [Fact]
     public void DeserializeMetrics_EmptyString_ReturnsDefaults()
     {
-        var metrics = EvalReportService.DeserializeMetrics("");
+        var metrics = _service.DeserializeMetrics("");
 
         Assert.Equal(0f, metrics.Groundedness);
         Assert.Equal(0f, metrics.CitationCoverage);
@@ -225,7 +225,7 @@ public class EvalReportServiceTests : IDisposable
     public void DeserializeMetrics_ValidJson_ParsesCorrectly()
     {
         var json = """{"groundedness":0.9,"citationCoverage":0.8,"routingAccuracy":0.7,"noEvidenceRate":0.1,"responseTypeAccuracy":0.95,"mustIncludeHitRate":0.88,"safetyPassRate":1.0,"averageConfidence":0.75,"averageDurationMs":2500}""";
-        var metrics = EvalReportService.DeserializeMetrics(json);
+        var metrics = _service.DeserializeMetrics(json);
 
         Assert.Equal(0.9f, metrics.Groundedness, 0.01f);
         Assert.Equal(0.8f, metrics.CitationCoverage, 0.01f);
@@ -235,14 +235,14 @@ public class EvalReportServiceTests : IDisposable
     [Fact]
     public void DeserializeViolations_NullJson_ReturnsEmpty()
     {
-        var result = EvalReportService.DeserializeViolations(null);
+        var result = _service.DeserializeViolations(null);
         Assert.Empty(result);
     }
 
     [Fact]
     public void DeserializeBaseline_NullJson_ReturnsNull()
     {
-        var result = EvalReportService.DeserializeBaseline(null);
+        var result = _service.DeserializeBaseline(null);
         Assert.Null(result);
     }
 

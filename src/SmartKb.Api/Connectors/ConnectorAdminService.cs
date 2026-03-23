@@ -707,15 +707,16 @@ public sealed class ConnectorAdminService
         };
     }
 
-    private static FieldMappingConfig? DeserializeFieldMapping(string? json)
+    private FieldMappingConfig? DeserializeFieldMapping(string? json)
     {
         if (string.IsNullOrWhiteSpace(json)) return null;
         try
         {
             return JsonSerializer.Deserialize<FieldMappingConfig>(json, JsonOptions);
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            _logger.LogWarning(ex, "Failed to deserialize FieldMappingConfig from JSON");
             return null;
         }
     }

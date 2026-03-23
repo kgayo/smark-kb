@@ -339,7 +339,7 @@ public sealed class OAuthTokenService : IOAuthTokenService
         }
     }
 
-    private static string? GetJsonField(string? json, string fieldName)
+    private string? GetJsonField(string? json, string fieldName)
     {
         if (string.IsNullOrWhiteSpace(json)) return null;
         try
@@ -347,8 +347,9 @@ public sealed class OAuthTokenService : IOAuthTokenService
             using var doc = JsonDocument.Parse(json);
             return doc.RootElement.TryGetProperty(fieldName, out var val) ? val.GetString() : null;
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            _logger.LogWarning(ex, "Failed to parse JSON when extracting field '{FieldName}'", fieldName);
             return null;
         }
     }

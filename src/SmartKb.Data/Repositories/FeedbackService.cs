@@ -167,15 +167,16 @@ public sealed class FeedbackService : IFeedbackService
         CreatedAt = entity.CreatedAt,
     };
 
-    private static IReadOnlyList<string> DeserializeReasonCodes(string? json)
+    private IReadOnlyList<string> DeserializeReasonCodes(string? json)
     {
         if (string.IsNullOrEmpty(json)) return [];
         try
         {
             return JsonSerializer.Deserialize<List<string>>(json, JsonOpts) ?? [];
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            _logger.LogWarning(ex, "Failed to deserialize JSON in {MethodName}", nameof(DeserializeReasonCodes));
             return [];
         }
     }

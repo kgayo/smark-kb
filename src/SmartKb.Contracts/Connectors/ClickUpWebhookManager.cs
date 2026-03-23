@@ -238,11 +238,11 @@ public sealed class ClickUpWebhookManager : IWebhookManager
         return client;
     }
 
-    private static ClickUpSourceConfig? ParseSourceConfig(string? json)
+    private ClickUpSourceConfig? ParseSourceConfig(string? json)
     {
         if (string.IsNullOrWhiteSpace(json)) return null;
         try { return JsonSerializer.Deserialize<ClickUpSourceConfig>(json, JsonOptions); }
-        catch (JsonException) { return null; }
+        catch (JsonException ex) { _logger.LogWarning(ex, "Failed to deserialize ClickUpSourceConfig from JSON"); return null; }
     }
 
     private static async Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)

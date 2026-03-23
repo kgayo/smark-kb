@@ -236,11 +236,11 @@ public sealed class HubSpotWebhookManager : IWebhookManager
         return client;
     }
 
-    private static HubSpotSourceConfig? ParseSourceConfig(string? json)
+    private HubSpotSourceConfig? ParseSourceConfig(string? json)
     {
         if (string.IsNullOrWhiteSpace(json)) return null;
         try { return JsonSerializer.Deserialize<HubSpotSourceConfig>(json, JsonOptions); }
-        catch (JsonException) { return null; }
+        catch (JsonException ex) { _logger.LogWarning(ex, "Failed to deserialize HubSpotSourceConfig from JSON"); return null; }
     }
 
     private static async Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)

@@ -201,7 +201,7 @@ public sealed class EvalReportService : IEvalReportService
         };
     }
 
-    internal static EvalMetricsDto DeserializeMetrics(string json)
+    internal EvalMetricsDto DeserializeMetrics(string json)
     {
         if (string.IsNullOrWhiteSpace(json))
             return new EvalMetricsDto();
@@ -210,13 +210,14 @@ public sealed class EvalReportService : IEvalReportService
         {
             return JsonSerializer.Deserialize<EvalMetricsDto>(json, JsonOptions) ?? new EvalMetricsDto();
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            _logger.LogWarning(ex, "Failed to deserialize JSON in {MethodName}", nameof(DeserializeMetrics));
             return new EvalMetricsDto();
         }
     }
 
-    internal static IReadOnlyList<EvalViolationDto> DeserializeViolations(string? json)
+    internal IReadOnlyList<EvalViolationDto> DeserializeViolations(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
             return [];
@@ -225,13 +226,14 @@ public sealed class EvalReportService : IEvalReportService
         {
             return JsonSerializer.Deserialize<List<EvalViolationDto>>(json, JsonOptions) ?? [];
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            _logger.LogWarning(ex, "Failed to deserialize JSON in {MethodName}", nameof(DeserializeViolations));
             return [];
         }
     }
 
-    internal static EvalBaselineComparisonDto? DeserializeBaseline(string? json)
+    internal EvalBaselineComparisonDto? DeserializeBaseline(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
             return null;
@@ -240,8 +242,9 @@ public sealed class EvalReportService : IEvalReportService
         {
             return JsonSerializer.Deserialize<EvalBaselineComparisonDto>(json, JsonOptions);
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            _logger.LogWarning(ex, "Failed to deserialize JSON in {MethodName}", nameof(DeserializeBaseline));
             return null;
         }
     }

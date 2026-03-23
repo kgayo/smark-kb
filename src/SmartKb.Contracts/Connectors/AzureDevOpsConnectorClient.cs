@@ -43,7 +43,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
         string tenantId, string? sourceConfig, string? secretValue,
         CancellationToken cancellationToken = default)
     {
-        var config = ParseSourceConfig(sourceConfig);
+        var config = ParseSourceConfig(sourceConfig, _logger);
         if (config is null)
             return new TestConnectionResponse { Success = false, Message = "Invalid or missing source configuration." };
 
@@ -89,7 +89,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
         string? secretValue, int sampleSize,
         CancellationToken cancellationToken = default)
     {
-        var config = ParseSourceConfig(sourceConfig);
+        var config = ParseSourceConfig(sourceConfig, _logger);
         if (config is null || string.IsNullOrEmpty(secretValue))
             return [];
 
@@ -136,7 +136,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
         string? secretValue, string? checkpoint, bool isBackfill,
         CancellationToken cancellationToken = default)
     {
-        var config = ParseSourceConfig(sourceConfig);
+        var config = ParseSourceConfig(sourceConfig, _logger);
         if (config is null)
             return ErrorResult("Invalid or missing source configuration.");
 
@@ -254,7 +254,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
         string sourceConfig, string secretValue,
         ExternalWorkItemRequest request, CancellationToken ct = default)
     {
-        var config = ParseSourceConfig(sourceConfig);
+        var config = ParseSourceConfig(sourceConfig, _logger);
         if (config is null)
             return new ExternalWorkItemResult { Success = false, ErrorDetail = "Invalid source configuration." };
 
@@ -587,15 +587,16 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
         return client;
     }
 
-    internal static AzureDevOpsSourceConfig? ParseSourceConfig(string? json)
+    internal static AzureDevOpsSourceConfig? ParseSourceConfig(string? json, ILogger? logger = null)
     {
         if (string.IsNullOrWhiteSpace(json)) return null;
         try
         {
             return JsonSerializer.Deserialize<AzureDevOpsSourceConfig>(json, JsonOptions);
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            logger?.LogWarning(ex, "Failed to deserialize AzureDevOpsSourceConfig from JSON");
             return null;
         }
     }

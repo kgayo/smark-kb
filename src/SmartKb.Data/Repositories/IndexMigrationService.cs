@@ -543,15 +543,16 @@ public sealed class IndexMigrationService : IIndexMigrationService
         };
     }
 
-    private static List<string> DeserializeJsonList(string? json)
+    private List<string> DeserializeJsonList(string? json)
     {
         if (string.IsNullOrEmpty(json)) return [];
         try
         {
             return JsonSerializer.Deserialize<List<string>>(json, JsonOpts) ?? [];
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            _logger.LogWarning(ex, "Failed to deserialize JSON in {MethodName}", nameof(DeserializeJsonList));
             return [];
         }
     }

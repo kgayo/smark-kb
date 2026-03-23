@@ -111,7 +111,7 @@ public sealed class PatternUsageMetricsService : IPatternUsageMetricsService
         };
     }
 
-    internal static HashSet<string> ExtractPatternIds(string citedChunkIdsJson)
+    internal HashSet<string> ExtractPatternIds(string citedChunkIdsJson)
     {
         if (string.IsNullOrEmpty(citedChunkIdsJson)) return [];
         try
@@ -120,6 +120,6 @@ public sealed class PatternUsageMetricsService : IPatternUsageMetricsService
             return ids.Where(id => id.StartsWith("pattern-", StringComparison.OrdinalIgnoreCase))
                       .ToHashSet(StringComparer.OrdinalIgnoreCase);
         }
-        catch (JsonException) { return []; }
+        catch (JsonException ex) { _logger.LogWarning(ex, "Failed to deserialize JSON in {MethodName}", nameof(ExtractPatternIds)); return []; }
     }
 }

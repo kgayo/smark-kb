@@ -501,15 +501,16 @@ public sealed class EscalationDraftService : IEscalationDraftService
         PlaybookValidation = playbookValidation,
     };
 
-    private static IReadOnlyList<CitationDto> DeserializeCitations(string json)
+    private IReadOnlyList<CitationDto> DeserializeCitations(string json)
     {
         if (string.IsNullOrEmpty(json)) return [];
         try
         {
             return JsonSerializer.Deserialize<List<CitationDto>>(json, JsonOpts) ?? [];
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            _logger.LogWarning(ex, "Failed to deserialize JSON in {MethodName}", nameof(DeserializeCitations));
             return [];
         }
     }

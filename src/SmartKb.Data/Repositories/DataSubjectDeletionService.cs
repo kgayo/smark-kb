@@ -185,13 +185,13 @@ public sealed class DataSubjectDeletionService : IDataSubjectDeletionService
         return summary;
     }
 
-    private static DataSubjectDeletionResponse ToResponse(DataSubjectDeletionRequestEntity entity)
+    private DataSubjectDeletionResponse ToResponse(DataSubjectDeletionRequestEntity entity)
     {
         Dictionary<string, int>? summary = null;
         if (entity.DeletionSummaryJson != "{}")
         {
             try { summary = JsonSerializer.Deserialize<Dictionary<string, int>>(entity.DeletionSummaryJson); }
-            catch (JsonException) { /* ignore deserialization failures */ }
+            catch (JsonException ex) { _logger.LogWarning(ex, "Failed to deserialize DeletionSummaryJson"); }
         }
 
         return new DataSubjectDeletionResponse

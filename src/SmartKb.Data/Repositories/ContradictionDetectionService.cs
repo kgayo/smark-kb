@@ -336,10 +336,10 @@ public sealed class ContradictionDetectionService : IContradictionDetectionServi
     private static string NormalizePair(string a, string b)
         => string.CompareOrdinal(a, b) <= 0 ? $"{a}|{b}" : $"{b}|{a}";
 
-    private static IReadOnlyList<string> DeserializeStringList(string? json)
+    private IReadOnlyList<string> DeserializeStringList(string? json)
     {
         if (string.IsNullOrEmpty(json)) return [];
         try { return JsonSerializer.Deserialize<List<string>>(json, JsonOpts) ?? []; }
-        catch (JsonException) { return []; }
+        catch (JsonException ex) { _logger.LogWarning(ex, "Failed to deserialize JSON in {MethodName}", nameof(DeserializeStringList)); return []; }
     }
 }

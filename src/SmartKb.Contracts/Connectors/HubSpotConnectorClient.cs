@@ -57,7 +57,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
         string tenantId, string? sourceConfig, string? secretValue,
         CancellationToken cancellationToken = default)
     {
-        var config = ParseSourceConfig(sourceConfig);
+        var config = ParseSourceConfig(sourceConfig, _logger);
         if (config is null)
             return new TestConnectionResponse { Success = false, Message = "Invalid or missing source configuration." };
 
@@ -103,7 +103,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
         string? secretValue, int sampleSize,
         CancellationToken cancellationToken = default)
     {
-        var config = ParseSourceConfig(sourceConfig);
+        var config = ParseSourceConfig(sourceConfig, _logger);
         if (config is null || string.IsNullOrEmpty(secretValue))
             return [];
 
@@ -138,7 +138,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
         string? secretValue, string? checkpoint, bool isBackfill,
         CancellationToken cancellationToken = default)
     {
-        var config = ParseSourceConfig(sourceConfig);
+        var config = ParseSourceConfig(sourceConfig, _logger);
         if (config is null)
             return ErrorResult("Invalid or missing source configuration.");
 
@@ -421,15 +421,16 @@ public sealed class HubSpotConnectorClient : IConnectorClient
         return client;
     }
 
-    internal static HubSpotSourceConfig? ParseSourceConfig(string? json)
+    internal static HubSpotSourceConfig? ParseSourceConfig(string? json, ILogger? logger = null)
     {
         if (string.IsNullOrWhiteSpace(json)) return null;
         try
         {
             return JsonSerializer.Deserialize<HubSpotSourceConfig>(json, JsonOptions);
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            logger?.LogWarning(ex, "Failed to deserialize HubSpotSourceConfig from JSON");
             return null;
         }
     }

@@ -251,20 +251,20 @@ public class PatternUsageMetricsServiceTests : IDisposable
     public void ExtractPatternIds_HandlesVariousInputs(string chunkId, bool isPattern)
     {
         var json = $"""["{chunkId}"]""";
-        var result = PatternUsageMetricsService.ExtractPatternIds(json);
+        var result = _service.ExtractPatternIds(json);
         Assert.Equal(isPattern, result.Count > 0);
     }
 
     [Fact]
     public void ExtractPatternIds_EmptyJson_ReturnsEmpty()
     {
-        Assert.Empty(PatternUsageMetricsService.ExtractPatternIds(""));
-        Assert.Empty(PatternUsageMetricsService.ExtractPatternIds("[]"));
+        Assert.Empty(_service.ExtractPatternIds(""));
+        Assert.Empty(_service.ExtractPatternIds("[]"));
     }
 
     [Fact]
     public void ExtractPatternIds_MalformedJson_ReturnsEmpty()
     {
-        Assert.Empty(PatternUsageMetricsService.ExtractPatternIds("not json"));
+        Assert.Empty(_service.ExtractPatternIds("not json"));
     }
 }

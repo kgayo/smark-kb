@@ -49,7 +49,7 @@ public sealed class SharePointWebhookManager : IWebhookManager
         WebhookRegistrationContext context,
         CancellationToken cancellationToken = default)
     {
-        var config = SharePointConnectorClient.ParseSourceConfig(context.SourceConfig);
+        var config = SharePointConnectorClient.ParseSourceConfig(context.SourceConfig, _logger);
         if (config is null)
         {
             _logger.LogWarning("Cannot register SharePoint webhooks: invalid source config for connector {ConnectorId}", context.ConnectorId);
@@ -153,7 +153,7 @@ public sealed class SharePointWebhookManager : IWebhookManager
         WebhookDeregistrationContext context,
         CancellationToken cancellationToken = default)
     {
-        var config = SharePointConnectorClient.ParseSourceConfig(context.SourceConfig);
+        var config = SharePointConnectorClient.ParseSourceConfig(context.SourceConfig, _logger);
         if (config is null || string.IsNullOrEmpty(context.SecretValue))
         {
             _logger.LogWarning("Cannot deregister SharePoint webhooks: invalid config or credentials for connector {ConnectorId}",

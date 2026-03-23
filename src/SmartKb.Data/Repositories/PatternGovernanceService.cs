@@ -419,20 +419,21 @@ public sealed class PatternGovernanceService : IPatternGovernanceService
         return previous;
     }
 
-    private static IReadOnlyList<string> DeserializeStringList(string? json)
+    private IReadOnlyList<string> DeserializeStringList(string? json)
     {
         if (string.IsNullOrEmpty(json)) return [];
         try
         {
             return JsonSerializer.Deserialize<List<string>>(json, JsonOpts) ?? [];
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            _logger.LogWarning(ex, "Failed to deserialize JSON in {MethodName}", nameof(DeserializeStringList));
             return [];
         }
     }
 
-    private static IReadOnlyDictionary<string, string?> DeserializeStringDictionary(string? json)
+    private IReadOnlyDictionary<string, string?> DeserializeStringDictionary(string? json)
     {
         if (string.IsNullOrEmpty(json)) return new Dictionary<string, string?>();
         try
@@ -440,8 +441,9 @@ public sealed class PatternGovernanceService : IPatternGovernanceService
             return JsonSerializer.Deserialize<Dictionary<string, string?>>(json, JsonOpts)
                 ?? new Dictionary<string, string?>();
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            _logger.LogWarning(ex, "Failed to deserialize JSON in {MethodName}", nameof(DeserializeStringDictionary));
             return new Dictionary<string, string?>();
         }
     }

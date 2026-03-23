@@ -326,14 +326,15 @@ public sealed class TeamPlaybookService : ITeamPlaybookService
         }
     }
 
-    private static List<string> DeserializeStringList(string json)
+    private List<string> DeserializeStringList(string json)
     {
         try
         {
             return JsonSerializer.Deserialize<List<string>>(json, JsonOpts) ?? [];
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            _logger.LogWarning(ex, "Failed to deserialize JSON in {MethodName}", nameof(DeserializeStringList));
             return [];
         }
     }

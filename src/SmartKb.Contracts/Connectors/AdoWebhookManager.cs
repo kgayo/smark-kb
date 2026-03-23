@@ -190,11 +190,11 @@ public sealed class AdoWebhookManager : IWebhookManager
         return client;
     }
 
-    private static AzureDevOpsSourceConfig? ParseSourceConfig(string? json)
+    private AzureDevOpsSourceConfig? ParseSourceConfig(string? json)
     {
         if (string.IsNullOrWhiteSpace(json)) return null;
         try { return JsonSerializer.Deserialize<AzureDevOpsSourceConfig>(json, JsonOptions); }
-        catch (JsonException) { return null; }
+        catch (JsonException ex) { _logger.LogWarning(ex, "Failed to deserialize AzureDevOpsSourceConfig from JSON"); return null; }
     }
 
     private static async Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)
