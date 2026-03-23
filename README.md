@@ -34,7 +34,7 @@ Smart KB ingests support knowledge from multiple sources (Azure DevOps, SharePoi
 ```bash
 dotnet restore
 dotnet build
-dotnet test                    # ~1800 backend tests
+dotnet test                    # ~2100+ backend tests
 dotnet run --project src/SmartKb.Api/SmartKb.Api.csproj
 ```
 
@@ -43,7 +43,7 @@ dotnet run --project src/SmartKb.Api/SmartKb.Api.csproj
 ```bash
 cd frontend
 npm ci
-npm run test                   # ~258 tests
+npm run test                   # ~413 tests
 npm run dev                    # localhost:3000, proxies /api to localhost:5000
 ```
 
@@ -67,6 +67,10 @@ The frontend has multiple admin and user-facing pages. See [docs/pages/](docs/pa
 | [Synonym Management](docs/pages/synonym-management.md) | `/synonyms` | Admin | Manage domain vocabulary synonyms for improved search recall |
 | [Audit & Compliance](docs/pages/audit-compliance.md) | `/audit` | Admin | Browse audit events, filter, and export NDJSON for compliance |
 | [Gold Dataset](docs/pages/gold-dataset.md) | `/gold-cases` | Admin | Manage eval gold cases — create, edit, export JSONL for eval CLI |
+| [Routing Analytics](docs/pages/routing-analytics.md) | `/routing` | Admin | Analyze routing quality, manage rules, apply improvement recommendations |
+| [Team Playbooks](docs/pages/playbooks.md) | `/playbooks` | Admin | Define standardized handoff procedures and checklists per team |
+| [Cost Controls](docs/pages/cost-controls.md) | `/cost` | Admin | Monitor token usage, configure budgets, check budget enforcement |
+| [Privacy & Data Protection](docs/pages/privacy-admin.md) | `/privacy` | Admin | Configure PII policies, data retention, and GDPR deletion requests |
 
 ## Deployment
 
@@ -79,7 +83,7 @@ See [docs/deployment.md](docs/deployment.md) for full deployment instructions co
 
 ## API Reference
 
-See [docs/api-reference.md](docs/api-reference.md) for the complete list of 123 endpoints across 21 functional groups.
+See [docs/api-reference.md](docs/api-reference.md) for the complete list of endpoints across all functional groups.
 
 ## Project Structure
 

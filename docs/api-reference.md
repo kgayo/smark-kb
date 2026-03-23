@@ -1,6 +1,6 @@
 # API Reference
 
-Smart KB exposes 125 endpoints across 21 functional groups. All endpoints (except webhooks and health) require authentication and return wrapped `ApiResponse<T>` responses with `Success`, `Data`, `Error`, and `CorrelationId` fields.
+Smart KB exposes 150+ endpoints across 25+ functional groups. All endpoints (except webhooks and health) require authentication and return wrapped `ApiResponse<T>` responses with `Success`, `Data`, `Error`, and `CorrelationId` fields.
 
 ## Authorization Model
 
@@ -95,6 +95,16 @@ Smart KB exposes 125 endpoints across 21 functional groups. All endpoints (excep
 | POST | `/api/admin/connectors/{id}/preview-retrieval` | `connector:manage` | Test retrieval against connector chunks |
 | GET | `/api/admin/connectors/{id}/sync-runs` | `connector:manage` | Sync history |
 | GET | `/api/admin/connectors/{id}/sync-runs/{rid}` | `connector:manage` | Sync run details |
+| GET | `/api/admin/connectors/{id}/oauth/authorize` | `connector:manage` | Get OAuth authorize URL |
+| GET | `/api/admin/connectors/{id}/oauth/callback` | `connector:manage` | Handle OAuth callback |
+
+## Credential Status
+
+| Method | Path | Permission | Description |
+|--------|------|------------|-------------|
+| GET | `/api/admin/credentials/status` | `connector:manage` | All connector credential statuses |
+| GET | `/api/admin/connectors/{id}/credential-status` | `connector:manage` | Single connector credential status |
+| POST | `/api/admin/connectors/{id}/rotate-secret` | `connector:manage` | Manual secret rotation |
 
 ## Synonym Rules
 
@@ -107,6 +117,28 @@ Smart KB exposes 125 endpoints across 21 functional groups. All endpoints (excep
 | DELETE | `/api/admin/synonym-rules/{id}` | `connector:manage` | Delete rule |
 | POST | `/api/admin/synonym-rules/sync` | `connector:manage` | Sync to Azure AI Search |
 | POST | `/api/admin/synonym-rules/seed` | `connector:manage` | Load default seeds |
+
+## Stop Words
+
+| Method | Path | Permission | Description |
+|--------|------|------------|-------------|
+| GET | `/api/admin/stop-words` | `connector:manage` | List stop words |
+| GET | `/api/admin/stop-words/{id}` | `connector:manage` | Get stop word |
+| POST | `/api/admin/stop-words` | `connector:manage` | Create stop word |
+| PUT | `/api/admin/stop-words/{id}` | `connector:manage` | Update stop word |
+| DELETE | `/api/admin/stop-words/{id}` | `connector:manage` | Delete stop word |
+| POST | `/api/admin/stop-words/seed` | `connector:manage` | Load default stop words |
+
+## Special Tokens
+
+| Method | Path | Permission | Description |
+|--------|------|------------|-------------|
+| GET | `/api/admin/special-tokens` | `connector:manage` | List special tokens |
+| GET | `/api/admin/special-tokens/{id}` | `connector:manage` | Get special token |
+| POST | `/api/admin/special-tokens` | `connector:manage` | Create special token |
+| PUT | `/api/admin/special-tokens/{id}` | `connector:manage` | Update special token |
+| DELETE | `/api/admin/special-tokens/{id}` | `connector:manage` | Delete special token |
+| POST | `/api/admin/special-tokens/seed` | `connector:manage` | Load default special tokens |
 
 ## Retrieval Tuning
 
@@ -127,6 +159,8 @@ Smart KB exposes 125 endpoints across 21 functional groups. All endpoints (excep
 | POST | `/api/patterns/{id}/review` | `pattern:approve` | Review pattern |
 | POST | `/api/patterns/{id}/approve` | `pattern:approve` | Approve (auto-indexes) |
 | POST | `/api/patterns/{id}/deprecate` | `pattern:deprecate` | Deprecate (removes from index) |
+| GET | `/api/patterns/{id}/history` | `pattern:approve` | Version history |
+| GET | `/api/admin/patterns/{id}/usage` | `connector:manage` | Usage metrics |
 
 ## Pattern Maintenance
 
@@ -150,6 +184,7 @@ Smart KB exposes 125 endpoints across 21 functional groups. All endpoints (excep
 | GET | `/api/admin/connectors/{id}/webhooks` | `connector:manage` | Connector webhook status |
 | GET | `/api/admin/webhooks` | `connector:manage` | All webhook statuses |
 | GET | `/api/admin/ingestion/dead-letters` | `connector:manage` | Dead-letter queue peek |
+| GET | `/api/admin/diagnostics/rate-limit-alerts` | `connector:manage` | Rate-limit alert summary |
 
 ## Routing Rules & Analytics
 
@@ -225,6 +260,7 @@ Smart KB exposes 125 endpoints across 21 functional groups. All endpoints (excep
 | GET | `/api/admin/eval/reports` | `connector:manage` | List eval reports (paginated, `?runType=smoke\|full&page=1&pageSize=20`) |
 | GET | `/api/admin/eval/reports/{id}` | `connector:manage` | Get eval report detail with metrics/violations/baseline |
 | POST | `/api/admin/eval/reports` | `connector:manage` | Persist eval report from harness run |
+| GET | `/api/admin/eval/reports/{id}/recommendations` | `connector:manage` | Recommendations linked to eval report |
 
 ## Gold Dataset
 

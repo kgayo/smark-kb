@@ -29,6 +29,8 @@ Monitor system health, webhook status, dead-letter queue, and SLO targets. Three
 
 **Secrets Status**: Key Vault connectivity, OpenAI configuration, active model name.
 
+**Credentials Card**: shows credential health across all connectors — counts of expired, critical (expiring within 7 days), and warning (expiring within 30 days) credentials. Displays "All healthy" when no issues detected.
+
 **Rate Limits Card**: shows the number of connectors currently being throttled (HTTP 429). When no connectors are rate-limited, displays "No rate-limit alerts."
 
 **Connector Health Table**: per-connector metrics including status, last sync time/status, webhook count, fallback count, failure count, and rate-limit hits (with warning badge when alerting).
