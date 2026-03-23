@@ -204,7 +204,7 @@ public sealed class IndexMigrationService : IIndexMigrationService
             {
                 await _indexClient.DeleteIndexAsync(plan.NewIndexName, cancellationToken);
             }
-            catch (Exception deleteEx)
+            catch (Exception deleteEx) when (deleteEx is not OperationCanceledException)
             {
                 _logger.LogWarning(deleteEx, "Failed to clean up index '{IndexName}' after migration failure.", plan.NewIndexName);
             }

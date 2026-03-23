@@ -84,7 +84,7 @@ describe('SourceViewerPanel', () => {
     expect(screen.getByText('Network error')).toBeInTheDocument();
   });
 
-  it('calls onBack when back button clicked', async () => {
+  it('calls onBack when back button clicked and has aria-label', async () => {
     vi.mocked(api.getEvidenceContent).mockResolvedValue(mockContent);
     const onBack = vi.fn();
     render(<SourceViewerPanel chunkId="ev1_chunk_0" onBack={onBack} />);
@@ -93,7 +93,9 @@ describe('SourceViewerPanel', () => {
       expect(screen.getByTestId('source-viewer-title')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByTestId('source-viewer-back'));
+    const backBtn = screen.getByTestId('source-viewer-back');
+    expect(backBtn).toHaveAttribute('aria-label', 'Back to citations');
+    fireEvent.click(backBtn);
     expect(onBack).toHaveBeenCalledOnce();
   });
 
@@ -108,7 +110,7 @@ describe('SourceViewerPanel', () => {
     expect(screen.getByText('Copy citation link')).toBeInTheDocument();
   });
 
-  it('renders open external link', async () => {
+  it('renders open external link with aria-label', async () => {
     vi.mocked(api.getEvidenceContent).mockResolvedValue(mockContent);
     render(<SourceViewerPanel chunkId="ev1_chunk_0" onBack={() => {}} />);
 
@@ -119,6 +121,7 @@ describe('SourceViewerPanel', () => {
     const link = screen.getByTestId('open-external');
     expect(link).toHaveAttribute('href', mockContent.sourceUrl);
     expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('aria-label', 'Open external source (opens in new tab)');
   });
 
   it('renders rawContent when available', async () => {

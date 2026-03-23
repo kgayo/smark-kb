@@ -65,6 +65,7 @@ export function EvidenceDrawer({ citations, open, onClose }: EvidenceDrawerProps
                 className="citation-view-btn"
                 data-testid="view-source-btn"
                 onClick={() => setViewingChunkId(c.chunkId)}
+                aria-label={`View content for ${c.title}`}
               >
                 View content
               </button>
@@ -74,6 +75,7 @@ export function EvidenceDrawer({ citations, open, onClose }: EvidenceDrawerProps
                   target="_blank"
                   rel="noopener noreferrer"
                   className="citation-link"
+                  aria-label={`Open external source for ${c.title} (opens in new tab)`}
                 >
                   Open external
                 </a>

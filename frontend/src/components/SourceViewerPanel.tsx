@@ -72,7 +72,7 @@ export function SourceViewerPanel({ chunkId, onBack }: SourceViewerPanelProps) {
     return (
       <div className="source-viewer" data-testid="source-viewer">
         <div className="source-viewer-header">
-          <button onClick={onBack} className="btn-back" data-testid="source-viewer-back">
+          <button onClick={onBack} className="btn-back" data-testid="source-viewer-back" aria-label="Back to citations">
             &larr; Back to citations
           </button>
         </div>
@@ -89,7 +89,7 @@ export function SourceViewerPanel({ chunkId, onBack }: SourceViewerPanelProps) {
     return (
       <div className="source-viewer" data-testid="source-viewer">
         <div className="source-viewer-header">
-          <button onClick={onBack} className="btn-back" data-testid="source-viewer-back">
+          <button onClick={onBack} className="btn-back" data-testid="source-viewer-back" aria-label="Back to citations">
             &larr; Back to citations
           </button>
         </div>
@@ -109,7 +109,7 @@ export function SourceViewerPanel({ chunkId, onBack }: SourceViewerPanelProps) {
   return (
     <div className="source-viewer" data-testid="source-viewer">
       <div className="source-viewer-header">
-        <button onClick={onBack} className="btn-back" data-testid="source-viewer-back">
+        <button onClick={onBack} className="btn-back" data-testid="source-viewer-back" aria-label="Back to citations">
           &larr; Back to citations
         </button>
         <div className="source-viewer-actions">
@@ -127,6 +127,7 @@ export function SourceViewerPanel({ chunkId, onBack }: SourceViewerPanelProps) {
               rel="noopener noreferrer"
               className="btn btn-sm btn-outline"
               data-testid="open-external"
+              aria-label="Open external source (opens in new tab)"
             >
               Open external
             </a>

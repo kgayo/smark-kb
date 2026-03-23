@@ -265,7 +265,7 @@ public sealed class SyncJobProcessor
                         await _rateLimitAlertService.RecordRateLimitEventAsync(
                             message.TenantId, message.ConnectorId, message.ConnectorType.ToString(), cancellationToken);
                     }
-                    catch (Exception rlEx)
+                    catch (Exception rlEx) when (rlEx is not OperationCanceledException)
                     {
                         _logger.LogWarning(rlEx, "Failed to record rate-limit event for connector {ConnectorId}.", message.ConnectorId);
                     }
