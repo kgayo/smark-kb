@@ -58,10 +58,19 @@ builder.Logging.AddOpenTelemetry(o =>
     o.IncludeFormattedMessage = true;
 });
 
-if (!string.IsNullOrEmpty(builder.Configuration["AzureAd:ClientId"])
-    && !builder.Configuration["AzureAd:ClientId"]!.StartsWith('<'))
+var azureAdClientId = builder.Configuration["AzureAd:ClientId"];
+var isEntraIdConfigured = !string.IsNullOrEmpty(azureAdClientId)
+    && !azureAdClientId!.StartsWith('<');
+
+if (isEntraIdConfigured)
 {
     builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration);
+}
+else if (builder.Environment.IsProduction())
+{
+    throw new InvalidOperationException(
+        "Entra ID authentication must be configured in Production. " +
+        "Set AzureAd:ClientId and AzureAd:TenantId to valid values.");
 }
 else
 {
