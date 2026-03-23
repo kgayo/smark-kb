@@ -174,6 +174,28 @@ describe('SourceViewerPanel', () => {
     expect(screen.queryByTestId('source-viewer-context')).not.toBeInTheDocument();
   });
 
+  it('clears copy timer on unmount to prevent memory leak', async () => {
+    vi.mocked(api.getEvidenceContent).mockResolvedValue(mockContent);
+    Object.assign(navigator, {
+      clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
+    });
+
+    const { unmount } = render(<SourceViewerPanel chunkId="ev1_chunk_0" onBack={() => {}} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('copy-citation-link')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('copy-citation-link'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Copied!')).toBeInTheDocument();
+    });
+
+    // Unmount before the 2s timer fires — should not throw or warn about state updates on unmounted component
+    unmount();
+  });
+
   it('does not render open external when no sourceUrl', async () => {
     const noUrl = { ...mockContent, sourceUrl: '' };
     vi.mocked(api.getEvidenceContent).mockResolvedValue(noUrl);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { EvidenceContentResponse } from '../api/types';
 import * as api from '../api/client';
 
@@ -22,6 +22,13 @@ export function SourceViewerPanel({ chunkId, onBack }: SourceViewerPanelProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -46,19 +53,20 @@ export function SourceViewerPanel({ chunkId, onBack }: SourceViewerPanelProps) {
     };
   }, [chunkId]);
 
-  const handleCopyCitation = () => {
+  const handleCopyCitation = useCallback(() => {
     if (!content) return;
     const link = content.sourceUrl || `evidence://${content.chunkId}`;
     navigator.clipboard
       .writeText(link)
       .then(() => {
         setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+        copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
       })
       .catch(() => {
         // Clipboard API may fail in insecure contexts or when denied permission.
       });
-  };
+  }, [content]);
 
   if (loading) {
     return (

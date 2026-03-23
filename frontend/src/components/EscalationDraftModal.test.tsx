@@ -312,6 +312,36 @@ describe('EscalationDraftModal', () => {
     );
   });
 
+  it('clears copy timer on unmount to prevent memory leak', async () => {
+    Object.assign(navigator, {
+      clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
+    });
+
+    const { unmount } = render(
+      <EscalationDraftModal
+        open={true}
+        sessionId="sess-1"
+        messageId="msg-1"
+        escalation={mockEscalation}
+        citations={[mockCitation]}
+        onClose={() => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('draft-copy-markdown')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('draft-copy-markdown'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Copied!')).toBeInTheDocument();
+    });
+
+    // Unmount before the 2s timer fires — should not throw or warn about state updates on unmounted component
+    unmount();
+  });
+
   it('allows changing severity via dropdown', async () => {
     render(
       <EscalationDraftModal

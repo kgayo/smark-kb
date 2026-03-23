@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   CitationDto,
   ConnectorResponse,
@@ -32,6 +32,8 @@ export function EscalationDraftModal({
   const [error, setError] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
 
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // External creation state
   const [connectors, setConnectors] = useState<ConnectorResponse[]>([]);
   const [selectedConnectorId, setSelectedConnectorId] = useState('');
@@ -49,6 +51,12 @@ export function EscalationDraftModal({
   const [severity, setSeverity] = useState('P3');
   const [targetTeam, setTargetTeam] = useState('');
   const [reason, setReason] = useState('');
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -170,7 +178,8 @@ export function EscalationDraftModal({
       const result = await api.exportEscalationDraft(draft.draftId);
       await navigator.clipboard.writeText(result.markdown);
       setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2000);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => setCopySuccess(false), 2000);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to export draft');
     }
