@@ -138,7 +138,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
 
             return records.Take(sampleSize).ToList();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogWarning(ex, "Preview failed for SharePoint connector (tenant={TenantId})", tenantId);
             return [];
@@ -162,7 +162,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
         {
             accessToken = await AcquireTokenAsync(config.EntraIdTenantId, config.ClientId, secretValue, cancellationToken);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             return ErrorResult($"Failed to acquire access token: {ex.Message}");
         }
@@ -223,7 +223,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
                     };
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogWarning(ex, "Failed to fetch from drive {DriveId} in site {SiteId}", drive.Id, siteId);
                 errors.Add($"Drive '{drive.Name}' fetch failed: {ex.Message}");
@@ -275,7 +275,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
             {
                 response = await client.GetAsync(url, ct);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 errors.Add($"Delta query failed for drive '{drive.Name}': {ex.Message}");
                 break;
@@ -327,7 +327,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
                         fetched++;
                     }
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     _logger.LogWarning(ex, "Failed to map drive item {ItemId} in drive {DriveId}", item.Id, drive.Id);
                     errors.Add($"Failed to map item '{item.Name}': {ex.Message}");
@@ -472,7 +472,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
                 return record;
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogWarning(ex, "Content download/extraction failed for {ItemName}. Using metadata-only.", item.Name);
             return record;
@@ -557,7 +557,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
                             drives.Add(drive);
                     }
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     _logger.LogWarning(ex, "Failed to resolve drive {DriveId}", driveId);
                 }

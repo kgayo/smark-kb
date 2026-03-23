@@ -155,7 +155,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
 
             embeddingActivity?.SetTag("smartkb.embedding_dims", queryEmbedding.Length);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Embedding generation failed. TraceId={TraceId}", traceId);
             orchestrationActivity?.SetStatus(ActivityStatusCode.Error, "Embedding failed");
@@ -173,7 +173,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
             retrievalActivity?.SetTag("smartkb.has_evidence", retrievalResult.HasEvidence);
             retrievalActivity?.SetTag("smartkb.acl_filtered", retrievalResult.AclFilteredOutCount);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Retrieval failed. TraceId={TraceId}", traceId);
             orchestrationActivity?.SetStatus(ActivityStatusCode.Error, "Retrieval failed");
@@ -238,7 +238,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
                     Detail: $"PII redacted in {piiRedactedCount} chunk(s) before model context assembly."),
                     cancellationToken);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogError(ex, "Failed to persist PII redaction audit event. TraceId={TraceId}", traceId);
             }
@@ -316,7 +316,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
             generationActivity?.SetTag("smartkb.prompt_tokens", callResult.PromptTokens);
             generationActivity?.SetTag("smartkb.completion_tokens", callResult.CompletionTokens);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "OpenAI generation failed. TraceId={TraceId}", traceId);
             orchestrationActivity?.SetStatus(ActivityStatusCode.Error, "Generation failed");
@@ -423,7 +423,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
                 retrievalResult.AclFilteredOutCount, true, escalation?.Recommended ?? false,
                 _settings.SystemPromptVersion, sw.ElapsedMilliseconds, cancellationToken);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Failed to persist answer trace. TraceId={TraceId}", traceId);
         }
@@ -455,7 +455,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
             DiagnosticsHelper.EstimatedCostUsd.Record((double)estimatedCost,
                 new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Failed to record token usage. TraceId={TraceId}", traceId);
         }

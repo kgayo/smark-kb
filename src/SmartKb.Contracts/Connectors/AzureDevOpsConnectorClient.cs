@@ -124,7 +124,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
 
             return records.Take(sampleSize).ToList();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogWarning(ex, "Preview failed for ADO connector (tenant={TenantId})", tenantId);
             return [];
@@ -173,7 +173,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
                         config.BatchSize, cancellationToken);
                     records.AddRange(workItems);
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     _logger.LogWarning(ex, "Failed to fetch work items from {Project}", project);
                     errors.Add($"Work items fetch failed for project '{project}': {ex.Message}");
@@ -206,7 +206,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
                         config.BatchSize - records.Count, cancellationToken);
                     records.AddRange(pages);
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     _logger.LogWarning(ex, "Failed to fetch wiki pages from {Project}", project);
                     errors.Add($"Wiki pages fetch failed for project '{project}': {ex.Message}");
@@ -497,7 +497,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
                     top - records.Count, ct);
                 records.AddRange(pages);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogWarning(ex, "Failed to fetch pages from wiki {WikiName} in {Project}",
                     wiki.Name, project);
@@ -536,7 +536,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
                 var record = MapWikiPageToCanonical(pageDetail, wiki, config.OrganizationUrl, project, tenantId);
                 records.Add(record);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogWarning(ex, "Failed to fetch wiki page content at {Path}", page.Path);
             }

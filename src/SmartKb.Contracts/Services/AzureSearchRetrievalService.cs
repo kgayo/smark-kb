@@ -73,7 +73,7 @@ public sealed class AzureSearchRetrievalService : IRetrievalService
                         string.Join(", ", preprocessed.DetectedSpecialTokens));
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogWarning(ex, "Query preprocessing failed, using original query. TraceId={TraceId}", traceId);
             }

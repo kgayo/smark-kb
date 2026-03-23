@@ -1441,6 +1441,88 @@ public class ChatOrchestratorIntegrationTests
         Assert.Contains("tenant-42", response.Escalation.HandoffNote);
     }
 
+    #region TECH-021: Cancellation Propagation Tests
+
+    [Fact]
+    public async Task OrchestrateAsync_EmbeddingCancelled_PropagatesOperationCanceledException()
+    {
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var embeddingService = new CancellingEmbeddingService();
+        var retrievalService = new StubRetrievalService(new RetrievalResult
+        {
+            Chunks = [MakeChunk("c1", "Content", 0.8)],
+            AclFilteredOutCount = 0,
+            HasEvidence = true,
+        });
+
+        var orchestrator = new ChatOrchestrator(
+            embeddingService, retrievalService, new StubTraceWriter(),
+            new StubPiiRedactionService(), new StubAuditWriter(), new StubTokenUsageService(),
+            new StubHttpClientFactory(new StubHttpMessageHandler("{}", System.Net.HttpStatusCode.OK)),
+            new OpenAiSettings { ApiKey = "test-key", Model = "gpt-4o", Endpoint = "https://api.openai.com/v1" },
+            new ChatOrchestrationSettings(),
+            new CostOptimizationSettings(),
+            NullLogger<ChatOrchestrator>.Instance);
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            orchestrator.OrchestrateAsync("t1", "u1", "c1", new ChatRequest { Query = "test" }, cts.Token));
+    }
+
+    [Fact]
+    public async Task OrchestrateAsync_RetrievalCancelled_PropagatesOperationCanceledException()
+    {
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var retrievalService = new CancellingRetrievalService();
+
+        var orchestrator = new ChatOrchestrator(
+            new StubEmbeddingService(), retrievalService, new StubTraceWriter(),
+            new StubPiiRedactionService(), new StubAuditWriter(), new StubTokenUsageService(),
+            new StubHttpClientFactory(new StubHttpMessageHandler("{}", System.Net.HttpStatusCode.OK)),
+            new OpenAiSettings { ApiKey = "test-key", Model = "gpt-4o", Endpoint = "https://api.openai.com/v1" },
+            new ChatOrchestrationSettings(),
+            new CostOptimizationSettings(),
+            NullLogger<ChatOrchestrator>.Instance);
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            orchestrator.OrchestrateAsync("t1", "u1", "c1", new ChatRequest { Query = "test" }, cts.Token));
+    }
+
+    [Fact]
+    public async Task OrchestrateAsync_GenerationCancelled_PropagatesOperationCanceledException()
+    {
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var retrievalService = new StubRetrievalService(new RetrievalResult
+        {
+            Chunks = [MakeChunk("c1", "Content", 0.8)],
+            AclFilteredOutCount = 0,
+            HasEvidence = true,
+        });
+
+        // Handler throws OCE to simulate cancelled HTTP call
+        var handler = new CancellingHttpMessageHandler();
+        var httpClientFactory = new StubHttpClientFactory(handler);
+
+        var orchestrator = new ChatOrchestrator(
+            new StubEmbeddingService(), retrievalService, new StubTraceWriter(),
+            new StubPiiRedactionService(), new StubAuditWriter(), new StubTokenUsageService(),
+            httpClientFactory,
+            new OpenAiSettings { ApiKey = "test-key", Model = "gpt-4o", Endpoint = "https://api.openai.com/v1" },
+            new ChatOrchestrationSettings(),
+            new CostOptimizationSettings(),
+            NullLogger<ChatOrchestrator>.Instance);
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            orchestrator.OrchestrateAsync("t1", "u1", "c1", new ChatRequest { Query = "test" }, cts.Token));
+    }
+
+    #endregion
+
     #region Test Doubles
 
     private class StubEmbeddingService : IEmbeddingService
@@ -1453,6 +1535,28 @@ public class ChatOrchestratorIntegrationTests
     {
         public Task<float[]> GenerateEmbeddingAsync(string text, CancellationToken cancellationToken = default)
             => throw new HttpRequestException("Embedding service unavailable");
+    }
+
+    private class CancellingEmbeddingService : IEmbeddingService
+    {
+        public Task<float[]> GenerateEmbeddingAsync(string text, CancellationToken cancellationToken = default)
+            => throw new OperationCanceledException("Embedding cancelled", cancellationToken);
+    }
+
+    private class CancellingRetrievalService : IRetrievalService
+    {
+        public Task<RetrievalResult> RetrieveAsync(
+            string tenantId, string query, float[] queryEmbedding,
+            IReadOnlyList<string>? userGroups = null, RetrievalFilter? filters = null,
+            string? correlationId = null, CancellationToken cancellationToken = default)
+            => throw new OperationCanceledException("Retrieval cancelled", cancellationToken);
+    }
+
+    private class CancellingHttpMessageHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request, CancellationToken cancellationToken)
+            => throw new OperationCanceledException("HTTP call cancelled", cancellationToken);
     }
 
     private class StubRetrievalService(RetrievalResult result) : IRetrievalService

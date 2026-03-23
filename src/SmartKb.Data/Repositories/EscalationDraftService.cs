@@ -281,7 +281,7 @@ public sealed class EscalationDraftService : IEscalationDraftService
             {
                 secretValue = await _secretProvider.GetSecretAsync(connector.KeyVaultSecretName, ct);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogWarning(ex, "Failed to retrieve secret for connector {ConnectorId}", connector.Id);
                 throw new InvalidOperationException("Failed to retrieve connector credentials from Key Vault.");

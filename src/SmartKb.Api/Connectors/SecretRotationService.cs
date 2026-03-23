@@ -142,7 +142,7 @@ public sealed class SecretRotationService : ISecretRotationService
 
             return new CredentialRotationResult(true, "Credential rotated successfully.", now);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex,
                 "Credential rotation failed for connector {ConnectorId}", connectorId);
@@ -191,7 +191,7 @@ public sealed class SecretRotationService : ISecretRotationService
             props = await _secretProvider.GetSecretPropertiesAsync(
                 connector.KeyVaultSecretName, cancellationToken);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogWarning(ex,
                 "Failed to read secret properties for connector {ConnectorId}", connector.Id);

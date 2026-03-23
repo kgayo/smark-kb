@@ -46,7 +46,7 @@ public sealed class TextExtractionService : ITextExtractionService
                 _ => TextExtractionResult.Failure($"Unsupported format: {ext}", ext),
             };
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogWarning(ex, "Text extraction failed for {FileName}", fileName);
             return TextExtractionResult.Failure($"Extraction failed: {ex.Message}", ext);

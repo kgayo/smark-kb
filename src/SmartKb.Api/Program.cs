@@ -1753,7 +1753,7 @@ app.MapGet("/api/admin/diagnostics/summary", async (
             credCrit = credStatus.CriticalCount;
             credExp = credStatus.ExpiredCount;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             // Non-fatal: diagnostics still returns even if credential check fails.
             sp.GetRequiredService<ILogger<Program>>()
@@ -1772,7 +1772,7 @@ app.MapGet("/api/admin/diagnostics/summary", async (
             rlAlerts = await rateLimitService.GetRateLimitAlertsAsync(tenant.TenantId);
             rateLimitAlerting = rlAlerts.TotalAlertingConnectors;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             sp.GetRequiredService<ILogger<Program>>()
                 .LogWarning(ex, "Failed to check rate-limit alerts for diagnostics summary");
@@ -2180,7 +2180,7 @@ app.MapPost("/api/admin/privacy/data-subject-deletion", async (
         var result = await deletionService.RequestDeletionAsync(tenant.TenantId, request.SubjectId, tenant.UserId);
         return Results.Ok(ApiResponse<DataSubjectDeletionResponse>.Success(result, tenant.CorrelationId));
     }
-    catch (Exception ex)
+    catch (Exception ex) when (ex is not OperationCanceledException)
     {
         logger.LogError(ex, "Data subject deletion request failed. TenantId={TenantId}", tenant.TenantId);
         return Results.Problem(detail: ex.Message, statusCode: 500);

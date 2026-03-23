@@ -126,7 +126,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
 
             return records.Take(sampleSize).ToList();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogWarning(ex, "Preview failed for HubSpot connector (tenant={TenantId})", tenantId);
             return [];
@@ -193,7 +193,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
                     };
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogWarning(ex, "Failed to fetch {ObjectType} from HubSpot", objectType);
                 errors.Add($"Fetch failed for object type '{objectType}': {ex.Message}");
@@ -274,7 +274,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
                 if (record is not null)
                     records.Add(record);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 errors.Add($"Failed to map {objectType} id={obj.Id}: {ex.Message}");
                 failedCount++;
@@ -345,7 +345,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
                 if (record is not null)
                     records.Add(record);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 errors.Add($"Failed to map {objectType} id={obj.Id}: {ex.Message}");
                 failedCount++;

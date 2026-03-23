@@ -75,7 +75,7 @@ public sealed class DataSubjectDeletionService : IDataSubjectDeletionService
                 Timestamp: DateTimeOffset.UtcNow,
                 Detail: $"Data subject deletion completed for subject={subjectId}: {JsonSerializer.Serialize(summary)}"), ct);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             requestEntity.Status = "Failed";
             requestEntity.ErrorDetail = ex.Message;

@@ -67,7 +67,7 @@ public sealed class SharePointWebhookManager : IWebhookManager
         {
             accessToken = await AcquireTokenAsync(config, context.SecretValue, cancellationToken);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogWarning(ex, "Failed to acquire token for SharePoint webhook registration (connector={ConnectorId})", context.ConnectorId);
             return [];
@@ -166,7 +166,7 @@ public sealed class SharePointWebhookManager : IWebhookManager
         {
             accessToken = await AcquireTokenAsync(config, context.SecretValue, cancellationToken);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogWarning(ex, "Failed to acquire token for SharePoint webhook deregistration (connector={ConnectorId})", context.ConnectorId);
             return;

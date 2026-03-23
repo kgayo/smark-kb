@@ -231,7 +231,7 @@ public sealed class SharePointWebhookHandler
                 Encoding.UTF8.GetBytes(notification.ClientState),
                 Encoding.UTF8.GetBytes(expectedSecret));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogWarning(ex, "Failed to retrieve webhook secret for validation");
             return false;

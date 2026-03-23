@@ -192,7 +192,7 @@ public sealed class IndexMigrationService : IIndexMigrationService
             return new MigrationResult(true, null, indexType, plan.CurrentIndexName,
                 plan.NewIndexName, plan.NewVersion, documentsReindexed);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Migration failed for {IndexType}: rolling back version record.", indexType);
 

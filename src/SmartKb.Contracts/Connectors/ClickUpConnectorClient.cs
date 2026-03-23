@@ -112,7 +112,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
 
             return records.Take(sampleSize).ToList();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogWarning(ex, "Preview failed for ClickUp connector (tenant={TenantId})", tenantId);
             return [];
@@ -146,7 +146,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
         {
             listIds = await ResolveListIdsAsync(client, config, cancellationToken);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogWarning(ex, "Failed to resolve ClickUp list IDs");
             return ErrorResult($"Failed to resolve list IDs: {ex.Message}");
@@ -188,7 +188,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
                     };
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogWarning(ex, "Failed to fetch tasks from ClickUp list {ListId}", listId);
                 errors.Add($"Fetch failed for list '{listId}': {ex.Message}");
@@ -251,7 +251,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
                     var listIds = await ResolveListIdsAsync(resolveClient, config, ct);
                     listId = listIds.FirstOrDefault();
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     _logger.LogWarning(ex, "Failed to resolve ClickUp list IDs for escalation");
                     return new ExternalWorkItemResult
@@ -369,7 +369,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
                 if (record is not null)
                     records.Add(record);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 errors.Add($"Failed to map task id={task.Id}: {ex.Message}");
                 failedCount++;

@@ -288,7 +288,7 @@ public sealed class PatternGovernanceService : IPatternGovernanceService
                     await _patternIndexing.IndexPatternsAsync([model], ct);
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogWarning(ex, "Failed to update search index for pattern {PatternId} after governance transition", patternId);
             }

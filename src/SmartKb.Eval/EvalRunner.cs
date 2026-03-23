@@ -134,7 +134,7 @@ public sealed class EvalRunner
                 DurationMs = sw.ElapsedMilliseconds,
             };
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             sw.Stop();
 

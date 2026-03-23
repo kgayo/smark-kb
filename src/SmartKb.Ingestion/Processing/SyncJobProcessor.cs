@@ -123,7 +123,7 @@ public sealed class SyncJobProcessor
                     secretValue = await _secretProvider.GetSecretAsync(message.KeyVaultSecretName, cancellationToken);
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 await FailRunAsync(syncRun, $"Failed to retrieve credentials: {ex.Message}", cancellationToken);
                 return false;
@@ -243,7 +243,7 @@ public sealed class SyncJobProcessor
                 message.SyncRunId, totalProcessed);
             throw;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             await FailRunAsync(syncRun, ex.Message, cancellationToken);
 
@@ -443,7 +443,7 @@ public sealed class SyncJobProcessor
                     result.Succeeded, result.Failed, string.Join(", ", result.FailedChunkIds.Take(10)));
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             // Indexing failures are non-fatal — chunks are persisted in SQL and can be re-indexed.
             _logger.LogError(ex, "Failed to index {Count} chunks. They are persisted in SQL for retry.", chunks.Count);

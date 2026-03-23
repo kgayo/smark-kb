@@ -183,7 +183,7 @@ public sealed class OAuthTokenService : IOAuthTokenService
             var json = await _secretProvider.GetSecretAsync(kvSecretName, ct);
             creds = JsonSerializer.Deserialize<OAuthCredentials>(json, JsonOptions)!;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Failed to read OAuth credentials from Key Vault secret {SecretName}.", kvSecretName);
             return null;
@@ -332,7 +332,7 @@ public sealed class OAuthTokenService : IOAuthTokenService
 
             return await response.Content.ReadFromJsonAsync<OAuthTokenEndpointResponse>(ct);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "OAuth token request to {TokenUrl} threw an exception.", tokenUrl);
             return null;

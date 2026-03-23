@@ -611,7 +611,7 @@ public sealed class ConnectorAdminService
                     entity.KeyVaultSecretName, entity.SourceConfig, entity.ConnectorType, ct);
                 return (accessToken, accessToken is null ? "OAuth token resolution failed." : null);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 return (null, $"OAuth token resolution error: {ex.Message}");
             }
@@ -625,7 +625,7 @@ public sealed class ConnectorAdminService
             var secret = await _secretProvider.GetSecretAsync(entity.KeyVaultSecretName, ct);
             return (secret, null);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             return (null, ex.Message);
         }
@@ -759,7 +759,7 @@ public sealed class ConnectorAdminService
                     {
                         await _secretProvider.SetSecretAsync(webhookSecretName, reg.WebhookSecret, ct);
                     }
-                    catch (Exception ex)
+                    catch (Exception ex) when (ex is not OperationCanceledException)
                     {
                         _logger.LogWarning(ex, "Failed to store webhook secret in Key Vault (connector={ConnectorId})", entity.Id);
                         webhookSecretName = null;

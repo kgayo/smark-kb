@@ -108,7 +108,7 @@ public sealed class ClickUpWebhookHandler
                     return (401, "Invalid webhook signature.");
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogWarning(ex, "Failed to retrieve webhook secret for connector {ConnectorId}", connectorId);
                 return (500, "Failed to verify webhook signature.");

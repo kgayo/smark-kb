@@ -82,7 +82,7 @@ public sealed class NormalizationPipeline : INormalizationPipeline
             {
                 allChunks.AddRange(Process(record));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogWarning(ex,
                     "Failed to normalize record {EvidenceId} for tenant {TenantId}. Skipping.",

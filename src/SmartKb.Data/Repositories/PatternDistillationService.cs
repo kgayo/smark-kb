@@ -248,7 +248,7 @@ public sealed class PatternDistillationService : IPatternDistillationService
                     Timestamp: DateTimeOffset.UtcNow,
                     Detail: $"Pattern distilled from session {candidate.SessionId}: {pattern.Title}"), ct);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 errors.Add($"Session {candidate.SessionId}: {ex.Message}");
                 _logger.LogWarning(ex,
@@ -321,7 +321,7 @@ public sealed class PatternDistillationService : IPatternDistillationService
             {
                 embedding = await _embeddingService.GenerateEmbeddingAsync(embeddingText, ct);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogWarning(ex, "Failed to generate embedding for pattern {PatternId}", patternId);
             }
@@ -402,7 +402,7 @@ public sealed class PatternDistillationService : IPatternDistillationService
             {
                 await _patternIndexing.IndexPatternsAsync([casePattern], ct);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogWarning(ex, "Failed to index pattern {PatternId}", patternId);
             }

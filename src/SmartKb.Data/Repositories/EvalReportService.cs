@@ -103,7 +103,7 @@ public sealed class EvalReportService : IEvalReportService
                     Timestamp: DateTimeOffset.UtcNow,
                     Detail: $"Eval notification {(sent ? "sent" : "failed")}: {request.RunId} ({request.RunType}), {request.ViolationCount} violations, blocking={request.HasBlockingRegression}"), ct);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogWarning(ex, "Failed to send eval notification for RunId={RunId}", request.RunId);
             }
