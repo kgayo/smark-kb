@@ -49,10 +49,15 @@ export function SourceViewerPanel({ chunkId, onBack }: SourceViewerPanelProps) {
   const handleCopyCitation = () => {
     if (!content) return;
     const link = content.sourceUrl || `evidence://${content.chunkId}`;
-    navigator.clipboard.writeText(link).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+    navigator.clipboard
+      .writeText(link)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(() => {
+        // Clipboard API may fail in insecure contexts or when denied permission.
+      });
   };
 
   if (loading) {

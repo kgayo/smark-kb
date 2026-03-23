@@ -120,6 +120,6 @@ public sealed class PatternUsageMetricsService : IPatternUsageMetricsService
             return ids.Where(id => id.StartsWith("pattern-", StringComparison.OrdinalIgnoreCase))
                       .ToHashSet(StringComparer.OrdinalIgnoreCase);
         }
-        catch { return []; }
+        catch (JsonException) { return []; }
     }
 }

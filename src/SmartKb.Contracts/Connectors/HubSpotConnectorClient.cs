@@ -428,7 +428,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
         {
             return JsonSerializer.Deserialize<HubSpotSourceConfig>(json, JsonOptions);
         }
-        catch
+        catch (JsonException)
         {
             return null;
         }

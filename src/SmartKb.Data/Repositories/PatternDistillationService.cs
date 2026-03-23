@@ -616,7 +616,7 @@ public sealed class PatternDistillationService : IPatternDistillationService
         {
             return JsonSerializer.Deserialize<List<string>>(json, JsonOpts) ?? [];
         }
-        catch
+        catch (JsonException)
         {
             return [];
         }

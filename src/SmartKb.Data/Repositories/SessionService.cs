@@ -325,7 +325,7 @@ public sealed class SessionService : ISessionService
         {
             return JsonSerializer.Deserialize<List<CitationDto>>(json, JsonOpts);
         }
-        catch
+        catch (JsonException)
         {
             return null;
         }

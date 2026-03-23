@@ -508,7 +508,7 @@ public sealed class EscalationDraftService : IEscalationDraftService
         {
             return JsonSerializer.Deserialize<List<CitationDto>>(json, JsonOpts) ?? [];
         }
-        catch
+        catch (JsonException)
         {
             return [];
         }

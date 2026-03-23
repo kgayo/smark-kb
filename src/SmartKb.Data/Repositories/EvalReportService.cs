@@ -210,7 +210,7 @@ public sealed class EvalReportService : IEvalReportService
         {
             return JsonSerializer.Deserialize<EvalMetricsDto>(json, JsonOptions) ?? new EvalMetricsDto();
         }
-        catch
+        catch (JsonException)
         {
             return new EvalMetricsDto();
         }
@@ -225,7 +225,7 @@ public sealed class EvalReportService : IEvalReportService
         {
             return JsonSerializer.Deserialize<List<EvalViolationDto>>(json, JsonOptions) ?? [];
         }
-        catch
+        catch (JsonException)
         {
             return [];
         }
@@ -240,7 +240,7 @@ public sealed class EvalReportService : IEvalReportService
         {
             return JsonSerializer.Deserialize<EvalBaselineComparisonDto>(json, JsonOptions);
         }
-        catch
+        catch (JsonException)
         {
             return null;
         }

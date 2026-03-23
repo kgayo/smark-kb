@@ -194,7 +194,7 @@ public sealed class AdoWebhookManager : IWebhookManager
     {
         if (string.IsNullOrWhiteSpace(json)) return null;
         try { return JsonSerializer.Deserialize<AzureDevOpsSourceConfig>(json, JsonOptions); }
-        catch { return null; }
+        catch (JsonException) { return null; }
     }
 
     private static async Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)

@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-23 (Asia/Manila) — iteration 111 (fix 23 TypeScript compilation errors in frontend test files and SourceConfigEditor)
-Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2559 tests passing (2139 backend + 414 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete.
+Last updated: 2026-03-23 (Asia/Manila) — iteration 114 (narrow remaining 9 bare catch blocks to typed exceptions)
+Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2559 tests passing (2139 backend + 413 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete.
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -99,6 +99,12 @@ Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-00
 
 - [x] ~~TECH-007~~: Stale `src/src.sln` file in repo root — **CLOSED (not found)**.
   - Resolution: No `src/src.sln` file exists in the repository. Only `SmartKb.sln` at the root. Verified 2026-03-16.
+
+- [x] TECH-008: Harden OpenAI response JSON parsing + async anti-pattern + clipboard error handling.
+- [x] TECH-009: Narrow all bare `catch` blocks to typed exceptions.
+  - Root cause: 33 bare `catch` blocks across Data, Contracts, Api, Ingestion, and Eval.Cli projects caught all exceptions including critical ones (OutOfMemoryException, StackOverflowException). This masks bugs and violates .NET best practices.
+  - Completed (iteration 113): 16 JSON deserialization helpers → `catch (JsonException)`. 4 HMAC/Base64 validation methods → `catch (FormatException)`. 1 SyncJobProcessor → `catch (JsonException)`. 2 service calls (blob download, HTTP notification) → `catch (Exception ex) when (ex is not OperationCanceledException)`. 1 KV+JSON (OAuthTokenService) → `catch (Exception ex) when (ex is not OperationCanceledException)` with logging. Also added safety comment on FusedRetrievalService `.Result` in catch (safe because `IsCompletedSuccessfully` guards it). Replaced all 3 `GetProperty` chains with `TryGetProperty` for defensive JSON access. Replaced `.Result` with `await` in `FusedRetrievalService`. Added `.catch()` to clipboard write in `SourceViewerPanel`.
+  - Completed (iteration 114): Narrowed 9 remaining bare catch blocks: 6 in Data repositories (DataSubjectDeletionService, PatternUsageMetricsService, ContradictionDetectionService, PatternMaintenanceService ×2, GoldCaseService) and 3 in Contracts connectors (AdoWebhookManager, ClickUpWebhookManager, HubSpotWebhookManager) — all JSON deserialization helpers → `catch (JsonException)`. Zero bare catch blocks remaining in backend. Frontend bare catches retained (TypeScript lacks typed catch syntax). Frontend: build clean, 413 tests passing.
 
 - [x] BUG-004: Terraform `app-service.tf` missing `https_only = true` on both web apps — **security drift**.
   - Root cause: ARM template explicitly sets `"httpsOnly": true` on both `app-smartkb-api-{env}` and `app-smartkb-ingestion-{env}`. Terraform `azurerm_linux_web_app` blocks omit `https_only`, which defaults to `false` in the azurerm provider.

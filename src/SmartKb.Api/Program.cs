@@ -1233,7 +1233,7 @@ app.MapGet("/api/evidence/{chunkId}/content", async (
             {
                 rawContent = await blobService.DownloadRawContentAsync(snapshot.BlobPath, ct);
             }
-            catch
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 // Non-fatal: raw content is optional enhancement over chunk text.
             }

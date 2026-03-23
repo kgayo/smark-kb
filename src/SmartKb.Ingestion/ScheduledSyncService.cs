@@ -137,7 +137,7 @@ public sealed class ScheduledSyncService : BackgroundService
         }
         catch (CrontabException)
         {
-            // Invalid cron expression — skip silently (will be caught by validation at save time in future).
+            // Invalid cron — treated as "not due". Validation at connector save time prevents this in practice.
             return false;
         }
 

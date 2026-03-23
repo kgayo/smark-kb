@@ -594,7 +594,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
         {
             return JsonSerializer.Deserialize<AzureDevOpsSourceConfig>(json, JsonOptions);
         }
-        catch
+        catch (JsonException)
         {
             return null;
         }

@@ -457,7 +457,7 @@ public sealed class SyncJobProcessor
         {
             return JsonSerializer.Deserialize<FieldMappingConfig>(json, JsonOptions);
         }
-        catch
+        catch (JsonException)
         {
             return null;
         }

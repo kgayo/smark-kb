@@ -333,6 +333,6 @@ public sealed class GoldCaseService : IGoldCaseService
     private static IReadOnlyList<string> DeserializeTags(string json)
     {
         try { return JsonSerializer.Deserialize<List<string>>(json) ?? []; }
-        catch { return []; }
+        catch (JsonException) { return []; }
     }
 }

@@ -81,12 +81,11 @@ public sealed class OpenAiQueryClassificationService : IQueryClassificationServi
         var responseJson = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: cancellationToken);
 
         if (responseJson.TryGetProperty("choices", out var choices) &&
-            choices.GetArrayLength() > 0)
+            choices.GetArrayLength() > 0 &&
+            choices[0].TryGetProperty("message", out var message) &&
+            message.TryGetProperty("content", out var content))
         {
-            var messageContent = choices[0]
-                .GetProperty("message")
-                .GetProperty("content")
-                .GetString();
+            var messageContent = content.GetString();
 
             if (!string.IsNullOrEmpty(messageContent))
             {

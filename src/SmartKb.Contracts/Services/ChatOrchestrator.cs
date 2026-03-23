@@ -716,14 +716,13 @@ public sealed class ChatOrchestrator : IChatOrchestrator
             if (usage.TryGetProperty("total_tokens", out var tt)) totalTokens = tt.GetInt32();
         }
 
-        // Extract the content from choices[0].message.content.
+        // Extract the content from choices[0].message.content using TryGetProperty for robustness.
         if (responseJson.TryGetProperty("choices", out var choices) &&
-            choices.GetArrayLength() > 0)
+            choices.GetArrayLength() > 0 &&
+            choices[0].TryGetProperty("message", out var message) &&
+            message.TryGetProperty("content", out var content))
         {
-            var messageContent = choices[0]
-                .GetProperty("message")
-                .GetProperty("content")
-                .GetString();
+            var messageContent = content.GetString();
 
             if (!string.IsNullOrEmpty(messageContent))
             {

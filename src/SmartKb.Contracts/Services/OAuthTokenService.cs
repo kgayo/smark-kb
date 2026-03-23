@@ -102,7 +102,7 @@ public sealed class OAuthTokenService : IOAuthTokenService
             var now = _timeProvider.GetUtcNow();
             return (now - stateTime) <= StateMaxAge;
         }
-        catch
+        catch (FormatException)
         {
             return false;
         }
@@ -125,10 +125,10 @@ public sealed class OAuthTokenService : IOAuthTokenService
             existingCreds = JsonSerializer.Deserialize<OAuthCredentials>(existingJson, JsonOptions)
                 ?? new OAuthCredentials();
         }
-        catch
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             // No existing credentials — admin must have set up the KV secret with client_id and client_secret first.
-            _logger.LogError("Failed to read OAuth client credentials from Key Vault secret {SecretName}. " +
+            _logger.LogError(ex, "Failed to read OAuth client credentials from Key Vault secret {SecretName}. " +
                 "Ensure the secret contains a JSON object with client_id and client_secret.", kvSecretName);
             return false;
         }
@@ -347,7 +347,7 @@ public sealed class OAuthTokenService : IOAuthTokenService
             using var doc = JsonDocument.Parse(json);
             return doc.RootElement.TryGetProperty(fieldName, out var val) ? val.GetString() : null;
         }
-        catch
+        catch (JsonException)
         {
             return null;
         }

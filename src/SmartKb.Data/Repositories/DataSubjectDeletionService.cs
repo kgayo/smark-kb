@@ -191,7 +191,7 @@ public sealed class DataSubjectDeletionService : IDataSubjectDeletionService
         if (entity.DeletionSummaryJson != "{}")
         {
             try { summary = JsonSerializer.Deserialize<Dictionary<string, int>>(entity.DeletionSummaryJson); }
-            catch { /* ignore deserialization failures */ }
+            catch (JsonException) { /* ignore deserialization failures */ }
         }
 
         return new DataSubjectDeletionResponse

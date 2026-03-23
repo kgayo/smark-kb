@@ -174,7 +174,7 @@ public sealed class FeedbackService : IFeedbackService
         {
             return JsonSerializer.Deserialize<List<string>>(json, JsonOpts) ?? [];
         }
-        catch
+        catch (JsonException)
         {
             return [];
         }

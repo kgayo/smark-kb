@@ -232,7 +232,7 @@ public sealed class AdoWebhookHandler
                 Encoding.UTF8.GetBytes(password),
                 Encoding.UTF8.GetBytes(expectedSecret));
         }
-        catch
+        catch (FormatException)
         {
             return false;
         }

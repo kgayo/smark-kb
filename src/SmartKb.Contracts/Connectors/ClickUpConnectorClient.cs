@@ -539,7 +539,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
         {
             return JsonSerializer.Deserialize<ClickUpSourceConfig>(json, JsonOptions);
         }
-        catch
+        catch (JsonException)
         {
             return null;
         }

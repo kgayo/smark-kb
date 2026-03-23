@@ -190,7 +190,7 @@ public sealed class EvalCliRunner
                 Diagnostics.EvalNotificationFailuresTotal.Add(1);
             return success;
         }
-        catch
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             Diagnostics.EvalNotificationFailuresTotal.Add(1);
             return false;

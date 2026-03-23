@@ -332,7 +332,7 @@ public sealed class TeamPlaybookService : ITeamPlaybookService
         {
             return JsonSerializer.Deserialize<List<string>>(json, JsonOpts) ?? [];
         }
-        catch
+        catch (JsonException)
         {
             return [];
         }

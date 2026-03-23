@@ -340,6 +340,6 @@ public sealed class ContradictionDetectionService : IContradictionDetectionServi
     {
         if (string.IsNullOrEmpty(json)) return [];
         try { return JsonSerializer.Deserialize<List<string>>(json, JsonOpts) ?? []; }
-        catch { return []; }
+        catch (JsonException) { return []; }
     }
 }

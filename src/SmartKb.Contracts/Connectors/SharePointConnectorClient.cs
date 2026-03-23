@@ -591,7 +591,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
         {
             return JsonSerializer.Deserialize<SharePointSourceConfig>(json, JsonOptions);
         }
-        catch
+        catch (JsonException)
         {
             return null;
         }

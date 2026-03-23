@@ -426,7 +426,7 @@ public sealed class PatternGovernanceService : IPatternGovernanceService
         {
             return JsonSerializer.Deserialize<List<string>>(json, JsonOpts) ?? [];
         }
-        catch
+        catch (JsonException)
         {
             return [];
         }
@@ -440,7 +440,7 @@ public sealed class PatternGovernanceService : IPatternGovernanceService
             return JsonSerializer.Deserialize<Dictionary<string, string?>>(json, JsonOpts)
                 ?? new Dictionary<string, string?>();
         }
-        catch
+        catch (JsonException)
         {
             return new Dictionary<string, string?>();
         }

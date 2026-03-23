@@ -321,7 +321,7 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
             var ids = JsonSerializer.Deserialize<List<string>>(citedChunkIdsJson, JsonOpts) ?? [];
             return ids.Where(id => id.StartsWith("pattern-", StringComparison.OrdinalIgnoreCase)).ToHashSet();
         }
-        catch { return []; }
+        catch (JsonException) { return []; }
     }
 
     private static IReadOnlyDictionary<string, object> DeserializeMetrics(string json)
@@ -333,6 +333,6 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
             if (dict is null) return new Dictionary<string, object>();
             return dict.ToDictionary(kv => kv.Key, kv => (object)kv.Value.ToString()!);
         }
-        catch { return new Dictionary<string, object>(); }
+        catch (JsonException) { return new Dictionary<string, object>(); }
     }
 }

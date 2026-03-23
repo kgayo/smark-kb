@@ -714,7 +714,7 @@ public sealed class ConnectorAdminService
         {
             return JsonSerializer.Deserialize<FieldMappingConfig>(json, JsonOptions);
         }
-        catch
+        catch (JsonException)
         {
             return null;
         }

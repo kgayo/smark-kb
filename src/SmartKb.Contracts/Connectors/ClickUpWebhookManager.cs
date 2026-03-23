@@ -203,7 +203,7 @@ public sealed class ClickUpWebhookManager : IWebhookManager
                 Encoding.UTF8.GetBytes(computed),
                 Encoding.UTF8.GetBytes(expected));
         }
-        catch
+        catch (FormatException)
         {
             return false;
         }
@@ -242,7 +242,7 @@ public sealed class ClickUpWebhookManager : IWebhookManager
     {
         if (string.IsNullOrWhiteSpace(json)) return null;
         try { return JsonSerializer.Deserialize<ClickUpSourceConfig>(json, JsonOptions); }
-        catch { return null; }
+        catch (JsonException) { return null; }
     }
 
     private static async Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)
