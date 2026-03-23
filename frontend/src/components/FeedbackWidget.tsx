@@ -15,7 +15,7 @@ const ALL_REASON_CODES: FeedbackReasonCode[] = Object.keys(REASON_CODE_LABELS) a
 
 interface FeedbackWidgetProps {
   messageId: string;
-  existingFeedback?: { type: string; reasonCodes: string[] } | null;
+  existingFeedback?: { type: FeedbackType; reasonCodes: string[] } | null;
   onSubmit: (messageId: string, request: SubmitFeedbackRequest) => Promise<void>;
 }
 

@@ -1,4 +1,4 @@
-import type { MessageResponse, CitationDto, ConfidenceLevel, SubmitFeedbackRequest } from '../api/types';
+import type { FeedbackType, MessageResponse, CitationDto, ConfidenceLevel, SubmitFeedbackRequest } from '../api/types';
 import { ConfidenceBadge } from './ConfidenceBadge';
 import { FeedbackWidget } from './FeedbackWidget';
 
@@ -8,7 +8,7 @@ export interface AssistantMeta {
 }
 
 export interface FeedbackState {
-  type: string;
+  type: FeedbackType;
   reasonCodes: string[];
 }
 

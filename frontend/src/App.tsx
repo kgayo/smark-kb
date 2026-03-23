@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthProvider';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { ChatPage } from './pages/ChatPage';
 
 const AdminPage = lazy(() => import('./pages/AdminPage').then(m => ({ default: m.AdminPage })));
@@ -17,23 +18,25 @@ const GoldDatasetPage = lazy(() => import('./pages/GoldDatasetPage').then(m => (
 export function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <AuthProvider>
-        <Suspense fallback={<div className="loading-page">Loading...</div>}>
-          <Routes>
-            <Route path="/" element={<ChatPage />} />
-            <Route path="/admin" element={<AdminPage />} />
-            <Route path="/patterns" element={<PatternGovernancePage />} />
-            <Route path="/diagnostics" element={<DiagnosticsPage />} />
-            <Route path="/synonyms" element={<SynonymManagementPage />} />
-            <Route path="/routing" element={<RoutingAnalyticsPage />} />
-            <Route path="/playbooks" element={<PlaybooksPage />} />
-            <Route path="/cost" element={<CostControlsPage />} />
-            <Route path="/privacy" element={<PrivacyAdminPage />} />
-            <Route path="/audit" element={<AuditCompliancePage />} />
-            <Route path="/gold-cases" element={<GoldDatasetPage />} />
-          </Routes>
-        </Suspense>
-      </AuthProvider>
+      <ErrorBoundary>
+        <AuthProvider>
+          <Suspense fallback={<div className="loading-page">Loading...</div>}>
+            <Routes>
+              <Route path="/" element={<ChatPage />} />
+              <Route path="/admin" element={<AdminPage />} />
+              <Route path="/patterns" element={<PatternGovernancePage />} />
+              <Route path="/diagnostics" element={<DiagnosticsPage />} />
+              <Route path="/synonyms" element={<SynonymManagementPage />} />
+              <Route path="/routing" element={<RoutingAnalyticsPage />} />
+              <Route path="/playbooks" element={<PlaybooksPage />} />
+              <Route path="/cost" element={<CostControlsPage />} />
+              <Route path="/privacy" element={<PrivacyAdminPage />} />
+              <Route path="/audit" element={<AuditCompliancePage />} />
+              <Route path="/gold-cases" element={<GoldDatasetPage />} />
+            </Routes>
+          </Suspense>
+        </AuthProvider>
+      </ErrorBoundary>
     </BrowserRouter>
   );
 }

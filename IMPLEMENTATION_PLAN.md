@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-23 (Asia/Manila) — iteration 117 (TECH-013–018 frontend/backend quality fixes)
-Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2563 tests passing (2139 backend + 417 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 117: TECH-013 (RetrievalFilterPanel uncontrolled input reset), TECH-014 (EscalationDraftModal stale closure), TECH-015 (GoldDatasetPage a11y), TECH-016 (AuthProvider lazy MSAL init), TECH-017 (FeedbackResponse type safety), TECH-018 (FusedRetrievalService catch filter). Code quality clean; frontend build clean (no warnings).
+Last updated: 2026-03-23 (Asia/Manila) — iteration 118 (TECH-019 React ErrorBoundary)
+Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2567 tests passing (2139 backend + 421 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 118: TECH-019 (top-level React ErrorBoundary to prevent white-screen on rendering errors). Code quality clean; frontend build clean (no warnings).
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -141,6 +141,10 @@ Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-00
 - [x] TECH-018: Fix FusedRetrievalService dead `AggregateException` catch arm.
   - Root cause: `catch (Exception ex) when (ex is AggregateException or RequestFailedException)` — the `AggregateException` arm is dead code because `await Task.WhenAll` unwraps to the first inner exception. Additionally, non-`RequestFailedException` errors (e.g. `HttpRequestException`) would bypass the partial-result salvage.
   - Completed (iteration 117): Changed to `catch (Exception ex) when (ex is not OperationCanceledException)` — salvages partial results for any non-cancellation failure while still propagating cancellation.
+
+- [x] TECH-019: Add top-level React ErrorBoundary to prevent white-screen on rendering errors.
+  - Root cause: No `ErrorBoundary` component existed in the frontend. A rendering error in any component would unmount the entire React tree, showing a blank white page with no recovery path.
+  - Completed (iteration 118): Created `ErrorBoundary` class component in `frontend/src/components/ErrorBoundary.tsx` with default fallback UI (`role="alert"`, error message display, reload button) and optional custom `fallback` prop. Wrapped the route tree in `App.tsx` (outside `AuthProvider`, inside `BrowserRouter`). 4 new tests (renders children, catches errors with default UI, supports custom fallback, no false positives). 421 frontend tests passing.
 
 - [x] BUG-004: Terraform `app-service.tf` missing `https_only = true` on both web apps — **security drift**.
   - Root cause: ARM template explicitly sets `"httpsOnly": true` on both `app-smartkb-api-{env}` and `app-smartkb-ingestion-{env}`. Terraform `azurerm_linux_web_app` blocks omit `https_only`, which defaults to `false` in the azurerm provider.
