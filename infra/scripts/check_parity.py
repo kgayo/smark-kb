@@ -109,6 +109,10 @@ _TF_RESOURCE_RE = re.compile(
     r'^resource\s+"([^"]+)"\s+"([^"]+)"\s*\{', re.MULTILINE
 )
 
+_TF_INFRA_VERSION_RE = re.compile(
+    r'variable\s+"infra_version"\s*\{[^}]*default\s*=\s*"([^"]+)"', re.DOTALL
+)
+
 
 def parse_terraform_resources(tf_dir: str | Path) -> list[TerraformResource]:
     """Extract resource blocks from all .tf files in a directory."""
@@ -367,6 +371,76 @@ def check_arm_security_hardening(arm_path: str | Path) -> list[ParityIssue]:
 
 
 # ---------------------------------------------------------------------------
+# Version parity check
+# ---------------------------------------------------------------------------
+def check_version_parity(
+    tf_dir: str | Path,
+    arm_path: str | Path,
+) -> list[ParityIssue]:
+    """Verify that infra_version in Terraform matches metadata.infraVersion in ARM."""
+    issues: list[ParityIssue] = []
+    tf_version: str | None = None
+    arm_version: str | None = None
+
+    # Extract Terraform infra_version default
+    tf_path = Path(tf_dir)
+    variables_file = tf_path / "variables.tf"
+    if variables_file.is_file():
+        content = variables_file.read_text(encoding="utf-8")
+        match = _TF_INFRA_VERSION_RE.search(content)
+        if match:
+            tf_version = match.group(1)
+        else:
+            issues.append(
+                ParityIssue(
+                    severity="warning",
+                    category="version_missing",
+                    message="Terraform variables.tf missing infra_version variable with default",
+                )
+            )
+    else:
+        issues.append(
+            ParityIssue(
+                severity="warning",
+                category="version_missing",
+                message="Terraform variables.tf not found",
+            )
+        )
+
+    # Extract ARM metadata.infraVersion
+    arm_file = Path(arm_path)
+    if arm_file.is_file():
+        with open(arm_file, encoding="utf-8") as f:
+            template = json.load(f)
+        metadata = template.get("metadata", {})
+        arm_version = metadata.get("infraVersion")
+        if arm_version is None:
+            issues.append(
+                ParityIssue(
+                    severity="warning",
+                    category="version_missing",
+                    message="ARM template missing metadata.infraVersion field",
+                )
+            )
+
+    # Compare
+    if tf_version and arm_version and tf_version != arm_version:
+        issues.append(
+            ParityIssue(
+                severity="error",
+                category="version_mismatch",
+                message=(
+                    f"Infrastructure version mismatch: "
+                    f"Terraform infra_version={tf_version!r}, "
+                    f"ARM metadata.infraVersion={arm_version!r}"
+                ),
+            )
+        )
+
+    return issues
+
+
+# ---------------------------------------------------------------------------
 # Output formatting
 # ---------------------------------------------------------------------------
 def format_report(report: ParityReport, verbose: bool = False) -> str:
@@ -486,6 +560,10 @@ def main(argv: Optional[list[str]] = None) -> int:
     # Also run security hardening checks
     hardening_issues = check_arm_security_hardening(args.arm_template)
     report.issues.extend(hardening_issues)
+
+    # Also run version parity check
+    version_issues = check_version_parity(args.tf_dir, args.arm_template)
+    report.issues.extend(version_issues)
 
     if args.json:
         print(json.dumps(report_to_dict(report), indent=2))

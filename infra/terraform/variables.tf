@@ -1,3 +1,13 @@
+variable "infra_version" {
+  description = "Infrastructure template version (semver). Must match ARM contentVersion and infra/CHANGELOG.md."
+  type        = string
+  default     = "1.6.0"
+  validation {
+    condition     = can(regex("^\\d+\\.\\d+\\.\\d+$", var.infra_version))
+    error_message = "infra_version must be a semantic version (e.g. 1.6.0)."
+  }
+}
+
 variable "subscription_id" {
   description = "Azure subscription ID."
   type        = string

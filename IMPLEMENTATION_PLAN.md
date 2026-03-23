@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-23 (Asia/Manila) — iteration 95 (P3-010 connector scope selection UI refinement)
-Status: Active backlog (Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 in progress: P3-001, P3-002, P3-003, P3-004, P3-005, P3-006, P3-007, P3-008, P3-009, P3-010, P3-011, P3-012, P3-014, P3-016, P3-017, P3-018, P3-019, P3-020, P3-021, P3-022, P3-024, P3-029, P3-032, P3-033, P3-034, P3-035, P3-036, P3-037, P3-038 complete; Tests complete: T-001–T-008; ~2411 tests passing (2045 backend + 366 frontend); 0 bugs blocking, 0 tech-debt blocking)
+Last updated: 2026-03-23 (Asia/Manila) — iteration 96 (P3-015 IaC version tracking and changelog)
+Status: Active backlog (Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 in progress: P3-001, P3-002, P3-003, P3-004, P3-005, P3-006, P3-007, P3-008, P3-009, P3-010, P3-011, P3-012, P3-014, P3-015, P3-016, P3-017, P3-018, P3-019, P3-020, P3-021, P3-022, P3-024, P3-029, P3-032, P3-033, P3-034, P3-035, P3-036, P3-037, P3-038 complete; Tests complete: T-001–T-008; ~2417 tests passing (2045 backend + 366 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking)
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -436,12 +436,10 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
   - Completed: iteration 79. Added 12 multi-turn eval cases (eval-00051 through eval-00062) to `baseline.jsonl`, bringing total to 62 cases. Cases cover all 5 categories: follow-up clarification (2 cases), context accumulation across turns (4 cases), session summary accuracy (1 case with 10-message history), escalation after multi-turn failure (2 cases), and topic switching within a session (3 cases). Session histories range from 2 to 10 messages. Multi-turn tag categories (`follow-up-clarification`, `context-accumulation`, `escalation-after-failure`, `topic-switch`, `session-summary`) added for eval subset filtering. 3 new tests verify multi-turn parsing and category coverage.
   - Dependencies: P0-021 (eval harness complete)
 
-- [ ] P3-015: Add IaC template version tracking and changelog.
+- [x] P3-015: Add IaC template version tracking and changelog.
   - Specs: jtbd-11 (Req 11-5: track template versions and changelog notes for breaking infra changes)
-  - Gap: No `CHANGELOG.md` in `infra/`, no version metadata in Terraform or ARM templates, no convention for noting breaking infra changes.
-  - Scope: Add `infra/CHANGELOG.md` with version entries. Add `version` tag/variable to Terraform root module. Document convention for breaking vs. non-breaking infra changes.
   - Dependencies: P0-005A (IaC baseline complete)
-  - Priority: LOW — operational hygiene; drift detection covers the critical safety net.
+  - Completed: `infra_version` variable in Terraform (`variables.tf`) with semver validation (`^\d+\.\d+\.\d+$`), default `1.6.0`. Version propagated via `infra_version` tag in `common_tags` (all resources). `infra_version` output in `outputs.tf`. ARM template updated: `contentVersion` bumped to `1.6.0.0`, `metadata.infraVersion` field added (`1.6.0`), `infra_version` tag added to ARM `commonTags` variable. `infra/CHANGELOG.md` created with Keep a Changelog format, semver convention (MAJOR=breaking/migration, MINOR=new resources, PATCH=cosmetic), and 7 version entries (1.0.0–1.6.0) reconstructed from project history. `check_version_parity()` function added to parity checker — extracts `infra_version` default from Terraform `variables.tf` and `metadata.infraVersion` from ARM template, reports error on mismatch and warning on missing fields. Wired into `main()` CLI. 6 new parity tests (matching versions, mismatch error, missing TF version warning, missing ARM metadata warning, missing variables.tf warning, CLI integration). All 104 parity tests passing. Convention documented: every PR touching `infra/` must add a changelog entry and bump version in both Terraform and ARM.
 
 - [x] P3-016: Strengthen audit event immutability at database level.
   - Specs: jtbd-10 (Req 10-7: immutable audit events)

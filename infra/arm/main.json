@@ -1,6 +1,10 @@
 {
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-  "contentVersion": "1.0.0.0",
+  "contentVersion": "1.6.0.0",
+  "metadata": {
+    "infraVersion": "1.6.0",
+    "description": "Smart KB infrastructure template. Keep infraVersion in sync with Terraform infra_version variable and infra/CHANGELOG.md."
+  },
   "parameters": {
     "environment": {
       "type": "string",
@@ -125,7 +129,8 @@
     "commonTags": {
       "project": "smart-kb",
       "environment": "[parameters('environment')]",
-      "managed_by": "arm"
+      "managed_by": "arm",
+      "infra_version": "1.6.0"
     }
   },
   "resources": [

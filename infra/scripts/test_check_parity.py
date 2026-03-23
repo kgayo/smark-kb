@@ -19,6 +19,7 @@ from check_parity import (
     TerraformResource,
     check_arm_security_hardening,
     check_parity,
+    check_version_parity,
     format_report,
     main,
     parse_arm_resources,
@@ -1193,6 +1194,131 @@ class TestCliIncludesSecurityHardening(unittest.TestCase):
                         }
                     ]
                 }, f)
+            rc = main(["--tf-dir", tf_dir, "--arm-template", arm_path])
+            self.assertEqual(rc, 0)
+
+
+class TestCheckVersionParity(unittest.TestCase):
+    """Tests for check_version_parity()."""
+
+    def test_matching_versions_no_issues(self):
+        with tempfile.TemporaryDirectory() as d:
+            tf_dir = os.path.join(d, "tf")
+            os.makedirs(tf_dir)
+            with open(os.path.join(tf_dir, "variables.tf"), "w") as f:
+                f.write(textwrap.dedent('''\
+                    variable "infra_version" {
+                      default = "1.6.0"
+                    }
+                '''))
+            arm_path = os.path.join(d, "main.json")
+            with open(arm_path, "w") as f:
+                json.dump({
+                    "metadata": {"infraVersion": "1.6.0"},
+                    "resources": []
+                }, f)
+
+            issues = check_version_parity(tf_dir, arm_path)
+            self.assertEqual(len(issues), 0)
+
+    def test_mismatched_versions_returns_error(self):
+        with tempfile.TemporaryDirectory() as d:
+            tf_dir = os.path.join(d, "tf")
+            os.makedirs(tf_dir)
+            with open(os.path.join(tf_dir, "variables.tf"), "w") as f:
+                f.write(textwrap.dedent('''\
+                    variable "infra_version" {
+                      default = "1.6.0"
+                    }
+                '''))
+            arm_path = os.path.join(d, "main.json")
+            with open(arm_path, "w") as f:
+                json.dump({
+                    "metadata": {"infraVersion": "1.5.0"},
+                    "resources": []
+                }, f)
+
+            issues = check_version_parity(tf_dir, arm_path)
+            errors = [i for i in issues if i.severity == "error"]
+            self.assertEqual(len(errors), 1)
+            self.assertEqual(errors[0].category, "version_mismatch")
+            self.assertIn("1.6.0", errors[0].message)
+            self.assertIn("1.5.0", errors[0].message)
+
+    def test_missing_tf_version_returns_warning(self):
+        with tempfile.TemporaryDirectory() as d:
+            tf_dir = os.path.join(d, "tf")
+            os.makedirs(tf_dir)
+            with open(os.path.join(tf_dir, "variables.tf"), "w") as f:
+                f.write('variable "environment" { default = "dev" }\n')
+            arm_path = os.path.join(d, "main.json")
+            with open(arm_path, "w") as f:
+                json.dump({
+                    "metadata": {"infraVersion": "1.6.0"},
+                    "resources": []
+                }, f)
+
+            issues = check_version_parity(tf_dir, arm_path)
+            warnings = [i for i in issues if i.severity == "warning"]
+            self.assertEqual(len(warnings), 1)
+            self.assertEqual(warnings[0].category, "version_missing")
+
+    def test_missing_arm_metadata_returns_warning(self):
+        with tempfile.TemporaryDirectory() as d:
+            tf_dir = os.path.join(d, "tf")
+            os.makedirs(tf_dir)
+            with open(os.path.join(tf_dir, "variables.tf"), "w") as f:
+                f.write(textwrap.dedent('''\
+                    variable "infra_version" {
+                      default = "1.6.0"
+                    }
+                '''))
+            arm_path = os.path.join(d, "main.json")
+            with open(arm_path, "w") as f:
+                json.dump({"resources": []}, f)
+
+            issues = check_version_parity(tf_dir, arm_path)
+            warnings = [i for i in issues if i.severity == "warning"]
+            self.assertEqual(len(warnings), 1)
+            self.assertIn("ARM", warnings[0].message)
+
+    def test_missing_variables_tf_returns_warning(self):
+        with tempfile.TemporaryDirectory() as d:
+            tf_dir = os.path.join(d, "tf")
+            os.makedirs(tf_dir)
+            # No variables.tf created
+            arm_path = os.path.join(d, "main.json")
+            with open(arm_path, "w") as f:
+                json.dump({
+                    "metadata": {"infraVersion": "1.6.0"},
+                    "resources": []
+                }, f)
+
+            issues = check_version_parity(tf_dir, arm_path)
+            warnings = [i for i in issues if i.severity == "warning"]
+            self.assertEqual(len(warnings), 1)
+            self.assertIn("variables.tf", warnings[0].message)
+
+    def test_version_check_in_main_cli(self):
+        """Ensure main() runs version check (matching versions → no error from version)."""
+        with tempfile.TemporaryDirectory() as d:
+            tf_dir = os.path.join(d, "tf")
+            os.makedirs(tf_dir)
+            with open(os.path.join(tf_dir, "variables.tf"), "w") as f:
+                f.write(textwrap.dedent('''\
+                    variable "infra_version" {
+                      default = "2.0.0"
+                    }
+                '''))
+            with open(os.path.join(tf_dir, "main.tf"), "w") as f:
+                f.write("")
+            arm_path = os.path.join(d, "main.json")
+            with open(arm_path, "w") as f:
+                json.dump({
+                    "metadata": {"infraVersion": "2.0.0"},
+                    "resources": []
+                }, f)
+            # No resource mismatch, no security issues, matching versions → exit 0
             rc = main(["--tf-dir", tf_dir, "--arm-template", arm_path])
             self.assertEqual(rc, 0)
 

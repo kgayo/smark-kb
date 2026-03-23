@@ -28,8 +28,9 @@ resource "azurerm_resource_group" "main" {
 
 locals {
   common_tags = {
-    project     = "smart-kb"
-    environment = var.environment
-    managed_by  = "terraform"
+    project       = "smart-kb"
+    environment   = var.environment
+    managed_by    = "terraform"
+    infra_version = var.infra_version
   }
 }

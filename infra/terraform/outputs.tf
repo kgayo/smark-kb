@@ -62,3 +62,8 @@ output "static_web_app_name" {
 output "static_web_app_default_hostname" {
   value = azurerm_static_web_app.frontend.default_host_name
 }
+
+output "infra_version" {
+  description = "Infrastructure template version. Must match ARM metadata.infraVersion and infra/CHANGELOG.md."
+  value       = var.infra_version
+}
