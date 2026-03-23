@@ -229,7 +229,7 @@ export function CostControlsPage() {
                 {daily.length > 0 && (
                   <>
                     <h3>Daily Breakdown</h3>
-                    <table className="admin-table" data-testid="daily-usage-table">
+                    <table className="admin-table" data-testid="daily-usage-table" aria-label="Daily token usage breakdown">
                       <thead>
                         <tr>
                           <th>Date</th>

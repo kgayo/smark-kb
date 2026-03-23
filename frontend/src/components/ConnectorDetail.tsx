@@ -403,7 +403,7 @@ export function ConnectorDetail({
               Missing required fields: {validationResult.missingFieldAnalysis.missingRequiredFields.join(', ')}
             </div>
           )}
-          <table className="data-table">
+          <table className="data-table" aria-label="Field coverage analysis">
             <thead>
               <tr>
                 <th>Field</th>
@@ -438,7 +438,7 @@ export function ConnectorDetail({
           {previewRecords.length === 0 ? (
             <p>No sample records returned. Check source configuration and credentials.</p>
           ) : (
-            <table className="data-table">
+            <table className="data-table" aria-label="Preview records">
               <thead>
                 <tr>
                   <th>Title</th>
@@ -479,6 +479,7 @@ export function ConnectorDetail({
             onChange={(e) => setRetrievalQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleRetrievalTest()}
             data-testid="retrieval-query-input"
+            aria-label="Retrieval test query"
           />
           <button
             className="btn btn-primary"
@@ -500,7 +501,7 @@ export function ConnectorDetail({
               {retrievalChunks.length} results from {retrievalTotal} total chunks
             </p>
             {retrievalChunks.length > 0 && (
-              <table className="data-table">
+              <table className="data-table" aria-label="Retrieval test results">
                 <thead>
                   <tr>
                     <th>Title</th>

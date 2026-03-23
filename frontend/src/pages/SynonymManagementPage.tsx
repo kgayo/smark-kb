@@ -153,7 +153,7 @@ function SynonymsTab() {
         <button onClick={handleSync} disabled={syncing}>{syncing ? 'Syncing...' : 'Sync to Search'}</button>
         <button onClick={handleSeed}>Seed Defaults</button>
         <button onClick={() => setShowCreate(!showCreate)}>{showCreate ? 'Cancel' : 'Add Rule'}</button>
-        <select value={selectedGroup} onChange={(e) => setSelectedGroup(e.target.value)} style={{ marginLeft: 'auto' }}>
+        <select value={selectedGroup} onChange={(e) => setSelectedGroup(e.target.value)} aria-label="Filter by group" style={{ marginLeft: 'auto' }}>
           <option value="">All Groups</option>
           {groups.map((g) => (<option key={g} value={g}>{g}</option>))}
         </select>
@@ -166,17 +166,20 @@ function SynonymsTab() {
           <div style={{ marginBottom: 8 }}>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 4 }}>Rule (Solr format)</label>
             <input type="text" value={newRule} onChange={(e) => setNewRule(e.target.value)}
-              placeholder='crash, BSOD, blue screen  or  BSOD => blue screen of death' style={{ width: '100%', padding: 6 }} />
+              placeholder='crash, BSOD, blue screen  or  BSOD => blue screen of death' style={{ width: '100%', padding: 6 }}
+              aria-label="Synonym rule in Solr format" />
             <small style={{ color: '#888' }}>Equivalent: &quot;term1, term2, term3&quot; | Explicit: &quot;input =&gt; expansion&quot;</small>
           </div>
           <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
             <div style={{ flex: 1 }}>
               <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 4 }}>Group</label>
-              <input type="text" value={newGroup} onChange={(e) => setNewGroup(e.target.value)} style={{ width: '100%', padding: 6 }} />
+              <input type="text" value={newGroup} onChange={(e) => setNewGroup(e.target.value)} style={{ width: '100%', padding: 6 }}
+                aria-label="Synonym group" />
             </div>
             <div style={{ flex: 2 }}>
               <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 4 }}>Description</label>
-              <input type="text" value={newDescription} onChange={(e) => setNewDescription(e.target.value)} placeholder="Optional description" style={{ width: '100%', padding: 6 }} />
+              <input type="text" value={newDescription} onChange={(e) => setNewDescription(e.target.value)} placeholder="Optional description" style={{ width: '100%', padding: 6 }}
+                aria-label="Synonym rule description" />
             </div>
           </div>
           <button onClick={handleCreate} disabled={!newRule.trim()}>Create</button>
@@ -303,7 +306,7 @@ function StopWordsTab() {
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         <button onClick={handleSeed}>Seed Defaults</button>
         <button onClick={() => setShowCreate(!showCreate)}>{showCreate ? 'Cancel' : 'Add Word'}</button>
-        <select value={selectedGroup} onChange={(e) => setSelectedGroup(e.target.value)} style={{ marginLeft: 'auto' }}>
+        <select value={selectedGroup} onChange={(e) => setSelectedGroup(e.target.value)} aria-label="Filter by group" style={{ marginLeft: 'auto' }}>
           <option value="">All Groups</option>
           {groups.map((g) => (<option key={g} value={g}>{g}</option>))}
         </select>
@@ -317,11 +320,13 @@ function StopWordsTab() {
             <div style={{ flex: 2 }}>
               <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 4 }}>Word</label>
               <input type="text" value={newWord} onChange={(e) => setNewWord(e.target.value)}
-                placeholder="e.g., hello, please, thanks" style={{ width: '100%', padding: 6 }} />
+                placeholder="e.g., hello, please, thanks" style={{ width: '100%', padding: 6 }}
+                aria-label="Stop word" />
             </div>
             <div style={{ flex: 1 }}>
               <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 4 }}>Group</label>
-              <input type="text" value={newGroup} onChange={(e) => setNewGroup(e.target.value)} style={{ width: '100%', padding: 6 }} />
+              <input type="text" value={newGroup} onChange={(e) => setNewGroup(e.target.value)} style={{ width: '100%', padding: 6 }}
+                aria-label="Synonym group" />
             </div>
           </div>
           <button onClick={handleCreate} disabled={!newWord.trim()}>Create</button>

@@ -197,7 +197,7 @@ export function PlaybooksPage() {
             {loading ? (
               <p>Loading playbooks...</p>
             ) : (
-              <table className="admin-table" data-testid="playbooks-table">
+              <table className="admin-table" data-testid="playbooks-table" aria-label="Team playbooks">
                 <thead>
                   <tr>
                     <th>Team</th>

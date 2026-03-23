@@ -373,14 +373,17 @@ export function PrivacyAdminPage() {
               <div className="admin-form-inline" data-testid="retention-form">
                 <div className="admin-form-row">
                   <select value={retentionForm.entityType}
-                    onChange={(e) => setRetentionForm({ ...retentionForm, entityType: e.target.value })}>
+                    onChange={(e) => setRetentionForm({ ...retentionForm, entityType: e.target.value })}
+                    aria-label="Entity type">
                     {ENTITY_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                   </select>
                   <input type="number" min={1} placeholder="Retention days" value={retentionForm.retentionDays}
-                    onChange={(e) => setRetentionForm({ ...retentionForm, retentionDays: parseInt(e.target.value) || 1 })} />
+                    onChange={(e) => setRetentionForm({ ...retentionForm, retentionDays: parseInt(e.target.value) || 1 })}
+                    aria-label="Retention days" />
                   <input type="number" min={1} placeholder="Metric retention days (optional)"
                     value={retentionForm.metricRetentionDays ?? ''}
-                    onChange={(e) => setRetentionForm({ ...retentionForm, metricRetentionDays: e.target.value ? parseInt(e.target.value) : undefined })} />
+                    onChange={(e) => setRetentionForm({ ...retentionForm, metricRetentionDays: e.target.value ? parseInt(e.target.value) : undefined })}
+                    aria-label="Metric retention days" />
                   <button className="btn btn-sm btn-primary" onClick={handleSaveRetention}>Save</button>
                   <button className="btn btn-sm" onClick={() => setShowRetentionForm(false)}>Cancel</button>
                 </div>
@@ -389,7 +392,7 @@ export function PrivacyAdminPage() {
             {retentionLoading ? (
               <p>Loading retention policies...</p>
             ) : (
-              <table className="admin-table" data-testid="retention-table">
+              <table className="admin-table" data-testid="retention-table" aria-label="Retention policies">
                 <thead>
                   <tr>
                     <th>Entity Type</th>
@@ -421,7 +424,7 @@ export function PrivacyAdminPage() {
             {cleanupResults && (
               <div className="cleanup-results" data-testid="cleanup-results">
                 <h4>Cleanup Results</h4>
-                <table className="admin-table">
+                <table className="admin-table" aria-label="Cleanup results">
                   <thead>
                     <tr><th>Entity Type</th><th>Deleted</th><th>Cutoff Date</th></tr>
                   </thead>
@@ -444,7 +447,8 @@ export function PrivacyAdminPage() {
           <div data-testid="deletion-panel">
             <div className="admin-toolbar">
               <input placeholder="Subject/User ID" value={subjectId}
-                onChange={(e) => setSubjectId(e.target.value)} />
+                onChange={(e) => setSubjectId(e.target.value)}
+                aria-label="Subject or user ID" />
               <button className="btn btn-sm btn-primary" onClick={handleCreateDeletion}
                 disabled={!subjectId.trim()}>
                 Submit Deletion Request
@@ -453,7 +457,7 @@ export function PrivacyAdminPage() {
             {deletionLoading ? (
               <p>Loading deletion requests...</p>
             ) : (
-              <table className="admin-table" data-testid="deletion-table">
+              <table className="admin-table" data-testid="deletion-table" aria-label="Data subject deletion requests">
                 <thead>
                   <tr>
                     <th>Request ID</th>
@@ -518,7 +522,7 @@ export function PrivacyAdminPage() {
                   </div>
                 </div>
 
-                <table className="admin-table" data-testid="compliance-table">
+                <table className="admin-table" data-testid="compliance-table" aria-label="Retention compliance status">
                   <thead>
                     <tr>
                       <th>Entity Type</th>

@@ -66,7 +66,7 @@ export function PatternList({
           <p>No patterns found{trustLevelFilter ? ` with trust level "${trustLevelFilter}"` : ''}.</p>
         </div>
       ) : (
-        <table className="pattern-table" data-testid="pattern-table">
+        <table className="pattern-table" data-testid="pattern-table" aria-label="Pattern governance queue">
           <thead>
             <tr>
               <th>Title</th>

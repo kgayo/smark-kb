@@ -189,6 +189,7 @@ function EventsPanel({
         <input
           type="text"
           placeholder="Event type"
+          aria-label="Filter by event type"
           value={filters.eventType ?? ''}
           onChange={(e) => onFilterChange('eventType', e.target.value)}
           data-testid="filter-event-type"
@@ -196,6 +197,7 @@ function EventsPanel({
         <input
           type="text"
           placeholder="Actor ID"
+          aria-label="Filter by actor ID"
           value={filters.actorId ?? ''}
           onChange={(e) => onFilterChange('actorId', e.target.value)}
           data-testid="filter-actor-id"
@@ -203,27 +205,28 @@ function EventsPanel({
         <input
           type="text"
           placeholder="Correlation ID"
+          aria-label="Filter by correlation ID"
           value={filters.correlationId ?? ''}
           onChange={(e) => onFilterChange('correlationId', e.target.value)}
           data-testid="filter-correlation-id"
         />
         <input
           type="datetime-local"
+          aria-label="From date"
           value={filters.from ?? ''}
           onChange={(e) => onFilterChange('from', e.target.value)}
           data-testid="filter-from"
-          title="From date"
         />
         <input
           type="datetime-local"
+          aria-label="To date"
           value={filters.to ?? ''}
           onChange={(e) => onFilterChange('to', e.target.value)}
           data-testid="filter-to"
-          title="To date"
         />
       </div>
 
-      {error && <div className="error-banner" data-testid="events-error">{error}</div>}
+      {error && <div className="error-banner" role="alert" data-testid="events-error">{error}</div>}
       {loading && <p>Loading events...</p>}
 
       {events && !loading && (
@@ -231,7 +234,7 @@ function EventsPanel({
           <p className="audit-summary" data-testid="events-summary">
             Showing {events.events.length} of {events.totalCount} events (page {events.page})
           </p>
-          <table className="admin-table" data-testid="events-table">
+          <table className="admin-table" data-testid="events-table" aria-label="Audit events">
             <thead>
               <tr>
                 <th>Timestamp</th>

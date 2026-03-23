@@ -111,8 +111,8 @@ export function FeedbackWidget({ messageId, existingFeedback, onSubmit }: Feedba
         >
           <span aria-hidden="true">{'\u{1F44E}'}</span>
         </button>
-        {submitted && <span className="feedback-thanks" data-testid="feedback-thanks">Thanks for your feedback</span>}
-        {error && <span className="feedback-error" data-testid="feedback-error">{error}</span>}
+        {submitted && <span className="feedback-thanks" data-testid="feedback-thanks" aria-live="polite">Thanks for your feedback</span>}
+        {error && <span className="feedback-error" data-testid="feedback-error" role="alert">{error}</span>}
       </div>
 
       {showDetails && feedbackType === 'ThumbsDown' && (
@@ -135,6 +135,7 @@ export function FeedbackWidget({ messageId, existingFeedback, onSubmit }: Feedba
             className="feedback-comment"
             data-testid="feedback-comment"
             placeholder="Additional comments (optional)"
+            aria-label="Additional comments"
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             rows={2}
@@ -143,6 +144,7 @@ export function FeedbackWidget({ messageId, existingFeedback, onSubmit }: Feedba
             className="feedback-correction"
             data-testid="feedback-correction"
             placeholder="Suggest a better answer (optional)"
+            aria-label="Suggest a better answer"
             value={correctedAnswer}
             onChange={(e) => setCorrectedAnswer(e.target.value)}
             rows={2}

@@ -251,7 +251,7 @@ export function RoutingAnalyticsPage() {
                 {analytics.teamMetrics.length > 0 && (
                   <>
                     <h3>Team Metrics</h3>
-                    <table className="admin-table" data-testid="team-metrics-table">
+                    <table className="admin-table" data-testid="team-metrics-table" aria-label="Team routing metrics">
                       <thead>
                         <tr>
                           <th>Team</th>
@@ -281,7 +281,7 @@ export function RoutingAnalyticsPage() {
                 {analytics.productAreaMetrics.length > 0 && (
                   <>
                     <h3>Product Area Metrics</h3>
-                    <table className="admin-table" data-testid="product-area-table">
+                    <table className="admin-table" data-testid="product-area-table" aria-label="Product area routing metrics">
                       <thead>
                         <tr>
                           <th>Product Area</th>
@@ -322,11 +322,11 @@ export function RoutingAnalyticsPage() {
             {showCreateRule && (
               <div className="admin-form-inline" data-testid="create-rule-form">
                 <div className="admin-form-row">
-                  <input placeholder="Product Area" value={newRule.productArea}
+                  <input placeholder="Product Area" aria-label="Product area" value={newRule.productArea}
                     onChange={(e) => setNewRule({ ...newRule, productArea: e.target.value })} />
-                  <input placeholder="Target Team" value={newRule.targetTeam}
+                  <input placeholder="Target Team" aria-label="Target team" value={newRule.targetTeam}
                     onChange={(e) => setNewRule({ ...newRule, targetTeam: e.target.value })} />
-                  <input type="number" step="0.1" placeholder="Threshold" value={newRule.escalationThreshold}
+                  <input type="number" step="0.1" placeholder="Threshold" aria-label="Escalation threshold" value={newRule.escalationThreshold}
                     onChange={(e) => setNewRule({ ...newRule, escalationThreshold: parseFloat(e.target.value) })} />
                   <select value={newRule.minSeverity}
                     onChange={(e) => setNewRule({ ...newRule, minSeverity: e.target.value })}>
@@ -343,7 +343,7 @@ export function RoutingAnalyticsPage() {
             {rulesLoading ? (
               <p>Loading rules...</p>
             ) : (
-              <table className="admin-table" data-testid="rules-table">
+              <table className="admin-table" data-testid="rules-table" aria-label="Escalation routing rules">
                 <thead>
                   <tr>
                     <th>Product Area</th>
@@ -362,16 +362,19 @@ export function RoutingAnalyticsPage() {
                           <td>{rule.productArea}</td>
                           <td>
                             <input value={editRule.targetTeam ?? rule.targetTeam}
-                              onChange={(e) => setEditRule({ ...editRule, targetTeam: e.target.value })} />
+                              onChange={(e) => setEditRule({ ...editRule, targetTeam: e.target.value })}
+                              aria-label="Edit target team" />
                           </td>
                           <td>
                             <input type="number" step="0.1"
                               value={editRule.escalationThreshold ?? rule.escalationThreshold}
-                              onChange={(e) => setEditRule({ ...editRule, escalationThreshold: parseFloat(e.target.value) })} />
+                              onChange={(e) => setEditRule({ ...editRule, escalationThreshold: parseFloat(e.target.value) })}
+                              aria-label="Edit escalation threshold" />
                           </td>
                           <td>
                             <select value={editRule.minSeverity ?? rule.minSeverity}
-                              onChange={(e) => setEditRule({ ...editRule, minSeverity: e.target.value })}>
+                              onChange={(e) => setEditRule({ ...editRule, minSeverity: e.target.value })}
+                              aria-label="Edit minimum severity">
                               <option value="P1">P1</option>
                               <option value="P2">P2</option>
                               <option value="P3">P3</option>
@@ -411,7 +414,7 @@ export function RoutingAnalyticsPage() {
         {tab === 'recommendations' && (
           <div data-testid="recommendations-panel">
             <div className="admin-toolbar">
-              <select value={recsFilter} onChange={(e) => setRecsFilter(e.target.value)}>
+              <select value={recsFilter} onChange={(e) => setRecsFilter(e.target.value)} aria-label="Filter by recommendation status">
                 <option value="">All</option>
                 <option value="Pending">Pending</option>
                 <option value="Applied">Applied</option>
@@ -424,7 +427,7 @@ export function RoutingAnalyticsPage() {
             {recsLoading ? (
               <p>Loading recommendations...</p>
             ) : (
-              <table className="admin-table" data-testid="recommendations-table">
+              <table className="admin-table" data-testid="recommendations-table" aria-label="Routing recommendations">
                 <thead>
                   <tr>
                     <th>Type</th>

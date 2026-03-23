@@ -43,7 +43,7 @@ export function SyncRunHistory({ syncRuns, loading }: SyncRunHistoryProps) {
       {syncRuns.length === 0 ? (
         <p className="sync-empty">No sync runs yet.</p>
       ) : (
-        <table className="sync-table" data-testid="sync-table">
+        <table className="sync-table" data-testid="sync-table" aria-label="Sync run history">
           <thead>
             <tr>
               <th>Status</th>

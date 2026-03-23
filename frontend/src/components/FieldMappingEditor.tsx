@@ -68,7 +68,7 @@ export function FieldMappingEditor({
       {rules.length === 0 ? (
         <p className="mapping-empty">No field mappings configured. Default mapping will be used.</p>
       ) : (
-        <table className="mapping-table" data-testid="mapping-table">
+        <table className="mapping-table" data-testid="mapping-table" aria-label="Field mapping rules">
           <thead>
             <tr>
               <th>Source</th>
@@ -93,12 +93,13 @@ export function FieldMappingEditor({
                       data-testid={`source-field-${i}`}
                     />
                   ) : (
-                    <span
+                    <button
+                      type="button"
                       onClick={() => !readOnly && setEditIndex(i)}
                       className="mapping-cell-text"
                     >
                       {rule.sourceField || '(empty)'}
-                    </span>
+                    </button>
                   )}
                 </td>
                 <td>
@@ -112,12 +113,13 @@ export function FieldMappingEditor({
                       data-testid={`target-field-${i}`}
                     />
                   ) : (
-                    <span
+                    <button
+                      type="button"
                       onClick={() => !readOnly && setEditIndex(i)}
                       className="mapping-cell-text"
                     >
                       {rule.targetField || '(empty)'}
-                    </span>
+                    </button>
                   )}
                 </td>
                 <td>
@@ -136,9 +138,9 @@ export function FieldMappingEditor({
                       ))}
                     </select>
                   ) : (
-                    <span onClick={() => !readOnly && setEditIndex(i)} className="mapping-cell-text">
+                    <button type="button" onClick={() => !readOnly && setEditIndex(i)} className="mapping-cell-text">
                       {rule.transform}
-                    </span>
+                    </button>
                   )}
                 </td>
                 <td>
@@ -161,12 +163,13 @@ export function FieldMappingEditor({
                       ))}
                     </select>
                   ) : (
-                    <span
+                    <button
+                      type="button"
                       onClick={() => !readOnly && setEditIndex(i)}
                       className="mapping-cell-text"
                     >
                       {routingTagLabel(rule.routingTag)}
-                    </span>
+                    </button>
                   )}
                 </td>
                 <td>

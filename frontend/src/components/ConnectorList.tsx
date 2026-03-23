@@ -43,7 +43,7 @@ export function ConnectorList({ connectors, onSelect, onCreate }: ConnectorListP
           <p>Create a connector to start ingesting knowledge sources.</p>
         </div>
       ) : (
-        <table className="connector-table" data-testid="connector-table">
+        <table className="connector-table" data-testid="connector-table" aria-label="Configured connectors">
           <thead>
             <tr>
               <th>Name</th>

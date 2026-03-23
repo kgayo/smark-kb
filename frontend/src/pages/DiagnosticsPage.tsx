@@ -233,7 +233,7 @@ function OverviewPanel({
       {sloStatus && (
         <div className="diag-section" data-testid="slo-targets">
           <h3>SLO Targets</h3>
-          <table className="diag-table">
+          <table className="diag-table" aria-label="SLO targets">
             <thead>
               <tr><th>Metric</th><th>Target</th></tr>
             </thead>
@@ -261,7 +261,7 @@ function OverviewPanel({
       {summary.connectorHealth.length > 0 && (
         <div className="diag-section" data-testid="connector-health">
           <h3>Connector Health</h3>
-          <table className="diag-table">
+          <table className="diag-table" aria-label="Connector health">
             <thead>
               <tr>
                 <th>Name</th><th>Type</th><th>Status</th>
@@ -323,7 +323,7 @@ function WebhookPanel({ webhooks }: { webhooks: WebhookStatusListResponse | null
       {webhooks.subscriptions.length === 0 ? (
         <p className="diag-empty">No webhook subscriptions registered.</p>
       ) : (
-        <table className="diag-table" data-testid="webhook-table">
+        <table className="diag-table" data-testid="webhook-table" aria-label="Webhook subscriptions">
           <thead>
             <tr>
               <th>Connector</th><th>Event Type</th><th>Status</th>
@@ -364,7 +364,7 @@ function DeadLetterPanel({ deadLetters }: { deadLetters: DeadLetterListResponse 
       {deadLetters.count === 0 ? (
         <p className="diag-empty" data-testid="dl-empty">No dead-letter messages.</p>
       ) : (
-        <table className="diag-table" data-testid="dead-letter-table">
+        <table className="diag-table" data-testid="dead-letter-table" aria-label="Dead-letter messages">
           <thead>
             <tr>
               <th>Message ID</th><th>Subject</th><th>Reason</th>

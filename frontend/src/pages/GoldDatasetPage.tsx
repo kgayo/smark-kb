@@ -290,7 +290,7 @@ function CasesPanel({
 
       {cases && !loading && (
         <>
-          <table className="admin-table" data-testid="cases-table">
+          <table className="admin-table" data-testid="cases-table" aria-label="Gold dataset evaluation cases">
             <thead>
               <tr>
                 <th>Case ID</th>
