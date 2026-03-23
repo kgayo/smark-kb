@@ -126,4 +126,30 @@ describe('FeedbackWidget', () => {
     await waitFor(() => expect(onSubmit).toHaveBeenCalled());
     expect(screen.queryByTestId('feedback-details')).not.toBeInTheDocument();
   });
+
+  it('shows error message when thumbs up submission fails', async () => {
+    const onSubmit = vi.fn().mockRejectedValue(new Error('Network error'));
+    render(<FeedbackWidget messageId="msg-7" onSubmit={onSubmit} />);
+
+    fireEvent.click(screen.getByTestId('thumbs-up'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('feedback-error')).toHaveTextContent('Network error');
+    });
+    expect(screen.queryByTestId('feedback-thanks')).not.toBeInTheDocument();
+  });
+
+  it('shows error message when thumbs down submission fails', async () => {
+    const onSubmit = vi.fn().mockRejectedValue(new Error('Server error'));
+    render(<FeedbackWidget messageId="msg-8" onSubmit={onSubmit} />);
+
+    fireEvent.click(screen.getByTestId('thumbs-down'));
+    fireEvent.click(screen.getByTestId('reason-WrongAnswer'));
+    fireEvent.click(screen.getByTestId('submit-feedback'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('feedback-error')).toHaveTextContent('Server error');
+    });
+    expect(screen.queryByTestId('feedback-thanks')).not.toBeInTheDocument();
+  });
 });

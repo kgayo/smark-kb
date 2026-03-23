@@ -75,11 +75,14 @@ export function PatternGovernancePage() {
   async function handleReview(notes: string) {
     if (!selectedPattern) return;
     setActionLoading(true);
+    setError(null);
     try {
       await api.reviewPattern(selectedPattern.patternId, { notes: notes || undefined });
       const updated = await api.getPatternDetail(selectedPattern.patternId);
       setSelectedPattern(updated);
       await loadPatterns(page, trustFilter);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to review pattern');
     } finally {
       setActionLoading(false);
     }
@@ -88,11 +91,14 @@ export function PatternGovernancePage() {
   async function handleApprove(notes: string) {
     if (!selectedPattern) return;
     setActionLoading(true);
+    setError(null);
     try {
       await api.approvePattern(selectedPattern.patternId, { notes: notes || undefined });
       const updated = await api.getPatternDetail(selectedPattern.patternId);
       setSelectedPattern(updated);
       await loadPatterns(page, trustFilter);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to approve pattern');
     } finally {
       setActionLoading(false);
     }
@@ -101,6 +107,7 @@ export function PatternGovernancePage() {
   async function handleDeprecate(reason: string, supersedingPatternId?: string) {
     if (!selectedPattern) return;
     setActionLoading(true);
+    setError(null);
     try {
       await api.deprecatePattern(selectedPattern.patternId, {
         reason: reason || undefined,
@@ -109,6 +116,8 @@ export function PatternGovernancePage() {
       const updated = await api.getPatternDetail(selectedPattern.patternId);
       setSelectedPattern(updated);
       await loadPatterns(page, trustFilter);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to deprecate pattern');
     } finally {
       setActionLoading(false);
     }

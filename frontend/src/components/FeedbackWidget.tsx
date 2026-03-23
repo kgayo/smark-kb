@@ -31,6 +31,7 @@ export function FeedbackWidget({ messageId, existingFeedback, onSubmit }: Feedba
   const [showDetails, setShowDetails] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(!!existingFeedback);
+  const [error, setError] = useState<string | null>(null);
 
   const handleThumbsClick = useCallback(
     async (type: FeedbackType) => {
@@ -39,10 +40,13 @@ export function FeedbackWidget({ messageId, existingFeedback, onSubmit }: Feedba
       if (type === 'ThumbsUp') {
         // Thumbs up submits immediately with no reason codes.
         setSubmitting(true);
+        setError(null);
         try {
           await onSubmit(messageId, { type: 'ThumbsUp', reasonCodes: [] });
           setSubmitted(true);
           setShowDetails(false);
+        } catch (e) {
+          setError(e instanceof Error ? e.message : 'Failed to submit feedback');
         } finally {
           setSubmitting(false);
         }
@@ -66,6 +70,7 @@ export function FeedbackWidget({ messageId, existingFeedback, onSubmit }: Feedba
 
   const handleSubmitDetails = useCallback(async () => {
     setSubmitting(true);
+    setError(null);
     try {
       const request: SubmitFeedbackRequest = {
         type: 'ThumbsDown',
@@ -76,6 +81,8 @@ export function FeedbackWidget({ messageId, existingFeedback, onSubmit }: Feedba
       await onSubmit(messageId, request);
       setSubmitted(true);
       setShowDetails(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to submit feedback');
     } finally {
       setSubmitting(false);
     }
@@ -105,6 +112,7 @@ export function FeedbackWidget({ messageId, existingFeedback, onSubmit }: Feedba
           <span aria-hidden="true">{'\u{1F44E}'}</span>
         </button>
         {submitted && <span className="feedback-thanks" data-testid="feedback-thanks">Thanks for your feedback</span>}
+        {error && <span className="feedback-error" data-testid="feedback-error">{error}</span>}
       </div>
 
       {showDetails && feedbackType === 'ThumbsDown' && (

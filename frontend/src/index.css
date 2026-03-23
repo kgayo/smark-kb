@@ -686,6 +686,12 @@ body {
   margin-left: 4px;
 }
 
+.feedback-error {
+  font-size: 11px;
+  color: var(--color-danger, #e53e3e);
+  margin-left: 4px;
+}
+
 .feedback-details {
   margin-top: 8px;
   padding: 10px 12px;

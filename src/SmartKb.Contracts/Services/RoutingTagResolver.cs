@@ -148,7 +148,7 @@ public sealed class RoutingTagResolver : IRoutingTagResolver
         return null;
     }
 
-    private static string? ApplyRegex(string sourceValue, string? expression)
+    private string? ApplyRegex(string sourceValue, string? expression)
     {
         if (string.IsNullOrWhiteSpace(expression)) return null;
 
@@ -158,8 +158,8 @@ public sealed class RoutingTagResolver : IRoutingTagResolver
             if (match.Success)
                 return match.Groups.Count > 1 ? match.Groups[1].Value : match.Value;
         }
-        catch (RegexMatchTimeoutException) { }
-        catch (ArgumentException) { }
+        catch (RegexMatchTimeoutException ex) { _logger.LogDebug(ex, "Routing tag regex timed out for expression: {Expression}", expression); }
+        catch (ArgumentException ex) { _logger.LogDebug(ex, "Routing tag regex invalid for expression: {Expression}", expression); }
 
         return null;
     }
