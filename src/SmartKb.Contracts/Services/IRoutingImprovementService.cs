@@ -6,6 +6,7 @@ public interface IRoutingImprovementService
 {
     Task<RoutingRecommendationListResponse> GenerateRecommendationsAsync(
         string tenantId, string userId, string correlationId,
+        Guid? sourceEvalReportId = null,
         CancellationToken ct = default);
 
     Task<RoutingRecommendationListResponse> GetRecommendationsAsync(
@@ -22,5 +23,10 @@ public interface IRoutingImprovementService
     Task<bool> DismissRecommendationAsync(
         string tenantId, string userId, string correlationId,
         Guid recommendationId,
+        CancellationToken ct = default);
+
+    Task<RoutingRecommendationListResponse> GetRecommendationsByEvalReportAsync(
+        string tenantId,
+        Guid evalReportId,
         CancellationToken ct = default);
 }

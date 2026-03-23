@@ -130,6 +130,7 @@ describe('RoutingAnalyticsPage', () => {
         currentThreshold: null, suggestedThreshold: null,
         reason: 'High reroute rate', confidence: 0.75, supportingOutcomeCount: 12,
         status: 'Pending', createdAt: '2026-03-19T00:00:00Z', appliedAt: null, appliedBy: null,
+        sourceEvalReportId: null,
       }],
       totalCount: 1,
     });
@@ -140,6 +141,60 @@ describe('RoutingAnalyticsPage', () => {
     await waitFor(() => {
       expect(screen.getByText('TeamChange')).toBeInTheDocument();
       expect(screen.getByText('Team: Security')).toBeInTheDocument();
+    });
+  });
+
+  it('shows "Eval Report" source when recommendation has sourceEvalReportId', async () => {
+    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedApi.getRoutingAnalytics.mockResolvedValue({
+      tenantId: 't1', totalOutcomes: 0, totalEscalations: 0, totalReroutes: 0,
+      totalResolvedWithoutEscalation: 0, overallAcceptanceRate: 0, overallRerouteRate: 0,
+      selfResolutionRate: 0, teamMetrics: [], productAreaMetrics: [],
+      computedAt: '2026-03-19T00:00:00Z', windowStart: null, windowEnd: null,
+    });
+    mockedApi.listRoutingRecommendations.mockResolvedValue({
+      recommendations: [{
+        recommendationId: 'rec2', recommendationType: 'TeamChange', productArea: 'Billing',
+        currentTargetTeam: 'Finance', suggestedTargetTeam: 'Support',
+        currentThreshold: null, suggestedThreshold: null,
+        reason: 'Test', confidence: 0.8, supportingOutcomeCount: 10,
+        status: 'Pending', createdAt: '2026-03-19T00:00:00Z', appliedAt: null, appliedBy: null,
+        sourceEvalReportId: 'abc-123',
+      }],
+      totalCount: 1,
+    });
+    renderPage();
+    await waitFor(() => expect(mockedApi.getRoutingAnalytics).toHaveBeenCalled());
+    fireEvent.click(screen.getByText('Recommendations'));
+    await waitFor(() => {
+      expect(screen.getByText('Eval Report')).toBeInTheDocument();
+    });
+  });
+
+  it('shows "Manual" source when recommendation has no sourceEvalReportId', async () => {
+    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedApi.getRoutingAnalytics.mockResolvedValue({
+      tenantId: 't1', totalOutcomes: 0, totalEscalations: 0, totalReroutes: 0,
+      totalResolvedWithoutEscalation: 0, overallAcceptanceRate: 0, overallRerouteRate: 0,
+      selfResolutionRate: 0, teamMetrics: [], productAreaMetrics: [],
+      computedAt: '2026-03-19T00:00:00Z', windowStart: null, windowEnd: null,
+    });
+    mockedApi.listRoutingRecommendations.mockResolvedValue({
+      recommendations: [{
+        recommendationId: 'rec3', recommendationType: 'ThresholdAdjust', productArea: 'Auth',
+        currentTargetTeam: 'Engineering', suggestedTargetTeam: null,
+        currentThreshold: 0.4, suggestedThreshold: 0.3,
+        reason: 'Low acceptance', confidence: 0.6, supportingOutcomeCount: 5,
+        status: 'Pending', createdAt: '2026-03-19T00:00:00Z', appliedAt: null, appliedBy: null,
+        sourceEvalReportId: null,
+      }],
+      totalCount: 1,
+    });
+    renderPage();
+    await waitFor(() => expect(mockedApi.getRoutingAnalytics).toHaveBeenCalled());
+    fireEvent.click(screen.getByText('Recommendations'));
+    await waitFor(() => {
+      expect(screen.getByText('Manual')).toBeInTheDocument();
     });
   });
 

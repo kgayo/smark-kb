@@ -417,6 +417,187 @@ public class RoutingImprovementServiceTests : IDisposable
         Assert.True(result >= 0f);
     }
 
+    [Fact]
+    public async Task GenerateRecommendations_WithSourceEvalReportId_LinksToReport()
+    {
+        var session = SeedSession();
+
+        // Seed an eval report.
+        var evalReportId = Guid.NewGuid();
+        _db.EvalReports.Add(new EvalReportEntity
+        {
+            Id = evalReportId,
+            TenantId = "t1",
+            RunId = "eval-run-test",
+            RunType = "full",
+            TotalCases = 10,
+            SuccessfulCases = 8,
+            FailedCases = 2,
+            MetricsJson = "{}",
+            HasBlockingRegression = false,
+            ViolationCount = 1,
+            TriggeredBy = "ci",
+            CreatedAt = DateTimeOffset.UtcNow,
+        });
+        _db.SaveChanges();
+
+        _db.EscalationRoutingRules.Add(new EscalationRoutingRuleEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = "t1",
+            ProductArea = "Auth",
+            TargetTeam = "Engineering",
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        });
+        _db.SaveChanges();
+
+        SeedDraftWithOutcome(session.Id, "Auth", "Engineering", ResolutionType.Rerouted);
+        SeedDraftWithOutcome(session.Id, "Auth", "Engineering", ResolutionType.Rerouted);
+        SeedDraftWithOutcome(session.Id, "Auth", "Engineering", ResolutionType.Rerouted);
+
+        var result = await _service.GenerateRecommendationsAsync("t1", "u1", "corr-1", evalReportId);
+
+        Assert.Single(result.Recommendations);
+        var rec = result.Recommendations[0];
+        Assert.Equal(evalReportId, rec.SourceEvalReportId);
+    }
+
+    [Fact]
+    public async Task GenerateRecommendations_WithoutSourceEvalReportId_HasNullSource()
+    {
+        var session = SeedSession();
+
+        _db.EscalationRoutingRules.Add(new EscalationRoutingRuleEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = "t1",
+            ProductArea = "Auth",
+            TargetTeam = "Engineering",
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        });
+        _db.SaveChanges();
+
+        SeedDraftWithOutcome(session.Id, "Auth", "Engineering", ResolutionType.Rerouted);
+        SeedDraftWithOutcome(session.Id, "Auth", "Engineering", ResolutionType.Rerouted);
+        SeedDraftWithOutcome(session.Id, "Auth", "Engineering", ResolutionType.Rerouted);
+
+        var result = await _service.GenerateRecommendationsAsync("t1", "u1", "corr-1");
+
+        Assert.Single(result.Recommendations);
+        Assert.Null(result.Recommendations[0].SourceEvalReportId);
+    }
+
+    [Fact]
+    public async Task GetRecommendationsByEvalReport_ReturnsLinkedOnly()
+    {
+        var session = SeedSession();
+
+        var evalReportId = Guid.NewGuid();
+        _db.EvalReports.Add(new EvalReportEntity
+        {
+            Id = evalReportId,
+            TenantId = "t1",
+            RunId = "eval-run-linked",
+            RunType = "full",
+            TotalCases = 5,
+            SuccessfulCases = 3,
+            FailedCases = 2,
+            MetricsJson = "{}",
+            HasBlockingRegression = false,
+            ViolationCount = 1,
+            TriggeredBy = "ci",
+            CreatedAt = DateTimeOffset.UtcNow,
+        });
+        _db.SaveChanges();
+
+        _db.EscalationRoutingRules.Add(new EscalationRoutingRuleEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = "t1",
+            ProductArea = "Auth",
+            TargetTeam = "Engineering",
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        });
+        _db.SaveChanges();
+
+        SeedDraftWithOutcome(session.Id, "Auth", "Engineering", ResolutionType.Rerouted);
+        SeedDraftWithOutcome(session.Id, "Auth", "Engineering", ResolutionType.Rerouted);
+        SeedDraftWithOutcome(session.Id, "Auth", "Engineering", ResolutionType.Rerouted);
+
+        // Generate with eval report link.
+        await _service.GenerateRecommendationsAsync("t1", "u1", "corr-1", evalReportId);
+
+        // Query by eval report.
+        var linked = await _service.GetRecommendationsByEvalReportAsync("t1", evalReportId);
+        Assert.Single(linked.Recommendations);
+        Assert.Equal(evalReportId, linked.Recommendations[0].SourceEvalReportId);
+
+        // Query by different eval report → empty.
+        var unlinked = await _service.GetRecommendationsByEvalReportAsync("t1", Guid.NewGuid());
+        Assert.Empty(unlinked.Recommendations);
+    }
+
+    [Fact]
+    public async Task GetRecommendationsByEvalReport_TenantIsolation()
+    {
+        var session = SeedSession();
+
+        // Seed second tenant.
+        _db.Tenants.Add(new TenantEntity
+        {
+            TenantId = "t2",
+            DisplayName = "Tenant 2",
+            CreatedAt = DateTimeOffset.UtcNow,
+        });
+        _db.SaveChanges();
+
+        var evalReportId = Guid.NewGuid();
+        _db.EvalReports.Add(new EvalReportEntity
+        {
+            Id = evalReportId,
+            TenantId = "t1",
+            RunId = "eval-run-tenant",
+            RunType = "smoke",
+            TotalCases = 3,
+            SuccessfulCases = 3,
+            FailedCases = 0,
+            MetricsJson = "{}",
+            HasBlockingRegression = false,
+            ViolationCount = 0,
+            TriggeredBy = "ci",
+            CreatedAt = DateTimeOffset.UtcNow,
+        });
+        _db.SaveChanges();
+
+        _db.EscalationRoutingRules.Add(new EscalationRoutingRuleEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = "t1",
+            ProductArea = "Auth",
+            TargetTeam = "Engineering",
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        });
+        _db.SaveChanges();
+
+        SeedDraftWithOutcome(session.Id, "Auth", "Engineering", ResolutionType.Rerouted);
+        SeedDraftWithOutcome(session.Id, "Auth", "Engineering", ResolutionType.Rerouted);
+        SeedDraftWithOutcome(session.Id, "Auth", "Engineering", ResolutionType.Rerouted);
+
+        await _service.GenerateRecommendationsAsync("t1", "u1", "corr-1", evalReportId);
+
+        // Tenant 2 should not see tenant 1's recommendations.
+        var result = await _service.GetRecommendationsByEvalReportAsync("t2", evalReportId);
+        Assert.Empty(result.Recommendations);
+    }
+
     private sealed class StubAuditWriter : IAuditEventWriter
     {
         public List<AuditEvent> Events { get; } = [];

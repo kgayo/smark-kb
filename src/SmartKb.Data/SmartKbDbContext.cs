@@ -466,6 +466,7 @@ public class SmartKbDbContext : DbContext
             e.HasIndex(r => new { r.TenantId, r.Status });
             e.HasIndex(r => new { r.TenantId, r.ProductArea });
             e.HasOne(r => r.Tenant).WithMany().HasForeignKey(r => r.TenantId);
+            e.HasOne(r => r.SourceEvalReport).WithMany().HasForeignKey(r => r.SourceEvalReportId).IsRequired(false);
         });
     }
 

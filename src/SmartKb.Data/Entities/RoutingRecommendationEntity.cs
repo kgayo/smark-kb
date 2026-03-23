@@ -36,5 +36,9 @@ public sealed class RoutingRecommendationEntity
     public DateTimeOffset? DismissedAt { get; set; }
     public string? DismissedBy { get; set; }
 
+    /// <summary>Optional FK to the eval report that triggered this recommendation (P3-023).</summary>
+    public Guid? SourceEvalReportId { get; set; }
+
     public TenantEntity Tenant { get; set; } = null!;
+    public EvalReportEntity? SourceEvalReport { get; set; }
 }

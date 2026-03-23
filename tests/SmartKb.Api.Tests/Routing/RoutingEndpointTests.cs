@@ -199,4 +199,42 @@ public class RoutingEndpointTests : IAsyncLifetime
         var response = await _agentClient.GetAsync("/api/admin/routing/analytics");
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
+
+    // --- Eval-to-Improvement Traceability (P3-023) ---
+
+    [Fact]
+    public async Task GenerateRecommendations_WithSourceEvalReportId_ReturnsOk()
+    {
+        var request = new GenerateRecommendationsRequest
+        {
+            SourceEvalReportId = Guid.NewGuid(),
+        };
+        var response = await _adminClient.PostAsJsonAsync(
+            "/api/admin/routing/recommendations/generate", request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<RoutingRecommendationListResponse>>();
+        Assert.True(body!.IsSuccess);
+    }
+
+    [Fact]
+    public async Task GetRecommendationsByEvalReport_ReturnsOk()
+    {
+        var reportId = Guid.NewGuid();
+        var response = await _adminClient.GetAsync(
+            $"/api/admin/eval/reports/{reportId}/recommendations");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<RoutingRecommendationListResponse>>();
+        Assert.True(body!.IsSuccess);
+        Assert.Empty(body.Data!.Recommendations);
+    }
+
+    [Fact]
+    public async Task GetRecommendationsByEvalReport_SupportAgent_Returns403()
+    {
+        var response = await _agentClient.GetAsync(
+            $"/api/admin/eval/reports/{Guid.NewGuid()}/recommendations");
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
 }

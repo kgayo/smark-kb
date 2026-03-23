@@ -1675,12 +1675,14 @@ app.MapGet("/api/admin/routing/analytics", async (
 }).RequirePermission("connector:manage");
 
 app.MapPost("/api/admin/routing/recommendations/generate", async (
+    GenerateRecommendationsRequest? request,
     ITenantContextAccessor tenantAccessor,
     IRoutingImprovementService improvementService) =>
 {
     var tenant = tenantAccessor.Current!;
     var result = await improvementService.GenerateRecommendationsAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId,
+        request?.SourceEvalReportId);
     return Results.Ok(ApiResponse<RoutingRecommendationListResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
@@ -1720,6 +1722,17 @@ app.MapPost("/api/admin/routing/recommendations/{recommendationId:guid}/dismiss"
     return dismissed
         ? Results.Ok(ApiResponse<object>.Success(new { dismissed = true }, tenant.CorrelationId))
         : Results.NotFound(ApiResponse<object>.Failure("Recommendation not found or not pending.", tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapGet("/api/admin/eval/reports/{reportId:guid}/recommendations", async (
+    Guid reportId,
+    ITenantContextAccessor tenantAccessor,
+    IRoutingImprovementService improvementService) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var result = await improvementService.GetRecommendationsByEvalReportAsync(
+        tenant.TenantId, reportId);
+    return Results.Ok(ApiResponse<RoutingRecommendationListResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 // ──── Team Playbooks (P2-002) ────

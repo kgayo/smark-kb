@@ -432,6 +432,7 @@ export function RoutingAnalyticsPage() {
                     <th>Current Team</th>
                     <th>Suggestion</th>
                     <th>Confidence</th>
+                    <th>Source</th>
                     <th>Status</th>
                     <th>Actions</th>
                   </tr>
@@ -450,6 +451,15 @@ export function RoutingAnalyticsPage() {
                             : '-'}
                       </td>
                       <td>{formatPercent(rec.confidence)}</td>
+                      <td>
+                        {rec.sourceEvalReportId ? (
+                          <span className="eval-report-link" title={`Eval report: ${rec.sourceEvalReportId}`}>
+                            Eval Report
+                          </span>
+                        ) : (
+                          <span className="source-manual">Manual</span>
+                        )}
+                      </td>
                       <td>
                         <span className={`rec-status rec-status-${rec.status.toLowerCase()}`}>
                           {rec.status}
@@ -470,7 +480,7 @@ export function RoutingAnalyticsPage() {
                     </tr>
                   ))}
                   {recommendations.length === 0 && (
-                    <tr><td colSpan={7} className="admin-empty">No recommendations.</td></tr>
+                    <tr><td colSpan={8} className="admin-empty">No recommendations.</td></tr>
                   )}
                 </tbody>
               </table>

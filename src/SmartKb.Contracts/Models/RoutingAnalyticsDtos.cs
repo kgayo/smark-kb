@@ -69,12 +69,24 @@ public sealed record RoutingRecommendationDto
     public required DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset? AppliedAt { get; init; }
     public string? AppliedBy { get; init; }
+
+    /// <summary>Optional eval report that triggered this recommendation (P3-023).</summary>
+    public Guid? SourceEvalReportId { get; init; }
 }
 
 public sealed record RoutingRecommendationListResponse
 {
     public required IReadOnlyList<RoutingRecommendationDto> Recommendations { get; init; }
     public required int TotalCount { get; init; }
+}
+
+/// <summary>
+/// Request to generate routing recommendations, optionally linked to an eval report (P3-023).
+/// </summary>
+public sealed record GenerateRecommendationsRequest
+{
+    /// <summary>Optional eval report ID to link generated recommendations to.</summary>
+    public Guid? SourceEvalReportId { get; init; }
 }
 
 /// <summary>

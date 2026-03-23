@@ -33,6 +33,7 @@ public sealed class RoutingImprovementService : IRoutingImprovementService
 
     public async Task<RoutingRecommendationListResponse> GenerateRecommendationsAsync(
         string tenantId, string userId, string correlationId,
+        Guid? sourceEvalReportId = null,
         CancellationToken ct = default)
     {
         var summary = await _analytics.GetAnalyticsAsync(tenantId, ct: ct);
@@ -74,6 +75,7 @@ public sealed class RoutingImprovementService : IRoutingImprovementService
                     SupportingOutcomeCount = area.TotalEscalations,
                     Status = "Pending",
                     CreatedAt = now,
+                    SourceEvalReportId = sourceEvalReportId,
                 };
                 _db.RoutingRecommendations.Add(recommendation);
                 generated.Add(recommendation);
@@ -109,6 +111,7 @@ public sealed class RoutingImprovementService : IRoutingImprovementService
                     SupportingOutcomeCount = area.TotalEscalations,
                     Status = "Pending",
                     CreatedAt = now,
+                    SourceEvalReportId = sourceEvalReportId,
                 };
                 _db.RoutingRecommendations.Add(recommendation);
                 generated.Add(recommendation);
@@ -275,6 +278,22 @@ public sealed class RoutingImprovementService : IRoutingImprovementService
         return true;
     }
 
+    public async Task<RoutingRecommendationListResponse> GetRecommendationsByEvalReportAsync(
+        string tenantId, Guid evalReportId, CancellationToken ct = default)
+    {
+        var results = await _db.RoutingRecommendations
+            .Where(r => r.TenantId == tenantId && r.SourceEvalReportId == evalReportId)
+            .ToListAsync(ct);
+
+        var ordered = results.OrderByDescending(r => r.CreatedAt).ToList();
+
+        return new RoutingRecommendationListResponse
+        {
+            Recommendations = ordered.Select(MapRecommendation).ToList(),
+            TotalCount = ordered.Count,
+        };
+    }
+
     private async Task<string?> FindBetterTeamAsync(
         string tenantId, ProductAreaRoutingMetrics area, CancellationToken ct)
     {
@@ -350,5 +369,6 @@ public sealed class RoutingImprovementService : IRoutingImprovementService
         CreatedAt = entity.CreatedAt,
         AppliedAt = entity.AppliedAt,
         AppliedBy = entity.AppliedBy,
+        SourceEvalReportId = entity.SourceEvalReportId,
     };
 }

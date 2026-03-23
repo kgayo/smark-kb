@@ -14,6 +14,7 @@ import type {
   CreateConnectorRequest,
   CreateEscalationDraftRequest,
   CreateRoutingRuleRequest,
+  GenerateRecommendationsRequest,
   CreateSessionRequest,
   CreateSynonymRuleRequest,
   CreateTeamPlaybookRequest,
@@ -730,10 +731,21 @@ export async function getRoutingAnalytics(windowDays?: number): Promise<RoutingA
   return unwrap(res);
 }
 
-export async function generateRoutingRecommendations(): Promise<RoutingRecommendationListResponse> {
+export async function generateRoutingRecommendations(
+  request?: GenerateRecommendationsRequest,
+): Promise<RoutingRecommendationListResponse> {
   const res = await apiFetch<ApiResponse<RoutingRecommendationListResponse>>(
     '/api/admin/routing/recommendations/generate',
-    { method: 'POST' },
+    { method: 'POST', body: JSON.stringify(request ?? {}) },
+  );
+  return unwrap(res);
+}
+
+export async function getRecommendationsByEvalReport(
+  reportId: string,
+): Promise<RoutingRecommendationListResponse> {
+  const res = await apiFetch<ApiResponse<RoutingRecommendationListResponse>>(
+    `/api/admin/eval/reports/${reportId}/recommendations`,
   );
   return unwrap(res);
 }

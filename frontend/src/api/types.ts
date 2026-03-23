@@ -846,11 +846,16 @@ export interface RoutingRecommendationDto {
   createdAt: string;
   appliedAt: string | null;
   appliedBy: string | null;
+  sourceEvalReportId: string | null;
 }
 
 export interface RoutingRecommendationListResponse {
   recommendations: RoutingRecommendationDto[];
   totalCount: number;
+}
+
+export interface GenerateRecommendationsRequest {
+  sourceEvalReportId?: string;
 }
 
 export interface ApplyRecommendationRequest {
