@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-23 (Asia/Manila) — iteration 100 (P3-028 Stop-Words and Special Tokens Management)
-Status: Active backlog (Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 in progress: P3-001, P3-002, P3-003, P3-004, P3-005, P3-006, P3-007, P3-008, P3-009, P3-010, P3-011, P3-012, P3-014, P3-015, P3-016, P3-017, P3-018, P3-019, P3-020, P3-021, P3-022, P3-023, P3-024, P3-025, P3-026, P3-028, P3-029, P3-032, P3-033, P3-034, P3-035, P3-036, P3-037, P3-038 complete; Tests complete: T-001–T-008; ~2531 tests passing (2113 backend + 410 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking)
+Last updated: 2026-03-23 (Asia/Manila) — iteration 104 (all implementation and spec clarifications complete)
+Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2529 tests passing (2113 backend + 410 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched.
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -522,12 +522,10 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
   - Dependencies: P0-005A (IaC baseline)
   - Priority: LOW — platform-default encryption meets most compliance regimes; CMK is enterprise-tier requirement.
 
-- [ ] P3-031: Document model fine-tuning / distillation decision (PRD Level 4 optional).
+- [x] P3-031: Document model fine-tuning / distillation decision (PRD Level 4 optional).
   - Specs: PRD §60 "Continuous improvement mechanisms > Level 4"
-  - Gap: PRD mentions "Consider distillation/fine-tuning only after stable evaluation harness exists. Use strict privacy controls and redaction before any such process." This is explicitly optional but completely untracked — not even as a deferred architectural decision.
-  - Scope: Add D-018 design decision documenting when/whether to pursue model fine-tuning. Prerequisites: stable eval harness (P3-006), privacy controls (P2-001 complete), sufficient gold dataset (P3-022). Decision should document privacy requirements (PII redaction before training data export), cost/benefit analysis, and trigger criteria.
-  - Dependencies: P3-006, P3-022, P2-001 (complete)
-  - Priority: LOW — explicitly optional per PRD; document the decision framework for future consideration.
+  - Dependencies: P3-006 (complete), P3-022 (complete), P2-001 (complete)
+  - Completed: D-018 design decision resolved — **defer fine-tuning/distillation indefinitely**. Current RAG + prompt engineering architecture meets all quality and latency SLOs. Documented 4 trigger criteria that must all be met before reconsidering (gold dataset ≥ 500 cases, eval stability ≥ 3 months, demonstrated quality ceiling, cost justification). Mandatory privacy requirements: PII redaction via `PiiRedactionService`, per-tenant policy application, tenant consent, human review before export, audit logging. Cost/benefit analysis concludes marginal benefit given existing case-pattern distillation pipeline (P1-005) captures institutional knowledge without model customization. Recommended future approach: gpt-4o → gpt-4o-mini distillation using gold dataset + high-confidence answer traces.
 
 ## Cross-Cutting Test Backlog (continuous)
 - [x] T-001: Unit tests for normalization/chunking, structured output parsing, ACL and tenant filters, escalation policy logic, PII redaction rules.
@@ -556,7 +554,7 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
 
 ## Open Risks / Watch Items
 - [ ] R-001: Connector API limits and webhook reliability variability across providers. Mitigated by polling fallback (P0-008A) and rate-limit metrics (P1-008). Residual: per-provider quota tuning needed in production.
-- [ ] R-002: Retrieval quality drift as corpus grows; requires active eval + tuning. Mitigated by eval harness (P0-021) and per-tenant tuning (P1-007). **Blocked by** P3-006 (no scheduled eval runs yet).
+- [ ] R-002: Retrieval quality drift as corpus grows; requires active eval + tuning. Mitigated by eval harness (P0-021), per-tenant tuning (P1-007), and scheduled eval CI (P3-006 complete). Residual: monitor nightly/weekly eval trends for early drift detection.
 - [ ] R-003: Escalation over/under-triggering before enough outcome data accumulates. Mitigated by routing analytics (P1-009) and improvement recommendations. Residual: cold-start period.
 - [ ] R-004: Tenant misconfiguration risk in early environments. Mitigated by validation endpoints. Consider P3-010 (guided scope selection) for further mitigation.
 - [ ] R-005: Terraform/ARM drift risk if infra updates bypass IaC workflows. Mitigated by drift-detection.yml (weekly scheduled), infra-validate.yml, and IaC parity tests (P1-010, T-006).
@@ -573,7 +571,7 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
 - [x] R-016: ~~Feedback reason codes not enumerated~~ — resolved (P0-018).
 - [x] R-017: ~~jtbd-06 has no numeric SLO thresholds~~ — resolved (P0-021).
 - [ ] R-018: Entra ID config optional with silent fallback — misconfiguration risk in production. Consider adding startup validation when `ASPNETCORE_ENVIRONMENT=Production`.
-- [ ] R-019: jtbd-03 spec very thin (33 lines) — all detail in PRD. Risk of divergence. **Tracked as** P3-011/SPEC-007.
+- [x] R-019: jtbd-03 spec very thin (33 lines) — all detail in PRD. **Resolved**: SPEC-007 patched jtbd-03 from 33 to 73 lines with full pipeline stages, field schema, and telemetry.
 - [x] R-020: ~~No .NET or frontend CI pipeline~~ — resolved (TECH-006).
 - [x] R-021: Binary document text extraction — **RESOLVED** by P3-003 (iteration 74). SharePoint connector now downloads and extracts text from PDF/DOCX/PPTX/XLSX via PdfPig and Open XML SDK.
 - [x] R-022: Pre-retrieval query classification. **Resolved by** P3-001 (iteration 69). Classification via gpt-4o-mini biases retrieval filters by product area, source type, and time horizon.
@@ -623,29 +621,42 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
 - [x] D-019: Customer-managed key (CMK) encryption architecture — **Resolved** (iteration 101).
   - **Decision**: CMK is an infrastructure-level opt-in (per deployment, not per application-tenant). A single User Assigned Identity (`id-smartkb-cmk-{env}`) with Key Vault Crypto Officer role accesses the encryption key. CMK covers three services: (1) Storage Account — `customer_managed_key` block with Key Vault key URI + identity; (2) Azure SQL — Transparent Data Encryption (TDE) with `keyId` on server resource; (3) Azure AI Search — `encryptionWithCmk.enforcement=Enabled`. Service Bus CMK requires Premium SKU (not cost-effective for current Basic/Standard tiers) — deferred until Premium is justified by throughput needs. Key Vault purge protection is auto-enabled when CMK is active (required by Azure for CMK scenarios). Per-tenant key isolation (each tenant gets a separate key) is not feasible at infrastructure level — would require separate Azure resources per tenant. If true per-tenant CMK is needed, implement at the application layer using client-side encryption with per-tenant keys stored in Key Vault. All environments default to CMK disabled (`enable_cmk = false`); opt-in by setting `enable_cmk = true` and providing `cmk_key_vault_key_id`.
 
-- [ ] D-018: Model fine-tuning / distillation decision — whether to pursue, prerequisites (stable eval + privacy controls + sufficient gold dataset), privacy requirements (PII redaction before training data export), cost/benefit analysis, and trigger criteria. **Blocks** P3-031.
-  - **Proposed**: Defer until gold dataset reaches 500+ cases and eval harness is running scheduled (P3-006 + P3-022). Document privacy requirements: all training data must pass through PII redaction pipeline (P2-001) before export. Consider distillation of gpt-4o into a smaller model only if latency SLOs cannot be met with prompt optimization alone.
+- [x] D-018: Model fine-tuning / distillation decision — **Resolved** (iteration 102).
+  - **Decision**: **Defer model fine-tuning/distillation indefinitely.** Current architecture (gpt-4o generation + gpt-4o-mini classification/summarization + RAG retrieval with two-store evidence/pattern architecture) meets all latency SLOs (P95 ≤ 8s) and quality targets without custom model training. Fine-tuning should only be reconsidered when **all** of the following trigger criteria are met simultaneously:
+    1. **Gold dataset maturity**: ≥ 500 curated gold cases (currently 62 baseline + admin-managed via GoldCaseService) with diverse coverage across all connector types, severity levels, and product areas.
+    2. **Eval stability**: Scheduled eval CI (P3-006) running for ≥ 3 months with stable baselines (no blocking regressions in ≥ 6 consecutive weekly runs).
+    3. **Demonstrated quality ceiling**: Prompt engineering, retrieval tuning (P1-007), synonym maps (P3-004), and query classification (P3-001) have been exhausted and quality metrics plateau below targets.
+    4. **Cost justification**: Per-query LLM cost exceeds acceptable thresholds AND a smaller distilled model can demonstrably reduce cost while maintaining quality within 5% of gpt-4o baselines.
+  - **Privacy requirements** (mandatory before any training data export):
+    - All training data must pass through `PiiRedactionService` with enforcement mode `"redact"` (P2-001) — no exceptions.
+    - Per-tenant PII policies (custom patterns + enabled types) must be applied during export.
+    - Tenant consent must be obtained before including their data in any training set.
+    - Training data must be exported via `GoldCaseService.ExportAsJsonlAsync` (P3-022) which enforces tenant isolation.
+    - Exported data must be reviewed by a human (SupportLead or Admin role) before submission to any fine-tuning API.
+    - Audit events must be logged for every training data export operation.
+  - **Cost/benefit analysis**: Fine-tuning gpt-4o or distilling to a smaller model incurs (a) training compute cost ($25+ per fine-tuning job), (b) ongoing hosting cost for custom model endpoints, (c) model maintenance burden (re-train on corpus changes), (d) evaluation complexity (must maintain separate eval baselines for fine-tuned vs. base model). Benefits are marginal when RAG + prompt engineering already meet quality targets. The case-pattern distillation pipeline (P1-005) already captures institutional knowledge without model customization.
+  - **Architecture note**: If fine-tuning is eventually pursued, the recommended approach is distillation of gpt-4o into gpt-4o-mini using the existing gold dataset + high-confidence answer traces (from `AnswerTraceEntity`). This preserves the RAG architecture while potentially reducing per-query latency and cost for the generation step only. Classification and summarization already use gpt-4o-mini.
 
 ## Spec Clarification Backlog
 Items where specs are ambiguous, inconsistent, or missing detail. Patch before or during dependent implementation.
-**Tracked collectively as P3-011.**
+**Tracked collectively as P3-011. All items resolved.**
 
 - [x] SPEC-001: jtbd-01 — Add webhook registration lifecycle. Resolved in P0-008A.
 - [x] SPEC-002: jtbd-01 — Define polling fallback interval. Resolved in P0-008A.
-- [ ] SPEC-003: jtbd-01 — Define content-level dedup strategy using ContentHash. **Implementation exists** (SyncJobProcessor compares ContentHash, skips upload when unchanged; chunk-level hash dedup via ComputeChunkHash). Spec needs patching to document this behavior.
-- [ ] SPEC-004: jtbd-02 — Define enrichment version scheme. **Implementation exists** (EnrichmentVersion int on EvidenceChunk, ReprocessedAt timestamp, hash includes version). Spec needs patching to document: format=monotonic int, storage=EvidenceChunkEntity column, trigger=version mismatch during upsert.
+- [x] SPEC-003: jtbd-01 — Define content-level dedup strategy using ContentHash. **Spec patched**: jtbd-01 lines 21-24 document SHA-256 content hash dedup at raw content, chunk, and sync-run layers.
+- [x] SPEC-004: jtbd-02 — Define enrichment version scheme. **Spec patched**: jtbd-02 lines 17-21 document monotonic int versioning, ReprocessedAt, hash-includes-version, deterministic reprocessing.
 - [x] SPEC-005: jtbd-02 — Define error token extraction. Resolved in P0-010.
 - [x] SPEC-006: jtbd-02 — Standardize chunk ID format. Resolved: underscore format.
-- [ ] SPEC-007: jtbd-03 — Expand thin spec (33 lines) with PRD detail. Needs: query stages, field schema, merge algorithm, telemetry. All implemented in code but spec lags.
+- [x] SPEC-007: jtbd-03 — Expand thin spec with PRD detail. **Spec patched**: jtbd-03 expanded from 33 to 73 lines with 4 pipeline stages, evidence index schema table, retrieval telemetry, and configurable parameters.
 - [x] SPEC-008: jtbd-06 — Enumerate feedback reason codes. Resolved in P0-018.
-- [ ] SPEC-009: jtbd-06 — Define numeric SLO thresholds for eval gates. **Partially resolved** in P0-021 (groundedness >= 0.80, citation_coverage >= 0.70, routing_accuracy >= 0.60, no_evidence_rate <= 0.25). Spec needs patching.
-- [ ] SPEC-010: jtbd-08 — Define routing rule precedence. Current behavior: first matching rule by product area wins. Spec needs documenting.
-- [ ] SPEC-011: jtbd-08 — Define severity classification ownership. Current behavior: enrichment service assigns at ingestion; LLM structured output can override via escalation signal; agent can edit in draft. Spec needs documenting.
-- [ ] SPEC-012: jtbd-09 — Trust state mismatch: spec says 3, PRD says 4. **Resolved in code**: 4 states (Draft/Reviewed/Approved/Deprecated) in `TrustLevel` enum. Spec needs patching.
-- [ ] SPEC-013: jtbd-09 — Pattern usage/reuse metrics. PatternMaintenanceService tracks citation-based usage for "unused" detection. No formal metrics API. **Tracked as** P3-012.
+- [x] SPEC-009: jtbd-06 — Define numeric SLO thresholds for eval gates. **Spec patched**: jtbd-06 lines 18-23 document all four thresholds with configurable `EvalSettings` and CI annotation behavior.
+- [x] SPEC-010: jtbd-08 — Define routing rule precedence. **Spec patched**: jtbd-08 line 15 documents FirstOrDefault matching by ProductArea with FallbackTargetTeam.
+- [x] SPEC-011: jtbd-08 — Define severity classification ownership. **Spec patched**: jtbd-08 lines 16-20 document 4-stage severity pipeline (ingestion → classification → LLM → agent override).
+- [x] SPEC-012: jtbd-09 — Trust state mismatch resolved. **Spec patched**: jtbd-09 lines 15-20 document 4-state TrustLevel enum with transition rules and index behavior.
+- [x] SPEC-013: jtbd-09 — Pattern usage/reuse metrics. **Spec patched**: jtbd-09 lines 28-32 document PatternMaintenanceService citation-based usage detection. Formal per-pattern analytics API tracked as P3-012.
 - [x] SPEC-014: jtbd-10 — PII detection tooling. Resolved in P0-014A + P2-001.
-- [ ] SPEC-015: jtbd-10 — Default retention windows. **Implementation exists** (RetentionCleanupService with per-entity configurable days + MetricRetentionDays dual window). Spec needs defaults documented.
-- [ ] SPEC-016: jtbd-10 — Cross-tenant detection beyond missing-tid. Current: TenantContextMiddleware checks `tid` claim, returns 403 + audit on missing; all queries use tenant-scoped EF filters; cross-tenant resource access returns 404 (not 403). Spec needs documenting.
+- [x] SPEC-015: jtbd-10 — Default retention windows. **Spec patched**: jtbd-10 lines 23-27 document per-entity RetentionConfigEntity with dual-window policy and supported entity types.
+- [x] SPEC-016: jtbd-10 — Cross-tenant detection beyond missing-tid. **Spec patched**: jtbd-10 lines 30-35 document 403 for missing tid, 404 for cross-tenant resource access, EF per-tenant filters, and audit trail.
 - [x] SPEC-017: jtbd-11 — Add Ingestion Worker to IaC. Resolved in TECH-001.
 
 ## Plan Maintenance Checklist (run each iteration)
