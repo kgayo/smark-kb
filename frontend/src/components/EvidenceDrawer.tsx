@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import type { CitationDto } from '../api/types';
+import { SourceViewerPanel } from './SourceViewerPanel';
 
 interface EvidenceDrawerProps {
   citations: CitationDto[];
@@ -17,7 +19,20 @@ function formatDate(iso: string): string {
 }
 
 export function EvidenceDrawer({ citations, open, onClose }: EvidenceDrawerProps) {
+  const [viewingChunkId, setViewingChunkId] = useState<string | null>(null);
+
   if (!open) return null;
+
+  if (viewingChunkId) {
+    return (
+      <aside className="evidence-drawer" data-testid="evidence-drawer" role="complementary">
+        <SourceViewerPanel
+          chunkId={viewingChunkId}
+          onBack={() => setViewingChunkId(null)}
+        />
+      </aside>
+    );
+  }
 
   return (
     <aside className="evidence-drawer" data-testid="evidence-drawer" role="complementary">
@@ -45,16 +60,25 @@ export function EvidenceDrawer({ citations, open, onClose }: EvidenceDrawerProps
                 {c.accessLabel}
               </span>
             </div>
-            {c.sourceUrl && (
-              <a
-                href={c.sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="citation-link"
+            <div className="citation-actions">
+              <button
+                className="citation-view-btn"
+                data-testid="view-source-btn"
+                onClick={() => setViewingChunkId(c.chunkId)}
               >
-                View source
-              </a>
-            )}
+                View content
+              </button>
+              {c.sourceUrl && (
+                <a
+                  href={c.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="citation-link"
+                >
+                  Open external
+                </a>
+              )}
+            </div>
           </article>
         ))}
       </div>

@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import type {
   ConnectorResponse,
+  ConnectorValidationResult,
   FieldMappingConfig,
+  PreviewRetrievalChunk,
+  PreviewRecord,
   SyncRunSummary,
   TestConnectionResponse,
   UpdateConnectorRequest,
@@ -43,6 +46,19 @@ export function ConnectorDetail({
   const [actionError, setActionError] = useState<string | null>(null);
   const [togglingStatus, setTogglingStatus] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Preview state (P3-027).
+  const [previewing, setPreviewing] = useState(false);
+  const [previewRecords, setPreviewRecords] = useState<PreviewRecord[] | null>(null);
+  const [previewErrors, setPreviewErrors] = useState<string[]>([]);
+  const [validationResult, setValidationResult] = useState<ConnectorValidationResult | null>(null);
+
+  // Retrieval test state (P3-027).
+  const [retrievalQuery, setRetrievalQuery] = useState('');
+  const [retrievalTesting, setRetrievalTesting] = useState(false);
+  const [retrievalChunks, setRetrievalChunks] = useState<PreviewRetrievalChunk[] | null>(null);
+  const [retrievalTotal, setRetrievalTotal] = useState(0);
+  const [retrievalMessage, setRetrievalMessage] = useState<string | null>(null);
 
   const loadSyncRuns = useCallback(async () => {
     setSyncLoading(true);
@@ -125,6 +141,51 @@ export function ConnectorDetail({
     }
   }
 
+  async function handlePreview() {
+    setPreviewing(true);
+    setPreviewRecords(null);
+    setPreviewErrors([]);
+    setValidationResult(null);
+    setActionError(null);
+    try {
+      // Run preview and validate-mapping in parallel.
+      const [previewResult, validation] = await Promise.all([
+        api.previewConnector(connector.id, { sampleSize: 5 }),
+        connector.fieldMapping
+          ? api.validateMapping(connector.id, connector.fieldMapping)
+          : Promise.resolve(null),
+      ]);
+      setPreviewRecords(previewResult.records);
+      setPreviewErrors(previewResult.validationErrors);
+      setValidationResult(validation);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : 'Preview failed');
+    } finally {
+      setPreviewing(false);
+    }
+  }
+
+  async function handleRetrievalTest() {
+    if (!retrievalQuery.trim()) return;
+    setRetrievalTesting(true);
+    setRetrievalChunks(null);
+    setRetrievalMessage(null);
+    setActionError(null);
+    try {
+      const result = await api.previewRetrieval(connector.id, {
+        query: retrievalQuery.trim(),
+        maxResults: 5,
+      });
+      setRetrievalChunks(result.chunks);
+      setRetrievalTotal(result.totalChunksForConnector);
+      setRetrievalMessage(result.message);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : 'Retrieval test failed');
+    } finally {
+      setRetrievalTesting(false);
+    }
+  }
+
   async function handleDelete() {
     setActionError(null);
     try {
@@ -189,6 +250,14 @@ export function ConnectorDetail({
           data-testid="backfill-btn"
         >
           Backfill
+        </button>
+        <button
+          className="btn"
+          onClick={handlePreview}
+          disabled={previewing}
+          data-testid="preview-btn"
+        >
+          {previewing ? 'Previewing...' : 'Preview'}
         </button>
         {!editing && (
           <button
@@ -324,6 +393,139 @@ export function ConnectorDetail({
       </div>
 
       <SyncRunHistory syncRuns={syncRuns} loading={syncLoading} />
+
+      {/* Missing-field analysis (P3-027) */}
+      {validationResult?.missingFieldAnalysis && (
+        <div className="detail-section" data-testid="missing-field-analysis">
+          <h4>Field Coverage</h4>
+          {validationResult.missingFieldAnalysis.missingRequiredFields.length > 0 && (
+            <div className="error-banner" role="alert" data-testid="missing-required-warning">
+              Missing required fields: {validationResult.missingFieldAnalysis.missingRequiredFields.join(', ')}
+            </div>
+          )}
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Field</th>
+                <th>Required</th>
+                <th>Mapped</th>
+              </tr>
+            </thead>
+            <tbody>
+              {validationResult.missingFieldAnalysis.fieldCoverage.map((f) => (
+                <tr key={f.fieldName} className={f.isRequired && !f.isMapped ? 'missing-required' : ''}>
+                  <td>{f.fieldName}</td>
+                  <td>{f.isRequired ? 'Yes' : 'No'}</td>
+                  <td>{f.isMapped ? 'Yes' : 'No'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Preview records (P3-027) */}
+      {previewRecords !== null && (
+        <div className="detail-section" data-testid="preview-records">
+          <h4>Preview Records ({previewRecords.length})</h4>
+          {previewErrors.length > 0 && (
+            <div className="error-banner" role="alert" data-testid="preview-errors">
+              {previewErrors.map((err, i) => (
+                <div key={i}>{err}</div>
+              ))}
+            </div>
+          )}
+          {previewRecords.length === 0 ? (
+            <p>No sample records returned. Check source configuration and credentials.</p>
+          ) : (
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Source Type</th>
+                  <th>Product Area</th>
+                  <th>Content</th>
+                </tr>
+              </thead>
+              <tbody>
+                {previewRecords.map((r, i) => (
+                  <tr key={i}>
+                    <td>{r.title || <span className="missing-field">missing</span>}</td>
+                    <td>{r.sourceType || <span className="missing-field">missing</span>}</td>
+                    <td>{r.productArea ?? '—'}</td>
+                    <td className="preview-content">
+                      {r.textContent
+                        ? r.textContent.length > 200
+                          ? r.textContent.slice(0, 200) + '...'
+                          : r.textContent
+                        : <span className="missing-field">missing</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
+      {/* Retrieval test (P3-027) */}
+      <div className="detail-section" data-testid="retrieval-test">
+        <h4>Retrieval Test</h4>
+        <div className="retrieval-test-input">
+          <input
+            type="text"
+            placeholder="Enter a test query..."
+            value={retrievalQuery}
+            onChange={(e) => setRetrievalQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleRetrievalTest()}
+            data-testid="retrieval-query-input"
+          />
+          <button
+            className="btn btn-primary"
+            onClick={handleRetrievalTest}
+            disabled={retrievalTesting || !retrievalQuery.trim()}
+            data-testid="retrieval-test-btn"
+          >
+            {retrievalTesting ? 'Searching...' : 'Test Retrieval'}
+          </button>
+        </div>
+
+        {retrievalMessage && (
+          <p className="retrieval-message" data-testid="retrieval-message">{retrievalMessage}</p>
+        )}
+
+        {retrievalChunks !== null && (
+          <div data-testid="retrieval-results">
+            <p className="retrieval-summary">
+              {retrievalChunks.length} results from {retrievalTotal} total chunks
+            </p>
+            {retrievalChunks.length > 0 && (
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Source Type</th>
+                    <th>Product Area</th>
+                    <th>Chunk Text</th>
+                    <th>Updated</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {retrievalChunks.map((c) => (
+                    <tr key={c.chunkId}>
+                      <td>{c.title}</td>
+                      <td>{c.sourceType}</td>
+                      <td>{c.productArea ?? '—'}</td>
+                      <td className="preview-content">{c.chunkText}</td>
+                      <td>{new Date(c.updatedAt).toLocaleDateString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

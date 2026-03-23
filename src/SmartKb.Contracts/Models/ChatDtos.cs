@@ -100,6 +100,27 @@ public sealed record CitationDto
 }
 
 /// <summary>
+/// Full evidence content for the Source Viewer drill-down (P3-025).
+/// </summary>
+public sealed record EvidenceContentResponse
+{
+    public required string ChunkId { get; init; }
+    public required string EvidenceId { get; init; }
+    public required string Title { get; init; }
+    public required string SourceUrl { get; init; }
+    public required string SourceSystem { get; init; }
+    public required string SourceType { get; init; }
+    public required string ChunkText { get; init; }
+    public string? ChunkContext { get; init; }
+    public string? RawContent { get; init; }
+    public string? ContentType { get; init; }
+    public required DateTimeOffset UpdatedAt { get; init; }
+    public required string AccessLabel { get; init; }
+    public string? ProductArea { get; init; }
+    public IReadOnlyList<string> Tags { get; init; } = [];
+}
+
+/// <summary>
 /// Escalation recommendation signal. D-004 schema (full routing deferred to P0-015).
 /// </summary>
 public sealed record EscalationSignal

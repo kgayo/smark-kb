@@ -392,6 +392,67 @@ public sealed class ConnectorAdminService
         return run is null ? null : ToSyncRunSummary(run);
     }
 
+    public async Task<PreviewRetrievalResponse?> PreviewRetrievalAsync(
+        string tenantId, string actorId, string correlationId,
+        Guid connectorId, PreviewRetrievalRequest request, CancellationToken ct = default)
+    {
+        var entity = await FindConnectorAsync(tenantId, connectorId, ct);
+        if (entity is null) return null;
+
+        // Count total chunks for this connector.
+        var totalChunks = await _db.EvidenceChunks
+            .CountAsync(c => c.ConnectorId == connectorId && c.TenantId == tenantId, ct);
+
+        if (totalChunks == 0)
+        {
+            await WriteAuditAsync(tenantId, actorId, correlationId, AuditEventTypes.ConnectorPreviewRetrieval,
+                $"Preview retrieval for connector '{entity.Name}' (id={entity.Id}): no chunks indexed.");
+            return new PreviewRetrievalResponse
+            {
+                Chunks = [],
+                TotalChunksForConnector = 0,
+                HasEvidence = false,
+                Message = "No chunks have been indexed for this connector yet. Run a sync first.",
+            };
+        }
+
+        // Simple text search against chunks for this connector using LIKE matching.
+        var queryLower = request.Query.ToLowerInvariant();
+        var maxResults = Math.Clamp(request.MaxResults, 1, 20);
+
+        var matchingChunks = await _db.EvidenceChunks
+            .Where(c => c.ConnectorId == connectorId && c.TenantId == tenantId)
+            .Where(c => c.ChunkText.ToLower().Contains(queryLower)
+                     || c.Title.ToLower().Contains(queryLower))
+            .OrderByDescending(c => c.UpdatedAt)
+            .Take(maxResults)
+            .ToListAsync(ct);
+
+        var chunks = matchingChunks.Select(c => new PreviewRetrievalChunk
+        {
+            ChunkId = c.ChunkId,
+            Title = c.Title,
+            ChunkText = c.ChunkText.Length > 500 ? c.ChunkText[..500] + "..." : c.ChunkText,
+            SourceType = c.SourceType,
+            ProductArea = c.ProductArea,
+            Score = 1.0, // Text-match score (no vector search in preview).
+            UpdatedAt = c.UpdatedAt,
+        }).ToList();
+
+        await WriteAuditAsync(tenantId, actorId, correlationId, AuditEventTypes.ConnectorPreviewRetrieval,
+            $"Preview retrieval for connector '{entity.Name}' (id={entity.Id}): query='{request.Query}', {chunks.Count} results from {totalChunks} total chunks.");
+
+        return new PreviewRetrievalResponse
+        {
+            Chunks = chunks,
+            TotalChunksForConnector = totalChunks,
+            HasEvidence = chunks.Count > 0,
+            Message = chunks.Count == 0
+                ? $"No chunks matched the query '{request.Query}'. Try a different search term."
+                : null,
+        };
+    }
+
     public ConnectorValidationResult ValidateFieldMapping(FieldMappingConfig? mapping)
     {
         if (mapping is null || mapping.Rules.Count == 0)
@@ -420,10 +481,46 @@ public sealed class ConnectorAdminService
                 targetFields.Add(rule.TargetField);
         }
 
-        if (errors.Count > 0)
-            return ConnectorValidationResult.Invalid([.. errors]);
+        var analysis = BuildMissingFieldAnalysis(targetFields);
 
-        return ConnectorValidationResult.Valid();
+        if (errors.Count > 0)
+            return ConnectorValidationResult.Invalid(errors, analysis);
+
+        return ConnectorValidationResult.Valid(analysis);
+    }
+
+    private static MissingFieldAnalysis BuildMissingFieldAnalysis(IReadOnlySet<string> mappedTargetFields)
+    {
+        // All canonical fields that can be mapped (required + optional well-known fields).
+        var allFields = new (string Name, bool IsRequired)[]
+        {
+            (nameof(CanonicalRecord.Title), true),
+            (nameof(CanonicalRecord.TextContent), true),
+            (nameof(CanonicalRecord.SourceType), true),
+            (nameof(CanonicalRecord.ProductArea), false),
+            (nameof(CanonicalRecord.Tags), false),
+            (nameof(CanonicalRecord.Severity), false),
+            (nameof(CanonicalRecord.Author), false),
+            (nameof(CanonicalRecord.Status), false),
+        };
+
+        var coverage = allFields.Select(f => new FieldCoverage
+        {
+            FieldName = f.Name,
+            IsMapped = mappedTargetFields.Contains(f.Name),
+            IsRequired = f.IsRequired,
+        }).ToList();
+
+        var missingRequired = coverage
+            .Where(f => f.IsRequired && !f.IsMapped)
+            .Select(f => f.FieldName)
+            .ToList();
+
+        return new MissingFieldAnalysis
+        {
+            MissingRequiredFields = missingRequired,
+            FieldCoverage = coverage,
+        };
     }
 
     public async Task<OAuthAuthorizeUrlResponse?> GetOAuthAuthorizeUrlAsync(

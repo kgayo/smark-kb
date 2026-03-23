@@ -1,6 +1,6 @@
 # API Reference
 
-Smart KB exposes 123 endpoints across 21 functional groups. All endpoints (except webhooks and health) require authentication and return wrapped `ApiResponse<T>` responses with `Success`, `Data`, `Error`, and `CorrelationId` fields.
+Smart KB exposes 125 endpoints across 21 functional groups. All endpoints (except webhooks and health) require authentication and return wrapped `ApiResponse<T>` responses with `Success`, `Data`, `Error`, and `CorrelationId` fields.
 
 ## Authorization Model
 
@@ -39,6 +39,7 @@ Smart KB exposes 123 endpoints across 21 functional groups. All endpoints (excep
 | GET | `/api/sessions/{id}/messages` | `chat:query` | List messages |
 | POST | `/api/sessions/{id}/messages` | `chat:query` | Send chat message |
 | POST | `/api/chat` | `chat:query` | Stateless chat (legacy) |
+| GET | `/api/evidence/{chunkId}/content` | `chat:query` | Full evidence content for source viewer drill-down |
 
 ## Feedback
 
@@ -91,6 +92,7 @@ Smart KB exposes 123 endpoints across 21 functional groups. All endpoints (excep
 | POST | `/api/admin/connectors/{id}/sync-now` | `connector:manage` | Trigger sync |
 | POST | `/api/admin/connectors/{id}/preview` | `connector:manage` | Preview data |
 | POST | `/api/admin/connectors/{id}/validate-mapping` | `connector:manage` | Validate mappings |
+| POST | `/api/admin/connectors/{id}/preview-retrieval` | `connector:manage` | Test retrieval against connector chunks |
 | GET | `/api/admin/connectors/{id}/sync-runs` | `connector:manage` | Sync history |
 | GET | `/api/admin/connectors/{id}/sync-runs/{rid}` | `connector:manage` | Sync run details |
 

@@ -1039,6 +1039,28 @@ body {
   color: var(--color-low);
 }
 
+.citation-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.citation-view-btn {
+  font-size: 12px;
+  color: var(--color-primary);
+  background: none;
+  border: 1px solid var(--color-primary);
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.citation-view-btn:hover {
+  background: var(--color-primary);
+  color: #fff;
+}
+
 .citation-link {
   font-size: 12px;
   color: var(--color-primary);
@@ -1047,6 +1069,165 @@ body {
 
 .citation-link:hover {
   text-decoration: underline;
+}
+
+/* ── Source Viewer Panel (P3-025) ── */
+
+.source-viewer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.source-viewer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border);
+  gap: 8px;
+}
+
+.source-viewer-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.btn-back {
+  font-size: 12px;
+  color: var(--color-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 0;
+  white-space: nowrap;
+}
+
+.btn-back:hover {
+  text-decoration: underline;
+}
+
+.btn-sm {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-outline {
+  background: none;
+  border: 1px solid var(--color-border);
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.btn-outline:hover {
+  border-color: var(--color-primary);
+}
+
+.source-viewer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.source-viewer-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+}
+
+.source-viewer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.meta-badge {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+}
+
+.meta-date {
+  font-size: 11px;
+  color: var(--color-muted);
+}
+
+.meta-product-area {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #4338ca;
+}
+
+.source-viewer-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.tag-chip {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: #f0f0f0;
+  color: #555;
+}
+
+.source-viewer-context {
+  font-size: 12px;
+  color: var(--color-muted);
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  background: var(--color-bg);
+  border-radius: 4px;
+}
+
+.context-label {
+  font-weight: 600;
+}
+
+.source-viewer-content {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 12px;
+  overflow-x: auto;
+}
+
+.source-viewer-content pre {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+}
+
+.content-wiki pre {
+  font-family: inherit;
+}
+
+.content-ticket pre {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+}
+
+.source-viewer-loading,
+.source-viewer-error {
+  text-align: center;
+  color: var(--color-muted);
+  padding: 24px 12px;
+}
+
+.source-viewer-error {
+  color: var(--color-error, #dc2626);
 }
 
 /* ── Admin layout ── */
@@ -2600,4 +2781,52 @@ body {
 .audit-pagination span {
   font-size: 14px;
   color: var(--color-text-muted);
+}
+
+/* ── Connector Preview & Retrieval Test (P3-027) ── */
+
+.missing-field {
+  color: #d32f2f;
+  font-style: italic;
+  font-size: 12px;
+}
+
+.missing-required td {
+  background-color: rgba(211, 47, 47, 0.08);
+}
+
+.preview-content {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.retrieval-test-input {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.retrieval-test-input input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.retrieval-message {
+  color: var(--color-text-muted);
+  font-style: italic;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+.retrieval-summary {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
 }

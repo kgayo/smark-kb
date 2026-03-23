@@ -38,11 +38,17 @@ describe('EvidenceDrawer', () => {
     expect(drawer).toBeInTheDocument();
   });
 
-  it('renders source URL as link', () => {
+  it('renders external source URL as link', () => {
     render(<EvidenceDrawer citations={[mockCitation]} open={true} onClose={() => {}} />);
-    const link = screen.getByText('View source');
+    const link = screen.getByText('Open external');
     expect(link).toHaveAttribute('href', mockCitation.sourceUrl);
     expect(link).toHaveAttribute('target', '_blank');
+  });
+
+  it('renders View content button for citation drill-down', () => {
+    render(<EvidenceDrawer citations={[mockCitation]} open={true} onClose={() => {}} />);
+    expect(screen.getByTestId('view-source-btn')).toBeInTheDocument();
+    expect(screen.getByText('View content')).toBeInTheDocument();
   });
 
   it('shows citation count in header', () => {

@@ -11,6 +11,9 @@ vi.mock('../api/client', () => ({
   syncNow: vi.fn(),
   deleteConnector: vi.fn(),
   listSyncRuns: vi.fn(),
+  previewConnector: vi.fn(),
+  previewRetrieval: vi.fn(),
+  validateMapping: vi.fn(),
 }));
 
 const mockedApi = vi.mocked(api);
@@ -298,5 +301,197 @@ describe('ConnectorDetail', () => {
     await waitFor(() => {
       expect(mockedApi.listSyncRuns).toHaveBeenCalledWith('c1');
     });
+  });
+
+  // ── Preview (P3-027) ──
+
+  it('renders Preview button', () => {
+    renderDetail();
+    expect(screen.getByTestId('preview-btn')).toBeInTheDocument();
+    expect(screen.getByTestId('preview-btn')).toHaveTextContent('Preview');
+  });
+
+  it('calls previewConnector on Preview click and displays records', async () => {
+    mockedApi.previewConnector.mockResolvedValue({
+      records: [
+        {
+          tenantId: 't1',
+          evidenceId: 'ev1',
+          title: 'Reset Password',
+          textContent: 'Steps to reset your password...',
+          sourceType: 'Ticket',
+          productArea: 'Auth',
+          tags: [],
+          author: null,
+          severity: null,
+        },
+      ],
+      validationErrors: [],
+    });
+    renderDetail();
+    fireEvent.click(screen.getByTestId('preview-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('preview-records')).toBeInTheDocument();
+      expect(screen.getByText('Reset Password')).toBeInTheDocument();
+    });
+  });
+
+  it('shows preview validation errors', async () => {
+    mockedApi.previewConnector.mockResolvedValue({
+      records: [],
+      validationErrors: ["Record 'ev1': missing required field 'Title'."],
+    });
+    renderDetail();
+    fireEvent.click(screen.getByTestId('preview-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('preview-errors')).toBeInTheDocument();
+      expect(screen.getByText(/missing required field/)).toBeInTheDocument();
+    });
+  });
+
+  it('displays missing-field analysis when field mapping exists', async () => {
+    const connectorWithMapping = {
+      ...baseConnector,
+      fieldMapping: {
+        rules: [
+          { sourceField: 'title', targetField: 'Title', transform: 'Direct' as const, transformExpression: null, isRequired: true, defaultValue: null, routingTag: null },
+        ],
+      },
+    };
+    mockedApi.previewConnector.mockResolvedValue({ records: [], validationErrors: [] });
+    mockedApi.validateMapping.mockResolvedValue({
+      isValid: true,
+      errors: [],
+      missingFieldAnalysis: {
+        missingRequiredFields: ['TextContent', 'SourceType'],
+        fieldCoverage: [
+          { fieldName: 'Title', isMapped: true, isRequired: true },
+          { fieldName: 'TextContent', isMapped: false, isRequired: true },
+          { fieldName: 'SourceType', isMapped: false, isRequired: true },
+        ],
+      },
+    });
+    renderDetail(connectorWithMapping);
+    fireEvent.click(screen.getByTestId('preview-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('missing-field-analysis')).toBeInTheDocument();
+      expect(screen.getByTestId('missing-required-warning')).toBeInTheDocument();
+      expect(screen.getByText(/TextContent, SourceType/)).toBeInTheDocument();
+    });
+  });
+
+  it('shows Previewing... while in progress', async () => {
+    mockedApi.previewConnector.mockReturnValue(new Promise(() => {}));
+    renderDetail();
+    fireEvent.click(screen.getByTestId('preview-btn'));
+    expect(screen.getByTestId('preview-btn')).toHaveTextContent('Previewing...');
+  });
+
+  it('shows error banner on preview API error', async () => {
+    mockedApi.previewConnector.mockRejectedValue(new Error('Preview timeout'));
+    renderDetail();
+    fireEvent.click(screen.getByTestId('preview-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('detail-error')).toHaveTextContent('Preview timeout');
+    });
+  });
+
+  // ── Retrieval Test (P3-027) ──
+
+  it('renders retrieval test input and button', () => {
+    renderDetail();
+    expect(screen.getByTestId('retrieval-query-input')).toBeInTheDocument();
+    expect(screen.getByTestId('retrieval-test-btn')).toBeInTheDocument();
+  });
+
+  it('retrieval test button is disabled when query is empty', () => {
+    renderDetail();
+    expect(screen.getByTestId('retrieval-test-btn')).toBeDisabled();
+  });
+
+  it('calls previewRetrieval and displays results', async () => {
+    mockedApi.previewRetrieval.mockResolvedValue({
+      chunks: [
+        {
+          chunkId: 'ch-1',
+          title: 'Password Reset',
+          chunkText: 'Reset steps...',
+          sourceType: 'Ticket',
+          productArea: 'Auth',
+          score: 1.0,
+          updatedAt: '2026-03-15T00:00:00Z',
+        },
+      ],
+      totalChunksForConnector: 10,
+      hasEvidence: true,
+      message: null,
+    });
+    renderDetail();
+
+    fireEvent.change(screen.getByTestId('retrieval-query-input'), {
+      target: { value: 'password reset' },
+    });
+    fireEvent.click(screen.getByTestId('retrieval-test-btn'));
+
+    await waitFor(() => {
+      expect(mockedApi.previewRetrieval).toHaveBeenCalledWith('c1', {
+        query: 'password reset',
+        maxResults: 5,
+      });
+      expect(screen.getByTestId('retrieval-results')).toBeInTheDocument();
+      expect(screen.getByText('Password Reset')).toBeInTheDocument();
+      expect(screen.getByText(/1 results from 10 total chunks/)).toBeInTheDocument();
+    });
+  });
+
+  it('shows retrieval message when no results', async () => {
+    mockedApi.previewRetrieval.mockResolvedValue({
+      chunks: [],
+      totalChunksForConnector: 5,
+      hasEvidence: false,
+      message: 'No chunks matched the query.',
+    });
+    renderDetail();
+
+    fireEvent.change(screen.getByTestId('retrieval-query-input'), {
+      target: { value: 'xyznonexistent' },
+    });
+    fireEvent.click(screen.getByTestId('retrieval-test-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('retrieval-message')).toHaveTextContent(
+        'No chunks matched the query.',
+      );
+    });
+  });
+
+  it('shows error banner on retrieval test API error', async () => {
+    mockedApi.previewRetrieval.mockRejectedValue(new Error('Server error'));
+    renderDetail();
+
+    fireEvent.change(screen.getByTestId('retrieval-query-input'), {
+      target: { value: 'test' },
+    });
+    fireEvent.click(screen.getByTestId('retrieval-test-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('detail-error')).toHaveTextContent('Server error');
+    });
+  });
+
+  it('shows Searching... while retrieval test in progress', async () => {
+    mockedApi.previewRetrieval.mockReturnValue(new Promise(() => {}));
+    renderDetail();
+
+    fireEvent.change(screen.getByTestId('retrieval-query-input'), {
+      target: { value: 'test' },
+    });
+    fireEvent.click(screen.getByTestId('retrieval-test-btn'));
+
+    expect(screen.getByTestId('retrieval-test-btn')).toHaveTextContent('Searching...');
   });
 });

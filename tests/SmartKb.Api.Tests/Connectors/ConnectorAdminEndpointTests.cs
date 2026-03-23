@@ -1,8 +1,11 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
+using SmartKb.Data;
+using SmartKb.Data.Entities;
 
 namespace SmartKb.Api.Tests.Connectors;
 
@@ -530,6 +533,215 @@ public sealed class ConnectorAdminEndpointTests : IClassFixture<ConnectorTestFac
         var body = await Deserialize<ApiResponse<ConnectorListResponse>>(response);
         Assert.Empty(body!.Data!.Connectors);
         otherClient.Dispose();
+    }
+
+    // --- Preview Retrieval (P3-027) ---
+
+    [Fact]
+    public async Task PreviewRetrieval_Returns404_WhenConnectorNotFound()
+    {
+        var request = new PreviewRetrievalRequest { Query = "test" };
+        var response = await _client.PostAsJsonAsync(
+            $"/api/admin/connectors/{Guid.NewGuid()}/preview-retrieval", request);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task PreviewRetrieval_ReturnsNoChunks_WhenNoneIndexed()
+    {
+        var created = await CreateConnectorAsync();
+        var request = new PreviewRetrievalRequest { Query = "test" };
+
+        var response = await _client.PostAsJsonAsync(
+            $"/api/admin/connectors/{created.Id}/preview-retrieval", request);
+        response.EnsureSuccessStatusCode();
+
+        var body = await Deserialize<ApiResponse<PreviewRetrievalResponse>>(response);
+        Assert.True(body!.IsSuccess);
+        Assert.Empty(body.Data!.Chunks);
+        Assert.Equal(0, body.Data.TotalChunksForConnector);
+        Assert.False(body.Data.HasEvidence);
+        Assert.NotNull(body.Data.Message);
+    }
+
+    [Fact]
+    public async Task PreviewRetrieval_ReturnsMatchingChunks_WhenIndexed()
+    {
+        var created = await CreateConnectorAsync();
+
+        // Seed evidence chunks for this connector.
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<SmartKbDbContext>();
+            db.EvidenceChunks.AddRange(
+                new EvidenceChunkEntity
+                {
+                    ChunkId = "chunk-1",
+                    EvidenceId = "ev-1",
+                    TenantId = "tenant-1",
+                    ConnectorId = Guid.Parse(created.Id),
+                    ChunkIndex = 0,
+                    ChunkText = "How to reset your password in the admin portal",
+                    Title = "Password Reset Guide",
+                    SourceSystem = "AzureDevOps",
+                    SourceType = "Ticket",
+                    Status = "Active",
+                    Visibility = "Public",
+                    AccessLabel = "Public",
+                    SourceUrl = "https://example.com/1",
+                    ContentHash = "hash1",
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    UpdatedAt = DateTimeOffset.UtcNow,
+                },
+                new EvidenceChunkEntity
+                {
+                    ChunkId = "chunk-2",
+                    EvidenceId = "ev-2",
+                    TenantId = "tenant-1",
+                    ConnectorId = Guid.Parse(created.Id),
+                    ChunkIndex = 0,
+                    ChunkText = "Billing invoice generation process",
+                    Title = "Billing Guide",
+                    SourceSystem = "AzureDevOps",
+                    SourceType = "Document",
+                    Status = "Active",
+                    Visibility = "Public",
+                    AccessLabel = "Public",
+                    SourceUrl = "https://example.com/2",
+                    ContentHash = "hash2",
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    UpdatedAt = DateTimeOffset.UtcNow,
+                });
+            await db.SaveChangesAsync();
+        }
+
+        var request = new PreviewRetrievalRequest { Query = "password" };
+        var response = await _client.PostAsJsonAsync(
+            $"/api/admin/connectors/{created.Id}/preview-retrieval", request);
+        response.EnsureSuccessStatusCode();
+
+        var body = await Deserialize<ApiResponse<PreviewRetrievalResponse>>(response);
+        Assert.True(body!.IsSuccess);
+        Assert.Single(body.Data!.Chunks);
+        Assert.Equal("Password Reset Guide", body.Data.Chunks[0].Title);
+        Assert.Equal(2, body.Data.TotalChunksForConnector);
+        Assert.True(body.Data.HasEvidence);
+    }
+
+    [Fact]
+    public async Task PreviewRetrieval_RespectsConnectorIsolation()
+    {
+        var connector1 = await CreateConnectorAsync();
+        var connector2 = await CreateConnectorAsync();
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<SmartKbDbContext>();
+            db.EvidenceChunks.Add(new EvidenceChunkEntity
+            {
+                ChunkId = $"chunk-isolated-{Guid.NewGuid():N}",
+                EvidenceId = "ev-isolated",
+                TenantId = "tenant-1",
+                ConnectorId = Guid.Parse(connector1.Id),
+                ChunkIndex = 0,
+                ChunkText = "isolated chunk content",
+                Title = "Isolated",
+                SourceSystem = "AzureDevOps",
+                SourceType = "Ticket",
+                Status = "Active",
+                Visibility = "Public",
+                AccessLabel = "Public",
+                SourceUrl = "https://example.com/isolated",
+                ContentHash = "hash-isolated",
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow,
+            });
+            await db.SaveChangesAsync();
+        }
+
+        // Query connector2 — should find 0 chunks even though connector1 has matching data.
+        var request = new PreviewRetrievalRequest { Query = "isolated" };
+        var response = await _client.PostAsJsonAsync(
+            $"/api/admin/connectors/{connector2.Id}/preview-retrieval", request);
+        response.EnsureSuccessStatusCode();
+
+        var body = await Deserialize<ApiResponse<PreviewRetrievalResponse>>(response);
+        Assert.Empty(body!.Data!.Chunks);
+        Assert.Equal(0, body.Data.TotalChunksForConnector);
+    }
+
+    [Fact]
+    public async Task PreviewRetrieval_ReturnsTenantIsolated()
+    {
+        var created = await CreateConnectorAsync();
+
+        using var otherClient = _factory.CreateAuthenticatedClient(tenantId: "tenant-other");
+        var request = new PreviewRetrievalRequest { Query = "test" };
+        var response = await otherClient.PostAsJsonAsync(
+            $"/api/admin/connectors/{created.Id}/preview-retrieval", request);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task PreviewRetrieval_Returns403_ForNonAdmin()
+    {
+        using var client = _factory.CreateAuthenticatedClient(roles: "SupportAgent");
+        var request = new PreviewRetrievalRequest { Query = "test" };
+        var response = await client.PostAsJsonAsync(
+            $"/api/admin/connectors/{Guid.NewGuid()}/preview-retrieval", request);
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    // --- Missing-field analysis (P3-027) ---
+
+    [Fact]
+    public async Task ValidateMapping_IncludesMissingFieldAnalysis()
+    {
+        var created = await CreateConnectorAsync();
+        var mapping = CreateRequiredFieldMapping();
+
+        var response = await _client.PostAsJsonAsync(
+            $"/api/admin/connectors/{created.Id}/validate-mapping", mapping);
+        response.EnsureSuccessStatusCode();
+
+        var body = await Deserialize<ApiResponse<ConnectorValidationResult>>(response);
+        Assert.True(body!.Data!.IsValid);
+        Assert.NotNull(body.Data.MissingFieldAnalysis);
+        Assert.Empty(body.Data.MissingFieldAnalysis.MissingRequiredFields);
+
+        // All 3 required fields should be marked as mapped.
+        var requiredCoverage = body.Data.MissingFieldAnalysis.FieldCoverage
+            .Where(f => f.IsRequired).ToList();
+        Assert.All(requiredCoverage, f => Assert.True(f.IsMapped));
+    }
+
+    [Fact]
+    public async Task ValidateMapping_HighlightsMissingRequiredFields()
+    {
+        var created = await CreateConnectorAsync();
+        // Mapping only maps Title, missing TextContent and SourceType.
+        var mapping = new FieldMappingConfig
+        {
+            Rules =
+            [
+                new FieldMappingRule
+                {
+                    SourceField = "System.Title",
+                    TargetField = "Title",
+                    Transform = FieldTransformType.Direct,
+                },
+            ],
+        };
+
+        var response = await _client.PostAsJsonAsync(
+            $"/api/admin/connectors/{created.Id}/validate-mapping", mapping);
+        response.EnsureSuccessStatusCode();
+
+        var body = await Deserialize<ApiResponse<ConnectorValidationResult>>(response);
+        Assert.True(body!.Data!.IsValid); // Mapping rules are valid, just incomplete coverage.
+        Assert.NotNull(body.Data.MissingFieldAnalysis);
+        Assert.Contains("TextContent", body.Data.MissingFieldAnalysis.MissingRequiredFields);
+        Assert.Contains("SourceType", body.Data.MissingFieldAnalysis.MissingRequiredFields);
     }
 
     // --- Helpers ---

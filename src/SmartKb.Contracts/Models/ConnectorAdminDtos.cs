@@ -37,6 +37,12 @@ public sealed record PreviewRequest
     public int SampleSize { get; init; } = 5;
 }
 
+public sealed record PreviewRetrievalRequest
+{
+    public required string Query { get; init; }
+    public int MaxResults { get; init; } = 5;
+}
+
 public sealed record RotateSecretRequest
 {
     public required string NewSecretValue { get; init; }
@@ -98,13 +104,50 @@ public sealed record PreviewResponse
     public required IReadOnlyList<string> ValidationErrors { get; init; }
 }
 
+public sealed record PreviewRetrievalResponse
+{
+    public required IReadOnlyList<PreviewRetrievalChunk> Chunks { get; init; }
+    public required int TotalChunksForConnector { get; init; }
+    public required bool HasEvidence { get; init; }
+    public string? Message { get; init; }
+}
+
+public sealed record PreviewRetrievalChunk
+{
+    public required string ChunkId { get; init; }
+    public required string Title { get; init; }
+    public required string ChunkText { get; init; }
+    public required string SourceType { get; init; }
+    public string? ProductArea { get; init; }
+    public required double Score { get; init; }
+    public required DateTimeOffset UpdatedAt { get; init; }
+}
+
+public sealed record MissingFieldAnalysis
+{
+    public required IReadOnlyList<string> MissingRequiredFields { get; init; }
+    public required IReadOnlyList<FieldCoverage> FieldCoverage { get; init; }
+}
+
+public sealed record FieldCoverage
+{
+    public required string FieldName { get; init; }
+    public required bool IsMapped { get; init; }
+    public required bool IsRequired { get; init; }
+}
+
 public sealed record ConnectorValidationResult
 {
     public required bool IsValid { get; init; }
     public required IReadOnlyList<string> Errors { get; init; }
+    public MissingFieldAnalysis? MissingFieldAnalysis { get; init; }
 
-    public static ConnectorValidationResult Valid() => new() { IsValid = true, Errors = [] };
+    public static ConnectorValidationResult Valid(MissingFieldAnalysis? analysis = null) =>
+        new() { IsValid = true, Errors = [], MissingFieldAnalysis = analysis };
 
     public static ConnectorValidationResult Invalid(params string[] errors) =>
         new() { IsValid = false, Errors = errors };
+
+    public static ConnectorValidationResult Invalid(IReadOnlyList<string> errors, MissingFieldAnalysis? analysis = null) =>
+        new() { IsValid = false, Errors = errors, MissingFieldAnalysis = analysis };
 }
