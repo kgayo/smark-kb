@@ -11,6 +11,28 @@ public sealed record FieldMappingRule
     public string? TransformExpression { get; init; }
     public bool IsRequired { get; init; }
     public string? DefaultValue { get; init; }
+
+    /// <summary>
+    /// Optional routing tag that this rule produces. When set, the resolved value is assigned
+    /// to the specified routing-relevant field on the canonical record (e.g., "product_area").
+    /// Applied during normalization before enrichment, so it takes precedence over keyword inference.
+    /// </summary>
+    public string? RoutingTag { get; init; }
+}
+
+/// <summary>
+/// Valid routing tag names that can be assigned via field mapping rules.
+/// </summary>
+public static class RoutingTagNames
+{
+    public const string ProductArea = "product_area";
+    public const string Module = "module";
+
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ProductArea,
+        Module,
+    };
 }
 
 /// <summary>

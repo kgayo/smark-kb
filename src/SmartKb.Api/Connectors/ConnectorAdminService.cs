@@ -413,6 +413,9 @@ public sealed class ConnectorAdminService
             if (rule.Transform == FieldTransformType.Template && string.IsNullOrWhiteSpace(rule.TransformExpression))
                 errors.Add($"Rule '{rule.SourceField}' → '{rule.TargetField}': Template transform requires a TransformExpression.");
 
+            if (!string.IsNullOrWhiteSpace(rule.RoutingTag) && !RoutingTagNames.All.Contains(rule.RoutingTag))
+                errors.Add($"Rule '{rule.SourceField}' → '{rule.TargetField}': RoutingTag '{rule.RoutingTag}' is not valid. Allowed values: {string.Join(", ", RoutingTagNames.All)}.");
+
             if (!string.IsNullOrWhiteSpace(rule.TargetField))
                 targetFields.Add(rule.TargetField);
         }

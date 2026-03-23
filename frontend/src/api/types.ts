@@ -98,6 +98,25 @@ export interface CitationDto {
   accessLabel: string;
 }
 
+// ── Evidence content types (P3-025) ──
+
+export interface EvidenceContentResponse {
+  chunkId: string;
+  evidenceId: string;
+  title: string;
+  sourceUrl: string;
+  sourceSystem: string;
+  sourceType: string;
+  chunkText: string;
+  chunkContext: string | null;
+  rawContent: string | null;
+  contentType: string | null;
+  updatedAt: string;
+  accessLabel: string;
+  productArea: string | null;
+  tags: string[];
+}
+
 export interface EscalationSignal {
   recommended: boolean;
   targetTeam: string;
@@ -297,6 +316,13 @@ export interface ClickUpSourceConfig {
   oAuthClientId?: string;
 }
 
+export type RoutingTagName = 'product_area' | 'module';
+
+export const ROUTING_TAG_OPTIONS: { value: RoutingTagName; label: string }[] = [
+  { value: 'product_area', label: 'Product Area' },
+  { value: 'module', label: 'Module' },
+];
+
 export interface FieldMappingRule {
   sourceField: string;
   targetField: string;
@@ -304,6 +330,7 @@ export interface FieldMappingRule {
   transformExpression: string | null;
   isRequired: boolean;
   defaultValue: string | null;
+  routingTag: RoutingTagName | null;
 }
 
 export interface FieldMappingConfig {

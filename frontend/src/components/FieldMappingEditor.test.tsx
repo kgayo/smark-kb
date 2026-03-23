@@ -11,6 +11,21 @@ const mockMapping: FieldMappingConfig = {
       transformExpression: null,
       isRequired: true,
       defaultValue: null,
+      routingTag: null,
+    },
+  ],
+};
+
+const mockMappingWithRoutingTag: FieldMappingConfig = {
+  rules: [
+    {
+      sourceField: 'System.AreaPath',
+      targetField: 'ProductArea',
+      transform: 'Lookup',
+      transformExpression: 'Auth=Authentication',
+      isRequired: false,
+      defaultValue: null,
+      routingTag: 'product_area',
     },
   ],
 };
@@ -36,7 +51,7 @@ describe('FieldMappingEditor', () => {
     fireEvent.click(screen.getByTestId('add-mapping-rule'));
     expect(onChange).toHaveBeenCalledWith({
       rules: expect.arrayContaining([
-        expect.objectContaining({ sourceField: '', targetField: '' }),
+        expect.objectContaining({ sourceField: '', targetField: '', routingTag: null }),
       ]),
     });
   });
@@ -52,5 +67,52 @@ describe('FieldMappingEditor', () => {
     render(<FieldMappingEditor mapping={mockMapping} onChange={() => {}} readOnly />);
     expect(screen.queryByTestId('add-mapping-rule')).not.toBeInTheDocument();
     expect(screen.queryByTestId('remove-rule-0')).not.toBeInTheDocument();
+  });
+
+  it('renders Routing Tag column header', () => {
+    render(<FieldMappingEditor mapping={mockMapping} onChange={() => {}} />);
+    expect(screen.getByText('Routing Tag')).toBeInTheDocument();
+  });
+
+  it('shows dash for null routing tag in read mode', () => {
+    render(<FieldMappingEditor mapping={mockMapping} onChange={() => {}} readOnly />);
+    expect(screen.getByText('\u2014')).toBeInTheDocument();
+  });
+
+  it('shows routing tag label for product_area', () => {
+    render(<FieldMappingEditor mapping={mockMappingWithRoutingTag} onChange={() => {}} readOnly />);
+    expect(screen.getByText('Product Area')).toBeInTheDocument();
+  });
+
+  it('renders routing tag select in edit mode', () => {
+    render(<FieldMappingEditor mapping={mockMappingWithRoutingTag} onChange={() => {}} />);
+    // Click to enter edit mode
+    fireEvent.click(screen.getByText('Product Area'));
+    expect(screen.getByTestId('routing-tag-0')).toBeInTheDocument();
+  });
+
+  it('updates routing tag via select', () => {
+    const onChange = vi.fn();
+    render(<FieldMappingEditor mapping={mockMappingWithRoutingTag} onChange={onChange} />);
+    // Click to enter edit mode
+    fireEvent.click(screen.getByText('Product Area'));
+    fireEvent.change(screen.getByTestId('routing-tag-0'), {
+      target: { value: 'module' },
+    });
+    expect(onChange).toHaveBeenCalledWith({
+      rules: [expect.objectContaining({ routingTag: 'module' })],
+    });
+  });
+
+  it('clears routing tag when None is selected', () => {
+    const onChange = vi.fn();
+    render(<FieldMappingEditor mapping={mockMappingWithRoutingTag} onChange={onChange} />);
+    fireEvent.click(screen.getByText('Product Area'));
+    fireEvent.change(screen.getByTestId('routing-tag-0'), {
+      target: { value: '' },
+    });
+    expect(onChange).toHaveBeenCalledWith({
+      rules: [expect.objectContaining({ routingTag: null })],
+    });
   });
 });

@@ -114,6 +114,7 @@ builder.Services.AddSingleton(chunkingSettings);
 builder.Services.AddSingleton<IChunkingService, TextChunkingService>();
 builder.Services.AddSingleton<IEnrichmentService, EnhancedEnrichmentService>();
 builder.Services.AddSingleton<INormalizationPipeline, NormalizationPipeline>();
+builder.Services.AddSingleton<IRoutingTagResolver, RoutingTagResolver>();
 
 // Sync job processor (scoped — uses DbContext).
 builder.Services.AddScoped<SyncJobProcessor>();

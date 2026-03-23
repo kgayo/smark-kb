@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import type { FieldMappingConfig, FieldMappingRule, FieldTransformType } from '../api/types';
+import type { FieldMappingConfig, FieldMappingRule, FieldTransformType, RoutingTagName } from '../api/types';
+import { ROUTING_TAG_OPTIONS } from '../api/types';
 
 const TRANSFORM_TYPES: FieldTransformType[] = [
   'Direct',
@@ -31,6 +32,7 @@ export function FieldMappingEditor({
       transformExpression: null,
       isRequired: false,
       defaultValue: null,
+      routingTag: null,
     };
     onChange({ rules: [...rules, newRule] });
     setEditIndex(rules.length);
@@ -44,6 +46,12 @@ export function FieldMappingEditor({
   function removeRule(index: number) {
     onChange({ rules: rules.filter((_, i) => i !== index) });
     if (editIndex === index) setEditIndex(null);
+  }
+
+  function routingTagLabel(tag: RoutingTagName | null): string {
+    if (!tag) return '\u2014';
+    const opt = ROUTING_TAG_OPTIONS.find((o) => o.value === tag);
+    return opt ? opt.label : tag;
   }
 
   return (
@@ -66,6 +74,7 @@ export function FieldMappingEditor({
               <th>Source</th>
               <th>Target</th>
               <th>Transform</th>
+              <th>Routing Tag</th>
               <th>Required</th>
               {!readOnly && <th>Actions</th>}
             </tr>
@@ -129,6 +138,34 @@ export function FieldMappingEditor({
                   ) : (
                     <span onClick={() => !readOnly && setEditIndex(i)} className="mapping-cell-text">
                       {rule.transform}
+                    </span>
+                  )}
+                </td>
+                <td>
+                  {editIndex === i && !readOnly ? (
+                    <select
+                      value={rule.routingTag ?? ''}
+                      onChange={(e) =>
+                        updateRule(i, {
+                          routingTag: (e.target.value as RoutingTagName) || null,
+                        })
+                      }
+                      className="mapping-select"
+                      data-testid={`routing-tag-${i}`}
+                    >
+                      <option value="">None</option>
+                      {ROUTING_TAG_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span
+                      onClick={() => !readOnly && setEditIndex(i)}
+                      className="mapping-cell-text"
+                    >
+                      {routingTagLabel(rule.routingTag)}
                     </span>
                   )}
                 </td>

@@ -21,7 +21,9 @@ using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
+using Microsoft.EntityFrameworkCore;
 using SmartKb.Data;
+using SmartKb.Data.Entities;
 using SmartKb.Data.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -120,6 +122,7 @@ builder.Services.AddSingleton(chunkingSettings);
 builder.Services.AddSingleton<IChunkingService, SmartKb.Contracts.Services.TextChunkingService>();
 builder.Services.AddSingleton<IEnrichmentService, SmartKb.Contracts.Services.EnhancedEnrichmentService>();
 builder.Services.AddSingleton<INormalizationPipeline, SmartKb.Contracts.Services.NormalizationPipeline>();
+builder.Services.AddSingleton<IRoutingTagResolver, SmartKb.Contracts.Services.RoutingTagResolver>();
 
 // Text extraction service for binary documents (PDF, DOCX, PPTX, XLSX).
 builder.Services.AddSingleton<ITextExtractionService, SmartKb.Contracts.Services.TextExtractionService>();
@@ -1003,6 +1006,86 @@ app.MapDelete("/api/escalations/draft/{draftId:guid}", async (
     return deleted
         ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
         : Results.NotFound(ApiResponse<object>.Failure("Escalation draft not found.", tenant.CorrelationId));
+}).RequirePermission("chat:query");
+
+// --- Evidence Content Endpoint (P3-025: Source Viewer drill-down) ---
+
+app.MapGet("/api/evidence/{chunkId}/content", async (
+    string chunkId,
+    ITenantContextAccessor tenantAccessor,
+    SmartKbDbContext db,
+    HttpContext httpContext,
+    CancellationToken ct) =>
+{
+    var tenant = tenantAccessor.Current!;
+
+    var chunk = await db.EvidenceChunks
+        .AsNoTracking()
+        .FirstOrDefaultAsync(c => c.ChunkId == chunkId && c.TenantId == tenant.TenantId, ct);
+
+    if (chunk is null)
+        return Results.NotFound(ApiResponse<object>.Failure("Evidence chunk not found.", tenant.CorrelationId));
+
+    // ACL enforcement: restricted content requires user membership in allowed groups.
+    if (string.Equals(chunk.Visibility, "Restricted", StringComparison.OrdinalIgnoreCase))
+    {
+        var allowedGroups = string.IsNullOrEmpty(chunk.AllowedGroups)
+            ? Array.Empty<string>()
+            : System.Text.Json.JsonSerializer.Deserialize<string[]>(chunk.AllowedGroups) ?? Array.Empty<string>();
+        var userGroups = tenant.UserGroups;
+        var hasAccess = allowedGroups.Any(ag => userGroups.Any(ug =>
+            string.Equals(ag, ug, StringComparison.OrdinalIgnoreCase)));
+        if (!hasAccess)
+            return Results.NotFound(ApiResponse<object>.Failure("Evidence chunk not found.", tenant.CorrelationId));
+    }
+
+    // Attempt to load raw content from blob storage if available.
+    string? rawContent = null;
+    string? contentType = null;
+    var snapshot = await db.RawContentSnapshots
+        .AsNoTracking()
+        .FirstOrDefaultAsync(s => s.EvidenceId == chunk.EvidenceId && s.TenantId == tenant.TenantId, ct);
+
+    if (snapshot is not null)
+    {
+        contentType = snapshot.ContentType;
+        var blobService = httpContext.RequestServices.GetService<IBlobStorageService>();
+        if (blobService is not null)
+        {
+            try
+            {
+                rawContent = await blobService.DownloadRawContentAsync(snapshot.BlobPath, ct);
+            }
+            catch
+            {
+                // Non-fatal: raw content is optional enhancement over chunk text.
+            }
+        }
+    }
+
+    var tags = string.IsNullOrEmpty(chunk.Tags)
+        ? Array.Empty<string>()
+        : System.Text.Json.JsonSerializer.Deserialize<string[]>(chunk.Tags) ?? Array.Empty<string>();
+
+    var response = new EvidenceContentResponse
+    {
+        ChunkId = chunk.ChunkId,
+        EvidenceId = chunk.EvidenceId,
+        Title = chunk.Title,
+        SourceUrl = chunk.SourceUrl,
+        SourceSystem = chunk.SourceSystem,
+        SourceType = chunk.SourceType,
+        ChunkText = chunk.ChunkText,
+        ChunkContext = chunk.ChunkContext,
+        RawContent = rawContent,
+        ContentType = contentType,
+        UpdatedAt = chunk.UpdatedAt,
+        AccessLabel = chunk.AccessLabel,
+        ProductArea = chunk.ProductArea,
+        Tags = tags,
+    };
+
+    return Results.Ok(ApiResponse<EvidenceContentResponse>.Success(response, tenant.CorrelationId));
 }).RequirePermission("chat:query");
 
 // --- Chat Endpoint (stateless, kept for backward compatibility) ---

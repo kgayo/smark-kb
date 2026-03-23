@@ -28,6 +28,7 @@ public sealed class SyncJobProcessor
     private readonly IBlobStorageService? _blobStorage;
     private readonly IIndexingService? _indexingService;
     private readonly IRateLimitAlertService? _rateLimitAlertService;
+    private readonly IRoutingTagResolver? _routingTagResolver;
     private readonly IAuditEventWriter _auditWriter;
     private readonly INormalizationPipeline _pipeline;
     private readonly ILogger<SyncJobProcessor> _logger;
@@ -42,7 +43,8 @@ public sealed class SyncJobProcessor
         IOAuthTokenService? oauthTokenService = null,
         IBlobStorageService? blobStorage = null,
         IIndexingService? indexingService = null,
-        IRateLimitAlertService? rateLimitAlertService = null)
+        IRateLimitAlertService? rateLimitAlertService = null,
+        IRoutingTagResolver? routingTagResolver = null)
     {
         _db = db;
         _connectorClients = connectorClients;
@@ -54,6 +56,7 @@ public sealed class SyncJobProcessor
         _blobStorage = blobStorage;
         _indexingService = indexingService;
         _rateLimitAlertService = rateLimitAlertService;
+        _routingTagResolver = routingTagResolver;
     }
 
     public async Task<bool> ProcessAsync(SyncJobMessage message, CancellationToken cancellationToken)
@@ -167,7 +170,13 @@ public sealed class SyncJobProcessor
                 {
                     await UploadRawContentAsync(fetchResult.Records, message.ConnectorId, cancellationToken);
 
-                    var chunks = _pipeline.ProcessBatch(fetchResult.Records);
+                    // Apply routing tag mappings before normalization so explicit admin mappings
+                    // take precedence over keyword-based enrichment inference.
+                    var recordsForNormalization = _routingTagResolver is not null
+                        ? _routingTagResolver.ApplyRoutingTagsBatch(fetchResult.Records, fieldMapping)
+                        : fetchResult.Records;
+
+                    var chunks = _pipeline.ProcessBatch(recordsForNormalization);
                     await PersistChunksAsync(chunks, message.ConnectorId, cancellationToken);
                     await IndexChunksAsync(chunks, cancellationToken);
                     totalChunks += chunks.Count;

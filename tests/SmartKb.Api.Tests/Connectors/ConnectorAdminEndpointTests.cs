@@ -424,6 +424,59 @@ public sealed class ConnectorAdminEndpointTests : IClassFixture<ConnectorTestFac
         Assert.False(body!.Data!.IsValid);
     }
 
+    [Fact]
+    public async Task ValidateMapping_ReturnsInvalid_ForBadRoutingTag()
+    {
+        var created = await CreateConnectorAsync();
+        var mapping = new FieldMappingConfig
+        {
+            Rules =
+            [
+                new FieldMappingRule
+                {
+                    SourceField = "Title",
+                    TargetField = "ProductArea",
+                    RoutingTag = "invalid_tag",
+                }
+            ]
+        };
+
+        var response = await _client.PostAsJsonAsync(
+            $"/api/admin/connectors/{created.Id}/validate-mapping", mapping);
+        response.EnsureSuccessStatusCode();
+
+        var body = await Deserialize<ApiResponse<ConnectorValidationResult>>(response);
+        Assert.False(body!.Data!.IsValid);
+        Assert.Contains(body.Data.Errors, e => e.Contains("RoutingTag"));
+    }
+
+    [Fact]
+    public async Task ValidateMapping_ReturnsValid_ForValidRoutingTag()
+    {
+        var created = await CreateConnectorAsync();
+        var mapping = new FieldMappingConfig
+        {
+            Rules =
+            [
+                new FieldMappingRule
+                {
+                    SourceField = "Title",
+                    TargetField = "ProductArea",
+                    Transform = FieldTransformType.Lookup,
+                    TransformExpression = "Auth=Authentication",
+                    RoutingTag = "product_area",
+                }
+            ]
+        };
+
+        var response = await _client.PostAsJsonAsync(
+            $"/api/admin/connectors/{created.Id}/validate-mapping", mapping);
+        response.EnsureSuccessStatusCode();
+
+        var body = await Deserialize<ApiResponse<ConnectorValidationResult>>(response);
+        Assert.True(body!.Data!.IsValid);
+    }
+
     // --- RBAC ---
 
     [Fact]
