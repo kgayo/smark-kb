@@ -17,11 +17,11 @@ As a support team member, I need a chat interface with evidence and escalation c
 - Admin view must support connector setup, scope selection, mapping, sync controls, preview/validation, and diagnostics.
 
 ## Acceptance Criteria
-- [ ] Agent can complete answer-with-citations workflow end-to-end.
-- [ ] Evidence drawer exposes snippet + source location + timestamp + access label.
-- [ ] Escalation flow supports review before draft creation.
-- [ ] Feedback and outcome events persist with trace IDs.
-- [ ] Admin can configure connectors and run sync/validation from dashboard.
+- [x] Agent can complete answer-with-citations workflow end-to-end.
+- [x] Evidence drawer exposes snippet + source location + timestamp + access label.
+- [x] Escalation flow supports review before draft creation.
+- [x] Feedback and outcome events persist with trace IDs.
+- [x] Admin can configure connectors and run sync/validation from dashboard.
 
 ## Non-Goals
 - Full omnichannel support in early phases.

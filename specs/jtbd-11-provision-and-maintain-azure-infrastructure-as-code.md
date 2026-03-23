@@ -18,11 +18,11 @@ As a platform owner, I need Azure resources defined and frequently updated using
 - Prevent manual portal-only changes from becoming source of truth.
 
 ## Acceptance Criteria
-- [ ] New environment can be provisioned from IaC artifacts without manual portal steps.
-- [ ] Terraform and ARM definitions stay functionally aligned for core resources.
-- [ ] CI fails infra changes when Terraform or ARM validation fails.
-- [ ] Drift checks/reporting are available and reviewed regularly.
-- [ ] IaC updates accompany Azure resource modifications in code review.
+- [x] New environment can be provisioned from IaC artifacts without manual portal steps.
+- [x] Terraform and ARM definitions stay functionally aligned for core resources.
+- [x] CI fails infra changes when Terraform or ARM validation fails.
+- [x] Drift checks/reporting are available and reviewed regularly.
+- [x] IaC updates accompany Azure resource modifications in code review.
 
 ## Non-Goals
 - Supporting every IaC framework beyond Terraform and ARM in current scope.

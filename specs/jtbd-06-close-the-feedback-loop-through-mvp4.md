@@ -23,11 +23,11 @@ As a support lead, I need measurable feedback and evaluation loops so answer qua
 - Violations trigger GitHub Actions `::error` annotations; regressions trigger `::warning` or `::error` based on delta magnitude.
 
 ## Acceptance Criteria
-- [ ] Feedback and outcome events are queryable per tenant.
-- [ ] Weekly quality report includes groundedness (>= 0.80), citation coverage (>= 0.70), routing accuracy (>= 0.60), and no-evidence rate (<= 0.25).
-- [ ] Evaluation runs compare against last known good baseline.
-- [ ] Improvement actions are traceable to measured deltas.
-- [ ] Regression alerts are visible to support lead/engineering.
+- [x] Feedback and outcome events are queryable per tenant.
+- [x] Weekly quality report includes groundedness (>= 0.80), citation coverage (>= 0.70), routing accuracy (>= 0.60), and no-evidence rate (<= 0.25).
+- [x] Evaluation runs compare against last known good baseline.
+- [x] Improvement actions are traceable to measured deltas.
+- [x] Regression alerts are visible to support lead/engineering.
 
 ## Non-Goals
 - Unsupervised self-modifying model behavior.

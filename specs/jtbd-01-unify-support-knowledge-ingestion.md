@@ -25,12 +25,12 @@ As a support operations lead, I need content from multiple systems unified into 
 - Store connector secrets in Azure Key Vault; store only secret references/metadata in Azure SQL.
 
 ## Acceptance Criteria
-- [ ] Backfill handles 3k+ artifacts with no data loss.
-- [ ] Incremental sync captures creates/updates reliably.
-- [ ] Webhook signatures are validated for providers that support them.
-- [ ] Delta sync/checkpointing works for SharePoint Graph.
-- [ ] Replay of events does not create duplicates.
-- [ ] Admin can create/edit/test/enable/disable connectors without deployment.
+- [x] Backfill handles 3k+ artifacts with no data loss.
+- [x] Incremental sync captures creates/updates reliably.
+- [x] Webhook signatures are validated for providers that support them.
+- [x] Delta sync/checkpointing works for SharePoint Graph.
+- [x] Replay of events does not create duplicates.
+- [x] Admin can create/edit/test/enable/disable connectors without deployment.
 
 ## Non-Goals
 - Bi-directional writes to all source systems.

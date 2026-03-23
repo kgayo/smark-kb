@@ -23,11 +23,11 @@ As a support user, I need responses that are grounded, actionable, and explicit 
 - Persist trace links between retrieved evidence and generated output.
 
 ## Acceptance Criteria
-- [ ] Responses contain citations when factual claims are present.
-- [ ] Low-confidence responses produce next-step guidance.
-- [ ] Escalation recommendation includes reason and target team when triggered.
-- [ ] Structured output is schema-validated and test-covered.
-- [ ] Hallucination-prone paths degrade safely.
+- [x] Responses contain citations when factual claims are present.
+- [x] Low-confidence responses produce next-step guidance.
+- [x] Escalation recommendation includes reason and target team when triggered.
+- [x] Structured output is schema-validated and test-covered.
+- [x] Hallucination-prone paths degrade safely.
 
 ## Non-Goals
 - Fully autonomous actions without human review.

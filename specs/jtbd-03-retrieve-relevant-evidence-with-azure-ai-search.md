@@ -57,11 +57,11 @@ As a support agent, I need relevant and authorized evidence quickly so I can ans
 - Logged per query: total raw results, ACL-filtered count, returned count, has-evidence flag, above-threshold count, duration, top-5 chunk IDs and scores, trace ID.
 
 ## Acceptance Criteria
-- [ ] Top-k includes relevant evidence for common support intents.
-- [ ] Unauthorized documents never appear in response payloads.
-- [ ] Retrieval response includes traceability metadata for audit.
-- [ ] No-evidence path is explicit and triggers next-step/escalation logic.
-- [ ] Integration tests validate ranking + ACL behavior.
+- [x] Top-k includes relevant evidence for common support intents.
+- [x] Unauthorized documents never appear in response payloads.
+- [x] Retrieval response includes traceability metadata for audit.
+- [x] No-evidence path is explicit and triggers next-step/escalation logic.
+- [x] Integration tests validate ranking + ACL behavior.
 
 ## Non-Goals
 - Custom search engine outside Azure AI Search in current scope.

@@ -20,11 +20,11 @@ As an admin, I need secure self-serve connector operations so source onboarding 
 - Store secrets in Key Vault and metadata/refs in SQL only.
 
 ## Acceptance Criteria
-- [ ] Admin can complete connector setup and test connection without engineer help.
-- [ ] Field mapping errors are surfaced before sync activation.
-- [ ] Sync run status and failures are visible with actionable diagnostics.
-- [ ] Credential rotation can occur without redeploy.
-- [ ] Unauthorized users cannot access admin connector actions.
+- [x] Admin can complete connector setup and test connection without engineer help.
+- [x] Field mapping errors are surfaced before sync activation.
+- [x] Sync run status and failures are visible with actionable diagnostics.
+- [x] Credential rotation can occur without redeploy.
+- [x] Unauthorized users cannot access admin connector actions.
 
 ## Non-Goals
 - Custom connector SDK for arbitrary systems in Phase 1.

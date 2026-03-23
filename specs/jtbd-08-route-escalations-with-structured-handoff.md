@@ -23,11 +23,11 @@ As a support agent, I need escalation recommendations and high-quality handoff d
 - Track escalation outcomes (accepted/rerouted/resolved) for routing improvement.
 
 ## Acceptance Criteria
-- [ ] Escalation suggestion includes team + reason.
-- [ ] Handoff draft contains required structured fields.
-- [ ] Agent can review/edit before creating external draft.
-- [ ] Outcome telemetry is captured and linked to source session.
-- [ ] Routing quality metrics are measurable over time.
+- [x] Escalation suggestion includes team + reason.
+- [x] Handoff draft contains required structured fields.
+- [x] Agent can review/edit before creating external draft.
+- [x] Outcome telemetry is captured and linked to source session.
+- [x] Routing quality metrics are measurable over time.
 
 ## Non-Goals
 - Fully autonomous escalation without agent confirmation.

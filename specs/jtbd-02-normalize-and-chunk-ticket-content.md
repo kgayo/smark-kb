@@ -21,11 +21,11 @@ As a retrieval engineer, I need normalized and enriched content so retrieval ret
   - Reprocessing is deterministic: same input + same version = same output hash.
 
 ## Acceptance Criteria
-- [ ] Every chunk maps to parent source record and tenant.
-- [ ] Metadata supports filterable retrieval and routing logic.
-- [ ] Case cards are generated for solved-ticket candidates.
-- [ ] Reprocessing with new enrichment version is deterministic.
-- [ ] Evidence and pattern extraction pipelines use traceable lineage IDs.
+- [x] Every chunk maps to parent source record and tenant.
+- [x] Metadata supports filterable retrieval and routing logic.
+- [x] Case cards are generated for solved-ticket candidates.
+- [x] Reprocessing with new enrichment version is deterministic.
+- [x] Evidence and pattern extraction pipelines use traceable lineage IDs.
 
 ## Non-Goals
 - Full manual curation of every extracted field.

@@ -22,15 +22,15 @@ As a support lead, I need solved cases distilled into governed patterns so repea
 - Retrieve approved patterns alongside evidence during answer generation.
 
 ## Acceptance Criteria
-- [ ] Solved-ticket pipeline creates draft patterns with traceability.
-- [ ] Approval workflow changes trust level and audit records.
-- [ ] Deprecated patterns are excluded or clearly marked during retrieval.
-- [ ] Pattern usage and reuse metrics are available:
+- [x] Solved-ticket pipeline creates draft patterns with traceability.
+- [x] Approval workflow changes trust level and audit records.
+- [x] Deprecated patterns are excluded or clearly marked during retrieval.
+- [x] Pattern usage and reuse metrics are available:
   - Usage detection: `PatternMaintenanceService` queries `AnswerTraceEntity` records for pattern citations within a configurable `UnusedDaysThreshold` window.
   - Patterns not cited in any answer trace within the threshold are flagged as "Unused" maintenance tasks.
   - Maintenance tasks stored in `PatternMaintenanceTaskEntity` with `MetricsJson` containing citation counts and age metrics.
   - Note: A formal per-pattern usage analytics API (citation counts by time window) is tracked as P3-012.
-- [ ] Pattern retrieval improves response consistency for repeat issues.
+- [x] Pattern retrieval improves response consistency for repeat issues.
 
 ## Non-Goals
 - Pattern publication without human governance.

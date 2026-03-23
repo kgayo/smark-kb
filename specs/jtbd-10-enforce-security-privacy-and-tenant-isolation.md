@@ -27,16 +27,16 @@ As a security/compliance owner, I need strict auth, authorization, auditability,
   - `RetentionCleanupService` executes cleanup based on configured policies; compliance verification detects overdue entities.
 
 ## Acceptance Criteria
-- [ ] Cross-tenant access attempts are blocked and audited:
+- [x] Cross-tenant access attempts are blocked and audited:
   - `TenantContextMiddleware` extracts `tid` claim from JWT; returns **403 Forbidden** with `TenantMissing` audit event when absent.
   - All EF Core queries apply per-tenant WHERE filters on major entities (sessions, messages, chunks, patterns, connectors, etc.).
   - Resource-level cross-tenant access returns **404 Not Found** (not 403) to prevent tenant-existence information disclosure.
   - ACL/group-based security trimming in retrieval prevents cross-tenant group access.
   - Audit trail tracks attempted cross-tenant access via correlation IDs and actor IDs.
-- [ ] Restricted documents are never passed to generation layer.
-- [ ] PII redaction rules are test-covered and auditable.
-- [ ] Audit exports support investigation and compliance workflows.
-- [ ] Retention/deletion policy execution is measurable and verifiable.
+- [x] Restricted documents are never passed to generation layer.
+- [x] PII redaction rules are test-covered and auditable.
+- [x] Audit exports support investigation and compliance workflows.
+- [x] Retention/deletion policy execution is measurable and verifiable.
 
 ## Non-Goals
 - Legal/compliance policy interpretation inside code.
