@@ -406,6 +406,62 @@ export interface TestConnectionResponse {
 export interface ConnectorValidationResult {
   isValid: boolean;
   errors: string[];
+  missingFieldAnalysis: MissingFieldAnalysis | null;
+}
+
+export interface MissingFieldAnalysis {
+  missingRequiredFields: string[];
+  fieldCoverage: FieldCoverage[];
+}
+
+export interface FieldCoverage {
+  fieldName: string;
+  isMapped: boolean;
+  isRequired: boolean;
+}
+
+export interface PreviewRequest {
+  fieldMapping?: FieldMappingConfig;
+  sampleSize?: number;
+}
+
+export interface PreviewRecord {
+  tenantId: string;
+  evidenceId: string;
+  title: string;
+  textContent: string;
+  sourceType: string;
+  productArea: string | null;
+  tags: string[];
+  author: string | null;
+  severity: string | null;
+}
+
+export interface PreviewResponse {
+  records: PreviewRecord[];
+  validationErrors: string[];
+}
+
+export interface PreviewRetrievalRequest {
+  query: string;
+  maxResults?: number;
+}
+
+export interface PreviewRetrievalChunk {
+  chunkId: string;
+  title: string;
+  chunkText: string;
+  sourceType: string;
+  productArea: string | null;
+  score: number;
+  updatedAt: string;
+}
+
+export interface PreviewRetrievalResponse {
+  chunks: PreviewRetrievalChunk[];
+  totalChunksForConnector: number;
+  hasEvidence: boolean;
+  message: string | null;
 }
 
 // ── Pattern governance types (P1-006) ──
@@ -1220,4 +1276,68 @@ export interface UpdateGoldCaseRequest {
   context?: GoldCaseContext;
   expected?: GoldCaseExpected;
   tags?: string[];
+}
+
+// ── Search token types (P3-028) ──
+
+export interface StopWordResponse {
+  id: string;
+  tenantId: string;
+  word: string;
+  groupName: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+}
+
+export interface StopWordListResponse {
+  words: StopWordResponse[];
+  totalCount: number;
+  groups: string[];
+}
+
+export interface CreateStopWordRequest {
+  word: string;
+  groupName?: string;
+}
+
+export interface UpdateStopWordRequest {
+  word?: string;
+  groupName?: string;
+  isActive?: boolean;
+}
+
+export interface SpecialTokenResponse {
+  id: string;
+  tenantId: string;
+  token: string;
+  category: string;
+  boostFactor: number;
+  isActive: boolean;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+}
+
+export interface SpecialTokenListResponse {
+  tokens: SpecialTokenResponse[];
+  totalCount: number;
+  categories: string[];
+}
+
+export interface CreateSpecialTokenRequest {
+  token: string;
+  category?: string;
+  boostFactor?: number;
+  description?: string;
+}
+
+export interface UpdateSpecialTokenRequest {
+  token?: string;
+  category?: string;
+  boostFactor?: number;
+  isActive?: boolean;
+  description?: string;
 }

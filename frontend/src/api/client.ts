@@ -25,6 +25,7 @@ import type {
   DeadLetterListResponse,
   DeprecatePatternRequest,
   DiagnosticsSummaryResponse,
+  EvidenceContentResponse,
   EscalationDraftExportResponse,
   EscalationDraftResponse,
   ExternalEscalationResult,
@@ -86,6 +87,18 @@ import type {
   GoldCaseDetail,
   CreateGoldCaseRequest,
   UpdateGoldCaseRequest,
+  PreviewRequest,
+  PreviewResponse,
+  PreviewRetrievalRequest,
+  PreviewRetrievalResponse,
+  StopWordListResponse,
+  StopWordResponse,
+  CreateStopWordRequest,
+  UpdateStopWordRequest,
+  SpecialTokenListResponse,
+  SpecialTokenResponse,
+  CreateSpecialTokenRequest,
+  UpdateSpecialTokenRequest,
 } from './types';
 
 let getAccessToken: (() => Promise<string | null>) | null = null;
@@ -175,6 +188,15 @@ export async function sendMessage(
       method: 'POST',
       body: JSON.stringify(req),
     },
+  );
+  return unwrap(res);
+}
+
+// ── Evidence content endpoint (P3-025) ──
+
+export async function getEvidenceContent(chunkId: string): Promise<EvidenceContentResponse> {
+  const res = await apiFetch<ApiResponse<EvidenceContentResponse>>(
+    `/api/evidence/${encodeURIComponent(chunkId)}/content`,
   );
   return unwrap(res);
 }
@@ -413,6 +435,34 @@ export async function validateMapping(
     {
       method: 'POST',
       body: JSON.stringify(mapping),
+    },
+  );
+  return unwrap(res);
+}
+
+export async function previewConnector(
+  connectorId: string,
+  request: PreviewRequest,
+): Promise<PreviewResponse> {
+  const res = await apiFetch<ApiResponse<PreviewResponse>>(
+    `/api/admin/connectors/${connectorId}/preview`,
+    {
+      method: 'POST',
+      body: JSON.stringify(request),
+    },
+  );
+  return unwrap(res);
+}
+
+export async function previewRetrieval(
+  connectorId: string,
+  request: PreviewRetrievalRequest,
+): Promise<PreviewRetrievalResponse> {
+  const res = await apiFetch<ApiResponse<PreviewRetrievalResponse>>(
+    `/api/admin/connectors/${connectorId}/preview-retrieval`,
+    {
+      method: 'POST',
+      body: JSON.stringify(request),
     },
   );
   return unwrap(res);
@@ -1047,4 +1097,82 @@ export async function exportGoldCases(): Promise<string> {
     throw new ApiError(res.status, body || res.statusText);
   }
   return res.text();
+}
+
+// ── Stop-word management (P3-028) ──
+
+export async function listStopWords(groupName?: string): Promise<StopWordListResponse> {
+  const params = groupName ? `?groupName=${encodeURIComponent(groupName)}` : '';
+  return apiFetch<StopWordListResponse>(`/api/admin/stop-words${params}`);
+}
+
+export async function getStopWord(id: string): Promise<StopWordResponse> {
+  return apiFetch<StopWordResponse>(`/api/admin/stop-words/${id}`);
+}
+
+export async function createStopWord(req: CreateStopWordRequest): Promise<StopWordResponse> {
+  return apiFetch<StopWordResponse>('/api/admin/stop-words', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req),
+  });
+}
+
+export async function updateStopWord(id: string, req: UpdateStopWordRequest): Promise<StopWordResponse> {
+  return apiFetch<StopWordResponse>(`/api/admin/stop-words/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req),
+  });
+}
+
+export async function deleteStopWord(id: string): Promise<void> {
+  await apiFetch<void>(`/api/admin/stop-words/${id}`, { method: 'DELETE' });
+}
+
+export async function seedStopWords(overwriteExisting: boolean = false): Promise<{ seeded: number }> {
+  return apiFetch<{ seeded: number }>('/api/admin/stop-words/seed', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ overwriteExisting }),
+  });
+}
+
+// ── Special token management (P3-028) ──
+
+export async function listSpecialTokens(category?: string): Promise<SpecialTokenListResponse> {
+  const params = category ? `?category=${encodeURIComponent(category)}` : '';
+  return apiFetch<SpecialTokenListResponse>(`/api/admin/special-tokens${params}`);
+}
+
+export async function getSpecialToken(id: string): Promise<SpecialTokenResponse> {
+  return apiFetch<SpecialTokenResponse>(`/api/admin/special-tokens/${id}`);
+}
+
+export async function createSpecialToken(req: CreateSpecialTokenRequest): Promise<SpecialTokenResponse> {
+  return apiFetch<SpecialTokenResponse>('/api/admin/special-tokens', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req),
+  });
+}
+
+export async function updateSpecialToken(id: string, req: UpdateSpecialTokenRequest): Promise<SpecialTokenResponse> {
+  return apiFetch<SpecialTokenResponse>(`/api/admin/special-tokens/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req),
+  });
+}
+
+export async function deleteSpecialToken(id: string): Promise<void> {
+  await apiFetch<void>(`/api/admin/special-tokens/${id}`, { method: 'DELETE' });
+}
+
+export async function seedSpecialTokens(overwriteExisting: boolean = false): Promise<{ seeded: number }> {
+  return apiFetch<{ seeded: number }>('/api/admin/special-tokens/seed', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ overwriteExisting }),
+  });
 }

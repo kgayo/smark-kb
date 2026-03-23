@@ -32,6 +32,7 @@ public static class AuditEventTypes
     public const string ConnectorTestFailed = "connector.test_failed";
     public const string ConnectorSyncTriggered = "connector.sync_triggered";
     public const string ConnectorPreview = "connector.preview";
+    public const string ConnectorPreviewRetrieval = "connector.preview_retrieval";
     public const string ConnectorOAuthCompleted = "connector.oauth_completed";
     public const string ConnectorOAuthFailed = "connector.oauth_failed";
 
@@ -101,6 +102,16 @@ public static class AuditEventTypes
     public const string GoldCaseUpdated = "gold_case.updated";
     public const string GoldCaseDeleted = "gold_case.deleted";
     public const string GoldCasePromoted = "gold_case.promoted_from_feedback";
+
+    // Search token events (P3-028).
+    public const string StopWordCreated = "search.stop_word.created";
+    public const string StopWordUpdated = "search.stop_word.updated";
+    public const string StopWordDeleted = "search.stop_word.deleted";
+    public const string StopWordsSeeded = "search.stop_words.seeded";
+    public const string SpecialTokenCreated = "search.special_token.created";
+    public const string SpecialTokenUpdated = "search.special_token.updated";
+    public const string SpecialTokenDeleted = "search.special_token.deleted";
+    public const string SpecialTokensSeeded = "search.special_tokens.seeded";
 
     // Webhook events.
     public const string WebhookReceived = "webhook.received";

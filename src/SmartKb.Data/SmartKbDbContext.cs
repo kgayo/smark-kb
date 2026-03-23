@@ -41,6 +41,8 @@ public class SmartKbDbContext : DbContext
     public DbSet<PatternVersionHistoryEntity> PatternVersionHistory => Set<PatternVersionHistoryEntity>();
     public DbSet<RateLimitEventEntity> RateLimitEvents => Set<RateLimitEventEntity>();
     public DbSet<GoldCaseEntity> GoldCases => Set<GoldCaseEntity>();
+    public DbSet<StopWordEntity> StopWords => Set<StopWordEntity>();
+    public DbSet<SpecialTokenEntity> SpecialTokens => Set<SpecialTokenEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -80,6 +82,8 @@ public class SmartKbDbContext : DbContext
         ConfigurePatternVersionHistory(modelBuilder);
         ConfigureRateLimitEvents(modelBuilder);
         ConfigureGoldCase(modelBuilder);
+        ConfigureStopWord(modelBuilder);
+        ConfigureSpecialToken(modelBuilder);
     }
 
     private static void ConfigureTenant(ModelBuilder modelBuilder)
@@ -736,6 +740,39 @@ public class SmartKbDbContext : DbContext
             e.HasIndex(g => g.TenantId);
             e.HasIndex(g => new { g.TenantId, g.CaseId }).IsUnique();
             e.HasOne(g => g.Tenant).WithMany().HasForeignKey(g => g.TenantId);
+        });
+    }
+
+    private static void ConfigureStopWord(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<StopWordEntity>(e =>
+        {
+            e.ToTable("StopWords");
+            e.HasKey(s => s.Id);
+            e.Property(s => s.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(s => s.Word).HasMaxLength(128).IsRequired();
+            e.Property(s => s.GroupName).HasMaxLength(128).IsRequired();
+            e.Property(s => s.CreatedBy).HasMaxLength(128).IsRequired();
+            e.HasIndex(s => s.TenantId);
+            e.HasIndex(s => new { s.TenantId, s.Word }).IsUnique();
+            e.HasOne(s => s.Tenant).WithMany().HasForeignKey(s => s.TenantId);
+        });
+    }
+
+    private static void ConfigureSpecialToken(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<SpecialTokenEntity>(e =>
+        {
+            e.ToTable("SpecialTokens");
+            e.HasKey(s => s.Id);
+            e.Property(s => s.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(s => s.Token).HasMaxLength(256).IsRequired();
+            e.Property(s => s.Category).HasMaxLength(128).IsRequired();
+            e.Property(s => s.Description).HasMaxLength(512);
+            e.Property(s => s.CreatedBy).HasMaxLength(128).IsRequired();
+            e.HasIndex(s => s.TenantId);
+            e.HasIndex(s => new { s.TenantId, s.Token }).IsUnique();
+            e.HasOne(s => s.Tenant).WithMany().HasForeignKey(s => s.TenantId);
         });
     }
 }

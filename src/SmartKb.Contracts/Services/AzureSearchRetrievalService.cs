@@ -20,18 +20,21 @@ public sealed class AzureSearchRetrievalService : IRetrievalService
     private readonly SearchIndexClient _indexClient;
     private readonly SearchServiceSettings _searchSettings;
     private readonly RetrievalSettings _retrievalSettings;
+    private readonly ISearchTokenService? _searchTokenService;
     private readonly ILogger<AzureSearchRetrievalService> _logger;
 
     public AzureSearchRetrievalService(
         SearchIndexClient indexClient,
         SearchServiceSettings searchSettings,
         RetrievalSettings retrievalSettings,
-        ILogger<AzureSearchRetrievalService> logger)
+        ILogger<AzureSearchRetrievalService> logger,
+        ISearchTokenService? searchTokenService = null)
     {
         _indexClient = indexClient;
         _searchSettings = searchSettings;
         _retrievalSettings = retrievalSettings;
         _logger = logger;
+        _searchTokenService = searchTokenService;
     }
 
     public async Task<RetrievalResult> RetrieveAsync(
@@ -52,6 +55,29 @@ public sealed class AzureSearchRetrievalService : IRetrievalService
             filters is not null && !filters.IsEmpty);
 
         var searchClient = _indexClient.GetSearchClient(_searchSettings.EvidenceIndexName);
+
+        // P3-028: Preprocess query — remove stop words, boost special tokens for BM25.
+        var searchQuery = query;
+        if (_searchTokenService is not null)
+        {
+            try
+            {
+                var preprocessed = await _searchTokenService.PreprocessQueryAsync(tenantId, query, cancellationToken);
+                searchQuery = preprocessed.BoostedQuery;
+
+                if (preprocessed.RemovedStopWords.Count > 0 || preprocessed.DetectedSpecialTokens.Count > 0)
+                {
+                    _logger.LogInformation(
+                        "Query preprocessed. TraceId={TraceId} StopWordsRemoved={StopWordsRemoved} SpecialTokens={SpecialTokens}",
+                        traceId, string.Join(", ", preprocessed.RemovedStopWords),
+                        string.Join(", ", preprocessed.DetectedSpecialTokens));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Query preprocessing failed, using original query. TraceId={TraceId}", traceId);
+            }
+        }
 
         // Build tenant isolation filter (always applied server-side).
         var tenantFilter = $"{SearchFieldNames.TenantId} eq '{EscapeODataValue(tenantId)}'";
@@ -116,7 +142,7 @@ public sealed class AzureSearchRetrievalService : IRetrievalService
         List<RawSearchResult> rawResults;
         try
         {
-            rawResults = await ExecuteSearchAsync(searchClient, query, options, cancellationToken);
+            rawResults = await ExecuteSearchAsync(searchClient, searchQuery, options, cancellationToken);
         }
         catch (RequestFailedException ex)
         {
