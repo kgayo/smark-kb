@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { RetrievalFilter } from '../api/types';
 
 export interface RetrievalFilterPanelProps {
@@ -66,7 +66,12 @@ export function RetrievalFilterPanel({ filters, onChange }: RetrievalFilterPanel
     [filters, onChange],
   );
 
+  const productAreasRef = useRef<HTMLInputElement>(null);
+  const tagsRef = useRef<HTMLInputElement>(null);
+
   const handleClearAll = useCallback(() => {
+    if (productAreasRef.current) productAreasRef.current.value = '';
+    if (tagsRef.current) tagsRef.current.value = '';
     onChange({});
   }, [onChange]);
 
@@ -119,6 +124,7 @@ export function RetrievalFilterPanel({ filters, onChange }: RetrievalFilterPanel
           <div className="filter-section">
             <label className="filter-label" htmlFor="product-areas">Product Areas</label>
             <input
+              ref={productAreasRef}
               id="product-areas"
               className="filter-input"
               type="text"
@@ -132,6 +138,7 @@ export function RetrievalFilterPanel({ filters, onChange }: RetrievalFilterPanel
           <div className="filter-section">
             <label className="filter-label" htmlFor="tags">Tags</label>
             <input
+              ref={tagsRef}
               id="tags"
               className="filter-input"
               type="text"

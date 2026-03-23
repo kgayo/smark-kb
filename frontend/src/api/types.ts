@@ -604,7 +604,7 @@ export interface FeedbackResponse {
   feedbackId: string;
   messageId: string;
   sessionId: string;
-  type: string;
+  type: FeedbackType;
   reasonCodes: string[];
   comment: string | null;
   correctionText: string | null;

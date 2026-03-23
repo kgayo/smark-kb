@@ -62,6 +62,8 @@ export function EscalationDraftModal({
       return;
     }
 
+    let cancelled = false;
+
     // Pre-fill from escalation signal
     setTargetTeam(escalation.targetTeam || '');
     setReason(escalation.reason || '');
@@ -73,74 +75,70 @@ export function EscalationDraftModal({
     setSeverity('P3');
 
     // Auto-create draft
-    createDraft();
+    (async () => {
+      setSaving(true);
+      setError(null);
+      try {
+        const result = await api.createEscalationDraft({
+          sessionId,
+          messageId,
+          title: `Escalation: ${escalation.reason || 'Low confidence response'}`,
+          customerSummary: '',
+          stepsToReproduce: '',
+          logsIdsRequested: '',
+          suspectedComponent: '',
+          severity: 'P3',
+          evidenceLinks: citations,
+          targetTeam: escalation.targetTeam || '',
+          reason: escalation.reason || '',
+        });
+        if (cancelled) return;
+        setDraft(result);
+        setTitle(result.title);
+        setCustomerSummary(result.customerSummary);
+        setStepsToReproduce(result.stepsToReproduce);
+        setLogsIdsRequested(result.logsIdsRequested);
+        setSuspectedComponent(result.suspectedComponent);
+        setSeverity(result.severity);
+        setTargetTeam(result.targetTeam);
+        setReason(result.reason);
+
+        if (result.externalStatus === 'Created') {
+          setExternalResult({
+            draftId: result.draftId,
+            externalStatus: result.externalStatus,
+            externalId: result.externalId ?? null,
+            externalUrl: result.externalUrl ?? null,
+            errorDetail: null,
+            approvedAt: result.approvedAt ?? null,
+            connectorType: result.targetConnectorType ?? null,
+          });
+        }
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to create draft');
+      } finally {
+        if (!cancelled) setSaving(false);
+      }
+    })();
 
     // Load available connectors for external creation
-    loadConnectors();
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function createDraft() {
-    setSaving(true);
-    setError(null);
-    try {
-      const result = await api.createEscalationDraft({
-        sessionId,
-        messageId,
-        title: `Escalation: ${escalation.reason || 'Low confidence response'}`,
-        customerSummary: '',
-        stepsToReproduce: '',
-        logsIdsRequested: '',
-        suspectedComponent: '',
-        severity: 'P3',
-        evidenceLinks: citations,
-        targetTeam: escalation.targetTeam || '',
-        reason: escalation.reason || '',
-      });
-      setDraft(result);
-      // Sync form fields from server response (routing may have resolved targetTeam)
-      setTitle(result.title);
-      setCustomerSummary(result.customerSummary);
-      setStepsToReproduce(result.stepsToReproduce);
-      setLogsIdsRequested(result.logsIdsRequested);
-      setSuspectedComponent(result.suspectedComponent);
-      setSeverity(result.severity);
-      setTargetTeam(result.targetTeam);
-      setReason(result.reason);
-
-      // If draft was already approved externally, show result
-      if (result.externalStatus === 'Created') {
-        setExternalResult({
-          draftId: result.draftId,
-          externalStatus: result.externalStatus,
-          externalId: result.externalId ?? null,
-          externalUrl: result.externalUrl ?? null,
-          errorDetail: null,
-          approvedAt: result.approvedAt ?? null,
-          connectorType: result.targetConnectorType ?? null,
-        });
+    (async () => {
+      try {
+        const result = await api.listConnectors();
+        if (cancelled) return;
+        const escalationConnectors = result.connectors.filter(
+          (c) =>
+            (c.connectorType === 'AzureDevOps' || c.connectorType === 'ClickUp') &&
+            c.status === 'Enabled',
+        );
+        setConnectors(escalationConnectors);
+      } catch {
+        if (!cancelled) setConnectors([]);
       }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to create draft');
-    } finally {
-      setSaving(false);
-    }
-  }
+    })();
 
-  async function loadConnectors() {
-    try {
-      const result = await api.listConnectors();
-      // Only show ADO and ClickUp connectors that are enabled
-      const escalationConnectors = result.connectors.filter(
-        (c) =>
-          (c.connectorType === 'AzureDevOps' || c.connectorType === 'ClickUp') &&
-          c.status === 'Enabled',
-      );
-      setConnectors(escalationConnectors);
-    } catch {
-      // Silently fail — user may not have admin access to list connectors
-      setConnectors([]);
-    }
-  }
+    return () => { cancelled = true; };
+  }, [open, sessionId, messageId, escalation, citations]);
 
   const handleSave = useCallback(async () => {
     if (!draft) return;

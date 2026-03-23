@@ -134,6 +134,7 @@ describe('GoldDatasetPage', () => {
     renderPage();
     await waitFor(() => {
       expect(screen.getByTestId('cases-error')).toBeInTheDocument();
+      expect(screen.getByTestId('cases-error')).toHaveAttribute('role', 'alert');
     });
   });
 
@@ -235,6 +236,7 @@ describe('GoldDatasetPage', () => {
     fireEvent.click(screen.getByTestId('create-submit-btn'));
     await waitFor(() => {
       expect(screen.getByTestId('create-error')).toBeInTheDocument();
+      expect(screen.getByTestId('create-error')).toHaveAttribute('role', 'alert');
     });
   });
 
@@ -276,6 +278,7 @@ describe('GoldDatasetPage', () => {
     fireEvent.click(screen.getByTestId('export-download-btn'));
     await waitFor(() => {
       expect(screen.getByTestId('export-error')).toBeInTheDocument();
+      expect(screen.getByTestId('export-error')).toHaveAttribute('role', 'alert');
     });
   });
 

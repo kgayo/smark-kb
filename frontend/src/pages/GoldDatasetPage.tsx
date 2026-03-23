@@ -285,7 +285,7 @@ function CasesPanel({
         />
       </div>
 
-      {error && <div className="error-banner" data-testid="cases-error">{error}</div>}
+      {error && <div className="error-banner" role="alert" data-testid="cases-error">{error}</div>}
       {loading && <p>Loading cases...</p>}
 
       {cases && !loading && (
@@ -525,7 +525,7 @@ function CreatePanel({ form, creating, error, success, onChange, onCreate }: Cre
         </div>
       </div>
 
-      {error && <div className="error-banner" data-testid="create-error">{error}</div>}
+      {error && <div className="error-banner" role="alert" data-testid="create-error">{error}</div>}
       {success && <div className="success-banner" data-testid="create-success">{success}</div>}
     </div>
   );
@@ -553,7 +553,7 @@ function ExportPanel({ exporting, error, onExport }: ExportPanelProps) {
           {exporting ? 'Exporting...' : 'Download JSONL Export'}
         </button>
       </div>
-      {error && <div className="error-banner" data-testid="export-error">{error}</div>}
+      {error && <div className="error-banner" role="alert" data-testid="export-error">{error}</div>}
     </div>
   );
 }

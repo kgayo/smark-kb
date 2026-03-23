@@ -10,7 +10,14 @@ import { PublicClientApplication, InteractionRequiredAuthError } from '@azure/ms
 import { msalConfig, loginRequest, isMsalConfigured } from './msalConfig';
 import { setTokenProvider } from '../api/client';
 
-const msalInstance = new PublicClientApplication(msalConfig);
+let msalInstance: PublicClientApplication | null = null;
+
+function getMsalInstance(): PublicClientApplication {
+  if (!msalInstance) {
+    msalInstance = new PublicClientApplication(msalConfig);
+  }
+  return msalInstance;
+}
 
 function TokenProviderSetup(): null {
   const { instance, accounts } = useMsal();
@@ -76,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <MsalProvider instance={msalInstance}>
+    <MsalProvider instance={getMsalInstance()}>
       <AuthGate>{children}</AuthGate>
     </MsalProvider>
   );

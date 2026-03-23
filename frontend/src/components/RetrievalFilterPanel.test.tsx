@@ -128,6 +128,28 @@ describe('RetrievalFilterPanel', () => {
     expect(screen.getByTestId('filter-toggle')).not.toHaveTextContent('*');
   });
 
+  it('clear button resets text input values', () => {
+    const onChange = vi.fn();
+    const filters: RetrievalFilter = {
+      sourceTypes: ['Ticket'],
+      productAreas: ['Auth', 'Billing'],
+      tags: ['SSO'],
+    };
+    render(<RetrievalFilterPanel filters={filters} onChange={onChange} />);
+    fireEvent.click(screen.getByTestId('filter-toggle'));
+
+    // Verify inputs are pre-filled
+    expect(screen.getByTestId('filter-product-areas')).toHaveValue('Auth, Billing');
+    expect(screen.getByTestId('filter-tags')).toHaveValue('SSO');
+
+    // Click clear
+    fireEvent.click(screen.getByTestId('filter-clear'));
+
+    // Text inputs should be cleared via ref
+    expect(screen.getByTestId('filter-product-areas')).toHaveValue('');
+    expect(screen.getByTestId('filter-tags')).toHaveValue('');
+  });
+
   it('active source chip has active class', () => {
     render(
       <RetrievalFilterPanel

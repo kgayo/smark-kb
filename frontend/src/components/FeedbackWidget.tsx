@@ -21,7 +21,7 @@ interface FeedbackWidgetProps {
 
 export function FeedbackWidget({ messageId, existingFeedback, onSubmit }: FeedbackWidgetProps) {
   const [feedbackType, setFeedbackType] = useState<FeedbackType | null>(
-    existingFeedback ? (existingFeedback.type as FeedbackType) : null,
+    existingFeedback ? existingFeedback.type : null,
   );
   const [selectedReasons, setSelectedReasons] = useState<Set<FeedbackReasonCode>>(
     () => new Set((existingFeedback?.reasonCodes ?? []) as FeedbackReasonCode[]),

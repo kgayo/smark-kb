@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-23 (Asia/Manila) — iteration 116 (TECH-010/011/012 frontend quality improvements)
-Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2559 tests passing (2139 backend + 413 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 116: TECH-010 (React Router v7 future flags), TECH-011 (Vite code splitting — 615KB monolith → 15 chunks, no chunk size warning), TECH-012 (zero NotImplementedException remaining). Code quality clean; frontend 413 tests passing + lint clean + build clean (no warnings).
+Last updated: 2026-03-23 (Asia/Manila) — iteration 117 (TECH-013–018 frontend/backend quality fixes)
+Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2563 tests passing (2139 backend + 417 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 117: TECH-013 (RetrievalFilterPanel uncontrolled input reset), TECH-014 (EscalationDraftModal stale closure), TECH-015 (GoldDatasetPage a11y), TECH-016 (AuthProvider lazy MSAL init), TECH-017 (FeedbackResponse type safety), TECH-018 (FusedRetrievalService catch filter). Code quality clean; frontend build clean (no warnings).
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -117,6 +117,30 @@ Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-00
 - [x] TECH-012: Replace `NotImplementedException` in test stubs with proper default returns.
   - Root cause: 3 `NotImplementedException` instances in `StubTokenUsageService` test class in `ChatOrchestratorTests.cs` — unused interface methods that could mask accidental calls.
   - Completed (iteration 116): Replaced with zero-value default returns (`TokenUsageSummary` with zeros, empty `DailyUsageBreakdown` list, `BudgetCheckResult` with `Allowed=true`). Zero `NotImplementedException` remaining in codebase.
+
+- [x] TECH-013: Fix RetrievalFilterPanel uncontrolled input bug — Product Areas and Tags inputs don't reset on "Clear all".
+  - Root cause: `defaultValue` on `<input>` elements makes them uncontrolled; React does not update their displayed text when the parent resets `filters` to `{}`.
+  - Completed (iteration 117): Added `useRef` for both text inputs; `handleClearAll` imperatively clears input values via refs before calling `onChange({})`. 1 new test verifies input values are empty after clear.
+
+- [x] TECH-014: Fix EscalationDraftModal stale closure and suppressed eslint-disable.
+  - Root cause: `createDraft` and `loadConnectors` were plain functions called inside a `useEffect` with `[open]` dependency array. Stale closure over `sessionId`, `messageId`, `escalation`, `citations` props was hidden by `eslint-disable-line react-hooks/exhaustive-deps`.
+  - Completed (iteration 117): Inlined async logic into `useEffect` body, added `cancelled` flag for cleanup, listed all true dependencies `[open, sessionId, messageId, escalation, citations]`. Removed eslint-disable comment.
+
+- [x] TECH-015: Fix GoldDatasetPage missing `role="alert"` on error banners.
+  - Root cause: 3 error banner `<div>` elements lacked `role="alert"` — screen readers would not announce errors. All other pages had it.
+  - Completed (iteration 117): Added `role="alert"` to all 3 error banners (`cases-error`, `create-error`, `export-error`). 3 existing tests updated with `role` assertion.
+
+- [x] TECH-016: Fix AuthProvider eager MSAL construction with empty clientId.
+  - Root cause: `new PublicClientApplication(msalConfig)` ran at module import time even when `VITE_ENTRA_CLIENT_ID` is unset (local dev), causing MSAL warnings/errors.
+  - Completed (iteration 117): Lazy-initialized via `getMsalInstance()` — only constructed when `AuthProvider` detects MSAL is configured.
+
+- [x] TECH-017: Fix `FeedbackResponse.type` weak typing (`string` → `FeedbackType`).
+  - Root cause: `FeedbackResponse.type` was declared as `string`, requiring an unchecked `as FeedbackType` cast in `FeedbackWidget`.
+  - Completed (iteration 117): Changed type to `FeedbackType` in `types.ts`, removed redundant cast in `FeedbackWidget.tsx`.
+
+- [x] TECH-018: Fix FusedRetrievalService dead `AggregateException` catch arm.
+  - Root cause: `catch (Exception ex) when (ex is AggregateException or RequestFailedException)` — the `AggregateException` arm is dead code because `await Task.WhenAll` unwraps to the first inner exception. Additionally, non-`RequestFailedException` errors (e.g. `HttpRequestException`) would bypass the partial-result salvage.
+  - Completed (iteration 117): Changed to `catch (Exception ex) when (ex is not OperationCanceledException)` — salvages partial results for any non-cancellation failure while still propagating cancellation.
 
 - [x] BUG-004: Terraform `app-service.tf` missing `https_only = true` on both web apps — **security drift**.
   - Root cause: ARM template explicitly sets `"httpsOnly": true` on both `app-smartkb-api-{env}` and `app-smartkb-ingestion-{env}`. Terraform `azurerm_linux_web_app` blocks omit `https_only`, which defaults to `false` in the azurerm provider.
