@@ -4,6 +4,7 @@ import type {
   CreateConnectorRequest,
   SecretAuthType,
 } from '../api/types';
+import { SourceConfigEditor } from './SourceConfigEditor';
 
 const CONNECTOR_TYPES: { value: ConnectorType; label: string }[] = [
   { value: 'AzureDevOps', label: 'Azure DevOps' },
@@ -185,17 +186,12 @@ export function CreateConnectorForm({
         {step === 'config' && (
           <div className="wizard-section" data-testid="wizard-step-config">
             <div className="draft-field">
-              <label className="draft-field-label">Source Configuration (JSON)</label>
-              <textarea
+              <label className="draft-field-label">Source Configuration</label>
+              <SourceConfigEditor
+                connectorType={connectorType}
                 value={sourceConfig}
-                onChange={(e) => setSourceConfig(e.target.value)}
-                placeholder='{"organizationUrl": "https://dev.azure.com/myorg", "projects": ["MyProject"]}'
-                rows={6}
-                data-testid="source-config-input"
+                onChange={setSourceConfig}
               />
-              <span className="field-hint">
-                JSON configuration specific to the connector type.
-              </span>
             </div>
             <div className="draft-field">
               <label className="draft-field-label">Schedule (Cron Expression)</label>
@@ -207,7 +203,7 @@ export function CreateConnectorForm({
                 data-testid="schedule-input"
               />
               <span className="field-hint">
-                Informational only in Phase 1. Sync is triggered manually or via webhooks.
+                Sync runs on this schedule. Leave empty for webhook/manual only.
               </span>
             </div>
           </div>

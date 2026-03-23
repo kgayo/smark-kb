@@ -248,6 +248,55 @@ export type SyncRunStatus = 'Pending' | 'Running' | 'Completed' | 'Failed';
 export type SecretAuthType = 'OAuth' | 'Pat' | 'PrivateKey' | 'ServiceAccount';
 export type FieldTransformType = 'Direct' | 'Template' | 'Regex' | 'Lookup' | 'Constant';
 
+// ── Typed source config interfaces (P3-010) ──
+
+export interface AzureDevOpsSourceConfig {
+  organizationUrl: string;
+  projects: string[];
+  ingestWorkItems: boolean;
+  ingestWikiPages: boolean;
+  workItemTypes: string[];
+  areaPaths: string[];
+  batchSize: number;
+  oAuthClientId?: string;
+  oAuthScopes?: string;
+}
+
+export interface SharePointSourceConfig {
+  siteUrl: string;
+  entraIdTenantId: string;
+  clientId: string;
+  driveIds: string[];
+  ingestDocumentLibraries: boolean;
+  includeExtensions: string[];
+  excludeFolders: string[];
+  batchSize: number;
+}
+
+export interface HubSpotSourceConfig {
+  portalId: string;
+  baseUrl: string;
+  objectTypes: string[];
+  customProperties: string[];
+  pipelines: string[];
+  batchSize: number;
+  oAuthClientId?: string;
+  oAuthScopes?: string;
+}
+
+export interface ClickUpSourceConfig {
+  workspaceId: string;
+  baseUrl: string;
+  spaceIds: string[];
+  folderIds: string[];
+  listIds: string[];
+  ingestTasks: boolean;
+  ingestDocs: boolean;
+  taskStatuses: string[];
+  batchSize: number;
+  oAuthClientId?: string;
+}
+
 export interface FieldMappingRule {
   sourceField: string;
   targetField: string;

@@ -1351,6 +1351,42 @@ body {
   word-break: break-word;
 }
 
+/* ── Source Config Editor (P3-010) ── */
+
+.source-config-editor {
+  margin-top: 4px;
+}
+
+.source-config-toggle {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.source-config-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.source-config-fields .draft-field-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.checkbox-field input[type='checkbox'] {
+  margin: 0;
+}
+
 .edit-section {
   margin-top: 16px;
   display: flex;

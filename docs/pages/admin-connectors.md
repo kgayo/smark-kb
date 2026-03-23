@@ -38,8 +38,23 @@ Multi-step form:
 
 1. **Select type**: Azure DevOps, SharePoint, HubSpot, or ClickUp
 2. **Configure auth**: enter credentials (stored in Azure Key Vault)
-3. **Map fields**: define how source fields map to canonical record fields
+3. **Configure source scope**: structured form tailored to the selected connector type (see below). An "Edit as JSON" toggle is available for advanced users.
 4. **Review and create**
+
+### Source Configuration Forms
+
+Each connector type presents a guided form instead of raw JSON:
+
+| Type | Fields |
+|------|--------|
+| **Azure DevOps** | Organization URL, projects, ingest work items/wiki toggles, work item type filter, area path filter, batch size |
+| **SharePoint** | Site URL, Entra ID tenant ID, client ID, drive IDs, ingest document libraries toggle, include extensions, exclude folders, batch size |
+| **HubSpot** | Portal ID, object types (default: tickets), pipelines, custom properties, batch size |
+| **ClickUp** | Workspace ID, space/folder/list IDs, ingest tasks/docs toggles, task statuses, batch size |
+
+- **Tag fields** (projects, drive IDs, etc.) accept comma-separated values.
+- The form populates from existing configuration when editing a connector.
+- Invalid or legacy JSON gracefully falls back to defaults.
 
 ## Supported Connector Types
 

@@ -8,6 +8,7 @@ import type {
 } from '../api/types';
 import * as api from '../api/client';
 import { FieldMappingEditor } from './FieldMappingEditor';
+import { SourceConfigEditor } from './SourceConfigEditor';
 import { SyncRunHistory } from './SyncRunHistory';
 
 interface ConnectorDetailProps {
@@ -264,12 +265,11 @@ export function ConnectorDetail({
               />
             </div>
             <div className="draft-field">
-              <label className="draft-field-label">Source Config (JSON)</label>
-              <textarea
+              <label className="draft-field-label">Source Configuration</label>
+              <SourceConfigEditor
+                connectorType={connector.connectorType}
                 value={sourceConfig}
-                onChange={(e) => setSourceConfig(e.target.value)}
-                rows={5}
-                data-testid="edit-source-config"
+                onChange={setSourceConfig}
               />
             </div>
             <div className="draft-field">
@@ -280,7 +280,7 @@ export function ConnectorDetail({
                 onChange={(e) => setScheduleCron(e.target.value)}
                 data-testid="edit-schedule"
               />
-              <span className="field-hint">Informational only in Phase 1.</span>
+              <span className="field-hint">Sync runs on this schedule.</span>
             </div>
 
             <FieldMappingEditor mapping={fieldMapping} onChange={setFieldMapping} />
@@ -304,15 +304,18 @@ export function ConnectorDetail({
             {connector.sourceConfig && (
               <div className="detail-section">
                 <h4>Source Configuration</h4>
-                <pre className="source-config-pre" data-testid="source-config-display">
-                  {connector.sourceConfig}
-                </pre>
+                <SourceConfigEditor
+                  connectorType={connector.connectorType}
+                  value={connector.sourceConfig}
+                  onChange={() => {}}
+                  readOnly
+                />
               </div>
             )}
             {connector.scheduleCron && (
               <div className="detail-section">
                 <h4>Schedule</h4>
-                <p>{connector.scheduleCron} <span className="field-hint">(informational)</span></p>
+                <p>{connector.scheduleCron}</p>
               </div>
             )}
             <FieldMappingEditor mapping={connector.fieldMapping} onChange={() => {}} readOnly />
