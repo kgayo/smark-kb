@@ -81,6 +81,8 @@ export function RetrievalFilterPanel({ filters, onChange }: RetrievalFilterPanel
         className="filter-toggle-btn"
         onClick={() => setExpanded(!expanded)}
         data-testid="filter-toggle"
+        aria-label={expanded ? 'Collapse retrieval filters' : 'Expand retrieval filters'}
+        aria-expanded={expanded}
       >
         Filters{hasActiveFilters ? ' *' : ''}
         <span className={`filter-chevron ${expanded ? 'expanded' : ''}`}>&#9662;</span>
@@ -97,6 +99,8 @@ export function RetrievalFilterPanel({ filters, onChange }: RetrievalFilterPanel
                   className={`filter-chip ${(filters.sourceTypes ?? []).includes(type) ? 'active' : ''}`}
                   onClick={() => toggleSourceType(type)}
                   data-testid={`filter-source-${type}`}
+                  aria-label={`${(filters.sourceTypes ?? []).includes(type) ? 'Remove' : 'Add'} ${type} source type filter`}
+                  aria-pressed={(filters.sourceTypes ?? []).includes(type)}
                 >
                   {type}
                 </button>
@@ -154,6 +158,7 @@ export function RetrievalFilterPanel({ filters, onChange }: RetrievalFilterPanel
               className="filter-clear-btn"
               onClick={handleClearAll}
               data-testid="filter-clear"
+              aria-label="Clear all filters"
             >
               Clear all filters
             </button>

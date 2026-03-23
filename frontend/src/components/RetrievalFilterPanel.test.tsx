@@ -161,4 +161,28 @@ describe('RetrievalFilterPanel', () => {
     expect(screen.getByTestId('filter-source-Ticket')).toHaveClass('active');
     expect(screen.getByTestId('filter-source-Document')).not.toHaveClass('active');
   });
+
+  it('filter toggle has aria-expanded attribute', () => {
+    render(<RetrievalFilterPanel filters={{}} onChange={() => {}} />);
+    const toggle = screen.getByTestId('filter-toggle');
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('source type chips have aria-pressed and aria-label', () => {
+    render(
+      <RetrievalFilterPanel
+        filters={{ sourceTypes: ['Ticket'] }}
+        onChange={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByTestId('filter-toggle'));
+    const ticketChip = screen.getByTestId('filter-source-Ticket');
+    expect(ticketChip).toHaveAttribute('aria-pressed', 'true');
+    expect(ticketChip).toHaveAttribute('aria-label', 'Remove Ticket source type filter');
+    const docChip = screen.getByTestId('filter-source-Document');
+    expect(docChip).toHaveAttribute('aria-pressed', 'false');
+    expect(docChip).toHaveAttribute('aria-label', 'Add Document source type filter');
+  });
 });

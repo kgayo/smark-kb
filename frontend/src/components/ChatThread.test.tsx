@@ -205,6 +205,40 @@ describe('ChatThread', () => {
     expect(rationale).toHaveTextContent('3 evidence chunks matched');
   });
 
+  it('citation button has descriptive aria-label', () => {
+    render(
+      <ChatThread
+        messages={[assistantMsg]}
+        loading={false}
+        onShowEvidence={() => {}}
+        metaMap={new Map()}
+      />,
+    );
+    expect(screen.getByTestId('show-citations')).toHaveAttribute('aria-label', 'Show 1 evidence source');
+  });
+
+  it('escalation CTA button has aria-label with target team', () => {
+    const meta = new Map<string, AssistantMeta>([
+      [
+        'msg-2',
+        {
+          nextSteps: [],
+          escalation: { recommended: true, targetTeam: 'Engineering', reason: 'Low confidence', handoffNote: '' },
+        },
+      ],
+    ]);
+    render(
+      <ChatThread
+        messages={[assistantMsg]}
+        loading={false}
+        onShowEvidence={() => {}}
+        onCreateEscalationDraft={() => {}}
+        metaMap={meta}
+      />,
+    );
+    expect(screen.getByTestId('create-escalation-draft')).toHaveAttribute('aria-label', 'Create escalation draft to Engineering');
+  });
+
   it('does not render CTA button when onCreateEscalationDraft not provided', () => {
     const meta = new Map<string, AssistantMeta>([
       [

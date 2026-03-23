@@ -59,7 +59,7 @@ export function FieldMappingEditor({
       <div className="mapping-header">
         <h4>Field Mapping</h4>
         {!readOnly && (
-          <button className="btn btn-sm" onClick={addRule} data-testid="add-mapping-rule">
+          <button className="btn btn-sm" onClick={addRule} data-testid="add-mapping-rule" aria-label="Add field mapping rule">
             + Add Rule
           </button>
         )}
@@ -91,12 +91,14 @@ export function FieldMappingEditor({
                       placeholder="source_field"
                       className="mapping-input"
                       data-testid={`source-field-${i}`}
+                      aria-label={`Source field for rule ${i + 1}`}
                     />
                   ) : (
                     <button
                       type="button"
                       onClick={() => !readOnly && setEditIndex(i)}
                       className="mapping-cell-text"
+                      aria-label={`Edit source field for rule ${i + 1}`}
                     >
                       {rule.sourceField || '(empty)'}
                     </button>
@@ -111,12 +113,14 @@ export function FieldMappingEditor({
                       placeholder="target_field"
                       className="mapping-input"
                       data-testid={`target-field-${i}`}
+                      aria-label={`Target field for rule ${i + 1}`}
                     />
                   ) : (
                     <button
                       type="button"
                       onClick={() => !readOnly && setEditIndex(i)}
                       className="mapping-cell-text"
+                      aria-label={`Edit target field for rule ${i + 1}`}
                     >
                       {rule.targetField || '(empty)'}
                     </button>
@@ -138,7 +142,7 @@ export function FieldMappingEditor({
                       ))}
                     </select>
                   ) : (
-                    <button type="button" onClick={() => !readOnly && setEditIndex(i)} className="mapping-cell-text">
+                    <button type="button" onClick={() => !readOnly && setEditIndex(i)} className="mapping-cell-text" aria-label={`Edit transform for rule ${i + 1}`}>
                       {rule.transform}
                     </button>
                   )}
@@ -167,6 +171,7 @@ export function FieldMappingEditor({
                       type="button"
                       onClick={() => !readOnly && setEditIndex(i)}
                       className="mapping-cell-text"
+                      aria-label={`Edit routing tag for rule ${i + 1}`}
                     >
                       {routingTagLabel(rule.routingTag)}
                     </button>
@@ -189,6 +194,7 @@ export function FieldMappingEditor({
                       className="btn btn-sm"
                       onClick={() => removeRule(i)}
                       data-testid={`remove-rule-${i}`}
+                      aria-label={`Remove rule ${i + 1}`}
                     >
                       Remove
                     </button>

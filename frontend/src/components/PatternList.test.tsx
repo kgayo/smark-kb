@@ -95,4 +95,10 @@ describe('PatternList', () => {
     const prevButton = buttons[0];
     expect(prevButton.disabled).toBe(true);
   });
+
+  it('pagination buttons have aria-labels', () => {
+    render(<PatternList {...defaultProps} hasMore={true} />);
+    expect(screen.getByRole('button', { name: 'Previous page' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next page' })).toBeInTheDocument();
+  });
 });

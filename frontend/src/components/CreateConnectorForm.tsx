@@ -126,6 +126,7 @@ export function CreateConnectorForm({
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Production ADO"
                 data-testid="connector-name-input"
+                aria-label="Connector name"
               />
             </div>
             <div className="draft-field">
@@ -159,6 +160,7 @@ export function CreateConnectorForm({
                 value={authType}
                 onChange={(e) => setAuthType(e.target.value as SecretAuthType)}
                 data-testid="auth-type-select"
+                aria-label="Authentication type"
               >
                 {AUTH_TYPES.map((at) => (
                   <option key={at.value} value={at.value}>
@@ -175,6 +177,7 @@ export function CreateConnectorForm({
                 onChange={(e) => setKeyVaultSecretName(e.target.value)}
                 placeholder="e.g. ado-pat-production"
                 data-testid="secret-name-input"
+                aria-label="Key Vault secret name"
               />
               <span className="field-hint">
                 Name of the secret in Azure Key Vault containing the credential.
@@ -201,6 +204,7 @@ export function CreateConnectorForm({
                 onChange={(e) => setScheduleCron(e.target.value)}
                 placeholder="0 */6 * * * (every 6 hours)"
                 data-testid="schedule-input"
+                aria-label="Sync schedule cron expression"
               />
               <span className="field-hint">
                 Sync runs on this schedule. Leave empty for webhook/manual only.
@@ -255,12 +259,12 @@ export function CreateConnectorForm({
       </div>
 
       <div className="wizard-actions">
-        <button className="btn" onClick={onCancel} disabled={submitting}>
+        <button className="btn" onClick={onCancel} disabled={submitting} aria-label="Cancel connector creation">
           Cancel
         </button>
         <div className="wizard-actions-right">
           {step !== 'type' && (
-            <button className="btn" onClick={prevStep} disabled={submitting}>
+            <button className="btn" onClick={prevStep} disabled={submitting} aria-label="Go to previous step">
               Back
             </button>
           )}
@@ -270,6 +274,7 @@ export function CreateConnectorForm({
               onClick={nextStep}
               disabled={!canAdvance()}
               data-testid="wizard-next-btn"
+              aria-label="Go to next step"
             >
               Next
             </button>
@@ -279,6 +284,7 @@ export function CreateConnectorForm({
               onClick={handleSubmit}
               disabled={submitting || !canAdvance()}
               data-testid="wizard-create-btn"
+              aria-label="Create connector"
             >
               {submitting ? 'Creating...' : 'Create Connector'}
             </button>

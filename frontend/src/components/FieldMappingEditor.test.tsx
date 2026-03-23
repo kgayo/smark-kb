@@ -104,6 +104,17 @@ describe('FieldMappingEditor', () => {
     });
   });
 
+  it('interactive elements have aria-labels', () => {
+    render(<FieldMappingEditor mapping={mockMapping} onChange={() => {}} />);
+    expect(screen.getByTestId('add-mapping-rule')).toHaveAttribute('aria-label', 'Add field mapping rule');
+    expect(screen.getByTestId('remove-rule-0')).toHaveAttribute('aria-label', 'Remove rule 1');
+    // Cell buttons in non-edit mode
+    expect(screen.getByRole('button', { name: 'Edit source field for rule 1' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Edit target field for rule 1' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Edit transform for rule 1' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Edit routing tag for rule 1' })).toBeInTheDocument();
+  });
+
   it('clears routing tag when None is selected', () => {
     const onChange = vi.fn();
     render(<FieldMappingEditor mapping={mockMappingWithRoutingTag} onChange={onChange} />);

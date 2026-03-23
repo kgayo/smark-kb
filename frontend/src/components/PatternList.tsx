@@ -108,6 +108,7 @@ export function PatternList({
             className="btn btn-sm"
             disabled={page <= 1}
             onClick={() => onPageChange(page - 1)}
+            aria-label="Previous page"
           >
             Previous
           </button>
@@ -116,6 +117,7 @@ export function PatternList({
             className="btn btn-sm"
             disabled={!hasMore}
             onClick={() => onPageChange(page + 1)}
+            aria-label="Next page"
           >
             Next
           </button>

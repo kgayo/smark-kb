@@ -35,6 +35,7 @@ function CitationInline({
       className="citation-count-btn"
       onClick={() => onShowEvidence(citations)}
       data-testid="show-citations"
+      aria-label={`Show ${citations.length} evidence source${citations.length !== 1 ? 's' : ''}`}
     >
       {citations.length} source{citations.length !== 1 ? 's' : ''}
     </button>
@@ -76,6 +77,7 @@ function EscalationBanner({
           className="btn btn-sm btn-escalate"
           data-testid="create-escalation-draft"
           onClick={onCreateDraft}
+          aria-label={`Create escalation draft to ${targetTeam}`}
         >
           Create escalation draft
         </button>

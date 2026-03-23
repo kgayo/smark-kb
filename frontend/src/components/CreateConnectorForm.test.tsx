@@ -93,4 +93,27 @@ describe('CreateConnectorForm', () => {
     expect(screen.getByText('HubSpot')).toBeInTheDocument();
     expect(screen.getByText('ClickUp')).toBeInTheDocument();
   });
+
+  it('wizard buttons have aria-labels', () => {
+    render(<CreateConnectorForm {...defaultProps} />);
+    expect(screen.getByRole('button', { name: 'Cancel connector creation' })).toBeInTheDocument();
+    expect(screen.getByTestId('wizard-next-btn')).toHaveAttribute('aria-label', 'Go to next step');
+    // Fill name and advance to auth step to check Back button
+    fireEvent.change(screen.getByTestId('connector-name-input'), { target: { value: 'Test' } });
+    fireEvent.click(screen.getByTestId('wizard-next-btn'));
+    expect(screen.getByRole('button', { name: 'Go to previous step' })).toBeInTheDocument();
+  });
+
+  it('form inputs have aria-labels', () => {
+    render(<CreateConnectorForm {...defaultProps} />);
+    expect(screen.getByTestId('connector-name-input')).toHaveAttribute('aria-label', 'Connector name');
+    // Navigate to auth step
+    fireEvent.change(screen.getByTestId('connector-name-input'), { target: { value: 'Test' } });
+    fireEvent.click(screen.getByTestId('wizard-next-btn'));
+    expect(screen.getByTestId('auth-type-select')).toHaveAttribute('aria-label', 'Authentication type');
+    expect(screen.getByTestId('secret-name-input')).toHaveAttribute('aria-label', 'Key Vault secret name');
+    // Navigate to config step
+    fireEvent.click(screen.getByTestId('wizard-next-btn'));
+    expect(screen.getByTestId('schedule-input')).toHaveAttribute('aria-label', 'Sync schedule cron expression');
+  });
 });
