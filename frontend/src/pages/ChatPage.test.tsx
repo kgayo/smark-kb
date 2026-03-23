@@ -235,7 +235,7 @@ describe('ChatPage', () => {
       messages: [
         {
           messageId: 'am1',
-          role: 'Assistant',
+          role: 'assistant',
           content: 'Answer',
           timestamp: '2026-03-18T00:00:00Z',
           citations: [],

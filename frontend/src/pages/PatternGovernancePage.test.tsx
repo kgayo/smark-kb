@@ -72,6 +72,7 @@ describe('PatternGovernancePage', () => {
       patterns: [],
       totalCount: 0,
       page: 1,
+      pageSize: 20,
       hasMore: false,
     });
     renderPage();
@@ -86,6 +87,7 @@ describe('PatternGovernancePage', () => {
       patterns: [],
       totalCount: 0,
       page: 1,
+      pageSize: 20,
       hasMore: false,
     });
     renderPage();
@@ -103,12 +105,12 @@ describe('PatternGovernancePage', () => {
           title: 'DNS Timeout Fix',
           trustLevel: 'Draft',
           productArea: 'Networking',
-          usageCount: 5,
           createdAt: '2026-03-15T00:00:00Z',
-        },
+        } as any,
       ],
       totalCount: 1,
       page: 1,
+      pageSize: 20,
       hasMore: false,
     });
 
@@ -138,12 +140,12 @@ describe('PatternGovernancePage', () => {
           title: 'DNS Timeout Fix',
           trustLevel: 'Draft',
           productArea: 'Networking',
-          usageCount: 5,
           createdAt: '2026-03-15T00:00:00Z',
-        },
+        } as any,
       ],
       totalCount: 1,
       page: 1,
+      pageSize: 20,
       hasMore: false,
     });
     mockedApi.getPatternDetail.mockResolvedValue({
@@ -184,12 +186,12 @@ describe('PatternGovernancePage', () => {
           title: 'Pattern A',
           trustLevel: 'Draft',
           productArea: 'Billing',
-          usageCount: 0,
           createdAt: '2026-03-15T00:00:00Z',
-        },
+        } as any,
       ],
       totalCount: 1,
       page: 1,
+      pageSize: 20,
       hasMore: false,
     });
     mockedApi.getPatternDetail.mockRejectedValue(new Error('Not found'));
@@ -209,6 +211,7 @@ describe('PatternGovernancePage', () => {
       patterns: [],
       totalCount: 0,
       page: 1,
+      pageSize: 20,
       hasMore: false,
     });
     renderPage();
