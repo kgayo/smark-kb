@@ -1066,3 +1066,77 @@ export interface AuditExportParams {
   from?: string;
   to?: string;
 }
+
+// ── Gold case types (P3-022) ──
+
+export interface GoldCaseSummary {
+  id: string;
+  caseId: string;
+  query: string;
+  responseType: string;
+  tags: string[];
+  sourceFeedbackId: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GoldCaseContext {
+  customerRefs?: string[];
+  productAreaHint?: string;
+  environment?: Record<string, string>;
+  sessionHistory?: GoldCaseSessionMessage[];
+}
+
+export interface GoldCaseSessionMessage {
+  role: string;
+  content: string;
+}
+
+export interface GoldCaseExpected {
+  responseType: string;
+  mustInclude?: string[];
+  mustNotInclude?: string[];
+  mustCiteSources?: boolean;
+  minCitations?: number;
+  expectedEscalation?: { recommended: boolean; targetTeam?: string };
+  minConfidence?: number;
+  shouldHaveEvidence?: boolean;
+}
+
+export interface GoldCaseDetail {
+  id: string;
+  caseId: string;
+  query: string;
+  context: GoldCaseContext | null;
+  expected: GoldCaseExpected;
+  tags: string[];
+  sourceFeedbackId: string | null;
+  createdBy: string;
+  updatedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GoldCaseListResponse {
+  cases: GoldCaseSummary[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+}
+
+export interface CreateGoldCaseRequest {
+  caseId: string;
+  query: string;
+  context?: GoldCaseContext;
+  expected: GoldCaseExpected;
+  tags?: string[];
+}
+
+export interface UpdateGoldCaseRequest {
+  query?: string;
+  context?: GoldCaseContext;
+  expected?: GoldCaseExpected;
+  tags?: string[];
+}

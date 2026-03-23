@@ -47,6 +47,7 @@ public static class DataServiceExtensions
         services.AddScoped<IEvalReportService, EvalReportService>();
         services.AddScoped<IPatternUsageMetricsService, PatternUsageMetricsService>();
         services.AddScoped<IRateLimitAlertService, RateLimitAlertService>();
+        services.AddScoped<IGoldCaseService, GoldCaseService>();
 
         return services;
     }

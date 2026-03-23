@@ -9,6 +9,8 @@ import { RoutingAnalyticsPage } from './pages/RoutingAnalyticsPage';
 import { PlaybooksPage } from './pages/PlaybooksPage';
 import { CostControlsPage } from './pages/CostControlsPage';
 import { PrivacyAdminPage } from './pages/PrivacyAdminPage';
+import { AuditCompliancePage } from './pages/AuditCompliancePage';
+import { GoldDatasetPage } from './pages/GoldDatasetPage';
 
 export function App() {
   return (
@@ -24,6 +26,8 @@ export function App() {
           <Route path="/playbooks" element={<PlaybooksPage />} />
           <Route path="/cost" element={<CostControlsPage />} />
           <Route path="/privacy" element={<PrivacyAdminPage />} />
+          <Route path="/audit" element={<AuditCompliancePage />} />
+          <Route path="/gold-cases" element={<GoldDatasetPage />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

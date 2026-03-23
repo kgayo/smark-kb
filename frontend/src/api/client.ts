@@ -81,6 +81,10 @@ import type {
   AuditExportParams,
   RateLimitAlertSummary,
   WebhookStatusListResponse,
+  GoldCaseListResponse,
+  GoldCaseDetail,
+  CreateGoldCaseRequest,
+  UpdateGoldCaseRequest,
 } from './types';
 
 let getAccessToken: (() => Promise<string | null>) | null = null;
@@ -984,4 +988,51 @@ export async function exportAuditEvents(params?: AuditExportParams): Promise<Blo
     throw new ApiError(res.status, body || res.statusText);
   }
   return res.blob();
+}
+
+// ── Gold case management (P3-022) ──
+
+export async function listGoldCases(tag?: string, page?: number, pageSize?: number): Promise<GoldCaseListResponse> {
+  const qs = new URLSearchParams();
+  if (tag) qs.set('tag', tag);
+  if (page) qs.set('page', String(page));
+  if (pageSize) qs.set('pageSize', String(pageSize));
+  const q = qs.toString();
+  return unwrap(await apiFetch<ApiResponse<GoldCaseListResponse>>(`/api/admin/eval/gold-cases${q ? `?${q}` : ''}`));
+}
+
+export async function getGoldCase(id: string): Promise<GoldCaseDetail> {
+  return unwrap(await apiFetch<ApiResponse<GoldCaseDetail>>(`/api/admin/eval/gold-cases/${id}`));
+}
+
+export async function createGoldCase(req: CreateGoldCaseRequest): Promise<GoldCaseDetail> {
+  return unwrap(await apiFetch<ApiResponse<GoldCaseDetail>>('/api/admin/eval/gold-cases', {
+    method: 'POST',
+    body: JSON.stringify(req),
+  }));
+}
+
+export async function updateGoldCase(id: string, req: UpdateGoldCaseRequest): Promise<GoldCaseDetail> {
+  return unwrap(await apiFetch<ApiResponse<GoldCaseDetail>>(`/api/admin/eval/gold-cases/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(req),
+  }));
+}
+
+export async function deleteGoldCase(id: string): Promise<void> {
+  await apiFetch<ApiResponse<unknown>>(`/api/admin/eval/gold-cases/${id}`, { method: 'DELETE' });
+}
+
+export async function exportGoldCases(): Promise<string> {
+  const headers: Record<string, string> = {};
+  if (getAccessToken) {
+    const token = await getAccessToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+  }
+  const res = await fetch('/api/admin/eval/gold-cases/export', { headers });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new ApiError(res.status, body || res.statusText);
+  }
+  return res.text();
 }

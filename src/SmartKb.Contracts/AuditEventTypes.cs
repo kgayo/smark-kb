@@ -96,6 +96,12 @@ public static class AuditEventTypes
     public const string CredentialRotationCompleted = "credential.rotation_completed";
     public const string CredentialRotationFailed = "credential.rotation_failed";
 
+    // Gold case events (P3-022).
+    public const string GoldCaseCreated = "gold_case.created";
+    public const string GoldCaseUpdated = "gold_case.updated";
+    public const string GoldCaseDeleted = "gold_case.deleted";
+    public const string GoldCasePromoted = "gold_case.promoted_from_feedback";
+
     // Webhook events.
     public const string WebhookReceived = "webhook.received";
     public const string WebhookSignatureFailed = "webhook.signature_failed";

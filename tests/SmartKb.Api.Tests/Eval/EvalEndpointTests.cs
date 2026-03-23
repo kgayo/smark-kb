@@ -283,6 +283,7 @@ internal sealed class EvalTestFactory : WebApplicationFactory<Program>, IAsyncLi
             services.AddScoped<IPatternMaintenanceService, SmartKb.Data.Repositories.PatternMaintenanceService>();
             services.AddScoped<ISynonymMapService, SmartKb.Data.Repositories.SynonymMapService>();
             services.AddScoped<IEvalReportService, EvalReportService>();
+            services.AddScoped<IGoldCaseService, SmartKb.Data.Repositories.GoldCaseService>();
             services.AddScoped<AdoWebhookHandler>();
             services.AddScoped<SharePointWebhookHandler>();
             services.AddScoped<HubSpotWebhookHandler>();

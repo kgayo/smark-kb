@@ -123,6 +123,12 @@ export function AdminPage() {
           <Link to="/privacy" className="btn btn-sm" data-testid="privacy-link">
             Privacy
           </Link>
+          <Link to="/audit" className="btn btn-sm" data-testid="audit-link">
+            Audit
+          </Link>
+          <Link to="/gold-cases" className="btn btn-sm" data-testid="gold-cases-link">
+            Gold Dataset
+          </Link>
           <Link to="/" className="btn btn-sm" data-testid="back-to-chat">
             Back to Chat
           </Link>

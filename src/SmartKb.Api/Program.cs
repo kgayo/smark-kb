@@ -2170,6 +2170,94 @@ app.MapPost("/api/admin/eval/reports", async (
         ApiResponse<EvalReportDetail>.Success(report, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
+// Gold case management endpoints (P3-022).
+app.MapGet("/api/admin/eval/gold-cases", async (
+    ITenantContextAccessor tenantAccessor,
+    HttpContext httpContext,
+    string? tag,
+    int? page,
+    int? pageSize) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var svc = httpContext.RequestServices.GetRequiredService<IGoldCaseService>();
+    var result = await svc.ListAsync(tenant.TenantId, tag, page ?? 1, pageSize ?? 20);
+    return Results.Ok(ApiResponse<GoldCaseListResponse>.Success(result, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapGet("/api/admin/eval/gold-cases/{id:guid}", async (
+    Guid id,
+    ITenantContextAccessor tenantAccessor,
+    HttpContext httpContext) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var svc = httpContext.RequestServices.GetRequiredService<IGoldCaseService>();
+    var detail = await svc.GetAsync(tenant.TenantId, id);
+    return detail is not null
+        ? Results.Ok(ApiResponse<GoldCaseDetail>.Success(detail, tenant.CorrelationId))
+        : Results.NotFound(ApiResponse<object>.Failure("Gold case not found.", tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapPost("/api/admin/eval/gold-cases", async (
+    CreateGoldCaseRequest request,
+    ITenantContextAccessor tenantAccessor,
+    HttpContext httpContext) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var svc = httpContext.RequestServices.GetRequiredService<IGoldCaseService>();
+    var detail = await svc.CreateAsync(tenant.TenantId, request, tenant.UserId);
+    return Results.Created($"/api/admin/eval/gold-cases/{detail.Id}",
+        ApiResponse<GoldCaseDetail>.Success(detail, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapPut("/api/admin/eval/gold-cases/{id:guid}", async (
+    Guid id,
+    UpdateGoldCaseRequest request,
+    ITenantContextAccessor tenantAccessor,
+    HttpContext httpContext) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var svc = httpContext.RequestServices.GetRequiredService<IGoldCaseService>();
+    var detail = await svc.UpdateAsync(tenant.TenantId, id, request, tenant.UserId);
+    return detail is not null
+        ? Results.Ok(ApiResponse<GoldCaseDetail>.Success(detail, tenant.CorrelationId))
+        : Results.NotFound(ApiResponse<object>.Failure("Gold case not found.", tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapDelete("/api/admin/eval/gold-cases/{id:guid}", async (
+    Guid id,
+    ITenantContextAccessor tenantAccessor,
+    HttpContext httpContext) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var svc = httpContext.RequestServices.GetRequiredService<IGoldCaseService>();
+    var deleted = await svc.DeleteAsync(tenant.TenantId, id, tenant.UserId);
+    return deleted
+        ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
+        : Results.NotFound(ApiResponse<object>.Failure("Gold case not found.", tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
+app.MapGet("/api/admin/eval/gold-cases/export", async (
+    ITenantContextAccessor tenantAccessor,
+    HttpContext httpContext) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var svc = httpContext.RequestServices.GetRequiredService<IGoldCaseService>();
+    var jsonl = await svc.ExportAsJsonlAsync(tenant.TenantId);
+    return Results.Text(jsonl, "application/x-ndjson");
+}).RequirePermission("connector:manage");
+
+app.MapPost("/api/admin/eval/gold-cases/promote", async (
+    PromoteFromFeedbackRequest request,
+    ITenantContextAccessor tenantAccessor,
+    HttpContext httpContext) =>
+{
+    var tenant = tenantAccessor.Current!;
+    var svc = httpContext.RequestServices.GetRequiredService<IGoldCaseService>();
+    var detail = await svc.PromoteFromFeedbackAsync(tenant.TenantId, request, tenant.UserId);
+    return Results.Created($"/api/admin/eval/gold-cases/{detail.Id}",
+        ApiResponse<GoldCaseDetail>.Success(detail, tenant.CorrelationId));
+}).RequirePermission("connector:manage");
+
 app.Run();
 
 public partial class Program { }

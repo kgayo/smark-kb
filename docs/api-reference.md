@@ -1,6 +1,6 @@
 # API Reference
 
-Smart KB exposes 116 endpoints across 20 functional groups. All endpoints (except webhooks and health) require authentication and return wrapped `ApiResponse<T>` responses with `Success`, `Data`, `Error`, and `CorrelationId` fields.
+Smart KB exposes 123 endpoints across 21 functional groups. All endpoints (except webhooks and health) require authentication and return wrapped `ApiResponse<T>` responses with `Success`, `Data`, `Error`, and `CorrelationId` fields.
 
 ## Authorization Model
 
@@ -223,6 +223,18 @@ Smart KB exposes 116 endpoints across 20 functional groups. All endpoints (excep
 | GET | `/api/admin/eval/reports` | `connector:manage` | List eval reports (paginated, `?runType=smoke\|full&page=1&pageSize=20`) |
 | GET | `/api/admin/eval/reports/{id}` | `connector:manage` | Get eval report detail with metrics/violations/baseline |
 | POST | `/api/admin/eval/reports` | `connector:manage` | Persist eval report from harness run |
+
+## Gold Dataset
+
+| Method | Path | Permission | Description |
+|--------|------|------------|-------------|
+| GET | `/api/admin/eval/gold-cases` | `connector:manage` | List gold cases (paginated, `?tag=auth&page=1&pageSize=20`) |
+| GET | `/api/admin/eval/gold-cases/{id}` | `connector:manage` | Get gold case detail |
+| POST | `/api/admin/eval/gold-cases` | `connector:manage` | Create gold case |
+| PUT | `/api/admin/eval/gold-cases/{id}` | `connector:manage` | Update gold case |
+| DELETE | `/api/admin/eval/gold-cases/{id}` | `connector:manage` | Delete gold case |
+| GET | `/api/admin/eval/gold-cases/export` | `connector:manage` | Export as NDJSON for eval CLI |
+| POST | `/api/admin/eval/gold-cases/promote` | `connector:manage` | Promote from user feedback |
 
 ## Audit
 

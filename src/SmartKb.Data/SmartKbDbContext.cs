@@ -40,6 +40,7 @@ public class SmartKbDbContext : DbContext
     public DbSet<EvalReportEntity> EvalReports => Set<EvalReportEntity>();
     public DbSet<PatternVersionHistoryEntity> PatternVersionHistory => Set<PatternVersionHistoryEntity>();
     public DbSet<RateLimitEventEntity> RateLimitEvents => Set<RateLimitEventEntity>();
+    public DbSet<GoldCaseEntity> GoldCases => Set<GoldCaseEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -78,6 +79,7 @@ public class SmartKbDbContext : DbContext
         ConfigureEvalReport(modelBuilder);
         ConfigurePatternVersionHistory(modelBuilder);
         ConfigureRateLimitEvents(modelBuilder);
+        ConfigureGoldCase(modelBuilder);
     }
 
     private static void ConfigureTenant(ModelBuilder modelBuilder)
@@ -714,6 +716,25 @@ public class SmartKbDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(r => new { r.TenantId, r.OccurredAt });
             e.HasIndex(r => r.ConnectorId);
+        });
+    }
+
+    private static void ConfigureGoldCase(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<GoldCaseEntity>(e =>
+        {
+            e.ToTable("GoldCases");
+            e.HasKey(g => g.Id);
+            e.Property(g => g.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(g => g.CaseId).HasMaxLength(64).IsRequired();
+            e.Property(g => g.Query).IsRequired();
+            e.Property(g => g.ExpectedJson).IsRequired();
+            e.Property(g => g.TagsJson).IsRequired();
+            e.Property(g => g.CreatedBy).HasMaxLength(128).IsRequired();
+            e.Property(g => g.UpdatedBy).HasMaxLength(128);
+            e.HasIndex(g => g.TenantId);
+            e.HasIndex(g => new { g.TenantId, g.CaseId }).IsUnique();
+            e.HasOne(g => g.Tenant).WithMany().HasForeignKey(g => g.TenantId);
         });
     }
 }
