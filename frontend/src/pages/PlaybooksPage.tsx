@@ -307,7 +307,7 @@ export function PlaybooksPage() {
         </div>
         <div className="draft-field">
           <label>Min Severity</label>
-          <select value={form.minSeverity ?? ''} onChange={(e) => setForm({ ...form, minSeverity: e.target.value || undefined })}>
+          <select value={form.minSeverity ?? ''} aria-label="Minimum severity" onChange={(e) => setForm({ ...form, minSeverity: e.target.value || undefined })}>
             <option value="">Any</option>
             <option value="P1">P1</option>
             <option value="P2">P2</option>

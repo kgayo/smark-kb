@@ -198,6 +198,24 @@ describe('RoutingAnalyticsPage', () => {
     });
   });
 
+  it('create rule form has aria-label on min severity select', async () => {
+    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedApi.getRoutingAnalytics.mockResolvedValue({
+      tenantId: 't1', totalOutcomes: 0, totalEscalations: 0, totalReroutes: 0,
+      totalResolvedWithoutEscalation: 0, overallAcceptanceRate: 0, overallRerouteRate: 0,
+      selfResolutionRate: 0, teamMetrics: [], productAreaMetrics: [],
+      computedAt: '2026-03-19T00:00:00Z', windowStart: null, windowEnd: null,
+    });
+    mockedApi.listRoutingRules.mockResolvedValue({ rules: [], totalCount: 0 });
+    renderPage();
+    await waitFor(() => expect(mockedApi.getRoutingAnalytics).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByText(/^Rules/));
+    await waitFor(() => expect(screen.getByText('New Rule')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('New Rule'));
+    expect(screen.getByLabelText('Minimum severity')).toBeInTheDocument();
+  });
+
   it('renders navigation links', () => {
     mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
     mockedApi.getRoutingAnalytics.mockResolvedValue({

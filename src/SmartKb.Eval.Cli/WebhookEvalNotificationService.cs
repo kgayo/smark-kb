@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
@@ -15,6 +16,7 @@ public sealed class WebhookEvalNotificationService : IEvalNotificationService, I
 {
     private readonly EvalNotificationSettings _settings;
     private readonly HttpClient _httpClient;
+    private readonly ILogger<WebhookEvalNotificationService> _logger;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -22,10 +24,11 @@ public sealed class WebhookEvalNotificationService : IEvalNotificationService, I
         WriteIndented = false,
     };
 
-    public WebhookEvalNotificationService(EvalNotificationSettings settings, HttpClient? httpClient = null)
+    public WebhookEvalNotificationService(EvalNotificationSettings settings, HttpClient? httpClient = null, ILogger<WebhookEvalNotificationService>? logger = null)
     {
         _settings = settings;
         _httpClient = httpClient ?? new HttpClient { Timeout = TimeSpan.FromSeconds(settings.TimeoutSeconds) };
+        _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance.CreateLogger<WebhookEvalNotificationService>();
     }
 
     public async Task<bool> NotifyAsync(EvalNotificationPayload payload, CancellationToken ct = default)
@@ -44,8 +47,9 @@ public sealed class WebhookEvalNotificationService : IEvalNotificationService, I
             var response = await _httpClient.PostAsync(_settings.WebhookUrl, content, ct);
             return response.IsSuccessStatusCode;
         }
-        catch (Exception) when (!ct.IsCancellationRequested)
+        catch (Exception ex) when (!ct.IsCancellationRequested)
         {
+            _logger.LogWarning(ex, "Eval notification failed with exception. RunId={RunId}", payload.RunId);
             return false;
         }
     }

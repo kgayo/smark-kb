@@ -328,7 +328,7 @@ export function RoutingAnalyticsPage() {
                     onChange={(e) => setNewRule({ ...newRule, targetTeam: e.target.value })} />
                   <input type="number" step="0.1" placeholder="Threshold" aria-label="Escalation threshold" value={newRule.escalationThreshold}
                     onChange={(e) => setNewRule({ ...newRule, escalationThreshold: parseFloat(e.target.value) })} />
-                  <select value={newRule.minSeverity}
+                  <select value={newRule.minSeverity} aria-label="Minimum severity"
                     onChange={(e) => setNewRule({ ...newRule, minSeverity: e.target.value })}>
                     <option value="P1">P1</option>
                     <option value="P2">P2</option>

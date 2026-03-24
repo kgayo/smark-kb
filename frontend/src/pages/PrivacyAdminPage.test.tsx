@@ -216,5 +216,7 @@ describe('PrivacyAdminPage', () => {
 
     // Custom pattern remove button has descriptive aria-label
     expect(screen.getByLabelText('Remove custom pattern: Internal ID')).toBeInTheDocument();
+    // Enforcement mode select has aria-label
+    expect(screen.getByLabelText('Enforcement mode')).toBeInTheDocument();
   });
 });

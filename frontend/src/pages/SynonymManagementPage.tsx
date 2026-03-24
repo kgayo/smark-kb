@@ -442,7 +442,7 @@ function SpecialTokensTab() {
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         <button onClick={handleSeed}>Seed Defaults</button>
         <button onClick={() => setShowCreate(!showCreate)}>{showCreate ? 'Cancel' : 'Add Token'}</button>
-        <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} style={{ marginLeft: 'auto' }}>
+        <select value={selectedCategory} aria-label="Filter by category" onChange={(e) => setSelectedCategory(e.target.value)} style={{ marginLeft: 'auto' }}>
           <option value="">All Categories</option>
           {categories.map((c) => (<option key={c} value={c}>{c}</option>))}
         </select>

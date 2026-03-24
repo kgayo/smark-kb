@@ -131,6 +131,7 @@ export function FieldMappingEditor({
                   {editIndex === i && !readOnly ? (
                     <select
                       value={rule.transform}
+                      aria-label={`Transform type for rule ${i + 1}`}
                       onChange={(e) =>
                         updateRule(i, { transform: e.target.value as FieldTransformType })
                       }
@@ -152,6 +153,7 @@ export function FieldMappingEditor({
                   {editIndex === i && !readOnly ? (
                     <select
                       value={rule.routingTag ?? ''}
+                      aria-label={`Routing tag for rule ${i + 1}`}
                       onChange={(e) =>
                         updateRule(i, {
                           routingTag: (e.target.value as RoutingTagName) || null,

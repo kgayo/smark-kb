@@ -104,6 +104,7 @@ describe('PlaybooksPage', () => {
     fireEvent.click(screen.getByTestId('new-playbook-btn'));
     expect(screen.getByTestId('create-playbook-form')).toBeInTheDocument();
     expect(screen.getByText('Create Playbook')).toBeInTheDocument();
+    expect(screen.getByLabelText('Minimum severity')).toBeInTheDocument();
   });
 
   it('shows error on load failure', async () => {

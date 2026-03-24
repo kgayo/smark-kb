@@ -286,7 +286,7 @@ export function PrivacyAdminPage() {
                 <h3>Edit PII Policy</h3>
                 <div className="draft-field">
                   <label>Enforcement Mode</label>
-                  <select value={piiForm.enforcementMode}
+                  <select value={piiForm.enforcementMode} aria-label="Enforcement mode"
                     onChange={(e) => setPiiForm({ ...piiForm, enforcementMode: e.target.value })}>
                     {ENFORCEMENT_MODES.map((m) => <option key={m} value={m}>{m}</option>)}
                   </select>

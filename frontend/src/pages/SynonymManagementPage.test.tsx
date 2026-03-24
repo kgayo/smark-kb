@@ -244,6 +244,7 @@ describe('SynonymManagementPage', () => {
     });
     expect(screen.getByText('Internal Server Error')).toBeInTheDocument();
     expect(screen.getByText('2x')).toBeInTheDocument();
+    expect(screen.getByLabelText('Filter by category')).toBeInTheDocument();
   });
 
   it('shows create form for special tokens', async () => {

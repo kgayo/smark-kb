@@ -89,6 +89,8 @@ describe('FieldMappingEditor', () => {
     // Click to enter edit mode
     fireEvent.click(screen.getByText('Product Area'));
     expect(screen.getByTestId('routing-tag-0')).toBeInTheDocument();
+    expect(screen.getByLabelText('Transform type for rule 1')).toBeInTheDocument();
+    expect(screen.getByLabelText('Routing tag for rule 1')).toBeInTheDocument();
   });
 
   it('updates routing tag via select', () => {
