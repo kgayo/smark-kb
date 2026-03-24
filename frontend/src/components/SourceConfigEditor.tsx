@@ -96,9 +96,10 @@ interface TagInputProps {
   placeholder?: string;
   readOnly?: boolean;
   testId?: string;
+  ariaLabel?: string;
 }
 
-function TagInput({ value, onChange, placeholder, readOnly, testId }: TagInputProps) {
+function TagInput({ value, onChange, placeholder, readOnly, testId, ariaLabel }: TagInputProps) {
   const [text, setText] = useState(joinCsv(value));
 
   useEffect(() => {
@@ -118,6 +119,7 @@ function TagInput({ value, onChange, placeholder, readOnly, testId }: TagInputPr
       placeholder={placeholder}
       readOnly={readOnly}
       data-testid={testId}
+      aria-label={ariaLabel}
     />
   );
 }
@@ -144,6 +146,7 @@ function AdoForm({
           placeholder="https://dev.azure.com/myorg"
           readOnly={readOnly}
           data-testid="ado-org-url"
+          aria-label="Organization URL"
         />
       </div>
       <div className="draft-field">
@@ -154,6 +157,7 @@ function AdoForm({
           placeholder="ProjectA, ProjectB"
           readOnly={readOnly}
           testId="ado-projects"
+          ariaLabel="Projects"
         />
         <span className="field-hint">Comma-separated. Leave empty to ingest all projects.</span>
       </div>
@@ -187,6 +191,7 @@ function AdoForm({
           placeholder="Bug, Task, User Story"
           readOnly={readOnly}
           testId="ado-work-item-types"
+          ariaLabel="Work Item Types"
         />
         <span className="field-hint">Leave empty for all types.</span>
       </div>
@@ -198,6 +203,7 @@ function AdoForm({
           placeholder="Project\\Area1, Project\\Area2"
           readOnly={readOnly}
           testId="ado-area-paths"
+          ariaLabel="Area Paths"
         />
       </div>
       <div className="draft-field">
@@ -210,6 +216,7 @@ function AdoForm({
           max={1000}
           readOnly={readOnly}
           data-testid="ado-batch-size"
+          aria-label="Batch Size"
         />
       </div>
     </div>
@@ -236,6 +243,7 @@ function SharePointForm({
           placeholder="https://contoso.sharepoint.com/sites/support"
           readOnly={readOnly}
           data-testid="sp-site-url"
+          aria-label="Site URL"
         />
       </div>
       <div className="draft-field">
@@ -247,6 +255,7 @@ function SharePointForm({
           placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
           readOnly={readOnly}
           data-testid="sp-tenant-id"
+          aria-label="Entra ID Tenant ID"
         />
       </div>
       <div className="draft-field">
@@ -258,6 +267,7 @@ function SharePointForm({
           placeholder="App registration client ID"
           readOnly={readOnly}
           data-testid="sp-client-id"
+          aria-label="Client ID"
         />
       </div>
       <div className="draft-field">
@@ -268,6 +278,7 @@ function SharePointForm({
           placeholder="drive-id-1, drive-id-2"
           readOnly={readOnly}
           testId="sp-drive-ids"
+          ariaLabel="Drive IDs"
         />
         <span className="field-hint">Leave empty to discover all document libraries.</span>
       </div>
@@ -291,6 +302,7 @@ function SharePointForm({
           placeholder=".pdf, .docx, .md"
           readOnly={readOnly}
           testId="sp-include-ext"
+          ariaLabel="Include Extensions"
         />
         <span className="field-hint">Leave empty for all supported file types.</span>
       </div>
@@ -302,6 +314,7 @@ function SharePointForm({
           placeholder="Archive, Old"
           readOnly={readOnly}
           testId="sp-exclude-folders"
+          ariaLabel="Exclude Folders"
         />
       </div>
       <div className="draft-field">
@@ -314,6 +327,7 @@ function SharePointForm({
           max={1000}
           readOnly={readOnly}
           data-testid="sp-batch-size"
+          aria-label="Batch Size"
         />
       </div>
     </div>
@@ -340,6 +354,7 @@ function HubSpotForm({
           placeholder="12345678"
           readOnly={readOnly}
           data-testid="hs-portal-id"
+          aria-label="Portal ID"
         />
       </div>
       <div className="draft-field">
@@ -350,6 +365,7 @@ function HubSpotForm({
           placeholder="tickets, contacts, companies"
           readOnly={readOnly}
           testId="hs-object-types"
+          ariaLabel="Object Types"
         />
         <span className="field-hint">Default: tickets</span>
       </div>
@@ -361,6 +377,7 @@ function HubSpotForm({
           placeholder="Support Pipeline, Sales Pipeline"
           readOnly={readOnly}
           testId="hs-pipelines"
+          ariaLabel="Pipelines"
         />
         <span className="field-hint">Leave empty for all pipelines.</span>
       </div>
@@ -372,6 +389,7 @@ function HubSpotForm({
           placeholder="custom_field_1, custom_field_2"
           readOnly={readOnly}
           testId="hs-custom-props"
+          ariaLabel="Custom Properties"
         />
       </div>
       <div className="draft-field">
@@ -384,6 +402,7 @@ function HubSpotForm({
           max={1000}
           readOnly={readOnly}
           data-testid="hs-batch-size"
+          aria-label="Batch Size"
         />
       </div>
     </div>
@@ -410,6 +429,7 @@ function ClickUpForm({
           placeholder="abc123"
           readOnly={readOnly}
           data-testid="cu-workspace-id"
+          aria-label="Workspace ID"
         />
       </div>
       <div className="draft-field">
@@ -420,6 +440,7 @@ function ClickUpForm({
           placeholder="space-1, space-2"
           readOnly={readOnly}
           testId="cu-space-ids"
+          ariaLabel="Space IDs"
         />
         <span className="field-hint">Leave empty for all spaces.</span>
       </div>
@@ -431,6 +452,7 @@ function ClickUpForm({
           placeholder="folder-1, folder-2"
           readOnly={readOnly}
           testId="cu-folder-ids"
+          ariaLabel="Folder IDs"
         />
       </div>
       <div className="draft-field">
@@ -441,6 +463,7 @@ function ClickUpForm({
           placeholder="list-1, list-2"
           readOnly={readOnly}
           testId="cu-list-ids"
+          ariaLabel="List IDs"
         />
       </div>
       <div className="draft-field-row">
@@ -473,6 +496,7 @@ function ClickUpForm({
           placeholder="Open, In Progress, Closed"
           readOnly={readOnly}
           testId="cu-task-statuses"
+          ariaLabel="Task Statuses"
         />
         <span className="field-hint">Leave empty for all statuses.</span>
       </div>
@@ -486,6 +510,7 @@ function ClickUpForm({
           max={1000}
           readOnly={readOnly}
           data-testid="cu-batch-size"
+          aria-label="Batch Size"
         />
       </div>
     </div>
@@ -544,6 +569,7 @@ export function SourceConfigEditor({
             }}
             rows={8}
             data-testid="source-config-raw-json"
+            aria-label="Source configuration JSON"
           />
         )}
       </div>

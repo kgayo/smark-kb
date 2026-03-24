@@ -190,4 +190,51 @@ describe('SourceConfigEditor', () => {
     expect(screen.getByTestId('ado-ingest-work-items')).toBeChecked();
     expect(screen.getByTestId('ado-ingest-wiki')).toBeChecked();
   });
+
+  // ── Accessibility: aria-labels ──
+
+  it('ADO form inputs have aria-labels', () => {
+    render(<SourceConfigEditor {...defaultProps} connectorType="AzureDevOps" />);
+    expect(screen.getByLabelText('Organization URL')).toBeInTheDocument();
+    expect(screen.getByLabelText('Projects')).toBeInTheDocument();
+    expect(screen.getByLabelText('Work Item Types')).toBeInTheDocument();
+    expect(screen.getByLabelText('Area Paths')).toBeInTheDocument();
+    expect(screen.getByLabelText('Batch Size')).toBeInTheDocument();
+  });
+
+  it('SharePoint form inputs have aria-labels', () => {
+    render(<SourceConfigEditor {...defaultProps} connectorType="SharePoint" />);
+    expect(screen.getByLabelText('Site URL')).toBeInTheDocument();
+    expect(screen.getByLabelText('Entra ID Tenant ID')).toBeInTheDocument();
+    expect(screen.getByLabelText('Client ID')).toBeInTheDocument();
+    expect(screen.getByLabelText('Drive IDs')).toBeInTheDocument();
+    expect(screen.getByLabelText('Include Extensions')).toBeInTheDocument();
+    expect(screen.getByLabelText('Exclude Folders')).toBeInTheDocument();
+    expect(screen.getByLabelText('Batch Size')).toBeInTheDocument();
+  });
+
+  it('HubSpot form inputs have aria-labels', () => {
+    render(<SourceConfigEditor {...defaultProps} connectorType="HubSpot" />);
+    expect(screen.getByLabelText('Portal ID')).toBeInTheDocument();
+    expect(screen.getByLabelText('Object Types')).toBeInTheDocument();
+    expect(screen.getByLabelText('Pipelines')).toBeInTheDocument();
+    expect(screen.getByLabelText('Custom Properties')).toBeInTheDocument();
+    expect(screen.getByLabelText('Batch Size')).toBeInTheDocument();
+  });
+
+  it('ClickUp form inputs have aria-labels', () => {
+    render(<SourceConfigEditor {...defaultProps} connectorType="ClickUp" />);
+    expect(screen.getByLabelText('Workspace ID')).toBeInTheDocument();
+    expect(screen.getByLabelText('Space IDs')).toBeInTheDocument();
+    expect(screen.getByLabelText('Folder IDs')).toBeInTheDocument();
+    expect(screen.getByLabelText('List IDs')).toBeInTheDocument();
+    expect(screen.getByLabelText('Task Statuses')).toBeInTheDocument();
+    expect(screen.getByLabelText('Batch Size')).toBeInTheDocument();
+  });
+
+  it('raw JSON textarea has aria-label', () => {
+    render(<SourceConfigEditor {...defaultProps} />);
+    fireEvent.click(screen.getByTestId('switch-to-json'));
+    expect(screen.getByLabelText('Source configuration JSON')).toBeInTheDocument();
+  });
 });
