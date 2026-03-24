@@ -78,6 +78,14 @@ Connectors configured with `AuthType: OAuth` support a full authorization code f
 
 OAuth configuration is set per connector type via optional fields in the source config JSON (`oAuthClientId`, `oAuthScopes`).
 
+### Preview and Retrieval Testing
+
+The detail view includes two diagnostic tools for verifying connector data quality:
+
+**Preview** — Click "Preview" to fetch a sample of normalized records from the connector. The preview table highlights missing required fields (Title, TextContent, SourceType) with red labels, helping admins identify field mapping issues before running a full sync. A field coverage summary shows which canonical fields are mapped and flags missing required mappings.
+
+**Retrieval Test** — Enter a search query in the "Test Retrieval" input to run a scoped search against only this connector's indexed chunks. Results show matching chunk titles, text snippets, source types, product areas, scores, and timestamps. A summary line reports how many results were found out of the connector's total chunk count. This helps verify that ingested content is searchable and relevant before exposing it to agents.
+
 ## Navigation
 
 Header links to: Diagnostics, Patterns, Synonyms, Chat
@@ -94,6 +102,8 @@ Header links to: Diagnostics, Patterns, Synonyms, Chat
 - `POST /api/admin/connectors/{id}/sync-now` — trigger sync
 - `POST /api/admin/connectors/{id}/test` — test credentials
 - `POST /api/admin/connectors/{id}/validate-mapping` — validate field mapping
+- `POST /api/admin/connectors/{id}/preview` — preview normalized records with field coverage analysis
+- `POST /api/admin/connectors/{id}/preview-retrieval` — test retrieval against connector chunks
 - `GET /api/admin/connectors/{id}/sync-runs` — sync history
 - `GET /api/admin/connectors/{id}/oauth/authorize` — get OAuth authorization URL
 - `GET /api/admin/connectors/{id}/oauth/callback` — handle OAuth callback (code exchange)

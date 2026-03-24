@@ -117,6 +117,7 @@ export function SourceViewerPanel({ chunkId, onBack }: SourceViewerPanelProps) {
             onClick={handleCopyCitation}
             className="btn btn-sm"
             data-testid="copy-citation-link"
+            aria-label="Copy citation link to clipboard"
           >
             {copied ? 'Copied!' : 'Copy citation link'}
           </button>

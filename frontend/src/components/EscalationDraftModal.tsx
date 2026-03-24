@@ -423,6 +423,7 @@ export function EscalationDraftModal({
                 onClick={handleSave}
                 disabled={saving}
                 data-testid="draft-save"
+                aria-label={saving ? 'Saving escalation draft' : 'Save escalation draft'}
               >
                 {saving ? 'Saving...' : 'Save draft'}
               </button>
@@ -430,6 +431,7 @@ export function EscalationDraftModal({
                 className="btn"
                 onClick={handleCopyMarkdown}
                 data-testid="draft-copy-markdown"
+                aria-label="Copy escalation draft as Markdown"
               >
                 {copySuccess ? 'Copied!' : 'Copy as Markdown'}
               </button>
@@ -439,6 +441,7 @@ export function EscalationDraftModal({
                   onClick={handleCreateExternal}
                   disabled={!selectedConnectorId || creatingExternal || alreadyCreated}
                   data-testid="draft-create-external"
+                  aria-label="Create external work item from escalation draft"
                 >
                   {creatingExternal
                     ? 'Creating...'

@@ -153,6 +153,10 @@ describe('EscalationDraftModal', () => {
       expect(screen.getByTestId('draft-save')).toBeInTheDocument();
     });
 
+    // Verify aria-labels on action buttons
+    expect(screen.getByTestId('draft-save')).toHaveAttribute('aria-label', 'Save escalation draft');
+    expect(screen.getByTestId('draft-copy-markdown')).toHaveAttribute('aria-label', 'Copy escalation draft as Markdown');
+
     // Edit a field
     fireEvent.change(screen.getByTestId('draft-customer-summary'), {
       target: { value: 'Customer cannot log in' },
@@ -291,6 +295,28 @@ describe('EscalationDraftModal', () => {
     expect(clickupBtn).toBeDisabled();
     expect(adoBtn).toHaveAttribute('title', expect.stringContaining('No ADO or ClickUp connectors configured'));
     expect(clickupBtn).toHaveAttribute('title', expect.stringContaining('No ADO or ClickUp connectors configured'));
+  });
+
+  it('renders create external button with aria-label when connectors available', async () => {
+    vi.mocked(api.listConnectors).mockResolvedValue({
+      connectors: [{ id: 'c1', name: 'My ADO', connectorType: 'AzureDevOps', status: 'Enabled', authType: 'Pat', hasSecret: true, sourceConfig: '{}', fieldMapping: null, scheduleCron: null, createdAt: '', updatedAt: '', lastSyncRun: null }],
+      totalCount: 1,
+    });
+
+    render(
+      <EscalationDraftModal
+        open={true}
+        sessionId="sess-1"
+        messageId="msg-1"
+        escalation={mockEscalation}
+        citations={[mockCitation]}
+        onClose={() => {}}
+      />,
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId('draft-create-external')).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('draft-create-external')).toHaveAttribute('aria-label', 'Create external work item from escalation draft');
   });
 
   it('pre-fills fields from escalation signal', async () => {

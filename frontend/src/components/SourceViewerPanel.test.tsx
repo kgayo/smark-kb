@@ -108,6 +108,7 @@ describe('SourceViewerPanel', () => {
     });
 
     expect(screen.getByText('Copy citation link')).toBeInTheDocument();
+    expect(screen.getByTestId('copy-citation-link')).toHaveAttribute('aria-label', 'Copy citation link to clipboard');
   });
 
   it('renders open external link with aria-label', async () => {
