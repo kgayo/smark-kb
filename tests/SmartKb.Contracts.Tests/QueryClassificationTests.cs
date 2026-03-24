@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
@@ -439,6 +440,201 @@ public class ClassificationSchemaTests
         Assert.Contains("conservative", prompt);
         Assert.Contains("missing_info_suggestions", prompt);
         Assert.Contains("JSON only", prompt);
+    }
+}
+
+#endregion
+
+#region ClassifyAsync HTTP Interaction Tests
+
+public class ClassifyAsyncTests
+{
+    private static OpenAiQueryClassificationService CreateService(
+        string responseBody,
+        System.Net.HttpStatusCode statusCode = System.Net.HttpStatusCode.OK)
+    {
+        var handler = new StubHttpMessageHandler(responseBody, statusCode);
+        var factory = new StubHttpClientFactory(handler);
+        return new OpenAiQueryClassificationService(
+            factory,
+            new OpenAiSettings { ApiKey = "test-key", Endpoint = "https://api.openai.com/v1" },
+            new ChatOrchestrationSettings(),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<OpenAiQueryClassificationService>.Instance);
+    }
+
+    [Fact]
+    public async Task ClassifyAsync_SuccessfulResponse_ParsesClassificationResult()
+    {
+        var classificationJson = """
+        {
+            "issue_category": "Authentication",
+            "product_area": "SSO",
+            "severity_hint": "P2",
+            "needs_customer_lookup": true,
+            "missing_info_suggestions": ["What browser?"],
+            "classification_confidence": 0.85,
+            "escalation_likelihood": 0.4,
+            "source_type_preference": ["ticket"],
+            "time_horizon_days": 90
+        }
+        """;
+        var openAiResponse = $$"""
+        {
+            "choices": [
+                {
+                    "message": {
+                        "content": {{System.Text.Json.JsonSerializer.Serialize(classificationJson)}}
+                    }
+                }
+            ]
+        }
+        """;
+
+        var service = CreateService(openAiResponse);
+        var result = await service.ClassifyAsync("SSO is broken");
+
+        Assert.Equal("Authentication", result.IssueCategory);
+        Assert.Equal("SSO", result.ProductArea);
+        Assert.Equal("P2", result.SeverityHint);
+        Assert.True(result.NeedsCustomerLookup);
+        Assert.Single(result.MissingInfoSuggestions);
+        Assert.Equal(0.85f, result.ClassificationConfidence, 0.01f);
+        Assert.Equal(0.4f, result.EscalationLikelihood, 0.01f);
+        Assert.Equal(90, result.TimeHorizonDays);
+    }
+
+    [Fact]
+    public async Task ClassifyAsync_ApiError_ReturnsEmpty()
+    {
+        var service = CreateService("Internal Server Error", System.Net.HttpStatusCode.InternalServerError);
+        var result = await service.ClassifyAsync("test query");
+
+        Assert.Equal(ClassificationResult.Empty.IssueCategory, result.IssueCategory);
+        Assert.Equal(0f, result.ClassificationConfidence);
+    }
+
+    [Fact]
+    public async Task ClassifyAsync_EmptyContent_ReturnsEmpty()
+    {
+        var openAiResponse = """
+        {
+            "choices": [
+                {
+                    "message": {
+                        "content": ""
+                    }
+                }
+            ]
+        }
+        """;
+
+        var service = CreateService(openAiResponse);
+        var result = await service.ClassifyAsync("test query");
+
+        Assert.Equal(string.Empty, result.IssueCategory);
+    }
+
+    [Fact]
+    public async Task ClassifyAsync_MalformedJson_ReturnsEmpty()
+    {
+        var openAiResponse = """
+        {
+            "choices": [
+                {
+                    "message": {
+                        "content": "not valid json"
+                    }
+                }
+            ]
+        }
+        """;
+
+        var service = CreateService(openAiResponse);
+        var result = await service.ClassifyAsync("test query");
+
+        Assert.Equal(string.Empty, result.IssueCategory);
+    }
+
+    [Fact]
+    public async Task ClassifyAsync_NoChoices_ReturnsEmpty()
+    {
+        var openAiResponse = """{ "choices": [] }""";
+
+        var service = CreateService(openAiResponse);
+        var result = await service.ClassifyAsync("test query");
+
+        Assert.Equal(string.Empty, result.IssueCategory);
+    }
+
+    [Fact]
+    public async Task ClassifyAsync_WithSessionHistory_DoesNotThrow()
+    {
+        var classificationJson = """
+        {
+            "issue_category": "Bug",
+            "product_area": "API",
+            "severity_hint": "P3",
+            "needs_customer_lookup": false,
+            "missing_info_suggestions": [],
+            "classification_confidence": 0.7,
+            "escalation_likelihood": 0.1,
+            "source_type_preference": [],
+            "time_horizon_days": null
+        }
+        """;
+        var openAiResponse = $$"""
+        {
+            "choices": [
+                {
+                    "message": {
+                        "content": {{System.Text.Json.JsonSerializer.Serialize(classificationJson)}}
+                    }
+                }
+            ]
+        }
+        """;
+
+        var service = CreateService(openAiResponse);
+        var history = new List<ChatMessage>
+        {
+            new() { Role = "user", Content = "First message" },
+            new() { Role = "assistant", Content = "Reply" },
+        };
+
+        var result = await service.ClassifyAsync("follow-up", history);
+
+        Assert.Equal("Bug", result.IssueCategory);
+    }
+
+    [Fact]
+    public async Task ClassifyAsync_CancellationRequested_Throws()
+    {
+        var service = CreateService("""{ "choices": [] }""");
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await Assert.ThrowsAsync<TaskCanceledException>(
+            () => service.ClassifyAsync("test", cancellationToken: cts.Token));
+    }
+
+    private class StubHttpMessageHandler(string responseBody, System.Net.HttpStatusCode statusCode)
+        : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var response = new HttpResponseMessage(statusCode)
+            {
+                Content = new StringContent(responseBody, System.Text.Encoding.UTF8, "application/json"),
+            };
+            return Task.FromResult(response);
+        }
+    }
+
+    private class StubHttpClientFactory(StubHttpMessageHandler handler) : IHttpClientFactory
+    {
+        public HttpClient CreateClient(string name) => new(handler);
     }
 }
 

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
@@ -353,6 +354,224 @@ public class SessionSummarizationServiceTests
         var type = message.GetType();
         var prop = type.GetProperty("content");
         return prop?.GetValue(message)?.ToString() ?? "";
+    }
+}
+
+#endregion
+
+#region SummarizeAsync HTTP Interaction Tests (TECH-054)
+
+public class SummarizeAsyncTests
+{
+    private static OpenAiSessionSummarizationService CreateService(
+        string responseBody,
+        System.Net.HttpStatusCode statusCode = System.Net.HttpStatusCode.OK)
+    {
+        var handler = new StubHttpMessageHandler(responseBody, statusCode);
+        var factory = new StubHttpClientFactory(handler);
+        return new OpenAiSessionSummarizationService(
+            factory,
+            new OpenAiSettings { ApiKey = "test-key", Endpoint = "https://api.openai.com/v1" },
+            new ChatOrchestrationSettings(),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<OpenAiSessionSummarizationService>.Instance);
+    }
+
+    [Fact]
+    public async Task SummarizeAsync_SuccessfulResponse_ReturnsFormattedSummary()
+    {
+        var summaryJson = """
+        {
+            "key_issue": "Login failures on SSO module",
+            "attempted_solutions": ["Cleared cookies", "Reset password"],
+            "unresolved_questions": ["Which IdP is configured?"],
+            "customer_context": "Azure AD tenant, v3.1"
+        }
+        """;
+        var openAiResponse = $$"""
+        {
+            "choices": [
+                {
+                    "message": {
+                        "content": {{System.Text.Json.JsonSerializer.Serialize(summaryJson)}}
+                    }
+                }
+            ]
+        }
+        """;
+
+        var service = CreateService(openAiResponse);
+        var messages = new List<ChatMessage>
+        {
+            new() { Role = "user", Content = "SSO broken" },
+            new() { Role = "assistant", Content = "Can you share details?" },
+        };
+
+        var result = await service.SummarizeAsync(messages);
+
+        Assert.NotNull(result);
+        Assert.Contains("[Earlier conversation summary]", result);
+        Assert.Contains("Key issue: Login failures on SSO module", result);
+        Assert.Contains("- Cleared cookies", result);
+        Assert.Contains("- Reset password", result);
+        Assert.Contains("- Which IdP is configured?", result);
+        Assert.Contains("Customer context: Azure AD tenant, v3.1", result);
+    }
+
+    [Fact]
+    public async Task SummarizeAsync_EmptyMessageList_ReturnsNull()
+    {
+        var service = CreateService("""{ "choices": [] }""");
+        var result = await service.SummarizeAsync([]);
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task SummarizeAsync_ApiError_ReturnsNull()
+    {
+        var service = CreateService("Server Error", System.Net.HttpStatusCode.InternalServerError);
+        var messages = new List<ChatMessage>
+        {
+            new() { Role = "user", Content = "test" },
+        };
+
+        var result = await service.SummarizeAsync(messages);
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task SummarizeAsync_EmptyContent_ReturnsNull()
+    {
+        var openAiResponse = """
+        {
+            "choices": [
+                {
+                    "message": {
+                        "content": ""
+                    }
+                }
+            ]
+        }
+        """;
+
+        var service = CreateService(openAiResponse);
+        var messages = new List<ChatMessage>
+        {
+            new() { Role = "user", Content = "test" },
+        };
+
+        var result = await service.SummarizeAsync(messages);
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task SummarizeAsync_MalformedJson_ReturnsNull()
+    {
+        var openAiResponse = """
+        {
+            "choices": [
+                {
+                    "message": {
+                        "content": "not valid json at all"
+                    }
+                }
+            ]
+        }
+        """;
+
+        var service = CreateService(openAiResponse);
+        var messages = new List<ChatMessage>
+        {
+            new() { Role = "user", Content = "test" },
+        };
+
+        var result = await service.SummarizeAsync(messages);
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task SummarizeAsync_NoChoices_ReturnsNull()
+    {
+        var openAiResponse = """{ "choices": [] }""";
+
+        var service = CreateService(openAiResponse);
+        var messages = new List<ChatMessage>
+        {
+            new() { Role = "user", Content = "test" },
+        };
+
+        var result = await service.SummarizeAsync(messages);
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task SummarizeAsync_CancellationRequested_Throws()
+    {
+        var service = CreateService("""{ "choices": [] }""");
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await Assert.ThrowsAsync<TaskCanceledException>(
+            () => service.SummarizeAsync(
+                [new ChatMessage { Role = "user", Content = "test" }],
+                cts.Token));
+    }
+
+    [Fact]
+    public async Task SummarizeAsync_MinimalSummary_OmitsEmptySections()
+    {
+        var summaryJson = """
+        {
+            "key_issue": "Connection timeout",
+            "attempted_solutions": [],
+            "unresolved_questions": [],
+            "customer_context": null
+        }
+        """;
+        var openAiResponse = $$"""
+        {
+            "choices": [
+                {
+                    "message": {
+                        "content": {{System.Text.Json.JsonSerializer.Serialize(summaryJson)}}
+                    }
+                }
+            ]
+        }
+        """;
+
+        var service = CreateService(openAiResponse);
+        var messages = new List<ChatMessage>
+        {
+            new() { Role = "user", Content = "Connection keeps timing out" },
+        };
+
+        var result = await service.SummarizeAsync(messages);
+
+        Assert.NotNull(result);
+        Assert.Contains("Key issue: Connection timeout", result);
+        Assert.DoesNotContain("Attempted solutions:", result);
+        Assert.DoesNotContain("Unresolved questions:", result);
+        Assert.DoesNotContain("Customer context:", result);
+    }
+
+    private class StubHttpMessageHandler(string responseBody, System.Net.HttpStatusCode statusCode)
+        : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var response = new HttpResponseMessage(statusCode)
+            {
+                Content = new StringContent(responseBody, System.Text.Encoding.UTF8, "application/json"),
+            };
+            return Task.FromResult(response);
+        }
+    }
+
+    private class StubHttpClientFactory(StubHttpMessageHandler handler) : IHttpClientFactory
+    {
+        public HttpClient CreateClient(string name) => new(handler);
     }
 }
 

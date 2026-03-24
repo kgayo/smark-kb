@@ -89,15 +89,23 @@ public sealed class OpenAiQueryClassificationService : IQueryClassificationServi
 
             if (!string.IsNullOrEmpty(messageContent))
             {
-                var parsed = JsonSerializer.Deserialize<ClassificationResult>(messageContent, JsonOptions);
-                if (parsed is not null)
+                try
                 {
-                    _logger.LogInformation(
-                        "Query classified: Category={Category}, ProductArea={ProductArea}, " +
-                        "Severity={Severity}, Confidence={Confidence:F2}, EscalationLikelihood={EscalationLikelihood:F2}",
-                        parsed.IssueCategory, parsed.ProductArea, parsed.SeverityHint,
-                        parsed.ClassificationConfidence, parsed.EscalationLikelihood);
-                    return parsed;
+                    var parsed = JsonSerializer.Deserialize<ClassificationResult>(messageContent, JsonOptions);
+                    if (parsed is not null)
+                    {
+                        _logger.LogInformation(
+                            "Query classified: Category={Category}, ProductArea={ProductArea}, " +
+                            "Severity={Severity}, Confidence={Confidence:F2}, EscalationLikelihood={EscalationLikelihood:F2}",
+                            parsed.IssueCategory, parsed.ProductArea, parsed.SeverityHint,
+                            parsed.ClassificationConfidence, parsed.EscalationLikelihood);
+                        return parsed;
+                    }
+                }
+                catch (JsonException ex)
+                {
+                    _logger.LogWarning(ex,
+                        "Failed to deserialize classification response. Falling back to unclassified.");
                 }
             }
         }

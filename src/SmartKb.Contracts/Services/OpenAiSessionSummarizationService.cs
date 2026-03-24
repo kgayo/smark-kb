@@ -90,14 +90,22 @@ public sealed class OpenAiSessionSummarizationService : ISessionSummarizationSer
 
             if (!string.IsNullOrEmpty(messageContent))
             {
-                var parsed = JsonSerializer.Deserialize<SessionSummaryResult>(messageContent, JsonOptions);
-                if (parsed is not null)
+                try
                 {
-                    var summary = FormatSummary(parsed);
-                    _logger.LogInformation(
-                        "Session summarization complete. SummarizedMessageCount={Count}, SummaryLength={Length}",
-                        messagesToSummarize.Count, summary.Length);
-                    return summary;
+                    var parsed = JsonSerializer.Deserialize<SessionSummaryResult>(messageContent, JsonOptions);
+                    if (parsed is not null)
+                    {
+                        var summary = FormatSummary(parsed);
+                        _logger.LogInformation(
+                            "Session summarization complete. SummarizedMessageCount={Count}, SummaryLength={Length}",
+                            messagesToSummarize.Count, summary.Length);
+                        return summary;
+                    }
+                }
+                catch (JsonException ex)
+                {
+                    _logger.LogWarning(ex,
+                        "Failed to deserialize summarization response. Dropping messages without summary.");
                 }
             }
         }
