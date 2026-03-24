@@ -10,11 +10,6 @@ namespace SmartKb.Data.Repositories;
 
 public sealed class PiiPolicyService : IPiiPolicyService
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    };
-
     private static readonly string[] ValidEnforcementModes = ["redact", "detect", "disabled"];
     private static readonly string[] ValidBuiltInPiiTypes = ["email", "phone", "ssn", "credit_card"];
 
@@ -81,7 +76,7 @@ public sealed class PiiPolicyService : IPiiPolicyService
 
         entity.EnforcementMode = request.EnforcementMode;
         entity.EnabledPiiTypes = string.Join(",", request.EnabledPiiTypes);
-        entity.CustomPatternsJson = JsonSerializer.Serialize(request.CustomPatterns ?? [], JsonOptions);
+        entity.CustomPatternsJson = JsonSerializer.Serialize(request.CustomPatterns ?? [], SharedJsonOptions.CamelCaseWrite);
         entity.AuditRedactions = request.AuditRedactions;
         entity.UpdatedAt = now;
 
@@ -131,7 +126,7 @@ public sealed class PiiPolicyService : IPiiPolicyService
     {
         var customPatterns = string.IsNullOrWhiteSpace(entity.CustomPatternsJson) || entity.CustomPatternsJson == "[]"
             ? []
-            : JsonSerializer.Deserialize<List<CustomPiiPattern>>(entity.CustomPatternsJson, JsonOptions) ?? [];
+            : JsonSerializer.Deserialize<List<CustomPiiPattern>>(entity.CustomPatternsJson, SharedJsonOptions.CamelCaseWrite) ?? [];
 
         return new PiiPolicyResponse
         {

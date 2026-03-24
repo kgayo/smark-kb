@@ -15,12 +15,6 @@ namespace SmartKb.Contracts.Connectors;
 /// </summary>
 public sealed class AdoWebhookManager : IWebhookManager
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = true,
-    };
-
     private static readonly string[] SupportedEventTypes =
     [
         "workitem.created",
@@ -89,7 +83,7 @@ public sealed class AdoWebhookManager : IWebhookManager
                     subscriptionRequest.PublisherInputs["projectId"] = config.Projects[0];
                 }
 
-                var json = JsonSerializer.Serialize(subscriptionRequest, JsonOptions);
+                var json = JsonSerializer.Serialize(subscriptionRequest, SharedJsonOptions.CamelCase);
                 using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 var url = $"_apis/hooks/subscriptions?api-version={ApiVersion}";
@@ -193,13 +187,13 @@ public sealed class AdoWebhookManager : IWebhookManager
     private AzureDevOpsSourceConfig? ParseSourceConfig(string? json)
     {
         if (string.IsNullOrWhiteSpace(json)) return null;
-        try { return JsonSerializer.Deserialize<AzureDevOpsSourceConfig>(json, JsonOptions); }
+        try { return JsonSerializer.Deserialize<AzureDevOpsSourceConfig>(json, SharedJsonOptions.CamelCase); }
         catch (JsonException ex) { _logger.LogWarning(ex, "Failed to deserialize AzureDevOpsSourceConfig from JSON"); return null; }
     }
 
     private static async Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)
     {
         var stream = await response.Content.ReadAsStreamAsync(ct);
-        return await JsonSerializer.DeserializeAsync<T>(stream, JsonOptions, ct);
+        return await JsonSerializer.DeserializeAsync<T>(stream, SharedJsonOptions.CamelCase, ct);
     }
 }

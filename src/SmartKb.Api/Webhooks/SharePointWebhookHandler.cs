@@ -19,12 +19,6 @@ namespace SmartKb.Api.Webhooks;
 /// </summary>
 public sealed class SharePointWebhookHandler
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = true,
-    };
-
     private readonly SmartKbDbContext _db;
     private readonly ISyncJobPublisher _syncJobPublisher;
     private readonly IAuditEventWriter _auditWriter;
@@ -87,7 +81,7 @@ public sealed class SharePointWebhookHandler
         GraphChangeNotificationPayload? payload;
         try
         {
-            payload = JsonSerializer.Deserialize<GraphChangeNotificationPayload>(requestBody, JsonOptions);
+            payload = JsonSerializer.Deserialize<GraphChangeNotificationPayload>(requestBody, SharedJsonOptions.CamelCase);
         }
         catch (JsonException ex)
         {

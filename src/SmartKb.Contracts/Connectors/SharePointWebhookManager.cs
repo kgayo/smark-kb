@@ -17,12 +17,6 @@ namespace SmartKb.Contracts.Connectors;
 /// </summary>
 public sealed class SharePointWebhookManager : IWebhookManager
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = true,
-    };
-
     private const string GraphBaseUrl = "https://graph.microsoft.com/v1.0";
     private const string GraphTokenUrl = "https://login.microsoftonline.com/{0}/oauth2/v2.0/token";
 
@@ -108,7 +102,7 @@ public sealed class SharePointWebhookManager : IWebhookManager
                     ClientState = clientState,
                 };
 
-                var json = JsonSerializer.Serialize(subscriptionRequest, JsonOptions);
+                var json = JsonSerializer.Serialize(subscriptionRequest, SharedJsonOptions.CamelCase);
                 using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 var response = await graphClient.PostAsync($"{GraphBaseUrl}/subscriptions", content, cancellationToken);
@@ -241,6 +235,6 @@ public sealed class SharePointWebhookManager : IWebhookManager
     private static async Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)
     {
         var stream = await response.Content.ReadAsStreamAsync(ct);
-        return await JsonSerializer.DeserializeAsync<T>(stream, JsonOptions, ct);
+        return await JsonSerializer.DeserializeAsync<T>(stream, SharedJsonOptions.CamelCase, ct);
     }
 }

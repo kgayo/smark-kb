@@ -16,13 +16,6 @@ namespace SmartKb.Contracts.Connectors;
 /// </summary>
 public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTargetConnector
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    };
-
     private const string ApiVersion = "7.1";
     private const int MaxWiqlResults = 200;
 
@@ -297,7 +290,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
             };
             patchOps.Add(new { op = "add", path = "/fields/Microsoft.VSTS.Common.Priority", value = (object)priority });
 
-            var payload = JsonSerializer.Serialize(patchOps, JsonOptions);
+            var payload = JsonSerializer.Serialize(patchOps, SharedJsonOptions.CamelCaseIgnoreNull);
             using var content = new StringContent(payload, Encoding.UTF8, "application/json-patch+json");
 
             var url = $"{Uri.EscapeDataString(project)}/_apis/wit/workitems/${Uri.EscapeDataString(workItemType)}?api-version={ApiVersion}";
@@ -371,7 +364,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
 
         var wiql = $"SELECT [System.Id] FROM WorkItems WHERE {string.Join(" AND ", conditions)} ORDER BY [System.ChangedDate] ASC";
 
-        var wiqlPayload = JsonSerializer.Serialize(new { query = wiql }, JsonOptions);
+        var wiqlPayload = JsonSerializer.Serialize(new { query = wiql }, SharedJsonOptions.CamelCaseIgnoreNull);
         using var wiqlContent = new StringContent(wiqlPayload, Encoding.UTF8, "application/json");
 
         var wiqlUrl = $"{project}/_apis/wit/wiql?api-version={ApiVersion}&$top={Math.Min(top, MaxWiqlResults)}";
@@ -593,7 +586,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
         if (string.IsNullOrWhiteSpace(json)) return null;
         try
         {
-            return JsonSerializer.Deserialize<AzureDevOpsSourceConfig>(json, JsonOptions);
+            return JsonSerializer.Deserialize<AzureDevOpsSourceConfig>(json, SharedJsonOptions.CamelCaseIgnoreNull);
         }
         catch (JsonException ex)
         {
@@ -620,7 +613,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
     private static async Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)
     {
         var stream = await response.Content.ReadAsStreamAsync(ct);
-        return await JsonSerializer.DeserializeAsync<T>(stream, JsonOptions, ct);
+        return await JsonSerializer.DeserializeAsync<T>(stream, SharedJsonOptions.CamelCaseIgnoreNull, ct);
     }
 
     private static List<WikiPageResponse> FlattenWikiPages(WikiPageResponse root)

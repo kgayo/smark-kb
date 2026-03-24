@@ -104,13 +104,13 @@ public class HttpChatOrchestratorClientTests
     }
 
     [Fact]
-    public void Constructor_TrimsTrailingSlashFromBaseUrl()
+    public async Task Constructor_TrimsTrailingSlashFromBaseUrl()
     {
         var handler = new FakeHttpHandler(HttpStatusCode.OK, MakeApiEnvelope());
         var httpClient = new HttpClient(handler);
         using var client = new HttpChatOrchestratorClient("https://api.example.com/", httpClient: httpClient);
 
-        client.OrchestrateAsync("t", "u", "c", new ChatRequest { Query = "q" }).GetAwaiter().GetResult();
+        await client.OrchestrateAsync("t", "u", "c", new ChatRequest { Query = "q" });
 
         Assert.Equal("https://api.example.com/api/chat", handler.Requests[0].RequestUri?.ToString());
     }

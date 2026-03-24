@@ -10,11 +10,6 @@ namespace SmartKb.Ingestion;
 
 public sealed class IngestionWorker : BackgroundService
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    };
-
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ServiceBusClient? _serviceBusClient;
     private readonly ServiceBusSettings _settings;
@@ -83,7 +78,7 @@ public sealed class IngestionWorker : BackgroundService
         SyncJobMessage? message = null;
         try
         {
-            message = JsonSerializer.Deserialize<SyncJobMessage>(args.Message.Body.ToString(), JsonOptions);
+            message = JsonSerializer.Deserialize<SyncJobMessage>(args.Message.Body.ToString(), SharedJsonOptions.CamelCaseWrite);
         }
         catch (JsonException ex)
         {

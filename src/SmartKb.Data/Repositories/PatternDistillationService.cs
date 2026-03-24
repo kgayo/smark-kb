@@ -23,11 +23,6 @@ public sealed class PatternDistillationService : IPatternDistillationService
     private readonly IAuditEventWriter _auditWriter;
     private readonly ILogger<PatternDistillationService> _logger;
 
-    private static readonly JsonSerializerOptions JsonOpts = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    };
-
     public PatternDistillationService(
         SmartKbDbContext db,
         DistillationSettings settings,
@@ -345,20 +340,20 @@ public sealed class PatternDistillationService : IPatternDistillationService
             Title = title,
             ProblemStatement = problemStatement,
             RootCause = rootCause,
-            SymptomsJson = JsonSerializer.Serialize(symptoms, JsonOpts),
-            DiagnosisStepsJson = JsonSerializer.Serialize(diagnosisSteps, JsonOpts),
-            ResolutionStepsJson = JsonSerializer.Serialize(resolutionSteps, JsonOpts),
-            VerificationStepsJson = JsonSerializer.Serialize(verificationSteps, JsonOpts),
+            SymptomsJson = JsonSerializer.Serialize(symptoms, SharedJsonOptions.CamelCaseWrite),
+            DiagnosisStepsJson = JsonSerializer.Serialize(diagnosisSteps, SharedJsonOptions.CamelCaseWrite),
+            ResolutionStepsJson = JsonSerializer.Serialize(resolutionSteps, SharedJsonOptions.CamelCaseWrite),
+            VerificationStepsJson = JsonSerializer.Serialize(verificationSteps, SharedJsonOptions.CamelCaseWrite),
             EscalationCriteriaJson = "[]",
             RelatedEvidenceIdsJson = JsonSerializer.Serialize(
-                candidate.CitedEvidenceIds.ToList(), JsonOpts),
+                candidate.CitedEvidenceIds.ToList(), SharedJsonOptions.CamelCaseWrite),
             Confidence = confidence,
             TrustLevel = TrustLevel.Draft.ToString(),
             Version = 1,
             ProductArea = candidate.ProductArea,
-            TagsJson = JsonSerializer.Serialize(candidate.Tags.ToList(), JsonOpts),
+            TagsJson = JsonSerializer.Serialize(candidate.Tags.ToList(), SharedJsonOptions.CamelCaseWrite),
             Visibility = visibility,
-            AllowedGroupsJson = JsonSerializer.Serialize(allowedGroups, JsonOpts),
+            AllowedGroupsJson = JsonSerializer.Serialize(allowedGroups, SharedJsonOptions.CamelCaseWrite),
             AccessLabel = visibility == "Restricted" ? "Restricted" : "Internal",
             SourceUrl = $"session://{candidate.SessionId}",
             CreatedAt = now,
@@ -610,5 +605,5 @@ public sealed class PatternDistillationService : IPatternDistillationService
     }
 
     private IReadOnlyList<string> DeserializeStringList(string? json) =>
-        JsonDeserializeHelper.Deserialize<List<string>>(json, JsonOpts, _logger, []);
+        JsonDeserializeHelper.Deserialize<List<string>>(json, SharedJsonOptions.CamelCaseWrite, _logger, []);
 }

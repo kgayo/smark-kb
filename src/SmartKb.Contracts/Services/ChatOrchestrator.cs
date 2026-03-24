@@ -31,12 +31,6 @@ public sealed class ChatOrchestrator : IChatOrchestrator
     private readonly CostOptimizationSettings _costSettings;
     private readonly ILogger<ChatOrchestrator> _logger;
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-    };
-
     public ChatOrchestrator(
         IEmbeddingService embeddingService,
         IRetrievalService retrievalService,
@@ -734,7 +728,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
 
             if (!string.IsNullOrEmpty(messageContent))
             {
-                var parsed = JsonSerializer.Deserialize<OpenAiStructuredResponse>(messageContent, JsonOptions);
+                var parsed = JsonSerializer.Deserialize<OpenAiStructuredResponse>(messageContent, SharedJsonOptions.SnakeCase);
                 return new OpenAiCallResult(parsed, promptTokens, completionTokens, totalTokens);
             }
         }

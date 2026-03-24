@@ -1,4 +1,5 @@
 using System.Text.Json;
+using SmartKb.Contracts;
 using SmartKb.Eval.Models;
 
 namespace SmartKb.Eval;
@@ -8,11 +9,6 @@ namespace SmartKb.Eval;
 /// </summary>
 public static class GoldDatasetLoader
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-    };
-
     /// <summary>
     /// Loads eval cases from a JSONL file. Each line is a JSON object matching EvalCase schema.
     /// </summary>
@@ -31,7 +27,7 @@ public static class GoldDatasetLoader
             if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith('#'))
                 continue;
 
-            var evalCase = JsonSerializer.Deserialize<EvalCase>(trimmed, JsonOptions)
+            var evalCase = JsonSerializer.Deserialize<EvalCase>(trimmed, SharedJsonOptions.CaseInsensitive)
                 ?? throw new InvalidOperationException($"Failed to deserialize eval case at line {lineNumber}");
 
             var errors = Validate(evalCase, lineNumber);
@@ -59,7 +55,7 @@ public static class GoldDatasetLoader
             if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith('#'))
                 continue;
 
-            var evalCase = JsonSerializer.Deserialize<EvalCase>(trimmed, JsonOptions)
+            var evalCase = JsonSerializer.Deserialize<EvalCase>(trimmed, SharedJsonOptions.CaseInsensitive)
                 ?? throw new InvalidOperationException($"Failed to deserialize eval case at line {lineNumber}");
 
             var errors = Validate(evalCase, lineNumber);

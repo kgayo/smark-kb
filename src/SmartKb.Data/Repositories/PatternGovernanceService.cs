@@ -20,11 +20,6 @@ public sealed class PatternGovernanceService : IPatternGovernanceService
     private readonly IPatternIndexingService? _patternIndexing;
     private readonly ILogger<PatternGovernanceService> _logger;
 
-    private static readonly JsonSerializerOptions JsonOpts = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    };
-
     // Valid trust-level transitions.
     private static readonly Dictionary<TrustLevel, HashSet<TrustLevel>> ValidTransitions = new()
     {
@@ -224,8 +219,8 @@ public sealed class PatternGovernanceService : IPatternGovernanceService
             Version = entity.Version,
             ChangedBy = actorId,
             ChangedAt = now,
-            ChangedFieldsJson = JsonSerializer.Serialize(changedFields, JsonOpts),
-            PreviousValuesJson = JsonSerializer.Serialize(previousValues, JsonOpts),
+            ChangedFieldsJson = JsonSerializer.Serialize(changedFields, SharedJsonOptions.CamelCaseWrite),
+            PreviousValuesJson = JsonSerializer.Serialize(previousValues, SharedJsonOptions.CamelCaseWrite),
             ChangeType = "trust_transition",
             Summary = $"{previousLevel} → {targetLevel}",
         };
@@ -420,14 +415,14 @@ public sealed class PatternGovernanceService : IPatternGovernanceService
     }
 
     private IReadOnlyList<string> DeserializeStringList(string? json) =>
-        JsonDeserializeHelper.Deserialize<List<string>>(json, JsonOpts, _logger, []);
+        JsonDeserializeHelper.Deserialize<List<string>>(json, SharedJsonOptions.CamelCaseWrite, _logger, []);
 
     private IReadOnlyDictionary<string, string?> DeserializeStringDictionary(string? json)
     {
         if (string.IsNullOrEmpty(json)) return new Dictionary<string, string?>();
         try
         {
-            return JsonSerializer.Deserialize<Dictionary<string, string?>>(json, JsonOpts)
+            return JsonSerializer.Deserialize<Dictionary<string, string?>>(json, SharedJsonOptions.CamelCaseWrite)
                 ?? new Dictionary<string, string?>();
         }
         catch (JsonException ex)

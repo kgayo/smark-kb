@@ -356,7 +356,7 @@ export function PlaybooksPage() {
           </div>
           <ol className="playbook-checklist editable">
             {(form.checklist ?? []).map((item, i) => (
-              <li key={i}>
+              <li key={`${item}-${i}`}>
                 {item}
                 <button className="btn btn-sm btn-close" type="button" aria-label={`Remove checklist item: ${item}`} onClick={() => removeChecklistItem(i)}>&times;</button>
               </li>

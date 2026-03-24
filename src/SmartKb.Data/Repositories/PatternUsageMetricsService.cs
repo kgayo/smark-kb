@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
 using SmartKb.Data.Entities;
@@ -16,11 +17,6 @@ public sealed class PatternUsageMetricsService : IPatternUsageMetricsService
     private readonly SmartKbDbContext _db;
     private readonly TimeProvider _time;
     private readonly ILogger<PatternUsageMetricsService> _logger;
-
-    private static readonly JsonSerializerOptions JsonOpts = new()
-    {
-        PropertyNameCaseInsensitive = true,
-    };
 
     public PatternUsageMetricsService(
         SmartKbDbContext db,
@@ -116,7 +112,7 @@ public sealed class PatternUsageMetricsService : IPatternUsageMetricsService
         if (string.IsNullOrEmpty(citedChunkIdsJson)) return [];
         try
         {
-            var ids = JsonSerializer.Deserialize<List<string>>(citedChunkIdsJson, JsonOpts) ?? [];
+            var ids = JsonSerializer.Deserialize<List<string>>(citedChunkIdsJson, SharedJsonOptions.CaseInsensitive) ?? [];
             return ids.Where(id => id.StartsWith("pattern-", StringComparison.OrdinalIgnoreCase))
                       .ToHashSet(StringComparer.OrdinalIgnoreCase);
         }

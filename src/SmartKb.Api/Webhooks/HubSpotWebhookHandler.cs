@@ -18,12 +18,6 @@ namespace SmartKb.Api.Webhooks;
 /// </summary>
 public sealed class HubSpotWebhookHandler
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = true,
-    };
-
     private readonly SmartKbDbContext _db;
     private readonly ISyncJobPublisher _syncJobPublisher;
     private readonly IAuditEventWriter _auditWriter;
@@ -119,7 +113,7 @@ public sealed class HubSpotWebhookHandler
         List<HubSpotWebhookEvent>? events;
         try
         {
-            events = JsonSerializer.Deserialize<List<HubSpotWebhookEvent>>(requestBody, JsonOptions);
+            events = JsonSerializer.Deserialize<List<HubSpotWebhookEvent>>(requestBody, SharedJsonOptions.CamelCase);
         }
         catch (JsonException ex)
         {

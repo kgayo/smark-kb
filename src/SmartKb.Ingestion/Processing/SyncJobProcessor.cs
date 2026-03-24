@@ -16,11 +16,6 @@ namespace SmartKb.Ingestion.Processing;
 /// </summary>
 public sealed class SyncJobProcessor
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    };
-
     private readonly SmartKbDbContext _db;
     private readonly IEnumerable<IConnectorClient> _connectorClients;
     private readonly ISecretProvider? _secretProvider;
@@ -203,7 +198,7 @@ public sealed class SyncJobProcessor
             syncRun.RecordsFailed = totalFailed;
             if (allErrors.Count > 0)
             {
-                syncRun.ErrorDetail = JsonSerializer.Serialize(allErrors.Take(50), JsonOptions);
+                syncRun.ErrorDetail = JsonSerializer.Serialize(allErrors.Take(50), SharedJsonOptions.CamelCaseWrite);
             }
             await _db.SaveChangesAsync(cancellationToken);
 
@@ -394,13 +389,13 @@ public sealed class SyncJobProcessor
                 Status = chunk.Status.ToString(),
                 UpdatedAt = chunk.UpdatedAt,
                 ProductArea = chunk.ProductArea,
-                Tags = chunk.Tags.Count > 0 ? JsonSerializer.Serialize(chunk.Tags, JsonOptions) : null,
+                Tags = chunk.Tags.Count > 0 ? JsonSerializer.Serialize(chunk.Tags, SharedJsonOptions.CamelCaseWrite) : null,
                 Visibility = chunk.Visibility.ToString(),
-                AllowedGroups = chunk.AllowedGroups.Count > 0 ? JsonSerializer.Serialize(chunk.AllowedGroups, JsonOptions) : null,
+                AllowedGroups = chunk.AllowedGroups.Count > 0 ? JsonSerializer.Serialize(chunk.AllowedGroups, SharedJsonOptions.CamelCaseWrite) : null,
                 AccessLabel = chunk.AccessLabel,
                 Title = chunk.Title,
                 SourceUrl = chunk.SourceUrl,
-                ErrorTokens = chunk.ErrorTokens.Count > 0 ? JsonSerializer.Serialize(chunk.ErrorTokens, JsonOptions) : null,
+                ErrorTokens = chunk.ErrorTokens.Count > 0 ? JsonSerializer.Serialize(chunk.ErrorTokens, SharedJsonOptions.CamelCaseWrite) : null,
                 EnrichmentVersion = chunk.EnrichmentVersion,
                 ContentHash = ComputeChunkHash(chunk),
                 CreatedAt = existing?.CreatedAt ?? now,
@@ -452,5 +447,5 @@ public sealed class SyncJobProcessor
     }
 
     private FieldMappingConfig? DeserializeFieldMapping(string? json) =>
-        string.IsNullOrWhiteSpace(json) ? null : JsonDeserializeHelper.DeserializeOrNull<FieldMappingConfig>(json, JsonOptions, _logger);
+        string.IsNullOrWhiteSpace(json) ? null : JsonDeserializeHelper.DeserializeOrNull<FieldMappingConfig>(json, SharedJsonOptions.CamelCaseWrite, _logger);
 }

@@ -181,12 +181,6 @@ export function PrivacyAdminPage() {
     setNewPattern({ name: '', pattern: '', placeholder: '' });
   }
 
-  function removeCustomPattern(idx: number) {
-    const patterns = [...(piiForm.customPatterns ?? [])];
-    patterns.splice(idx, 1);
-    setPiiForm({ ...piiForm, customPatterns: patterns });
-  }
-
   async function handleSaveRetention() {
     setError(null);
     try {
@@ -314,10 +308,13 @@ export function PrivacyAdminPage() {
                 </div>
 
                 <h4>Custom Patterns</h4>
-                {(piiForm.customPatterns ?? []).map((p, i) => (
-                  <div key={i} className="admin-form-row">
+                {(piiForm.customPatterns ?? []).map((p) => (
+                  <div key={p.name} className="admin-form-row">
                     <span>{p.name}: <code>{p.pattern}</code> &rarr; {p.placeholder}</span>
-                    <button className="btn btn-sm btn-close" aria-label={`Remove custom pattern: ${p.name}`} onClick={() => removeCustomPattern(i)}>&times;</button>
+                    <button className="btn btn-sm btn-close" aria-label={`Remove custom pattern: ${p.name}`} onClick={() => {
+                      const patterns = (piiForm.customPatterns ?? []).filter((cp) => cp.name !== p.name);
+                      setPiiForm({ ...piiForm, customPatterns: patterns });
+                    }}>&times;</button>
                   </div>
                 ))}
                 <div className="admin-form-row">

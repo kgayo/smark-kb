@@ -17,11 +17,6 @@ public sealed class OAuthTokenService : IOAuthTokenService
 {
     private static readonly TimeSpan StateMaxAge = TimeSpan.FromMinutes(10);
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    };
-
     private readonly ISecretProvider _secretProvider;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly OAuthSettings _settings;
@@ -123,7 +118,7 @@ public sealed class OAuthTokenService : IOAuthTokenService
         try
         {
             var existingJson = await _secretProvider.GetSecretAsync(kvSecretName, ct);
-            existingCreds = JsonSerializer.Deserialize<OAuthCredentials>(existingJson, JsonOptions)
+            existingCreds = JsonSerializer.Deserialize<OAuthCredentials>(existingJson, SharedJsonOptions.CamelCaseWrite)
                 ?? new OAuthCredentials();
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -165,7 +160,7 @@ public sealed class OAuthTokenService : IOAuthTokenService
             ExpiresAt = now.AddSeconds(tokenResponse.ExpiresIn > 0 ? tokenResponse.ExpiresIn : 3600),
         };
 
-        var credJson = JsonSerializer.Serialize(updatedCreds, JsonOptions);
+        var credJson = JsonSerializer.Serialize(updatedCreds, SharedJsonOptions.CamelCaseWrite);
         await _secretProvider.SetSecretAsync(kvSecretName, credJson, ct);
 
         _logger.LogInformation("OAuth tokens stored for connector {ConnectorId} (expires at {ExpiresAt}).",
@@ -182,7 +177,7 @@ public sealed class OAuthTokenService : IOAuthTokenService
         try
         {
             var json = await _secretProvider.GetSecretAsync(kvSecretName, ct);
-            creds = JsonSerializer.Deserialize<OAuthCredentials>(json, JsonOptions)!;
+            creds = JsonSerializer.Deserialize<OAuthCredentials>(json, SharedJsonOptions.CamelCaseWrite)!;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -236,7 +231,7 @@ public sealed class OAuthTokenService : IOAuthTokenService
             ExpiresAt = now.AddSeconds(tokenResponse.ExpiresIn > 0 ? tokenResponse.ExpiresIn : 3600),
         };
 
-        var credJson = JsonSerializer.Serialize(updatedCreds, JsonOptions);
+        var credJson = JsonSerializer.Serialize(updatedCreds, SharedJsonOptions.CamelCaseWrite);
         await _secretProvider.SetSecretAsync(kvSecretName, credJson, ct);
 
         _logger.LogInformation("OAuth token refreshed for secret {SecretName} (expires at {ExpiresAt}).",

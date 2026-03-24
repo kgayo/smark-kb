@@ -18,12 +18,6 @@ namespace SmartKb.Api.Webhooks;
 /// </summary>
 public sealed class ClickUpWebhookHandler
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = true,
-    };
-
     private readonly SmartKbDbContext _db;
     private readonly ISyncJobPublisher _syncJobPublisher;
     private readonly IAuditEventWriter _auditWriter;
@@ -119,7 +113,7 @@ public sealed class ClickUpWebhookHandler
         ClickUpWebhookEvent? webhookEvent;
         try
         {
-            webhookEvent = JsonSerializer.Deserialize<ClickUpWebhookEvent>(requestBody, JsonOptions);
+            webhookEvent = JsonSerializer.Deserialize<ClickUpWebhookEvent>(requestBody, SharedJsonOptions.CamelCase);
         }
         catch (JsonException ex)
         {

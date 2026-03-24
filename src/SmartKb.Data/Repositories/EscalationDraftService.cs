@@ -20,11 +20,6 @@ public sealed class EscalationDraftService : IEscalationDraftService
     private readonly ISecretProvider _secretProvider;
     private readonly ITeamPlaybookService _playbookService;
 
-    private static readonly JsonSerializerOptions JsonOpts = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    };
-
     public EscalationDraftService(
         SmartKbDbContext db,
         IAuditEventWriter auditWriter,
@@ -81,7 +76,7 @@ public sealed class EscalationDraftService : IEscalationDraftService
             LogsIdsRequested = request.LogsIdsRequested,
             SuspectedComponent = request.SuspectedComponent,
             Severity = ValidateSeverity(request.Severity),
-            EvidenceLinksJson = JsonSerializer.Serialize(request.EvidenceLinks, JsonOpts),
+            EvidenceLinksJson = JsonSerializer.Serialize(request.EvidenceLinks, SharedJsonOptions.CamelCaseWrite),
             TargetTeam = targetTeam,
             Reason = request.Reason,
             CreatedAt = now,
@@ -173,7 +168,7 @@ public sealed class EscalationDraftService : IEscalationDraftService
         if (request.LogsIdsRequested is not null) entity.LogsIdsRequested = request.LogsIdsRequested;
         if (request.SuspectedComponent is not null) entity.SuspectedComponent = request.SuspectedComponent;
         if (request.Severity is not null) entity.Severity = ValidateSeverity(request.Severity);
-        if (request.EvidenceLinks is not null) entity.EvidenceLinksJson = JsonSerializer.Serialize(request.EvidenceLinks, JsonOpts);
+        if (request.EvidenceLinks is not null) entity.EvidenceLinksJson = JsonSerializer.Serialize(request.EvidenceLinks, SharedJsonOptions.CamelCaseWrite);
         if (request.TargetTeam is not null) entity.TargetTeam = request.TargetTeam;
         if (request.Reason is not null) entity.Reason = request.Reason;
 
@@ -502,5 +497,5 @@ public sealed class EscalationDraftService : IEscalationDraftService
     };
 
     private IReadOnlyList<CitationDto> DeserializeCitations(string json) =>
-        JsonDeserializeHelper.Deserialize<List<CitationDto>>(json, JsonOpts, _logger, []);
+        JsonDeserializeHelper.Deserialize<List<CitationDto>>(json, SharedJsonOptions.CamelCaseWrite, _logger, []);
 }

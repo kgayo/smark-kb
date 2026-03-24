@@ -1,7 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
@@ -17,13 +16,6 @@ namespace SmartKb.Contracts.Connectors;
 /// </summary>
 public sealed class HubSpotWebhookManager : IWebhookManager
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    };
-
     /// <summary>
     /// Supported HubSpot webhook event types for CRM objects.
     /// </summary>
@@ -98,7 +90,7 @@ public sealed class HubSpotWebhookManager : IWebhookManager
                     Active = true,
                 };
 
-                var json = JsonSerializer.Serialize(subscriptionRequest, JsonOptions);
+                var json = JsonSerializer.Serialize(subscriptionRequest, SharedJsonOptions.CamelCaseIgnoreNull);
                 using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 // HubSpot Webhooks API: POST /webhooks/v3/{appId}/subscriptions
@@ -240,13 +232,13 @@ public sealed class HubSpotWebhookManager : IWebhookManager
     private HubSpotSourceConfig? ParseSourceConfig(string? json)
     {
         if (string.IsNullOrWhiteSpace(json)) return null;
-        try { return JsonSerializer.Deserialize<HubSpotSourceConfig>(json, JsonOptions); }
+        try { return JsonSerializer.Deserialize<HubSpotSourceConfig>(json, SharedJsonOptions.CamelCaseIgnoreNull); }
         catch (JsonException ex) { _logger.LogWarning(ex, "Failed to deserialize HubSpotSourceConfig from JSON"); return null; }
     }
 
     private static async Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)
     {
         var stream = await response.Content.ReadAsStreamAsync(ct);
-        return await JsonSerializer.DeserializeAsync<T>(stream, JsonOptions, ct);
+        return await JsonSerializer.DeserializeAsync<T>(stream, SharedJsonOptions.CamelCaseIgnoreNull, ct);
     }
 }

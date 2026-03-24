@@ -17,13 +17,6 @@ namespace SmartKb.Contracts.Connectors;
 /// </summary>
 public sealed class HubSpotConnectorClient : IConnectorClient
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    };
-
     private static readonly HashSet<string> SupportedObjectTypes = new(StringComparer.OrdinalIgnoreCase)
     {
         "tickets", "contacts", "companies", "deals",
@@ -324,7 +317,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
             After = after is not null && int.TryParse(after, out var a) ? a : 0,
         };
 
-        var json = JsonSerializer.Serialize(searchRequest, JsonOptions);
+        var json = JsonSerializer.Serialize(searchRequest, SharedJsonOptions.CamelCaseIgnoreNull);
         using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
         var url = $"crm/v3/objects/{objectType}/search";
@@ -429,7 +422,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
         if (string.IsNullOrWhiteSpace(json)) return null;
         try
         {
-            return JsonSerializer.Deserialize<HubSpotSourceConfig>(json, JsonOptions);
+            return JsonSerializer.Deserialize<HubSpotSourceConfig>(json, SharedJsonOptions.CamelCaseIgnoreNull);
         }
         catch (JsonException ex)
         {
@@ -552,7 +545,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
     private static async Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)
     {
         var stream = await response.Content.ReadAsStreamAsync(ct);
-        return await JsonSerializer.DeserializeAsync<T>(stream, JsonOptions, ct);
+        return await JsonSerializer.DeserializeAsync<T>(stream, SharedJsonOptions.CamelCaseIgnoreNull, ct);
     }
 
     private static FetchResult ErrorResult(string error) => new()

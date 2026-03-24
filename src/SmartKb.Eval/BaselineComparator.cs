@@ -1,4 +1,5 @@
 using System.Text.Json;
+using SmartKb.Contracts;
 using SmartKb.Eval.Models;
 
 namespace SmartKb.Eval;
@@ -9,12 +10,6 @@ namespace SmartKb.Eval;
 /// </summary>
 public static class BaselineComparator
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        WriteIndented = true,
-    };
-
     /// <summary>
     /// Compares current metrics against a baseline. Returns regression details for each tracked metric.
     /// Higher-is-better metrics: groundedness, citation coverage, routing accuracy, response type accuracy, safety pass rate.
@@ -58,7 +53,7 @@ public static class BaselineComparator
             return null;
 
         var json = await File.ReadAllTextAsync(filePath, cancellationToken);
-        return JsonSerializer.Deserialize<EvalBaseline>(json, JsonOptions);
+        return JsonSerializer.Deserialize<EvalBaseline>(json, SharedJsonOptions.CaseInsensitiveIndented);
     }
 
     /// <summary>
@@ -74,7 +69,7 @@ public static class BaselineComparator
             Metrics = report.Metrics,
         };
 
-        var json = JsonSerializer.Serialize(baseline, JsonOptions);
+        var json = JsonSerializer.Serialize(baseline, SharedJsonOptions.CaseInsensitiveIndented);
         await File.WriteAllTextAsync(filePath, json, cancellationToken);
     }
 
@@ -83,7 +78,7 @@ public static class BaselineComparator
     /// </summary>
     public static EvalBaseline? DeserializeBaseline(string json)
     {
-        return JsonSerializer.Deserialize<EvalBaseline>(json, JsonOptions);
+        return JsonSerializer.Deserialize<EvalBaseline>(json, SharedJsonOptions.CaseInsensitiveIndented);
     }
 
     /// <summary>
@@ -91,7 +86,7 @@ public static class BaselineComparator
     /// </summary>
     public static string SerializeBaseline(EvalBaseline baseline)
     {
-        return JsonSerializer.Serialize(baseline, JsonOptions);
+        return JsonSerializer.Serialize(baseline, SharedJsonOptions.CaseInsensitiveIndented);
     }
 
     private static void AddHigherIsBetter(

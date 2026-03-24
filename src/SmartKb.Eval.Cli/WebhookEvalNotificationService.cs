@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
@@ -18,12 +19,6 @@ public sealed class WebhookEvalNotificationService : IEvalNotificationService, I
     private readonly HttpClient _httpClient;
     private readonly bool _ownsHttpClient;
     private readonly ILogger<WebhookEvalNotificationService> _logger;
-
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = false,
-    };
 
     public WebhookEvalNotificationService(EvalNotificationSettings settings, HttpClient? httpClient = null, ILogger<WebhookEvalNotificationService>? logger = null)
     {
@@ -96,7 +91,7 @@ public sealed class WebhookEvalNotificationService : IEvalNotificationService, I
             runUrl = payload.RunUrl,
             timestamp = DateTimeOffset.UtcNow,
         };
-        return JsonSerializer.Serialize(obj, JsonOptions);
+        return JsonSerializer.Serialize(obj, SharedJsonOptions.CamelCaseCompact);
     }
 
     private static string BuildSlackPayload(EvalNotificationPayload payload)
@@ -133,7 +128,7 @@ public sealed class WebhookEvalNotificationService : IEvalNotificationService, I
         }
 
         var slackObj = new { text = sb.ToString().TrimEnd() };
-        return JsonSerializer.Serialize(slackObj, JsonOptions);
+        return JsonSerializer.Serialize(slackObj, SharedJsonOptions.CamelCaseCompact);
     }
 
     private static string BuildTeamsPayload(EvalNotificationPayload payload)
@@ -173,7 +168,7 @@ public sealed class WebhookEvalNotificationService : IEvalNotificationService, I
                 ? new object[] { new { type = "OpenUri", name = "View Run", targets = new[] { new { os = "default", uri = payload.RunUrl } } } }
                 : Array.Empty<object>(),
         };
-        return JsonSerializer.Serialize(teamsObj, JsonOptions);
+        return JsonSerializer.Serialize(teamsObj, SharedJsonOptions.CamelCaseCompact);
     }
 
     public void Dispose()

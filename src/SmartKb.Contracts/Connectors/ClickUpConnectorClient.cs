@@ -17,13 +17,6 @@ namespace SmartKb.Contracts.Connectors;
 /// </summary>
 public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTargetConnector
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    };
-
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<ClickUpConnectorClient> _logger;
 
@@ -288,7 +281,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
                 ["priority"] = priority,
             };
 
-            var payload = JsonSerializer.Serialize(body, JsonOptions);
+            var payload = JsonSerializer.Serialize(body, SharedJsonOptions.CamelCaseIgnoreNull);
             using var content = new StringContent(payload, Encoding.UTF8, "application/json");
 
             var url = $"api/v2/list/{listId}/task";
@@ -539,7 +532,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
         if (string.IsNullOrWhiteSpace(json)) return null;
         try
         {
-            return JsonSerializer.Deserialize<ClickUpSourceConfig>(json, JsonOptions);
+            return JsonSerializer.Deserialize<ClickUpSourceConfig>(json, SharedJsonOptions.CamelCaseIgnoreNull);
         }
         catch (JsonException ex)
         {
@@ -595,7 +588,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
     private static async Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)
     {
         var stream = await response.Content.ReadAsStreamAsync(ct);
-        return await JsonSerializer.DeserializeAsync<T>(stream, JsonOptions, ct);
+        return await JsonSerializer.DeserializeAsync<T>(stream, SharedJsonOptions.CamelCaseIgnoreNull, ct);
     }
 
     private static FetchResult ErrorResult(string error) => new()

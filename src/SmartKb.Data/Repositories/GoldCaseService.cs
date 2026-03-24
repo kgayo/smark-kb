@@ -14,12 +14,6 @@ public sealed class GoldCaseService : IGoldCaseService
     private readonly IAuditEventWriter _audit;
     private readonly ILogger<GoldCaseService> _logger;
 
-    private static readonly JsonSerializerOptions JsonOpts = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = true,
-    };
-
     public GoldCaseService(SmartKbDbContext db, IAuditEventWriter audit, ILogger<GoldCaseService> logger)
     {
         _db = db;
@@ -46,8 +40,8 @@ public sealed class GoldCaseService : IGoldCaseService
             TenantId = tenantId,
             CaseId = request.CaseId,
             Query = request.Query,
-            ContextJson = request.Context is not null ? JsonSerializer.Serialize(request.Context, JsonOpts) : null,
-            ExpectedJson = JsonSerializer.Serialize(request.Expected, JsonOpts),
+            ContextJson = request.Context is not null ? JsonSerializer.Serialize(request.Context, SharedJsonOptions.CamelCase) : null,
+            ExpectedJson = JsonSerializer.Serialize(request.Expected, SharedJsonOptions.CamelCase),
             TagsJson = JsonSerializer.Serialize(request.Tags ?? (IReadOnlyList<string>)[]),
             CreatedBy = actorId,
             CreatedAt = now,
@@ -114,14 +108,14 @@ public sealed class GoldCaseService : IGoldCaseService
         }
 
         if (request.Context is not null)
-            entity.ContextJson = JsonSerializer.Serialize(request.Context, JsonOpts);
+            entity.ContextJson = JsonSerializer.Serialize(request.Context, SharedJsonOptions.CamelCase);
 
         if (request.Expected is not null)
         {
             var errors = ValidateExpected(request.Expected);
             if (errors.Count > 0)
                 throw new ArgumentException(string.Join("; ", errors));
-            entity.ExpectedJson = JsonSerializer.Serialize(request.Expected, JsonOpts);
+            entity.ExpectedJson = JsonSerializer.Serialize(request.Expected, SharedJsonOptions.CamelCase);
         }
 
         if (request.Tags is not null)
@@ -206,7 +200,7 @@ public sealed class GoldCaseService : IGoldCaseService
             TenantId = tenantId,
             CaseId = request.CaseId,
             Query = query,
-            ExpectedJson = JsonSerializer.Serialize(request.Expected, JsonOpts),
+            ExpectedJson = JsonSerializer.Serialize(request.Expected, SharedJsonOptions.CamelCase),
             TagsJson = JsonSerializer.Serialize(request.Tags ?? (IReadOnlyList<string>)[]),
             SourceFeedbackId = request.FeedbackId,
             CreatedBy = actorId,
@@ -242,15 +236,15 @@ public sealed class GoldCaseService : IGoldCaseService
             };
 
             if (e.ContextJson is not null)
-                obj["context"] = JsonSerializer.Deserialize<object>(e.ContextJson, JsonOpts);
+                obj["context"] = JsonSerializer.Deserialize<object>(e.ContextJson, SharedJsonOptions.CamelCase);
 
-            obj["expected"] = JsonSerializer.Deserialize<object>(e.ExpectedJson, JsonOpts);
+            obj["expected"] = JsonSerializer.Deserialize<object>(e.ExpectedJson, SharedJsonOptions.CamelCase);
 
             var tags = DeserializeTags(e.TagsJson);
             if (tags.Count > 0)
                 obj["tags"] = tags;
 
-            return JsonSerializer.Serialize(obj, JsonOpts);
+            return JsonSerializer.Serialize(obj, SharedJsonOptions.CamelCase);
         });
 
         return string.Join("\n", lines);
@@ -295,7 +289,7 @@ public sealed class GoldCaseService : IGoldCaseService
 
     private static GoldCaseSummary MapToSummary(GoldCaseEntity e)
     {
-        var expected = JsonSerializer.Deserialize<GoldCaseExpected>(e.ExpectedJson, JsonOpts);
+        var expected = JsonSerializer.Deserialize<GoldCaseExpected>(e.ExpectedJson, SharedJsonOptions.CamelCase);
         return new GoldCaseSummary
         {
             Id = e.Id,
@@ -318,9 +312,9 @@ public sealed class GoldCaseService : IGoldCaseService
             CaseId = e.CaseId,
             Query = e.Query,
             Context = e.ContextJson is not null
-                ? JsonSerializer.Deserialize<GoldCaseContext>(e.ContextJson, JsonOpts)
+                ? JsonSerializer.Deserialize<GoldCaseContext>(e.ContextJson, SharedJsonOptions.CamelCase)
                 : null,
-            Expected = JsonSerializer.Deserialize<GoldCaseExpected>(e.ExpectedJson, JsonOpts)!,
+            Expected = JsonSerializer.Deserialize<GoldCaseExpected>(e.ExpectedJson, SharedJsonOptions.CamelCase)!,
             Tags = DeserializeTags(e.TagsJson),
             SourceFeedbackId = e.SourceFeedbackId,
             CreatedBy = e.CreatedBy,
@@ -331,5 +325,5 @@ public sealed class GoldCaseService : IGoldCaseService
     }
 
     private IReadOnlyList<string> DeserializeTags(string json) =>
-        JsonDeserializeHelper.Deserialize<List<string>>(json, JsonOpts, _logger, []);
+        JsonDeserializeHelper.Deserialize<List<string>>(json, SharedJsonOptions.CamelCase, _logger, []);
 }

@@ -17,12 +17,6 @@ public sealed class OpenAiSessionSummarizationService : ISessionSummarizationSer
     private readonly ChatOrchestrationSettings _settings;
     private readonly ILogger<OpenAiSessionSummarizationService> _logger;
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-    };
-
     public OpenAiSessionSummarizationService(
         IHttpClientFactory httpClientFactory,
         OpenAiSettings openAiSettings,
@@ -92,7 +86,7 @@ public sealed class OpenAiSessionSummarizationService : ISessionSummarizationSer
             {
                 try
                 {
-                    var parsed = JsonSerializer.Deserialize<SessionSummaryResult>(messageContent, JsonOptions);
+                    var parsed = JsonSerializer.Deserialize<SessionSummaryResult>(messageContent, SharedJsonOptions.SnakeCase);
                     if (parsed is not null)
                     {
                         var summary = FormatSummary(parsed);

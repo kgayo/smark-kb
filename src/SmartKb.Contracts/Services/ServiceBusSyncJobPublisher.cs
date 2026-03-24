@@ -8,11 +8,6 @@ namespace SmartKb.Contracts.Services;
 
 public sealed class ServiceBusSyncJobPublisher : ISyncJobPublisher, IAsyncDisposable
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    };
-
     private readonly ServiceBusSender _sender;
     private readonly ILogger<ServiceBusSyncJobPublisher> _logger;
 
@@ -24,7 +19,7 @@ public sealed class ServiceBusSyncJobPublisher : ISyncJobPublisher, IAsyncDispos
 
     public async Task PublishAsync(SyncJobMessage message, CancellationToken cancellationToken = default)
     {
-        var json = JsonSerializer.Serialize(message, JsonOptions);
+        var json = JsonSerializer.Serialize(message, SharedJsonOptions.CamelCaseWrite);
         var sbMessage = new ServiceBusMessage(json)
         {
             ContentType = "application/json",

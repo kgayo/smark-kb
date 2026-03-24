@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-24 (Asia/Manila) — iteration 163 (TECH-064 add CancellationToken propagation to 4 webhook endpoints)
-Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2889 tests passing (2383 backend + 470 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 163: TECH-064 (add `CancellationToken` propagation to 4 webhook endpoint `ReadToEndAsync` calls and handler invocations via `httpContext.RequestAborted`).
+Last updated: 2026-03-24 (Asia/Manila) — iteration 164 (TECH-065/066/067 consolidate duplicate JsonSerializerOptions + fix sync-over-async test + stable React keys)
+Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2889 tests passing (2383 backend + 470 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 164: TECH-065 (consolidate 31 duplicate `JsonSerializerOptions` into shared `SharedJsonOptions` class), TECH-066 (fix `GetAwaiter().GetResult()` sync-over-async in test), TECH-067 (replace array index keys with stable keys in 3 React components).
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -321,6 +321,18 @@ Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-00
 - [x] TECH-064: Add `CancellationToken` propagation to 4 webhook endpoint handlers.
   - Root cause: All 4 webhook receiver endpoints (ADO, SharePoint/Graph, HubSpot, ClickUp) in `Program.cs` called `StreamReader.ReadToEndAsync()` without a `CancellationToken` parameter and invoked their respective handler methods without passing `httpContext.RequestAborted`. This prevented graceful request cancellation and shutdown propagation during webhook body reads and handler processing. The handler methods themselves already accepted `CancellationToken cancellationToken = default` but received `default` from the endpoints.
   - Completed (iteration 163): Added `var ct = httpContext.RequestAborted;` to all 4 webhook endpoint handlers. Updated `ReadToEndAsync()` calls to pass `ct`. Updated handler invocations to pass `ct`: `HandleAsync(connectorId, body, authHeader, ct)` (ADO), `HandleNotificationAsync(connectorId, requestBody, ct)` (SharePoint), `HandleAsync(connectorId, body, signatureHeader, timestampHeader, ct)` (HubSpot), `HandleAsync(connectorId, body, signatureHeader, ct)` (ClickUp). 4 new cancellation propagation tests (one per handler): verify `OperationCanceledException` propagates when pre-cancelled token is passed. Files changed: `Program.cs`, 4 handler test files.
+
+- [x] TECH-065: Consolidate 31 duplicate `JsonSerializerOptions` into shared `SharedJsonOptions` class.
+  - Root cause: 31 `private static readonly JsonSerializerOptions` fields across Contracts (14), Data (13), Api (5), Ingestion (2), and Eval (5) projects contained identical or near-identical configurations, violating DRY and creating maintenance burden when JSON settings need to change.
+  - Completed (iteration 164): Created `SmartKb.Contracts/SharedJsonOptions.cs` with 8 named presets: `CamelCaseIgnoreNull` (connector clients + webhook managers), `CamelCase` (webhook handlers + GoldCaseService), `CamelCaseWrite` (Data repos + Ingestion), `SnakeCase` (OpenAI-facing services), `CaseInsensitive` (IndexMigration + PatternUsageMetrics), `CamelCaseCompact` (ConnectorAdmin + eval notifications), `CaseInsensitiveIndented` (eval baseline), `CamelCaseIndented` (eval reports). Removed all 31 private fields and replaced with shared references. Zero duplicate `JsonSerializerOptions` remaining in production code.
+
+- [x] TECH-066: Fix `GetAwaiter().GetResult()` sync-over-async in `HttpChatOrchestratorClientTests`.
+  - Root cause: `Constructor_TrimsTrailingSlashFromBaseUrl` test used `client.OrchestrateAsync(...).GetAwaiter().GetResult()` instead of `await`, which can cause deadlocks.
+  - Completed (iteration 164): Converted to `async Task` method with `await`.
+
+- [x] TECH-067: Replace array index keys with stable keys in 3 React components with mutable lists.
+  - Root cause: `FieldMappingEditor`, `PlaybooksPage`, and `PrivacyAdminPage` used `key={i}` on list items that can be added/removed, risking UI state corruption on list mutations.
+  - Completed (iteration 164): `FieldMappingEditor` → composite key `${rule.sourceField}-${rule.targetField}-${i}`. `PlaybooksPage` checklist → `${item}-${i}`. `PrivacyAdminPage` custom patterns → `p.name` (unique per pattern). Removed now-unused `removeCustomPattern` function (inlined filter-by-name). Frontend build clean, 470 tests passing.
 
 - [x] TECH-023: Add structured logging to all silent `catch (JsonException)` blocks.
   - Root cause: 25 `catch (JsonException)` blocks across 24 files silently swallowed deserialization errors with no logging. When JSON stored in SQL columns or received from external APIs was malformed, the code returned fallback values (null, empty list, empty dict) with no diagnostic trace, making production debugging impossible.

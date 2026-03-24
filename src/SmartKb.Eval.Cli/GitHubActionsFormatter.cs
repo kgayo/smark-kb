@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using SmartKb.Contracts;
 using SmartKb.Eval.Models;
 
 namespace SmartKb.Eval.Cli;
@@ -9,12 +10,6 @@ namespace SmartKb.Eval.Cli;
 /// </summary>
 public static class GitHubActionsFormatter
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    };
-
     /// <summary>
     /// Emits GitHub Actions workflow commands (annotations) for threshold violations and regressions.
     /// </summary>
@@ -140,7 +135,7 @@ public static class GitHubActionsFormatter
     /// Serializes the full eval report to JSON.
     /// </summary>
     public static string SerializeReport(EvalReport report) =>
-        JsonSerializer.Serialize(report, JsonOptions);
+        JsonSerializer.Serialize(report, SharedJsonOptions.CamelCaseIndented);
 
     private static void AppendMetricRow(
         StringBuilder sb,

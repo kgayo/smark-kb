@@ -18,12 +18,6 @@ public sealed class OpenAiQueryClassificationService : IQueryClassificationServi
     private readonly ChatOrchestrationSettings _settings;
     private readonly ILogger<OpenAiQueryClassificationService> _logger;
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-    };
-
     public OpenAiQueryClassificationService(
         IHttpClientFactory httpClientFactory,
         OpenAiSettings openAiSettings,
@@ -91,7 +85,7 @@ public sealed class OpenAiQueryClassificationService : IQueryClassificationServi
             {
                 try
                 {
-                    var parsed = JsonSerializer.Deserialize<ClassificationResult>(messageContent, JsonOptions);
+                    var parsed = JsonSerializer.Deserialize<ClassificationResult>(messageContent, SharedJsonOptions.SnakeCase);
                     if (parsed is not null)
                     {
                         _logger.LogInformation(

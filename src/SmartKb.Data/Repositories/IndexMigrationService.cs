@@ -8,6 +8,7 @@ using Azure.Search.Documents.Indexes.Models;
 using Azure.Search.Documents.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
@@ -29,8 +30,6 @@ public sealed class IndexMigrationService : IIndexMigrationService
     private readonly AzureSearchIndexingService _evidenceIndexing;
     private readonly AzureSearchPatternIndexingService _patternIndexing;
     private readonly ILogger<IndexMigrationService> _logger;
-
-    private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };
 
     public IndexMigrationService(
         SmartKbDbContext db,
@@ -544,7 +543,7 @@ public sealed class IndexMigrationService : IIndexMigrationService
     }
 
     private List<string> DeserializeJsonList(string? json) =>
-        JsonDeserializeHelper.Deserialize<List<string>>(json, JsonOpts, _logger, []);
+        JsonDeserializeHelper.Deserialize<List<string>>(json, SharedJsonOptions.CaseInsensitive, _logger, []);
 
     private static IndexSchemaVersionInfo MapToInfo(IndexSchemaVersionEntity e)
     {

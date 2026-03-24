@@ -12,12 +12,6 @@ namespace SmartKb.Api.Connectors;
 
 public sealed class ConnectorAdminService
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = false,
-    };
-
     // Required canonical fields that must be mapped for sync activation.
     private static readonly HashSet<string> RequiredTargetFields =
     [
@@ -107,7 +101,7 @@ public sealed class ConnectorAdminService
             KeyVaultSecretName = request.KeyVaultSecretName,
             SourceConfig = request.SourceConfig,
             FieldMapping = request.FieldMapping is not null
-                ? JsonSerializer.Serialize(request.FieldMapping, JsonOptions)
+                ? JsonSerializer.Serialize(request.FieldMapping, SharedJsonOptions.CamelCaseCompact)
                 : null,
             ScheduleCron = request.ScheduleCron,
             CreatedAt = now,
@@ -143,7 +137,7 @@ public sealed class ConnectorAdminService
 
         if (request.SourceConfig is not null) entity.SourceConfig = request.SourceConfig;
         if (request.FieldMapping is not null)
-            entity.FieldMapping = JsonSerializer.Serialize(request.FieldMapping, JsonOptions);
+            entity.FieldMapping = JsonSerializer.Serialize(request.FieldMapping, SharedJsonOptions.CamelCaseCompact);
         if (request.ScheduleCron is not null) entity.ScheduleCron = request.ScheduleCron;
         if (request.AuthType.HasValue) entity.AuthType = request.AuthType.Value;
         if (request.KeyVaultSecretName is not null) entity.KeyVaultSecretName = request.KeyVaultSecretName;
@@ -710,7 +704,7 @@ public sealed class ConnectorAdminService
     }
 
     private FieldMappingConfig? DeserializeFieldMapping(string? json) =>
-        string.IsNullOrWhiteSpace(json) ? null : JsonDeserializeHelper.DeserializeOrNull<FieldMappingConfig>(json, JsonOptions, _logger);
+        string.IsNullOrWhiteSpace(json) ? null : JsonDeserializeHelper.DeserializeOrNull<FieldMappingConfig>(json, SharedJsonOptions.CamelCaseCompact, _logger);
 
     private async Task RegisterWebhooksAsync(ConnectorEntity entity, string correlationId, CancellationToken ct)
     {

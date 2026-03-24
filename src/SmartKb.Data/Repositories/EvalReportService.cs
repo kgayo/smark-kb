@@ -15,11 +15,6 @@ public sealed class EvalReportService : IEvalReportService
     private readonly IEvalNotificationService? _notificationService;
     private readonly ILogger<EvalReportService> _logger;
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    };
-
     public EvalReportService(
         SmartKbDbContext db,
         IAuditEventWriter audit,
@@ -208,7 +203,7 @@ public sealed class EvalReportService : IEvalReportService
 
         try
         {
-            return JsonSerializer.Deserialize<EvalMetricsDto>(json, JsonOptions) ?? new EvalMetricsDto();
+            return JsonSerializer.Deserialize<EvalMetricsDto>(json, SharedJsonOptions.CamelCaseWrite) ?? new EvalMetricsDto();
         }
         catch (JsonException ex)
         {
@@ -224,7 +219,7 @@ public sealed class EvalReportService : IEvalReportService
 
         try
         {
-            return JsonSerializer.Deserialize<List<EvalViolationDto>>(json, JsonOptions) ?? [];
+            return JsonSerializer.Deserialize<List<EvalViolationDto>>(json, SharedJsonOptions.CamelCaseWrite) ?? [];
         }
         catch (JsonException ex)
         {
@@ -240,7 +235,7 @@ public sealed class EvalReportService : IEvalReportService
 
         try
         {
-            return JsonSerializer.Deserialize<EvalBaselineComparisonDto>(json, JsonOptions);
+            return JsonSerializer.Deserialize<EvalBaselineComparisonDto>(json, SharedJsonOptions.CamelCaseWrite);
         }
         catch (JsonException ex)
         {

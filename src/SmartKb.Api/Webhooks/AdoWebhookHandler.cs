@@ -18,12 +18,6 @@ namespace SmartKb.Api.Webhooks;
 /// </summary>
 public sealed class AdoWebhookHandler
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = true,
-    };
-
     private readonly SmartKbDbContext _db;
     private readonly ISyncJobPublisher _syncJobPublisher;
     private readonly IAuditEventWriter _auditWriter;
@@ -118,7 +112,7 @@ public sealed class AdoWebhookHandler
         AdoWebhookPayload? payload;
         try
         {
-            payload = JsonSerializer.Deserialize<AdoWebhookPayload>(requestBody, JsonOptions);
+            payload = JsonSerializer.Deserialize<AdoWebhookPayload>(requestBody, SharedJsonOptions.CamelCase);
         }
         catch (JsonException ex)
         {

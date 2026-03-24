@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
@@ -15,11 +16,6 @@ public sealed class SessionService : ISessionService
     private readonly SessionSettings _sessionSettings;
     private readonly IChatOrchestrator? _chatOrchestrator;
     private readonly ILogger<SessionService> _logger;
-
-    private static readonly JsonSerializerOptions JsonOpts = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    };
 
     public SessionService(
         SmartKbDbContext db,
@@ -247,7 +243,7 @@ public sealed class SessionService : ISessionService
             Role = MessageRole.Assistant,
             Content = chatResponse.Answer,
             CitationsJson = chatResponse.Citations.Count > 0
-                ? JsonSerializer.Serialize(chatResponse.Citations, JsonOpts)
+                ? JsonSerializer.Serialize(chatResponse.Citations, SharedJsonOptions.CamelCaseWrite)
                 : null,
             Confidence = chatResponse.Confidence,
             ConfidenceLabel = chatResponse.ConfidenceLabel,
@@ -319,5 +315,5 @@ public sealed class SessionService : ISessionService
     };
 
     private IReadOnlyList<CitationDto>? DeserializeCitations(string? json) =>
-        JsonDeserializeHelper.DeserializeOrNull<List<CitationDto>>(json, JsonOpts, _logger);
+        JsonDeserializeHelper.DeserializeOrNull<List<CitationDto>>(json, SharedJsonOptions.CamelCaseWrite, _logger);
 }

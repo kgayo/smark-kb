@@ -1,5 +1,5 @@
 using System.Net.Http.Json;
-using System.Text.Json;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
 
@@ -12,12 +12,6 @@ public sealed class HttpChatOrchestratorClient : IChatOrchestrator, IDisposable
 {
     private readonly HttpClient _httpClient;
     private readonly string _baseUrl;
-
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    };
 
     private readonly bool _ownsHttpClient;
 
@@ -45,12 +39,12 @@ public sealed class HttpChatOrchestratorClient : IChatOrchestrator, IDisposable
         _httpClient.DefaultRequestHeaders.Add("X-Correlation-Id", correlationId);
 
         var response = await _httpClient.PostAsJsonAsync(
-            $"{_baseUrl}/api/chat", request, JsonOptions, cancellationToken);
+            $"{_baseUrl}/api/chat", request, SharedJsonOptions.CamelCase, cancellationToken);
 
         response.EnsureSuccessStatusCode();
 
         var apiResponse = await response.Content.ReadFromJsonAsync<ApiEnvelope<ChatResponse>>(
-            JsonOptions, cancellationToken);
+            SharedJsonOptions.CamelCase, cancellationToken);
 
         return apiResponse?.Data ?? throw new InvalidOperationException(
             $"Empty response from {_baseUrl}/api/chat");

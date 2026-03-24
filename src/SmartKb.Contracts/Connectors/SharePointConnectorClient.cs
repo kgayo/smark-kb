@@ -17,13 +17,6 @@ namespace SmartKb.Contracts.Connectors;
 /// </summary>
 public sealed class SharePointConnectorClient : IConnectorClient
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    };
-
     private const string GraphBaseUrl = "https://graph.microsoft.com/v1.0";
     private const string GraphTokenUrl = "https://login.microsoftonline.com/{0}/oauth2/v2.0/token";
 
@@ -592,7 +585,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
         if (string.IsNullOrWhiteSpace(json)) return null;
         try
         {
-            return JsonSerializer.Deserialize<SharePointSourceConfig>(json, JsonOptions);
+            return JsonSerializer.Deserialize<SharePointSourceConfig>(json, SharedJsonOptions.CamelCaseIgnoreNull);
         }
         catch (JsonException ex)
         {
@@ -646,7 +639,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
     private static async Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)
     {
         var stream = await response.Content.ReadAsStreamAsync(ct);
-        return await JsonSerializer.DeserializeAsync<T>(stream, JsonOptions, ct);
+        return await JsonSerializer.DeserializeAsync<T>(stream, SharedJsonOptions.CamelCaseIgnoreNull, ct);
     }
 
     private static FetchResult ErrorResult(string error) => new()

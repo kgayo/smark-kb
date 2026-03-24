@@ -21,11 +21,6 @@ public sealed class ContradictionDetectionService : IContradictionDetectionServi
     private readonly PatternMaintenanceSettings _settings;
     private readonly ILogger<ContradictionDetectionService> _logger;
 
-    private static readonly JsonSerializerOptions JsonOpts = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    };
-
     private static readonly char[] TokenSeparators = [' ', ',', '.', ';', ':', '!', '?', '\n', '\r', '\t', '(', ')', '[', ']', '{', '}', '"', '\''];
 
     public ContradictionDetectionService(
@@ -93,7 +88,7 @@ public sealed class ContradictionDetectionService : IContradictionDetectionServi
                     ContradictionType = analysis.Value.Type,
                     SimilarityScore = analysis.Value.SimilarityScore,
                     Description = analysis.Value.Description,
-                    ConflictingFieldsJson = JsonSerializer.Serialize(analysis.Value.ConflictingFields, JsonOpts),
+                    ConflictingFieldsJson = JsonSerializer.Serialize(analysis.Value.ConflictingFields, SharedJsonOptions.CamelCaseWrite),
                     Status = "Pending",
                     CreatedAt = now,
                 };
@@ -337,5 +332,5 @@ public sealed class ContradictionDetectionService : IContradictionDetectionServi
         => string.CompareOrdinal(a, b) <= 0 ? $"{a}|{b}" : $"{b}|{a}";
 
     private IReadOnlyList<string> DeserializeStringList(string? json) =>
-        JsonDeserializeHelper.Deserialize<List<string>>(json, JsonOpts, _logger, []);
+        JsonDeserializeHelper.Deserialize<List<string>>(json, SharedJsonOptions.CamelCaseWrite, _logger, []);
 }

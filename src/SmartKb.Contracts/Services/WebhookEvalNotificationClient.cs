@@ -16,12 +16,6 @@ public sealed class WebhookEvalNotificationClient : IEvalNotificationService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<WebhookEvalNotificationClient> _logger;
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = false,
-    };
-
     public WebhookEvalNotificationClient(
         EvalNotificationSettings settings,
         IHttpClientFactory httpClientFactory,
@@ -110,7 +104,7 @@ public sealed class WebhookEvalNotificationClient : IEvalNotificationService
             runUrl = payload.RunUrl,
             timestamp = DateTimeOffset.UtcNow,
         };
-        return JsonSerializer.Serialize(obj, JsonOptions);
+        return JsonSerializer.Serialize(obj, SharedJsonOptions.CamelCaseCompact);
     }
 
     private static string BuildSlackPayload(EvalNotificationPayload payload)
@@ -147,7 +141,7 @@ public sealed class WebhookEvalNotificationClient : IEvalNotificationService
         }
 
         var slackObj = new { text = sb.ToString().TrimEnd() };
-        return JsonSerializer.Serialize(slackObj, JsonOptions);
+        return JsonSerializer.Serialize(slackObj, SharedJsonOptions.CamelCaseCompact);
     }
 
     private static string BuildTeamsPayload(EvalNotificationPayload payload)
@@ -187,6 +181,6 @@ public sealed class WebhookEvalNotificationClient : IEvalNotificationService
                 ? new object[] { new { type = "OpenUri", name = "View Run", targets = new[] { new { os = "default", uri = payload.RunUrl } } } }
                 : Array.Empty<object>(),
         };
-        return JsonSerializer.Serialize(teamsObj, JsonOptions);
+        return JsonSerializer.Serialize(teamsObj, SharedJsonOptions.CamelCaseCompact);
     }
 }

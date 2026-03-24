@@ -15,11 +15,6 @@ public sealed class TeamPlaybookService : ITeamPlaybookService
     private readonly IAuditEventWriter _auditWriter;
     private readonly ILogger<TeamPlaybookService> _logger;
 
-    private static readonly JsonSerializerOptions JsonOpts = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    };
-
     /// <summary>
     /// Standard handoff fields present on every escalation draft.
     /// Playbook RequiredFields refer to these by name; validation checks
@@ -113,8 +108,8 @@ public sealed class TeamPlaybookService : ITeamPlaybookService
             TenantId = tenantId,
             TeamName = request.TeamName,
             Description = request.Description,
-            RequiredFieldsJson = JsonSerializer.Serialize(request.RequiredFields, JsonOpts),
-            ChecklistJson = JsonSerializer.Serialize(request.Checklist, JsonOpts),
+            RequiredFieldsJson = JsonSerializer.Serialize(request.RequiredFields, SharedJsonOptions.CamelCaseWrite),
+            ChecklistJson = JsonSerializer.Serialize(request.Checklist, SharedJsonOptions.CamelCaseWrite),
             ContactChannel = request.ContactChannel,
             RequiresApproval = request.RequiresApproval,
             MinSeverity = request.MinSeverity?.ToUpperInvariant(),
@@ -166,8 +161,8 @@ public sealed class TeamPlaybookService : ITeamPlaybookService
         var now = DateTimeOffset.UtcNow;
 
         if (request.Description is not null) entity.Description = request.Description;
-        if (request.RequiredFields is not null) entity.RequiredFieldsJson = JsonSerializer.Serialize(request.RequiredFields, JsonOpts);
-        if (request.Checklist is not null) entity.ChecklistJson = JsonSerializer.Serialize(request.Checklist, JsonOpts);
+        if (request.RequiredFields is not null) entity.RequiredFieldsJson = JsonSerializer.Serialize(request.RequiredFields, SharedJsonOptions.CamelCaseWrite);
+        if (request.Checklist is not null) entity.ChecklistJson = JsonSerializer.Serialize(request.Checklist, SharedJsonOptions.CamelCaseWrite);
         if (request.ContactChannel is not null) entity.ContactChannel = request.ContactChannel;
         if (request.RequiresApproval.HasValue) entity.RequiresApproval = request.RequiresApproval.Value;
         if (request.MinSeverity is not null) entity.MinSeverity = request.MinSeverity.ToUpperInvariant();
@@ -327,7 +322,7 @@ public sealed class TeamPlaybookService : ITeamPlaybookService
     }
 
     private List<string> DeserializeStringList(string json) =>
-        JsonDeserializeHelper.Deserialize<List<string>>(json, JsonOpts, _logger, []);
+        JsonDeserializeHelper.Deserialize<List<string>>(json, SharedJsonOptions.CamelCaseWrite, _logger, []);
 
     private static TeamPlaybookDto MapPlaybook(TeamPlaybookEntity entity) => new()
     {

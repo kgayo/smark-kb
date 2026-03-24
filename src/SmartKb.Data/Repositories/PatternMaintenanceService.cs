@@ -20,11 +20,6 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
     private readonly PatternMaintenanceSettings _settings;
     private readonly ILogger<PatternMaintenanceService> _logger;
 
-    private static readonly JsonSerializerOptions JsonOpts = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    };
-
     public PatternMaintenanceService(
         SmartKbDbContext db,
         IAuditEventWriter auditWriter,
@@ -93,7 +88,7 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
                             ["daysSinceUpdate"] = daysSinceUpdate,
                             ["lastUpdated"] = pattern.UpdatedAt.ToString("O"),
                             ["trustLevel"] = pattern.TrustLevel,
-                        }, JsonOpts),
+                        }, SharedJsonOptions.CamelCaseWrite),
                         Status = "Pending",
                         CreatedAt = now,
                     });
@@ -122,7 +117,7 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
                             ["qualityScore"] = pattern.QualityScore.Value,
                             ["threshold"] = _settings.LowQualityThreshold,
                             ["trustLevel"] = pattern.TrustLevel,
-                        }, JsonOpts),
+                        }, SharedJsonOptions.CamelCaseWrite),
                         Status = "Pending",
                         CreatedAt = now,
                     });
@@ -151,7 +146,7 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
                             ["unusedDaysThreshold"] = _settings.UnusedDaysThreshold,
                             ["trustLevel"] = pattern.TrustLevel,
                             ["createdAt"] = pattern.CreatedAt.ToString("O"),
-                        }, JsonOpts),
+                        }, SharedJsonOptions.CamelCaseWrite),
                         Status = "Pending",
                         CreatedAt = now,
                     });
@@ -318,7 +313,7 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
         if (string.IsNullOrEmpty(citedChunkIdsJson)) return [];
         try
         {
-            var ids = JsonSerializer.Deserialize<List<string>>(citedChunkIdsJson, JsonOpts) ?? [];
+            var ids = JsonSerializer.Deserialize<List<string>>(citedChunkIdsJson, SharedJsonOptions.CamelCaseWrite) ?? [];
             return ids.Where(id => id.StartsWith("pattern-", StringComparison.OrdinalIgnoreCase)).ToHashSet();
         }
         catch (JsonException ex) { _logger.LogWarning(ex, "Failed to deserialize JSON in {MethodName}", nameof(ExtractPatternIds)); return []; }
@@ -329,7 +324,7 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
         if (string.IsNullOrEmpty(json)) return new Dictionary<string, object>();
         try
         {
-            var dict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json, JsonOpts);
+            var dict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json, SharedJsonOptions.CamelCaseWrite);
             if (dict is null) return new Dictionary<string, object>();
             return dict.ToDictionary(kv => kv.Key, kv => (object)kv.Value.ToString()!);
         }

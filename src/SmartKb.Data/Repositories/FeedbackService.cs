@@ -14,11 +14,6 @@ public sealed class FeedbackService : IFeedbackService
     private readonly IAuditEventWriter _auditWriter;
     private readonly ILogger<FeedbackService> _logger;
 
-    private static readonly JsonSerializerOptions JsonOpts = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    };
-
     public FeedbackService(
         SmartKbDbContext db,
         IAuditEventWriter auditWriter,
@@ -59,7 +54,7 @@ public sealed class FeedbackService : IFeedbackService
             // Update existing feedback (allows changing thumbs up/down or adding reason codes).
             existing.Type = request.Type;
             existing.ReasonCodesJson = request.ReasonCodes.Count > 0
-                ? JsonSerializer.Serialize(request.ReasonCodes.Select(r => r.ToString()).ToList(), JsonOpts)
+                ? JsonSerializer.Serialize(request.ReasonCodes.Select(r => r.ToString()).ToList(), SharedJsonOptions.CamelCaseWrite)
                 : null;
             existing.Comment = request.Comment;
             existing.CorrectionText = request.CorrectionText;
@@ -84,7 +79,7 @@ public sealed class FeedbackService : IFeedbackService
             UserId = userId,
             Type = request.Type,
             ReasonCodesJson = request.ReasonCodes.Count > 0
-                ? JsonSerializer.Serialize(request.ReasonCodes.Select(r => r.ToString()).ToList(), JsonOpts)
+                ? JsonSerializer.Serialize(request.ReasonCodes.Select(r => r.ToString()).ToList(), SharedJsonOptions.CamelCaseWrite)
                 : null,
             Comment = request.Comment,
             CorrectionText = request.CorrectionText,
@@ -168,5 +163,5 @@ public sealed class FeedbackService : IFeedbackService
     };
 
     private IReadOnlyList<string> DeserializeReasonCodes(string? json) =>
-        JsonDeserializeHelper.Deserialize<List<string>>(json, JsonOpts, _logger, []);
+        JsonDeserializeHelper.Deserialize<List<string>>(json, SharedJsonOptions.CamelCaseWrite, _logger, []);
 }
