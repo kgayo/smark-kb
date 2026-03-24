@@ -1575,16 +1575,18 @@ app.MapGet("/api/admin/patterns/{patternId}/usage", async (
 // --- Pattern Maintenance Endpoints (P2-004) ---
 
 app.MapPost("/api/admin/patterns/detect-contradictions", async (
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     IContradictionDetectionService contradictionService) =>
 {
     var tenant = tenantAccessor.Current!;
     var result = await contradictionService.DetectContradictionsAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, httpContext.RequestAborted);
     return Results.Ok(ApiResponse<ContradictionDetectionResult>.Success(result, tenant.CorrelationId));
 }).RequirePermission("pattern:approve");
 
 app.MapGet("/api/admin/patterns/contradictions", async (
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     IContradictionDetectionService contradictionService,
     string? status,
@@ -1593,35 +1595,38 @@ app.MapGet("/api/admin/patterns/contradictions", async (
 {
     var tenant = tenantAccessor.Current!;
     var result = await contradictionService.GetContradictionsAsync(
-        tenant.TenantId, status, page ?? 1, pageSize ?? 20);
+        tenant.TenantId, status, page ?? 1, pageSize ?? 20, httpContext.RequestAborted);
     return Results.Ok(ApiResponse<ContradictionListResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("pattern:approve");
 
 app.MapPost("/api/admin/patterns/contradictions/{id}/resolve", async (
     Guid id,
     ResolveContradictionRequest request,
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     IContradictionDetectionService contradictionService) =>
 {
     var tenant = tenantAccessor.Current!;
     var result = await contradictionService.ResolveContradictionAsync(
-        id, tenant.TenantId, tenant.UserId, tenant.CorrelationId, request);
+        id, tenant.TenantId, tenant.UserId, tenant.CorrelationId, request, httpContext.RequestAborted);
     return result is null
         ? Results.NotFound()
         : Results.Ok(ApiResponse<ContradictionSummary>.Success(result, tenant.CorrelationId));
 }).RequirePermission("pattern:approve");
 
 app.MapPost("/api/admin/patterns/detect-maintenance", async (
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     IPatternMaintenanceService maintenanceService) =>
 {
     var tenant = tenantAccessor.Current!;
     var result = await maintenanceService.DetectMaintenanceIssuesAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, httpContext.RequestAborted);
     return Results.Ok(ApiResponse<MaintenanceDetectionResult>.Success(result, tenant.CorrelationId));
 }).RequirePermission("pattern:approve");
 
 app.MapGet("/api/admin/patterns/maintenance-tasks", async (
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     IPatternMaintenanceService maintenanceService,
     string? status,
@@ -1631,19 +1636,20 @@ app.MapGet("/api/admin/patterns/maintenance-tasks", async (
 {
     var tenant = tenantAccessor.Current!;
     var result = await maintenanceService.GetMaintenanceTasksAsync(
-        tenant.TenantId, status, taskType, page ?? 1, pageSize ?? 20);
+        tenant.TenantId, status, taskType, page ?? 1, pageSize ?? 20, httpContext.RequestAborted);
     return Results.Ok(ApiResponse<MaintenanceTaskListResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("pattern:approve");
 
 app.MapPost("/api/admin/patterns/maintenance-tasks/{id}/resolve", async (
     Guid id,
     ResolveMaintenanceTaskRequest request,
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     IPatternMaintenanceService maintenanceService) =>
 {
     var tenant = tenantAccessor.Current!;
     var result = await maintenanceService.ResolveTaskAsync(
-        id, tenant.TenantId, tenant.UserId, tenant.CorrelationId, request);
+        id, tenant.TenantId, tenant.UserId, tenant.CorrelationId, request, httpContext.RequestAborted);
     return result is null
         ? Results.NotFound()
         : Results.Ok(ApiResponse<MaintenanceTaskSummary>.Success(result, tenant.CorrelationId));
@@ -1652,12 +1658,13 @@ app.MapPost("/api/admin/patterns/maintenance-tasks/{id}/resolve", async (
 app.MapPost("/api/admin/patterns/maintenance-tasks/{id}/dismiss", async (
     Guid id,
     ResolveMaintenanceTaskRequest request,
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     IPatternMaintenanceService maintenanceService) =>
 {
     var tenant = tenantAccessor.Current!;
     var result = await maintenanceService.DismissTaskAsync(
-        id, tenant.TenantId, tenant.UserId, tenant.CorrelationId, request);
+        id, tenant.TenantId, tenant.UserId, tenant.CorrelationId, request, httpContext.RequestAborted);
     return result is null
         ? Results.NotFound()
         : Results.Ok(ApiResponse<MaintenanceTaskSummary>.Success(result, tenant.CorrelationId));

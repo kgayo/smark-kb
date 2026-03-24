@@ -41,19 +41,19 @@ public sealed class ContradictionDetectionService : IContradictionDetectionServi
     }
 
     public async Task<ContradictionDetectionResult> DetectContradictionsAsync(
-        string tenantId, string actorId, string correlationId)
+        string tenantId, string actorId, string correlationId, CancellationToken ct = default)
     {
         var now = DateTimeOffset.UtcNow;
 
         // Load all active (non-deprecated) patterns for the tenant.
         var patterns = await _db.CasePatterns
             .Where(p => p.TenantId == tenantId && p.TrustLevel != "Deprecated")
-            .ToListAsync();
+            .ToListAsync(ct);
 
         // Load existing pending contradictions to avoid duplicates.
         var existingPairs = (await _db.PatternContradictions
             .Where(c => c.TenantId == tenantId && c.Status == "Pending")
-            .ToListAsync())
+            .ToListAsync(ct))
             .Select(c => NormalizePair(c.PatternIdA, c.PatternIdB))
             .ToHashSet();
 
@@ -109,7 +109,7 @@ public sealed class ContradictionDetectionService : IContradictionDetectionServi
         }
 
         if (newContradictions > 0)
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(ct);
 
         await _auditWriter.WriteAsync(new AuditEvent(
             EventId: correlationId,
@@ -131,7 +131,7 @@ public sealed class ContradictionDetectionService : IContradictionDetectionServi
     }
 
     public async Task<ContradictionListResponse> GetContradictionsAsync(
-        string tenantId, string? status, int page, int pageSize)
+        string tenantId, string? status, int page, int pageSize, CancellationToken ct = default)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 100);
@@ -142,10 +142,10 @@ public sealed class ContradictionDetectionService : IContradictionDetectionServi
         if (!string.IsNullOrEmpty(status))
             query = query.Where(c => c.Status == status);
 
-        var totalCount = await query.CountAsync();
+        var totalCount = await query.CountAsync(ct);
 
         // Materialize then sort/page client-side (SQLite compatibility for tests).
-        var allEntities = await query.ToListAsync();
+        var allEntities = await query.ToListAsync(ct);
         var entities = allEntities
             .OrderByDescending(c => c.CreatedAt)
             .Skip((page - 1) * pageSize)
@@ -157,7 +157,7 @@ public sealed class ContradictionDetectionService : IContradictionDetectionServi
         var patternTitles = await _db.CasePatterns
             .Where(p => p.TenantId == tenantId && patternIds.Contains(p.PatternId))
             .Select(p => new { p.PatternId, p.Title })
-            .ToListAsync();
+            .ToListAsync(ct);
         var titleMap = patternTitles.ToDictionary(p => p.PatternId, p => p.Title);
 
         var summaries = entities.Select(c => new ContradictionSummary
@@ -190,7 +190,7 @@ public sealed class ContradictionDetectionService : IContradictionDetectionServi
 
     public async Task<ContradictionSummary?> ResolveContradictionAsync(
         Guid contradictionId, string tenantId, string actorId,
-        string correlationId, ResolveContradictionRequest request)
+        string correlationId, ResolveContradictionRequest request, CancellationToken ct = default)
     {
         var validResolutions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             { "Merged", "Deprecated", "Kept", "Dismissed" };
@@ -200,7 +200,7 @@ public sealed class ContradictionDetectionService : IContradictionDetectionServi
 
         var entity = await _db.PatternContradictions
             .Where(c => c.Id == contradictionId && c.TenantId == tenantId)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (entity is null || entity.Status != "Pending")
             return null;
@@ -212,7 +212,7 @@ public sealed class ContradictionDetectionService : IContradictionDetectionServi
         entity.ResolvedAt = now;
         entity.ResolutionNotes = request.Notes;
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(ct);
 
         await _auditWriter.WriteAsync(new AuditEvent(
             EventId: contradictionId.ToString(),
@@ -228,7 +228,7 @@ public sealed class ContradictionDetectionService : IContradictionDetectionServi
             .Where(p => p.TenantId == tenantId &&
                         (p.PatternId == entity.PatternIdA || p.PatternId == entity.PatternIdB))
             .Select(p => new { p.PatternId, p.Title })
-            .ToListAsync();
+            .ToListAsync(ct);
         var titleMap = titles.ToDictionary(p => p.PatternId, p => p.Title);
 
         return new ContradictionSummary

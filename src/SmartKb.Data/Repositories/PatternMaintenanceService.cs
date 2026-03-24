@@ -38,19 +38,19 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
     }
 
     public async Task<MaintenanceDetectionResult> DetectMaintenanceIssuesAsync(
-        string tenantId, string actorId, string correlationId)
+        string tenantId, string actorId, string correlationId, CancellationToken ct = default)
     {
         var now = DateTimeOffset.UtcNow;
 
         // Load active patterns.
         var patterns = await _db.CasePatterns
             .Where(p => p.TenantId == tenantId && p.TrustLevel != "Deprecated")
-            .ToListAsync();
+            .ToListAsync(ct);
 
         // Load existing pending tasks to avoid duplicates.
         var existingTasks = (await _db.PatternMaintenanceTasks
             .Where(t => t.TenantId == tenantId && t.Status == "Pending")
-            .ToListAsync())
+            .ToListAsync(ct))
             .Select(t => $"{t.PatternId}|{t.TaskType}")
             .ToHashSet();
 
@@ -58,7 +58,7 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
         var usageCutoff = now.AddDays(-_settings.UnusedDaysThreshold);
         var recentTraces = await _db.Set<AnswerTraceEntity>()
             .Where(a => a.TenantId == tenantId)
-            .ToListAsync();
+            .ToListAsync(ct);
         var recentUsedPatternIds = recentTraces
             .Where(a => a.CreatedAt >= usageCutoff)
             .SelectMany(a => ExtractPatternIds(a.CitedChunkIds))
@@ -164,7 +164,7 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
         if (newTasks.Count > 0)
         {
             _db.PatternMaintenanceTasks.AddRange(newTasks);
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(ct);
         }
 
         await _auditWriter.WriteAsync(new AuditEvent(
@@ -189,7 +189,7 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
     }
 
     public async Task<MaintenanceTaskListResponse> GetMaintenanceTasksAsync(
-        string tenantId, string? status, string? taskType, int page, int pageSize)
+        string tenantId, string? status, string? taskType, int page, int pageSize, CancellationToken ct = default)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 100);
@@ -202,9 +202,9 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
         if (!string.IsNullOrEmpty(taskType))
             query = query.Where(t => t.TaskType == taskType);
 
-        var totalCount = await query.CountAsync();
+        var totalCount = await query.CountAsync(ct);
 
-        var allEntities = await query.ToListAsync();
+        var allEntities = await query.ToListAsync(ct);
         var entities = allEntities
             .OrderByDescending(t => t.CreatedAt)
             .Skip((page - 1) * pageSize)
@@ -216,7 +216,7 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
         var patternTitles = await _db.CasePatterns
             .Where(p => p.TenantId == tenantId && patternIds.Contains(p.PatternId))
             .Select(p => new { p.PatternId, p.Title })
-            .ToListAsync();
+            .ToListAsync(ct);
         var titleMap = patternTitles.ToDictionary(p => p.PatternId, p => p.Title);
 
         var summaries = entities.Select(t => new MaintenanceTaskSummary
@@ -247,29 +247,29 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
 
     public async Task<MaintenanceTaskSummary?> ResolveTaskAsync(
         Guid taskId, string tenantId, string actorId,
-        string correlationId, ResolveMaintenanceTaskRequest request)
+        string correlationId, ResolveMaintenanceTaskRequest request, CancellationToken ct = default)
     {
         return await UpdateTaskStatusAsync(
             taskId, tenantId, actorId, correlationId,
-            "Resolved", AuditEventTypes.MaintenanceTaskResolved, request.Notes);
+            "Resolved", AuditEventTypes.MaintenanceTaskResolved, request.Notes, ct);
     }
 
     public async Task<MaintenanceTaskSummary?> DismissTaskAsync(
         Guid taskId, string tenantId, string actorId,
-        string correlationId, ResolveMaintenanceTaskRequest request)
+        string correlationId, ResolveMaintenanceTaskRequest request, CancellationToken ct = default)
     {
         return await UpdateTaskStatusAsync(
             taskId, tenantId, actorId, correlationId,
-            "Dismissed", AuditEventTypes.MaintenanceTaskDismissed, request.Notes);
+            "Dismissed", AuditEventTypes.MaintenanceTaskDismissed, request.Notes, ct);
     }
 
     private async Task<MaintenanceTaskSummary?> UpdateTaskStatusAsync(
         Guid taskId, string tenantId, string actorId, string correlationId,
-        string newStatus, string auditEventType, string? notes)
+        string newStatus, string auditEventType, string? notes, CancellationToken ct = default)
     {
         var entity = await _db.PatternMaintenanceTasks
             .Where(t => t.Id == taskId && t.TenantId == tenantId)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (entity is null || entity.Status != "Pending")
             return null;
@@ -280,7 +280,7 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
         entity.ResolvedAt = now;
         entity.ResolutionNotes = notes;
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(ct);
 
         await _auditWriter.WriteAsync(new AuditEvent(
             EventId: taskId.ToString(),
@@ -294,7 +294,7 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
         var title = await _db.CasePatterns
             .Where(p => p.TenantId == tenantId && p.PatternId == entity.PatternId)
             .Select(p => p.Title)
-            .FirstOrDefaultAsync() ?? "(unknown)";
+            .FirstOrDefaultAsync(ct) ?? "(unknown)";
 
         return new MaintenanceTaskSummary
         {

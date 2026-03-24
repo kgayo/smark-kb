@@ -13,19 +13,19 @@ public interface IPatternMaintenanceService
     /// Creates PatternMaintenanceTask records for new issues found.
     /// </summary>
     Task<MaintenanceDetectionResult> DetectMaintenanceIssuesAsync(
-        string tenantId, string actorId, string correlationId);
+        string tenantId, string actorId, string correlationId, CancellationToken ct = default);
 
     /// <summary>Queries maintenance tasks with optional status/type filter and pagination.</summary>
     Task<MaintenanceTaskListResponse> GetMaintenanceTasksAsync(
-        string tenantId, string? status, string? taskType, int page, int pageSize);
+        string tenantId, string? status, string? taskType, int page, int pageSize, CancellationToken ct = default);
 
     /// <summary>Resolves a maintenance task (human review gate — marks as resolved).</summary>
     Task<MaintenanceTaskSummary?> ResolveTaskAsync(
         Guid taskId, string tenantId, string actorId,
-        string correlationId, ResolveMaintenanceTaskRequest request);
+        string correlationId, ResolveMaintenanceTaskRequest request, CancellationToken ct = default);
 
     /// <summary>Dismisses a maintenance task (human decides no action needed).</summary>
     Task<MaintenanceTaskSummary?> DismissTaskAsync(
         Guid taskId, string tenantId, string actorId,
-        string correlationId, ResolveMaintenanceTaskRequest request);
+        string correlationId, ResolveMaintenanceTaskRequest request, CancellationToken ct = default);
 }

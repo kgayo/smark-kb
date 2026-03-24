@@ -13,14 +13,14 @@ public interface IContradictionDetectionService
     /// Creates PatternContradiction records for new conflicts found.
     /// </summary>
     Task<ContradictionDetectionResult> DetectContradictionsAsync(
-        string tenantId, string actorId, string correlationId);
+        string tenantId, string actorId, string correlationId, CancellationToken ct = default);
 
     /// <summary>Queries contradictions with optional status filter and pagination.</summary>
     Task<ContradictionListResponse> GetContradictionsAsync(
-        string tenantId, string? status, int page, int pageSize);
+        string tenantId, string? status, int page, int pageSize, CancellationToken ct = default);
 
     /// <summary>Resolves a contradiction (human review gate).</summary>
     Task<ContradictionSummary?> ResolveContradictionAsync(
         Guid contradictionId, string tenantId, string actorId,
-        string correlationId, ResolveContradictionRequest request);
+        string correlationId, ResolveContradictionRequest request, CancellationToken ct = default);
 }
