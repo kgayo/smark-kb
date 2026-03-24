@@ -1192,6 +1192,7 @@ app.MapGet("/api/evidence/{chunkId}/content", async (
     ITenantContextAccessor tenantAccessor,
     SmartKbDbContext db,
     HttpContext httpContext,
+    ILogger<Program> logger,
     CancellationToken ct) =>
 {
     var tenant = tenantAccessor.Current!;
@@ -1236,6 +1237,7 @@ app.MapGet("/api/evidence/{chunkId}/content", async (
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 // Non-fatal: raw content is optional enhancement over chunk text.
+                logger.LogWarning(ex, "Failed to download raw blob content for snapshot {BlobPath}", snapshot.BlobPath);
             }
         }
     }

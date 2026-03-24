@@ -320,6 +320,8 @@ describe('AuditCompliancePage', () => {
     });
     expect(screen.getByTestId('tab-events')).toBeInTheDocument();
     expect(screen.getByTestId('tab-export')).toBeInTheDocument();
+    expect(screen.getByTestId('tab-events')).toHaveAttribute('aria-label', 'Events tab');
+    expect(screen.getByTestId('tab-export')).toHaveAttribute('aria-label', 'Export tab');
   });
 
   it('renders header navigation links', async () => {

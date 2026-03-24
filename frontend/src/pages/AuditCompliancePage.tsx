@@ -118,6 +118,7 @@ export function AuditCompliancePage() {
           className={`admin-tab${tab === 'events' ? ' active' : ''}`}
           onClick={() => setTab('events')}
           data-testid="tab-events"
+          aria-label="Events tab"
         >
           Events
         </button>
@@ -125,6 +126,7 @@ export function AuditCompliancePage() {
           className={`admin-tab${tab === 'export' ? ' active' : ''}`}
           onClick={() => setTab('export')}
           data-testid="tab-export"
+          aria-label="Export tab"
         >
           Export
         </button>

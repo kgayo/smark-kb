@@ -198,6 +198,16 @@ describe('PrivacyAdminPage', () => {
     expect(screen.getByText('Compliance')).toBeInTheDocument();
   });
 
+  it('tab buttons have aria-labels', () => {
+    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedApi.getPiiPolicy.mockResolvedValue(null);
+    renderPage();
+    expect(screen.getByLabelText('PII Policy tab')).toBeInTheDocument();
+    expect(screen.getByLabelText('Retention tab')).toBeInTheDocument();
+    expect(screen.getByLabelText('Data Deletion tab')).toBeInTheDocument();
+    expect(screen.getByLabelText('Compliance tab')).toBeInTheDocument();
+  });
+
   it('custom pattern remove button has descriptive aria-label', async () => {
     mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
     mockedApi.getPiiPolicy.mockResolvedValue({

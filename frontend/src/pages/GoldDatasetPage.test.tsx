@@ -190,6 +190,18 @@ describe('GoldDatasetPage', () => {
     });
   });
 
+  it('tab buttons have aria-labels', async () => {
+    setupAdminUser();
+    mockedClient.listGoldCases.mockResolvedValue(mockCases);
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('gold-tabs')).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('tab-cases')).toHaveAttribute('aria-label', 'Cases tab');
+    expect(screen.getByTestId('tab-create')).toHaveAttribute('aria-label', 'Create tab');
+    expect(screen.getByTestId('tab-export')).toHaveAttribute('aria-label', 'Export tab');
+  });
+
   it('switches to create tab', async () => {
     setupAdminUser();
     mockedClient.listGoldCases.mockResolvedValue(mockCases);

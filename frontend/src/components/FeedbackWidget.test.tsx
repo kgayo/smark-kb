@@ -34,6 +34,7 @@ describe('FeedbackWidget', () => {
     expect(screen.getByTestId('feedback-comment')).toBeInTheDocument();
     expect(screen.getByTestId('feedback-correction')).toBeInTheDocument();
     expect(screen.getByTestId('submit-feedback')).toBeInTheDocument();
+    expect(screen.getByTestId('submit-feedback')).toHaveAttribute('aria-label', 'Submit feedback');
   });
 
   it('renders all reason code checkboxes', () => {

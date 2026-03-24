@@ -182,6 +182,7 @@ export function GoldDatasetPage() {
           className={`admin-tab${tab === 'cases' ? ' active' : ''}`}
           onClick={() => setTab('cases')}
           data-testid="tab-cases"
+          aria-label="Cases tab"
         >
           Cases
         </button>
@@ -189,6 +190,7 @@ export function GoldDatasetPage() {
           className={`admin-tab${tab === 'create' ? ' active' : ''}`}
           onClick={() => setTab('create')}
           data-testid="tab-create"
+          aria-label="Create tab"
         >
           Create
         </button>
@@ -196,6 +198,7 @@ export function GoldDatasetPage() {
           className={`admin-tab${tab === 'export' ? ' active' : ''}`}
           onClick={() => setTab('export')}
           data-testid="tab-export"
+          aria-label="Export tab"
         >
           Export
         </button>

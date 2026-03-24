@@ -262,16 +262,16 @@ export function PrivacyAdminPage() {
       {success && <div className="success-banner" data-testid="privacy-success">{success}</div>}
 
       <div className="admin-tabs">
-        <button className={`admin-tab ${tab === 'pii' ? 'active' : ''}`} onClick={() => setTab('pii')}>
+        <button className={`admin-tab ${tab === 'pii' ? 'active' : ''}`} onClick={() => setTab('pii')} aria-label="PII Policy tab">
           PII Policy
         </button>
-        <button className={`admin-tab ${tab === 'retention' ? 'active' : ''}`} onClick={() => setTab('retention')}>
+        <button className={`admin-tab ${tab === 'retention' ? 'active' : ''}`} onClick={() => setTab('retention')} aria-label="Retention tab">
           Retention
         </button>
-        <button className={`admin-tab ${tab === 'deletion' ? 'active' : ''}`} onClick={() => setTab('deletion')}>
+        <button className={`admin-tab ${tab === 'deletion' ? 'active' : ''}`} onClick={() => setTab('deletion')} aria-label="Data Deletion tab">
           Data Deletion
         </button>
-        <button className={`admin-tab ${tab === 'compliance' ? 'active' : ''}`} onClick={() => setTab('compliance')}>
+        <button className={`admin-tab ${tab === 'compliance' ? 'active' : ''}`} onClick={() => setTab('compliance')} aria-label="Compliance tab">
           Compliance
         </button>
       </div>

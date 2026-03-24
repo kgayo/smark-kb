@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
 using SmartKb.Contracts.Models;
 
 namespace SmartKb.Contracts.Services;
@@ -10,6 +11,13 @@ namespace SmartKb.Contracts.Services;
 /// </summary>
 public sealed partial class PiiRedactionService : IPiiRedactionService
 {
+    private readonly ILogger? _logger;
+
+    public PiiRedactionService(ILogger<PiiRedactionService>? logger = null)
+    {
+        _logger = logger;
+    }
+
     private static readonly Dictionary<string, (Func<Regex> Regex, string Placeholder)> BuiltInPatterns = new()
     {
         ["email"] = (EmailRegex, "[REDACTED-EMAIL]"),
@@ -90,9 +98,10 @@ public sealed partial class PiiRedactionService : IPiiRedactionService
                 else
                     result = ReplaceAndCount(result, regex, custom.Placeholder, custom.Name, counts);
             }
-            catch (RegexMatchTimeoutException)
+            catch (RegexMatchTimeoutException ex)
             {
                 // Skip patterns that time out — don't fail the entire redaction.
+                _logger?.LogWarning(ex, "PII custom regex pattern '{PatternName}' timed out and was skipped", custom.Name);
             }
         }
 

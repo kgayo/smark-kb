@@ -220,6 +220,7 @@ export function ConnectorDetail({
           onClick={handleTest}
           disabled={testing}
           data-testid="test-connection-btn"
+          aria-label={testing ? 'Testing connection' : 'Test connection'}
         >
           {testing ? 'Testing...' : 'Test Connection'}
         </button>
@@ -228,6 +229,7 @@ export function ConnectorDetail({
           onClick={handleToggleStatus}
           disabled={togglingStatus}
           data-testid="toggle-status-btn"
+          aria-label={togglingStatus ? 'Updating connector status' : connector.status === 'Enabled' ? 'Disable connector' : 'Enable connector'}
         >
           {togglingStatus
             ? 'Updating...'
@@ -240,6 +242,7 @@ export function ConnectorDetail({
           onClick={() => handleSyncNow(false)}
           disabled={syncing || connector.status === 'Disabled'}
           data-testid="sync-now-btn"
+          aria-label={syncing ? 'Syncing connector' : 'Sync connector now'}
         >
           {syncing ? 'Syncing...' : 'Sync Now'}
         </button>
@@ -248,6 +251,7 @@ export function ConnectorDetail({
           onClick={() => handleSyncNow(true)}
           disabled={syncing || connector.status === 'Disabled'}
           data-testid="backfill-btn"
+          aria-label="Backfill connector data"
         >
           Backfill
         </button>
@@ -256,6 +260,7 @@ export function ConnectorDetail({
           onClick={handlePreview}
           disabled={previewing}
           data-testid="preview-btn"
+          aria-label={previewing ? 'Loading preview' : 'Preview connector data'}
         >
           {previewing ? 'Previewing...' : 'Preview'}
         </button>
@@ -264,6 +269,7 @@ export function ConnectorDetail({
             className="btn"
             onClick={() => setEditing(true)}
             data-testid="edit-btn"
+            aria-label="Edit connector configuration"
           >
             Edit
           </button>
@@ -273,13 +279,14 @@ export function ConnectorDetail({
             className="btn btn-danger-outline"
             onClick={() => setConfirmDelete(true)}
             data-testid="delete-btn"
+            aria-label="Delete connector"
           >
             Delete
           </button>
         ) : (
           <span className="confirm-delete">
             <span>Are you sure?</span>
-            <button className="btn btn-sm btn-danger" onClick={handleDelete} data-testid="confirm-delete-btn">
+            <button className="btn btn-sm btn-danger" onClick={handleDelete} data-testid="confirm-delete-btn" aria-label="Confirm delete connector">
               Yes, Delete
             </button>
             <button className="btn btn-sm" onClick={() => setConfirmDelete(false)} aria-label="Cancel delete">

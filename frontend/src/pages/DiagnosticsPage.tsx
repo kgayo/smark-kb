@@ -114,6 +114,7 @@ export function DiagnosticsPage() {
           className={`diag-tab${tab === 'overview' ? ' diag-tab-active' : ''}`}
           onClick={() => setTab('overview')}
           data-testid="tab-overview"
+          aria-label="Overview tab"
         >
           Overview
         </button>
@@ -121,6 +122,7 @@ export function DiagnosticsPage() {
           className={`diag-tab${tab === 'webhooks' ? ' diag-tab-active' : ''}`}
           onClick={() => setTab('webhooks')}
           data-testid="tab-webhooks"
+          aria-label="Webhooks tab"
         >
           Webhooks
           {summary && summary.fallbackWebhooks > 0 && (
@@ -133,6 +135,7 @@ export function DiagnosticsPage() {
           className={`diag-tab${tab === 'dead-letters' ? ' diag-tab-active' : ''}`}
           onClick={() => setTab('dead-letters')}
           data-testid="tab-dead-letters"
+          aria-label="Dead Letters tab"
         >
           Dead Letters
           {deadLetters && deadLetters.count > 0 && (

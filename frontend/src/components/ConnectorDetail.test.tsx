@@ -181,6 +181,22 @@ describe('ConnectorDetail', () => {
     expect(screen.getByTestId('toggle-status-btn')).toHaveTextContent('Enable');
   });
 
+  it('action buttons have descriptive aria-labels', () => {
+    renderDetail();
+    expect(screen.getByTestId('test-connection-btn')).toHaveAttribute('aria-label', 'Test connection');
+    expect(screen.getByTestId('toggle-status-btn')).toHaveAttribute('aria-label', 'Disable connector');
+    expect(screen.getByTestId('sync-now-btn')).toHaveAttribute('aria-label', 'Sync connector now');
+    expect(screen.getByTestId('backfill-btn')).toHaveAttribute('aria-label', 'Backfill connector data');
+    expect(screen.getByTestId('preview-btn')).toHaveAttribute('aria-label', 'Preview connector data');
+    expect(screen.getByTestId('edit-btn')).toHaveAttribute('aria-label', 'Edit connector configuration');
+    expect(screen.getByTestId('delete-btn')).toHaveAttribute('aria-label', 'Delete connector');
+  });
+
+  it('enable connector aria-label for disabled connector', () => {
+    renderDetail({ ...baseConnector, status: 'Disabled' });
+    expect(screen.getByTestId('toggle-status-btn')).toHaveAttribute('aria-label', 'Enable connector');
+  });
+
   // ── Sync Now / Backfill ──
 
   it('triggers sync now with isBackfill=false', async () => {

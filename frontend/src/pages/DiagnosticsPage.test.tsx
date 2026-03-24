@@ -337,6 +337,9 @@ describe('DiagnosticsPage', () => {
     expect(screen.getByTestId('tab-overview')).toBeInTheDocument();
     expect(screen.getByTestId('tab-webhooks')).toBeInTheDocument();
     expect(screen.getByTestId('tab-dead-letters')).toBeInTheDocument();
+    expect(screen.getByTestId('tab-overview')).toHaveAttribute('aria-label', 'Overview tab');
+    expect(screen.getByTestId('tab-webhooks')).toHaveAttribute('aria-label', 'Webhooks tab');
+    expect(screen.getByTestId('tab-dead-letters')).toHaveAttribute('aria-label', 'Dead Letters tab');
   });
 
   it('shows secrets status with model name', async () => {

@@ -162,13 +162,13 @@ export function CostControlsPage() {
       {success && <div className="success-banner" data-testid="cost-success">{success}</div>}
 
       <div className="admin-tabs">
-        <button className={`admin-tab ${tab === 'usage' ? 'active' : ''}`} onClick={() => setTab('usage')}>
+        <button className={`admin-tab ${tab === 'usage' ? 'active' : ''}`} onClick={() => setTab('usage')} aria-label="Token Usage tab">
           Token Usage
         </button>
-        <button className={`admin-tab ${tab === 'settings' ? 'active' : ''}`} onClick={() => setTab('settings')}>
+        <button className={`admin-tab ${tab === 'settings' ? 'active' : ''}`} onClick={() => setTab('settings')} aria-label="Settings tab">
           Settings
         </button>
-        <button className={`admin-tab ${tab === 'budget' ? 'active' : ''}`} onClick={() => setTab('budget')}>
+        <button className={`admin-tab ${tab === 'budget' ? 'active' : ''}`} onClick={() => setTab('budget')} aria-label="Budget Status tab">
           Budget Status
         </button>
       </div>

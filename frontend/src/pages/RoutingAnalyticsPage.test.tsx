@@ -242,4 +242,21 @@ describe('RoutingAnalyticsPage', () => {
     await waitFor(() => expect(mockedApi.getRoutingAnalytics).toHaveBeenCalled());
     expect(screen.getByLabelText('Analytics window period')).toBeInTheDocument();
   });
+
+  it('tab buttons have aria-labels', async () => {
+    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedApi.listRoutingRules.mockResolvedValue([]);
+    mockedApi.listRoutingRecommendations.mockResolvedValue([]);
+    mockedApi.getRoutingAnalytics.mockResolvedValue({
+      totalEscalations: 0, acceptedCount: 0, rejectedCount: 0, avgResponseMinutes: 0,
+      p95ResponseMinutes: 0, acceptanceRate: 0, routingAccuracy: 0,
+      selfResolutionRate: 0, teamMetrics: [], productAreaMetrics: [],
+      computedAt: '2026-03-19T00:00:00Z', windowStart: null, windowEnd: null,
+    });
+    renderPage();
+    await waitFor(() => expect(mockedApi.getRoutingAnalytics).toHaveBeenCalled());
+    expect(screen.getByLabelText('Analytics tab')).toBeInTheDocument();
+    expect(screen.getByLabelText('Rules tab')).toBeInTheDocument();
+    expect(screen.getByLabelText('Recommendations tab')).toBeInTheDocument();
+  });
 });

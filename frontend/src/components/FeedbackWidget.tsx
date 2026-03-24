@@ -154,6 +154,7 @@ export function FeedbackWidget({ messageId, existingFeedback, onSubmit }: Feedba
             data-testid="submit-feedback"
             onClick={handleSubmitDetails}
             disabled={submitting}
+            aria-label={submitting ? 'Submitting feedback' : 'Submit feedback'}
           >
             {submitting ? 'Submitting...' : 'Submit feedback'}
           </button>

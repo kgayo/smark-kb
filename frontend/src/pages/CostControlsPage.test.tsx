@@ -83,6 +83,17 @@ describe('CostControlsPage', () => {
     });
   });
 
+  it('tab buttons have aria-labels', async () => {
+    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedApi.getTokenUsageSummary.mockResolvedValue(sampleSummary);
+    mockedApi.getDailyUsage.mockResolvedValue([]);
+    renderPage();
+    await waitFor(() => expect(mockedApi.getTokenUsageSummary).toHaveBeenCalled());
+    expect(screen.getByLabelText('Token Usage tab')).toBeInTheDocument();
+    expect(screen.getByLabelText('Settings tab')).toBeInTheDocument();
+    expect(screen.getByLabelText('Budget Status tab')).toBeInTheDocument();
+  });
+
   it('switches to settings tab', async () => {
     mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
     mockedApi.getTokenUsageSummary.mockResolvedValue(sampleSummary);

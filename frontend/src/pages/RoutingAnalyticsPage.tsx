@@ -199,13 +199,13 @@ export function RoutingAnalyticsPage() {
       {success && <div className="success-banner" data-testid="routing-success">{success}</div>}
 
       <div className="admin-tabs">
-        <button className={`admin-tab ${tab === 'analytics' ? 'active' : ''}`} onClick={() => setTab('analytics')}>
+        <button className={`admin-tab ${tab === 'analytics' ? 'active' : ''}`} onClick={() => setTab('analytics')} aria-label="Analytics tab">
           Analytics
         </button>
-        <button className={`admin-tab ${tab === 'rules' ? 'active' : ''}`} onClick={() => setTab('rules')}>
+        <button className={`admin-tab ${tab === 'rules' ? 'active' : ''}`} onClick={() => setTab('rules')} aria-label="Rules tab">
           Rules ({rules.length})
         </button>
-        <button className={`admin-tab ${tab === 'recommendations' ? 'active' : ''}`} onClick={() => setTab('recommendations')}>
+        <button className={`admin-tab ${tab === 'recommendations' ? 'active' : ''}`} onClick={() => setTab('recommendations')} aria-label="Recommendations tab">
           Recommendations
         </button>
       </div>
