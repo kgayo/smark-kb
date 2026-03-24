@@ -340,7 +340,7 @@ describe('SynonymManagementPage', () => {
   it('synonym inline-edit inputs have aria-labels', async () => {
     mockedClient.getMe.mockResolvedValue(adminUser);
     mockedClient.listSynonymRules.mockResolvedValue({
-      rules: [{ id: 'r1', groupName: 'test-group', rule: 'foo,bar', description: 'test desc', isActive: true, createdAt: '', updatedAt: '' }],
+      rules: [{ id: 'r1', tenantId: 't1', groupName: 'test-group', rule: 'foo,bar', description: 'test desc', isActive: true, createdAt: '', updatedAt: '', createdBy: 'user1', updatedBy: null }],
       totalCount: 1,
       groups: ['test-group'],
     });

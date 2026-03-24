@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-24 (Asia/Manila) — iteration 145 (TECH-046 fix MSAL logger severity mapping + descriptive close-modal aria-label)
-Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2647 tests passing (2145 backend + 471 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 145: TECH-046 (fix MSAL loggerCallback severity mapping; descriptive close-modal aria-label; 4 new tests).
+Last updated: 2026-03-24 (Asia/Manila) — iteration 146 (TECH-047 aria-labels on 2 EscalationDraftModal selects + fix SynonymManagementPage test TS error)
+Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2651 tests passing (2145 backend + 470 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 146: TECH-047 (aria-labels on 2 EscalationDraftModal select elements; fix SynonymManagementPage.test.tsx TS error; 2 new test assertions).
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -249,6 +249,10 @@ Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-00
 - [x] TECH-046: Fix MSAL logger severity mapping + descriptive close-modal aria-label.
   - Root cause: (1) `msalConfig.ts` loggerCallback used `console.debug` for all MSAL log messages regardless of severity level — Error and Warning messages were logged as debug, making them invisible in most browser console filters. (2) `EscalationDraftModal.tsx` close button had generic `aria-label="Close"` — screen readers could not identify what was being closed.
   - Completed (iteration 145): (1) Replaced `console.debug` catch-all with severity-aware mapping: `LogLevel.Error` → `console.error`, `LogLevel.Warning` → `console.warn`, Info/Verbose silenced (no production noise). (2) Changed `aria-label="Close"` to `aria-label="Close escalation draft modal"`. 3 new msalConfig logger tests (error, warning, info/verbose silenced); 1 existing EscalationDraftModal close test updated with aria-label assertion. 471 frontend tests passing.
+
+- [x] TECH-047: Add aria-labels to 2 unlabeled select elements in EscalationDraftModal + fix SynonymManagementPage test TS error.
+  - Root cause: Code quality scan found 2 `<select>` elements in `EscalationDraftModal.tsx` (severity selector and connector selector) missing `aria-label` attributes, while all other selects across the codebase were properly labeled. Also, `SynonymManagementPage.test.tsx` had a pre-existing TypeScript error — mock `SynonymRuleResponse` was missing `tenantId`, `createdBy`, and `updatedBy` fields.
+  - Completed (iteration 146): Added `aria-label="Escalation severity"` to severity select. Added `aria-label="Select connector for external work item creation"` to connector select. Fixed SynonymManagementPage test mock with missing fields. 2 new test assertions in existing EscalationDraftModal tests. 470 frontend tests passing; TypeScript clean; build clean.
 
 - [x] TECH-023: Add structured logging to all silent `catch (JsonException)` blocks.
   - Root cause: 25 `catch (JsonException)` blocks across 24 files silently swallowed deserialization errors with no logging. When JSON stored in SQL columns or received from external APIs was malformed, the code returned fallback values (null, empty list, empty dict) with no diagnostic trace, making production debugging impossible.

@@ -276,6 +276,7 @@ export function EscalationDraftModal({
                     value={severity}
                     onChange={(e) => setSeverity(e.target.value)}
                     data-testid="draft-severity"
+                    aria-label="Escalation severity"
                   >
                     {SEVERITY_OPTIONS.map((s) => (
                       <option key={s} value={s}>{s}</option>
@@ -380,6 +381,7 @@ export function EscalationDraftModal({
                     value={selectedConnectorId}
                     onChange={(e) => setSelectedConnectorId(e.target.value)}
                     data-testid="connector-selector"
+                    aria-label="Select connector for external work item creation"
                   >
                     <option value="">Select a connector...</option>
                     {connectors.map((c) => (

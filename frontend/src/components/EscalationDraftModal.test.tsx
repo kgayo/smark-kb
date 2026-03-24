@@ -156,6 +156,8 @@ describe('EscalationDraftModal', () => {
     // Verify aria-labels on action buttons
     expect(screen.getByTestId('draft-save')).toHaveAttribute('aria-label', 'Save escalation draft');
     expect(screen.getByTestId('draft-copy-markdown')).toHaveAttribute('aria-label', 'Copy escalation draft as Markdown');
+    // Verify aria-labels on select elements
+    expect(screen.getByTestId('draft-severity')).toHaveAttribute('aria-label', 'Escalation severity');
 
     // Edit a field
     fireEvent.change(screen.getByTestId('draft-customer-summary'), {
@@ -322,6 +324,7 @@ describe('EscalationDraftModal', () => {
       expect(screen.getByTestId('draft-create-external')).toBeInTheDocument();
     });
     expect(screen.getByTestId('draft-create-external')).toHaveAttribute('aria-label', 'Create external work item from escalation draft');
+    expect(screen.getByTestId('connector-selector')).toHaveAttribute('aria-label', 'Select connector for external work item creation');
   });
 
   it('renders external creation success link with aria-label', async () => {
