@@ -319,5 +319,6 @@ describe('PatternDetailView', () => {
     expect(screen.getByLabelText('Deprecation reason')).toBeTruthy();
     expect(screen.getByLabelText('Superseding pattern ID')).toBeTruthy();
     expect(screen.getByLabelText('Cancel deprecation')).toBeTruthy();
+    expect(screen.getByLabelText('Confirm pattern deprecation')).toBeTruthy();
   });
 });

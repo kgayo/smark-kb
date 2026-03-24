@@ -51,6 +51,12 @@ describe('MessageInput', () => {
   it('shows Thinking... when disabled', () => {
     render(<MessageInput onSend={() => {}} disabled={true} />);
     expect(screen.getByTestId('send-button')).toHaveTextContent('Thinking...');
+    expect(screen.getByRole('button', { name: 'Thinking' })).toBeInTheDocument();
+  });
+
+  it('has correct aria-label on send button', () => {
+    render(<MessageInput onSend={() => {}} disabled={false} />);
+    expect(screen.getByRole('button', { name: 'Send message' })).toBeInTheDocument();
   });
 
   it('sends on Enter key press', () => {

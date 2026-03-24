@@ -43,7 +43,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               {this.state.error.message}
             </pre>
           )}
-          <button onClick={this.handleReload} style={{ marginTop: '1rem', padding: '0.5rem 1rem' }}>
+          <button onClick={this.handleReload} style={{ marginTop: '1rem', padding: '0.5rem 1rem' }} aria-label="Reload page">
             Reload page
           </button>
         </div>

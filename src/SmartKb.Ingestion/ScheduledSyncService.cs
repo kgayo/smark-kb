@@ -104,7 +104,7 @@ public sealed class ScheduledSyncService : BackgroundService
         {
             try
             {
-                if (IsDue(connector, now))
+                if (IsDue(connector, now, _logger))
                 {
                     await TriggerScheduledSyncAsync(db, connector, now, ct);
                     triggered++;
@@ -127,7 +127,7 @@ public sealed class ScheduledSyncService : BackgroundService
         }
     }
 
-    internal static bool IsDue(ConnectorEntity connector, DateTimeOffset now)
+    internal static bool IsDue(ConnectorEntity connector, DateTimeOffset now, ILogger? logger = null)
     {
         CrontabSchedule schedule;
         try
@@ -135,9 +135,11 @@ public sealed class ScheduledSyncService : BackgroundService
             schedule = CrontabSchedule.Parse(connector.ScheduleCron,
                 new CrontabSchedule.ParseOptions { IncludingSeconds = false });
         }
-        catch (CrontabException)
+        catch (CrontabException ex)
         {
             // Invalid cron — treated as "not due". Validation at connector save time prevents this in practice.
+            logger?.LogWarning(ex, "Invalid cron expression '{Cron}' on connector {ConnectorId}; treating as not due.",
+                connector.ScheduleCron, connector.Id);
             return false;
         }
 

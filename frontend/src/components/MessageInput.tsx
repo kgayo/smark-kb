@@ -43,6 +43,7 @@ export function MessageInput({ onSend, disabled }: MessageInputProps) {
         disabled={disabled || !value.trim()}
         className="btn btn-primary"
         data-testid="send-button"
+        aria-label={disabled ? 'Thinking' : 'Send message'}
       >
         {disabled ? 'Thinking...' : 'Send'}
       </button>

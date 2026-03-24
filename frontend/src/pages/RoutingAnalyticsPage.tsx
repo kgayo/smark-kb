@@ -216,7 +216,7 @@ export function RoutingAnalyticsPage() {
             <div className="admin-toolbar">
               <label>
                 Window:{' '}
-                <select value={windowDays} onChange={(e) => setWindowDays(Number(e.target.value))}>
+                <select value={windowDays} onChange={(e) => setWindowDays(Number(e.target.value))} aria-label="Analytics window period">
                   <option value={7}>7 days</option>
                   <option value={14}>14 days</option>
                   <option value={30}>30 days</option>

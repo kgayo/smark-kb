@@ -87,6 +87,7 @@ describe('AuthProvider', () => {
 
     expect(screen.getByText('Sign In')).toBeInTheDocument();
     expect(screen.getByText('Sign in with your organization account to continue.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /sign in with your organization account/i })).toBeInTheDocument();
   });
 
   it('renders Smart KB heading in auth gate', () => {

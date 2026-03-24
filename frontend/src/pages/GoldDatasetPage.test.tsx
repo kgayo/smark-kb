@@ -305,4 +305,15 @@ describe('GoldDatasetPage', () => {
       expect(screen.getByText('Audit')).toBeInTheDocument();
     });
   });
+
+  it('has aria-label on response type select in create form', async () => {
+    setupAdminUser();
+    mockedClient.listGoldCases.mockResolvedValue(mockCases);
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('gold-tabs')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByTestId('tab-create'));
+    expect(screen.getByLabelText('Expected response type')).toBeInTheDocument();
+  });
 });

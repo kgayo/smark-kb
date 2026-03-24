@@ -61,7 +61,7 @@ function AuthGate({ children }: { children: ReactNode }) {
         <div className="auth-gate">
           <h1>Smart KB</h1>
           <p>Sign in with your organization account to continue.</p>
-          <button onClick={handleLogin} className="btn btn-primary">
+          <button onClick={handleLogin} className="btn btn-primary" aria-label="Sign in with your organization account">
             Sign In
           </button>
           {!isAuthenticated && null}

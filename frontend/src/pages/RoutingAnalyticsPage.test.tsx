@@ -229,4 +229,17 @@ describe('RoutingAnalyticsPage', () => {
     expect(screen.getByText('Diagnostics')).toBeInTheDocument();
     expect(screen.getByText('Playbooks')).toBeInTheDocument();
   });
+
+  it('has aria-label on analytics window period select', async () => {
+    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedApi.getRoutingAnalytics.mockResolvedValue({
+      tenantId: 't1', totalOutcomes: 0, totalEscalations: 0, totalReroutes: 0,
+      totalResolvedWithoutEscalation: 0, overallAcceptanceRate: 0, overallRerouteRate: 0,
+      selfResolutionRate: 0, teamMetrics: [], productAreaMetrics: [],
+      computedAt: '2026-03-19T00:00:00Z', windowStart: null, windowEnd: null,
+    });
+    renderPage();
+    await waitFor(() => expect(mockedApi.getRoutingAnalytics).toHaveBeenCalled());
+    expect(screen.getByLabelText('Analytics window period')).toBeInTheDocument();
+  });
 });

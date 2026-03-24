@@ -160,4 +160,14 @@ describe('CostControlsPage', () => {
       expect(screen.getByTestId('cost-error')).toBeInTheDocument();
     });
   });
+
+  it('has aria-label on usage period select', async () => {
+    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedApi.getTokenUsageSummary.mockResolvedValue(sampleSummary);
+    mockedApi.getDailyUsage.mockResolvedValue([]);
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByLabelText('Usage period')).toBeInTheDocument();
+    });
+  });
 });

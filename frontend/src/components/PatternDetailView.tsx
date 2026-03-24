@@ -172,6 +172,7 @@ export function PatternDetailView({
                 onDeprecate(deprecateReason, supersedingId || undefined)
               )}
               data-testid="btn-confirm-deprecate"
+              aria-label="Confirm pattern deprecation"
             >
               Confirm Deprecation
             </button>

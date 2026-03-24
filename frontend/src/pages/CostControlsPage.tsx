@@ -179,7 +179,7 @@ export function CostControlsPage() {
             <div className="admin-toolbar">
               <label>
                 Period:{' '}
-                <select value={usageDays} onChange={(e) => setUsageDays(Number(e.target.value))}>
+                <select value={usageDays} onChange={(e) => setUsageDays(Number(e.target.value))} aria-label="Usage period">
                   <option value={7}>7 days</option>
                   <option value={14}>14 days</option>
                   <option value={30}>30 days</option>

@@ -451,6 +451,7 @@ function CreatePanel({ form, creating, error, success, onChange, onCreate }: Cre
               value={form.responseType}
               onChange={(e) => onChange('responseType', e.target.value)}
               data-testid="create-response-type"
+              aria-label="Expected response type"
             >
               <option value="final_answer">final_answer</option>
               <option value="next_steps_only">next_steps_only</option>
