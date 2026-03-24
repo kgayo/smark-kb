@@ -294,7 +294,9 @@ describe('EscalationDraftModal', () => {
     expect(adoBtn).toBeDisabled();
     expect(clickupBtn).toBeDisabled();
     expect(adoBtn).toHaveAttribute('title', expect.stringContaining('No ADO or ClickUp connectors configured'));
+    expect(adoBtn).toHaveAttribute('aria-label', 'Create ADO work item (no connectors configured)');
     expect(clickupBtn).toHaveAttribute('title', expect.stringContaining('No ADO or ClickUp connectors configured'));
+    expect(clickupBtn).toHaveAttribute('aria-label', 'Create ClickUp task (no connectors configured)');
   });
 
   it('renders create external button with aria-label when connectors available', async () => {

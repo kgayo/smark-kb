@@ -406,6 +406,7 @@ function ExportPanel({ filters, exporting, error, success, onFilterChange, onExp
             onClick={onExport}
             disabled={exporting}
             data-testid="export-download-btn"
+            aria-label={exporting ? 'Exporting audit events' : 'Download NDJSON export'}
           >
             {exporting ? 'Exporting...' : 'Download NDJSON Export'}
           </button>

@@ -459,6 +459,7 @@ export function EscalationDraftModal({
                     className="btn btn-coming-soon"
                     disabled
                     title="No ADO or ClickUp connectors configured"
+                    aria-label="Create ADO work item (no connectors configured)"
                     data-testid="draft-create-ado"
                   >
                     Create ADO work item
@@ -467,6 +468,7 @@ export function EscalationDraftModal({
                     className="btn btn-coming-soon"
                     disabled
                     title="No ADO or ClickUp connectors configured"
+                    aria-label="Create ClickUp task (no connectors configured)"
                     data-testid="draft-create-clickup"
                   >
                     Create ClickUp task

@@ -2,8 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { downloadFile } from './downloadFile';
 
 describe('downloadFile', () => {
-  let appendChildSpy: ReturnType<typeof vi.spyOn>;
-  let removeChildSpy: ReturnType<typeof vi.spyOn>;
   let createObjectURLSpy: ReturnType<typeof vi.fn>;
   let revokeObjectURLSpy: ReturnType<typeof vi.fn>;
   let clickSpy: ReturnType<typeof vi.fn>;
@@ -15,12 +13,12 @@ describe('downloadFile', () => {
       download: '',
       click: clickSpy,
     } as unknown as HTMLAnchorElement);
-    appendChildSpy = vi.spyOn(document.body, 'appendChild').mockImplementation((node) => node);
-    removeChildSpy = vi.spyOn(document.body, 'removeChild').mockImplementation((node) => node);
+    vi.spyOn(document.body, 'appendChild').mockImplementation((node) => node);
+    vi.spyOn(document.body, 'removeChild').mockImplementation((child) => child);
     createObjectURLSpy = vi.fn().mockReturnValue('blob:mock-url');
     revokeObjectURLSpy = vi.fn();
-    globalThis.URL.createObjectURL = createObjectURLSpy;
-    globalThis.URL.revokeObjectURL = revokeObjectURLSpy;
+    globalThis.URL.createObjectURL = createObjectURLSpy as unknown as typeof URL.createObjectURL;
+    globalThis.URL.revokeObjectURL = revokeObjectURLSpy as unknown as typeof URL.revokeObjectURL;
   });
 
   afterEach(() => {
@@ -33,8 +31,8 @@ describe('downloadFile', () => {
 
     expect(createObjectURLSpy).toHaveBeenCalledWith(blob);
     expect(clickSpy).toHaveBeenCalled();
-    expect(appendChildSpy).toHaveBeenCalled();
-    expect(removeChildSpy).toHaveBeenCalled();
+    expect(document.body.appendChild).toHaveBeenCalled();
+    expect(document.body.removeChild).toHaveBeenCalled();
     expect(revokeObjectURLSpy).toHaveBeenCalledWith('blob:mock-url');
   });
 

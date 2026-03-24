@@ -229,7 +229,9 @@ describe('GoldDatasetPage', () => {
 
     fireEvent.change(screen.getByTestId('create-case-id'), { target: { value: 'eval-00100' } });
     fireEvent.change(screen.getByTestId('create-query'), { target: { value: 'How do I reset my password after lockout?' } });
-    fireEvent.click(screen.getByTestId('create-submit-btn'));
+    const createBtn = screen.getByTestId('create-submit-btn');
+    expect(createBtn).toHaveAttribute('aria-label', 'Create gold case');
+    fireEvent.click(createBtn);
 
     await waitFor(() => {
       expect(mockedClient.createGoldCase).toHaveBeenCalled();
@@ -275,6 +277,7 @@ describe('GoldDatasetPage', () => {
       writable: true,
     });
 
+    expect(screen.getByTestId('export-download-btn')).toHaveAttribute('aria-label', 'Download JSONL export');
     fireEvent.click(screen.getByTestId('export-download-btn'));
     await waitFor(() => {
       expect(mockedClient.exportGoldCases).toHaveBeenCalled();

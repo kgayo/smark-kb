@@ -522,6 +522,7 @@ function CreatePanel({ form, creating, error, success, onChange, onCreate }: Cre
             onClick={onCreate}
             disabled={creating || !form.caseId || !form.query}
             data-testid="create-submit-btn"
+            aria-label={creating ? 'Creating gold case' : 'Create gold case'}
           >
             {creating ? 'Creating...' : 'Create Gold Case'}
           </button>
@@ -552,6 +553,7 @@ function ExportPanel({ exporting, error, onExport }: ExportPanelProps) {
           onClick={onExport}
           disabled={exporting}
           data-testid="export-download-btn"
+          aria-label={exporting ? 'Exporting gold cases' : 'Download JSONL export'}
         >
           {exporting ? 'Exporting...' : 'Download JSONL Export'}
         </button>

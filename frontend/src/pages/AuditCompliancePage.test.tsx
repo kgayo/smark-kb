@@ -260,6 +260,7 @@ describe('AuditCompliancePage', () => {
       expect(screen.getByTestId('export-panel')).toBeInTheDocument();
     });
     expect(screen.getByTestId('export-download-btn')).toBeInTheDocument();
+    expect(screen.getByTestId('export-download-btn')).toHaveAttribute('aria-label', 'Download NDJSON export');
   });
 
   it('triggers export download on button click', async () => {
