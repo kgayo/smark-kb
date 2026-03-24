@@ -186,6 +186,7 @@ export function FieldMappingEditor({
                       type="checkbox"
                       checked={rule.isRequired}
                       onChange={(e) => updateRule(i, { isRequired: e.target.checked })}
+                      aria-label={`Required flag for rule ${i + 1}`}
                     />
                   ) : (
                     <span>{rule.isRequired ? 'Yes' : 'No'}</span>

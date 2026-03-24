@@ -228,7 +228,7 @@ export function ChatPage() {
         {!activeSessionId ? (
           <div className="no-session">
             <p>Select or create a session to start chatting.</p>
-            <button onClick={handleNewSession} className="btn btn-primary">
+            <button onClick={handleNewSession} className="btn btn-primary" aria-label="Start new chat session">
               Start new session
             </button>
           </div>

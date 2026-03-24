@@ -58,6 +58,7 @@ describe('ChatPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Select or create a session to start chatting.')).toBeInTheDocument();
     });
+    expect(screen.getByLabelText('Start new chat session')).toBeInTheDocument();
   });
 
   it('loads sessions on mount', async () => {

@@ -294,16 +294,16 @@ export function PlaybooksPage() {
         {isCreate && (
           <div className="draft-field">
             <label>Team Name</label>
-            <input value={form.teamName} onChange={(e) => setForm({ ...form, teamName: e.target.value })} />
+            <input value={form.teamName} onChange={(e) => setForm({ ...form, teamName: e.target.value })} aria-label="Team name" />
           </div>
         )}
         <div className="draft-field">
           <label>Description</label>
-          <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} />
+          <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} aria-label="Playbook description" />
         </div>
         <div className="draft-field">
           <label>Contact Channel</label>
-          <input value={form.contactChannel ?? ''} onChange={(e) => setForm({ ...form, contactChannel: e.target.value || undefined })} placeholder="e.g., #team-slack-channel" />
+          <input value={form.contactChannel ?? ''} onChange={(e) => setForm({ ...form, contactChannel: e.target.value || undefined })} placeholder="e.g., #team-slack-channel" aria-label="Contact channel" />
         </div>
         <div className="draft-field">
           <label>Min Severity</label>
@@ -318,11 +318,11 @@ export function PlaybooksPage() {
         <div className="draft-field">
           <label>Max Concurrent Escalations</label>
           <input type="number" min={1} value={form.maxConcurrentEscalations ?? ''}
-            onChange={(e) => setForm({ ...form, maxConcurrentEscalations: e.target.value ? parseInt(e.target.value) : undefined })} />
+            onChange={(e) => setForm({ ...form, maxConcurrentEscalations: e.target.value ? parseInt(e.target.value) : undefined })} aria-label="Max concurrent escalations" />
         </div>
         <div className="draft-field">
           <label>Fallback Team</label>
-          <input value={form.fallbackTeam ?? ''} onChange={(e) => setForm({ ...form, fallbackTeam: e.target.value || undefined })} />
+          <input value={form.fallbackTeam ?? ''} onChange={(e) => setForm({ ...form, fallbackTeam: e.target.value || undefined })} aria-label="Fallback team" />
         </div>
         <div className="draft-field">
           <label>
@@ -338,7 +338,9 @@ export function PlaybooksPage() {
             {KNOWN_HANDOFF_FIELDS.map((field) => (
               <button key={field} type="button"
                 className={`filter-chip ${(form.requiredFields ?? []).includes(field) ? 'active' : ''}`}
-                onClick={() => toggleRequiredField(field)}>
+                onClick={() => toggleRequiredField(field)}
+                aria-label={`Toggle required field: ${field}`}
+                aria-pressed={(form.requiredFields ?? []).includes(field)}>
                 {field}
               </button>
             ))}
@@ -350,7 +352,7 @@ export function PlaybooksPage() {
           <div className="admin-form-row">
             <input value={checklistInput} onChange={(e) => setChecklistInput(e.target.value)}
               placeholder="Add checklist item" aria-label="New checklist item" onKeyDown={(e) => e.key === 'Enter' && addChecklistItem()} />
-            <button className="btn btn-sm" type="button" onClick={addChecklistItem}>Add</button>
+            <button className="btn btn-sm" type="button" onClick={addChecklistItem} aria-label="Add checklist item">Add</button>
           </div>
           <ol className="playbook-checklist editable">
             {(form.checklist ?? []).map((item, i) => (
@@ -363,10 +365,10 @@ export function PlaybooksPage() {
         </div>
 
         <div className="admin-form-actions">
-          <button className="btn btn-primary" onClick={isCreate ? handleCreate : handleUpdate}>
+          <button className="btn btn-primary" onClick={isCreate ? handleCreate : handleUpdate} aria-label={isCreate ? 'Create playbook' : 'Save playbook changes'}>
             {isCreate ? 'Create' : 'Save'}
           </button>
-          <button className="btn" onClick={() => { setView(isCreate ? 'list' : 'detail'); setEditing(false); }}>
+          <button className="btn" onClick={() => { setView(isCreate ? 'list' : 'detail'); setEditing(false); }} aria-label="Cancel playbook form">
             Cancel
           </button>
         </div>

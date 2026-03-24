@@ -108,6 +108,10 @@ describe('PlaybooksPage', () => {
     expect(screen.getByTestId('create-playbook-form')).toBeInTheDocument();
     expect(screen.getByText('Create Playbook')).toBeInTheDocument();
     expect(screen.getByLabelText('Minimum severity')).toBeInTheDocument();
+    expect(screen.getByLabelText('Team name')).toBeInTheDocument();
+    expect(screen.getByLabelText('Playbook description')).toBeInTheDocument();
+    expect(screen.getByLabelText('Contact channel')).toBeInTheDocument();
+    expect(screen.getByLabelText('Create playbook')).toBeInTheDocument();
   });
 
   it('shows error on load failure', async () => {

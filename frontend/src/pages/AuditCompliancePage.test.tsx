@@ -196,6 +196,8 @@ describe('AuditCompliancePage', () => {
 
     const nextBtn = screen.getByTestId('page-next');
     expect(nextBtn).not.toBeDisabled();
+    expect(nextBtn).toHaveAttribute('aria-label', 'Next page');
+    expect(screen.getByTestId('page-prev')).toHaveAttribute('aria-label', 'Previous page');
     fireEvent.click(nextBtn);
 
     await waitFor(() => {

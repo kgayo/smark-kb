@@ -320,27 +320,27 @@ export function PrivacyAdminPage() {
                 ))}
                 <div className="admin-form-row">
                   <input placeholder="Name" value={newPattern.name}
-                    onChange={(e) => setNewPattern({ ...newPattern, name: e.target.value })} />
+                    onChange={(e) => setNewPattern({ ...newPattern, name: e.target.value })} aria-label="Custom pattern name" />
                   <input placeholder="Regex pattern" value={newPattern.pattern}
-                    onChange={(e) => setNewPattern({ ...newPattern, pattern: e.target.value })} />
+                    onChange={(e) => setNewPattern({ ...newPattern, pattern: e.target.value })} aria-label="Custom pattern regex" />
                   <input placeholder="Placeholder" value={newPattern.placeholder}
-                    onChange={(e) => setNewPattern({ ...newPattern, placeholder: e.target.value })} />
-                  <button className="btn btn-sm" onClick={addCustomPattern}>Add</button>
+                    onChange={(e) => setNewPattern({ ...newPattern, placeholder: e.target.value })} aria-label="Custom pattern placeholder" />
+                  <button className="btn btn-sm" onClick={addCustomPattern} aria-label="Add custom PII pattern">Add</button>
                 </div>
 
                 <div className="admin-form-actions">
-                  <button className="btn btn-primary" onClick={handleSavePiiPolicy}>Save</button>
-                  <button className="btn" onClick={() => setPiiEditing(false)}>Cancel</button>
+                  <button className="btn btn-primary" onClick={handleSavePiiPolicy} aria-label="Save PII policy">Save</button>
+                  <button className="btn" onClick={() => setPiiEditing(false)} aria-label="Cancel PII policy edit">Cancel</button>
                 </div>
               </div>
             ) : (
               <div>
                 <div className="admin-toolbar">
-                  <button className="btn btn-sm btn-primary" onClick={startPiiEdit}>
+                  <button className="btn btn-sm btn-primary" onClick={startPiiEdit} aria-label={piiPolicy ? 'Edit PII policy' : 'Configure PII policy'}>
                     {piiPolicy ? 'Edit Policy' : 'Configure Policy'}
                   </button>
                   {piiPolicy && (
-                    <button className="btn btn-sm btn-danger-outline" onClick={handleResetPiiPolicy}>Reset</button>
+                    <button className="btn btn-sm btn-danger-outline" onClick={handleResetPiiPolicy} aria-label="Reset PII policy to defaults">Reset</button>
                   )}
                 </div>
                 {piiPolicy ? (
@@ -362,10 +362,10 @@ export function PrivacyAdminPage() {
         {tab === 'retention' && (
           <div data-testid="retention-panel">
             <div className="admin-toolbar">
-              <button className="btn btn-sm btn-primary" onClick={() => setShowRetentionForm(true)}>
+              <button className="btn btn-sm btn-primary" onClick={() => setShowRetentionForm(true)} aria-label="Add or update retention policy">
                 Add/Update Policy
               </button>
-              <button className="btn btn-sm btn-danger-outline" onClick={handleRunCleanup}>
+              <button className="btn btn-sm btn-danger-outline" onClick={handleRunCleanup} aria-label="Run data cleanup now">
                 Run Cleanup Now
               </button>
             </div>
@@ -384,8 +384,8 @@ export function PrivacyAdminPage() {
                     value={retentionForm.metricRetentionDays ?? ''}
                     onChange={(e) => setRetentionForm({ ...retentionForm, metricRetentionDays: e.target.value ? parseInt(e.target.value) : undefined })}
                     aria-label="Metric retention days" />
-                  <button className="btn btn-sm btn-primary" onClick={handleSaveRetention}>Save</button>
-                  <button className="btn btn-sm" onClick={() => setShowRetentionForm(false)}>Cancel</button>
+                  <button className="btn btn-sm btn-primary" onClick={handleSaveRetention} aria-label="Save retention policy">Save</button>
+                  <button className="btn btn-sm" onClick={() => setShowRetentionForm(false)} aria-label="Cancel retention policy form">Cancel</button>
                 </div>
               </div>
             )}
@@ -411,7 +411,7 @@ export function PrivacyAdminPage() {
                       <td>{new Date(p.updatedAt).toLocaleString()}</td>
                       <td>
                         <button className="btn btn-sm btn-danger-outline"
-                          onClick={() => handleDeleteRetention(p.entityType)}>Delete</button>
+                          onClick={() => handleDeleteRetention(p.entityType)} aria-label={`Delete ${p.entityType} retention policy`}>Delete</button>
                       </td>
                     </tr>
                   ))}

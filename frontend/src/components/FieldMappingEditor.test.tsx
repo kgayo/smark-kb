@@ -115,6 +115,9 @@ describe('FieldMappingEditor', () => {
     expect(screen.getByRole('button', { name: 'Edit target field for rule 1' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Edit transform for rule 1' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Edit routing tag for rule 1' })).toBeInTheDocument();
+    // Enter edit mode and check required checkbox aria-label
+    fireEvent.click(screen.getByRole('button', { name: 'Edit source field for rule 1' }));
+    expect(screen.getByLabelText('Required flag for rule 1')).toBeInTheDocument();
   });
 
   it('adjusts editIndex when removing a row before the edited row', () => {

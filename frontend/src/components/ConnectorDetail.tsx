@@ -338,6 +338,7 @@ export function ConnectorDetail({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 data-testid="edit-name"
+                aria-label="Connector name"
               />
             </div>
             <div className="draft-field">
@@ -355,6 +356,7 @@ export function ConnectorDetail({
                 value={scheduleCron}
                 onChange={(e) => setScheduleCron(e.target.value)}
                 data-testid="edit-schedule"
+                aria-label="Schedule cron expression"
               />
               <span className="field-hint">Sync runs on this schedule.</span>
             </div>
@@ -367,10 +369,11 @@ export function ConnectorDetail({
                 onClick={handleSave}
                 disabled={saving}
                 data-testid="save-btn"
+                aria-label={saving ? 'Saving connector changes' : 'Save connector changes'}
               >
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>
-              <button className="btn" onClick={() => setEditing(false)} disabled={saving}>
+              <button className="btn" onClick={() => setEditing(false)} disabled={saving} aria-label="Cancel editing connector">
                 Cancel
               </button>
             </div>
@@ -493,6 +496,7 @@ export function ConnectorDetail({
             onClick={handleRetrievalTest}
             disabled={retrievalTesting || !retrievalQuery.trim()}
             data-testid="retrieval-test-btn"
+            aria-label={retrievalTesting ? 'Searching retrieval results' : 'Test retrieval query'}
           >
             {retrievalTesting ? 'Searching...' : 'Test Retrieval'}
           </button>

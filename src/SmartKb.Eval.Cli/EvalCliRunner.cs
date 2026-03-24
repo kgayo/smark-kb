@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using SmartKb.Contracts;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
@@ -141,7 +142,8 @@ public sealed class EvalCliRunner
         IReadOnlyList<ThresholdViolation> violations,
         RegressionResult? regression,
         string? runUrl,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        ILogger? logger = null)
     {
         if (notificationService is null)
             return null; // No notification service configured.
@@ -192,6 +194,7 @@ public sealed class EvalCliRunner
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            logger?.LogWarning(ex, "Eval notification failed for RunId {RunId}", report.RunId);
             Diagnostics.EvalNotificationFailuresTotal.Add(1);
             return false;
         }

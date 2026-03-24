@@ -223,7 +223,7 @@ export function RoutingAnalyticsPage() {
                   <option value={90}>90 days</option>
                 </select>
               </label>
-              <button className="btn btn-sm btn-primary" onClick={loadAnalytics}>Refresh</button>
+              <button className="btn btn-sm btn-primary" onClick={loadAnalytics} aria-label="Refresh analytics">Refresh</button>
             </div>
             {analyticsLoading ? (
               <p>Loading analytics...</p>
@@ -315,7 +315,7 @@ export function RoutingAnalyticsPage() {
         {tab === 'rules' && (
           <div data-testid="rules-panel">
             <div className="admin-toolbar">
-              <button className="btn btn-sm btn-primary" onClick={() => setShowCreateRule(true)}>
+              <button className="btn btn-sm btn-primary" onClick={() => setShowCreateRule(true)} aria-label="Create new routing rule">
                 New Rule
               </button>
             </div>
@@ -335,8 +335,8 @@ export function RoutingAnalyticsPage() {
                     <option value="P3">P3</option>
                     <option value="P4">P4</option>
                   </select>
-                  <button className="btn btn-sm btn-primary" onClick={handleCreateRule}>Create</button>
-                  <button className="btn btn-sm" onClick={() => setShowCreateRule(false)}>Cancel</button>
+                  <button className="btn btn-sm btn-primary" onClick={handleCreateRule} aria-label="Create routing rule">Create</button>
+                  <button className="btn btn-sm" onClick={() => setShowCreateRule(false)} aria-label="Cancel creating rule">Cancel</button>
                 </div>
               </div>
             )}
@@ -383,8 +383,8 @@ export function RoutingAnalyticsPage() {
                           </td>
                           <td>{rule.isActive ? 'Yes' : 'No'}</td>
                           <td>
-                            <button className="btn btn-sm btn-primary" onClick={() => handleUpdateRule(rule.ruleId)}>Save</button>
-                            <button className="btn btn-sm" onClick={() => setEditingRuleId(null)}>Cancel</button>
+                            <button className="btn btn-sm btn-primary" onClick={() => handleUpdateRule(rule.ruleId)} aria-label={`Save changes to ${rule.productArea} rule`}>Save</button>
+                            <button className="btn btn-sm" onClick={() => setEditingRuleId(null)} aria-label="Cancel editing rule">Cancel</button>
                           </td>
                         </>
                       ) : (
@@ -395,8 +395,8 @@ export function RoutingAnalyticsPage() {
                           <td>{rule.minSeverity}</td>
                           <td>{rule.isActive ? 'Yes' : 'No'}</td>
                           <td>
-                            <button className="btn btn-sm" onClick={() => { setEditingRuleId(rule.ruleId); setEditRule({}); }}>Edit</button>
-                            <button className="btn btn-sm btn-danger-outline" onClick={() => handleDeleteRule(rule.ruleId)}>Delete</button>
+                            <button className="btn btn-sm" onClick={() => { setEditingRuleId(rule.ruleId); setEditRule({}); }} aria-label={`Edit ${rule.productArea} rule`}>Edit</button>
+                            <button className="btn btn-sm btn-danger-outline" onClick={() => handleDeleteRule(rule.ruleId)} aria-label={`Delete ${rule.productArea} rule`}>Delete</button>
                           </td>
                         </>
                       )}
@@ -471,10 +471,10 @@ export function RoutingAnalyticsPage() {
                       <td>
                         {rec.status === 'Pending' && (
                           <>
-                            <button className="btn btn-sm btn-primary" onClick={() => handleApplyRec(rec.recommendationId)}>
+                            <button className="btn btn-sm btn-primary" onClick={() => handleApplyRec(rec.recommendationId)} aria-label={`Apply recommendation for ${rec.productArea}`}>
                               Apply
                             </button>
-                            <button className="btn btn-sm" onClick={() => handleDismissRec(rec.recommendationId)}>
+                            <button className="btn btn-sm" onClick={() => handleDismissRec(rec.recommendationId)} aria-label={`Dismiss recommendation for ${rec.productArea}`}>
                               Dismiss
                             </button>
                           </>

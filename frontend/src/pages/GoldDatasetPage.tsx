@@ -285,6 +285,7 @@ function CasesPanel({
           value={tagFilter}
           onChange={(e) => onTagFilterChange(e.target.value)}
           data-testid="filter-tag"
+          aria-label="Filter cases by tag"
         />
       </div>
 
@@ -334,6 +335,7 @@ function CasesPanel({
               disabled={page <= 1}
               onClick={() => onPageChange(page - 1)}
               data-testid="page-prev"
+              aria-label="Previous page"
             >
               Previous
             </button>
@@ -343,6 +345,7 @@ function CasesPanel({
               disabled={!cases.hasMore}
               onClick={() => onPageChange(page + 1)}
               data-testid="page-next"
+              aria-label="Next page"
             >
               Next
             </button>
@@ -361,6 +364,7 @@ function CasesPanel({
                 className="btn btn-sm btn-danger"
                 onClick={() => onDeleteCase(selectedCase.id)}
                 data-testid="delete-case-btn"
+                aria-label={`Delete case ${selectedCase.caseId}`}
               >
                 Delete
               </button>
@@ -368,6 +372,7 @@ function CasesPanel({
                 className="btn btn-sm"
                 onClick={onCloseDetail}
                 style={{ marginLeft: '0.5rem' }}
+                aria-label="Close case detail"
               >
                 Close
               </button>

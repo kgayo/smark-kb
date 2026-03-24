@@ -234,6 +234,10 @@ describe('ConnectorDetail', () => {
     fireEvent.click(screen.getByTestId('edit-btn'));
     expect(screen.getByTestId('edit-section')).toBeInTheDocument();
     expect(screen.getByTestId('edit-name')).toHaveValue('ADO Prod');
+    expect(screen.getByLabelText('Connector name')).toBeInTheDocument();
+    expect(screen.getByLabelText('Schedule cron expression')).toBeInTheDocument();
+    expect(screen.getByLabelText('Save connector changes')).toBeInTheDocument();
+    expect(screen.getByLabelText('Cancel editing connector')).toBeInTheDocument();
   });
 
   it('saves changes and exits edit mode', async () => {

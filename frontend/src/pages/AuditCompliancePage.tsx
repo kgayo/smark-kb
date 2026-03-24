@@ -286,6 +286,7 @@ function EventsPanel({
               disabled={events.page <= 1}
               onClick={() => onPageChange(events.page - 1)}
               data-testid="page-prev"
+              aria-label="Previous page"
             >
               Previous
             </button>
@@ -297,6 +298,7 @@ function EventsPanel({
               disabled={!events.hasMore}
               onClick={() => onPageChange(events.page + 1)}
               data-testid="page-next"
+              aria-label="Next page"
             >
               Next
             </button>

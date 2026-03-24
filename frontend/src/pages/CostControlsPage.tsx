@@ -186,7 +186,7 @@ export function CostControlsPage() {
                   <option value={90}>90 days</option>
                 </select>
               </label>
-              <button className="btn btn-sm btn-primary" onClick={loadUsage}>Refresh</button>
+              <button className="btn btn-sm btn-primary" onClick={loadUsage} aria-label="Refresh usage data">Refresh</button>
             </div>
             {usageLoading ? (
               <p>Loading usage data...</p>
@@ -275,37 +275,37 @@ export function CostControlsPage() {
                   <div className="admin-info-grid">
                     <div className="draft-field">
                       <label>Daily Token Budget</label>
-                      <input type="number" value={form.dailyTokenBudget ?? ''}
+                      <input type="number" value={form.dailyTokenBudget ?? ''} aria-label="Daily token budget"
                         onChange={(e) => setForm({ ...form, dailyTokenBudget: e.target.value ? Number(e.target.value) : undefined })} />
                     </div>
                     <div className="draft-field">
                       <label>Monthly Token Budget</label>
-                      <input type="number" value={form.monthlyTokenBudget ?? ''}
+                      <input type="number" value={form.monthlyTokenBudget ?? ''} aria-label="Monthly token budget"
                         onChange={(e) => setForm({ ...form, monthlyTokenBudget: e.target.value ? Number(e.target.value) : undefined })} />
                     </div>
                     <div className="draft-field">
                       <label>Max Prompt Tokens/Query</label>
-                      <input type="number" value={form.maxPromptTokensPerQuery ?? ''}
+                      <input type="number" value={form.maxPromptTokensPerQuery ?? ''} aria-label="Max prompt tokens per query"
                         onChange={(e) => setForm({ ...form, maxPromptTokensPerQuery: e.target.value ? Number(e.target.value) : undefined })} />
                     </div>
                     <div className="draft-field">
                       <label>Max Evidence Chunks</label>
-                      <input type="number" value={form.maxEvidenceChunksInPrompt ?? ''}
+                      <input type="number" value={form.maxEvidenceChunksInPrompt ?? ''} aria-label="Max evidence chunks in prompt"
                         onChange={(e) => setForm({ ...form, maxEvidenceChunksInPrompt: e.target.value ? Number(e.target.value) : undefined })} />
                     </div>
                     <div className="draft-field">
                       <label>Budget Alert Threshold (%)</label>
-                      <input type="number" value={form.budgetAlertThresholdPercent ?? ''}
+                      <input type="number" value={form.budgetAlertThresholdPercent ?? ''} aria-label="Budget alert threshold percent"
                         onChange={(e) => setForm({ ...form, budgetAlertThresholdPercent: e.target.value ? Number(e.target.value) : undefined })} />
                     </div>
                     <div className="draft-field">
                       <label>Embedding Cache TTL (hours)</label>
-                      <input type="number" value={form.embeddingCacheTtlHours ?? ''}
+                      <input type="number" value={form.embeddingCacheTtlHours ?? ''} aria-label="Embedding cache TTL hours"
                         onChange={(e) => setForm({ ...form, embeddingCacheTtlHours: e.target.value ? Number(e.target.value) : undefined })} />
                     </div>
                     <div className="draft-field">
                       <label>Max Chunk Chars (Compressed)</label>
-                      <input type="number" value={form.maxChunkCharsCompressed ?? ''}
+                      <input type="number" value={form.maxChunkCharsCompressed ?? ''} aria-label="Max chunk chars compressed"
                         onChange={(e) => setForm({ ...form, maxChunkCharsCompressed: e.target.value ? Number(e.target.value) : undefined })} />
                     </div>
                   </div>
@@ -322,16 +322,16 @@ export function CostControlsPage() {
                     </label>
                   </div>
                   <div className="admin-form-actions">
-                    <button className="btn btn-primary" onClick={handleSaveSettings}>Save</button>
-                    <button className="btn" onClick={() => setEditing(false)}>Cancel</button>
+                    <button className="btn btn-primary" onClick={handleSaveSettings} aria-label="Save cost settings">Save</button>
+                    <button className="btn" onClick={() => setEditing(false)} aria-label="Cancel cost settings edit">Cancel</button>
                   </div>
                 </div>
               ) : (
                 <div className="cost-settings-view">
                   <div className="admin-toolbar">
-                    <button className="btn btn-sm btn-primary" onClick={startEditing}>Edit Settings</button>
+                    <button className="btn btn-sm btn-primary" onClick={startEditing} aria-label="Edit cost settings">Edit Settings</button>
                     {settings.hasOverrides && (
-                      <button className="btn btn-sm btn-danger-outline" onClick={handleResetSettings}>
+                      <button className="btn btn-sm btn-danger-outline" onClick={handleResetSettings} aria-label="Reset cost settings to defaults">
                         Reset to Defaults
                       </button>
                     )}
@@ -357,7 +357,7 @@ export function CostControlsPage() {
         {tab === 'budget' && (
           <div data-testid="budget-panel">
             <div className="admin-toolbar">
-              <button className="btn btn-sm btn-primary" onClick={loadBudget}>Refresh</button>
+              <button className="btn btn-sm btn-primary" onClick={loadBudget} aria-label="Refresh budget status">Refresh</button>
             </div>
             {budgetLoading ? (
               <p>Loading budget status...</p>
