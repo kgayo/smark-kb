@@ -167,17 +167,6 @@ public sealed class FeedbackService : IFeedbackService
         CreatedAt = entity.CreatedAt,
     };
 
-    private IReadOnlyList<string> DeserializeReasonCodes(string? json)
-    {
-        if (string.IsNullOrEmpty(json)) return [];
-        try
-        {
-            return JsonSerializer.Deserialize<List<string>>(json, JsonOpts) ?? [];
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Failed to deserialize JSON in {MethodName}", nameof(DeserializeReasonCodes));
-            return [];
-        }
-    }
+    private IReadOnlyList<string> DeserializeReasonCodes(string? json) =>
+        JsonDeserializeHelper.Deserialize<List<string>>(json, JsonOpts, _logger, []);
 }

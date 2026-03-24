@@ -41,6 +41,7 @@ export function SourceViewerPanel({ chunkId, onBack }: SourceViewerPanelProps) {
         if (!cancelled) setContent(data);
       })
       .catch((err) => {
+        console.warn('[SourceViewerPanel] Failed to load evidence content:', err);
         if (!cancelled)
           setError(err instanceof Error ? err.message : 'Failed to load evidence content');
       })

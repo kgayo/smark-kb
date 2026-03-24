@@ -451,17 +451,6 @@ public sealed class SyncJobProcessor
         }
     }
 
-    private FieldMappingConfig? DeserializeFieldMapping(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json)) return null;
-        try
-        {
-            return JsonSerializer.Deserialize<FieldMappingConfig>(json, JsonOptions);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Failed to deserialize FieldMappingConfig from JSON");
-            return null;
-        }
-    }
+    private FieldMappingConfig? DeserializeFieldMapping(string? json) =>
+        string.IsNullOrWhiteSpace(json) ? null : JsonDeserializeHelper.DeserializeOrNull<FieldMappingConfig>(json, JsonOptions, _logger);
 }

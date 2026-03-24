@@ -330,9 +330,6 @@ public sealed class GoldCaseService : IGoldCaseService
         };
     }
 
-    private IReadOnlyList<string> DeserializeTags(string json)
-    {
-        try { return JsonSerializer.Deserialize<List<string>>(json) ?? []; }
-        catch (JsonException ex) { _logger.LogWarning(ex, "Failed to deserialize JSON in {MethodName}", nameof(DeserializeTags)); return []; }
-    }
+    private IReadOnlyList<string> DeserializeTags(string json) =>
+        JsonDeserializeHelper.Deserialize<List<string>>(json, JsonOpts, _logger, []);
 }

@@ -326,18 +326,8 @@ public sealed class TeamPlaybookService : ITeamPlaybookService
         }
     }
 
-    private List<string> DeserializeStringList(string json)
-    {
-        try
-        {
-            return JsonSerializer.Deserialize<List<string>>(json, JsonOpts) ?? [];
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Failed to deserialize JSON in {MethodName}", nameof(DeserializeStringList));
-            return [];
-        }
-    }
+    private List<string> DeserializeStringList(string json) =>
+        JsonDeserializeHelper.Deserialize<List<string>>(json, JsonOpts, _logger, []);
 
     private static TeamPlaybookDto MapPlaybook(TeamPlaybookEntity entity) => new()
     {

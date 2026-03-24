@@ -70,7 +70,7 @@ public sealed class IngestionWorker : BackgroundService
         }
         catch (OperationCanceledException)
         {
-            // Expected on shutdown.
+            _logger.LogInformation("Ingestion worker received shutdown signal");
         }
 
         _logger.LogInformation("Ingestion worker stopping...");
