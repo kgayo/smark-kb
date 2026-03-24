@@ -8,6 +8,7 @@ import type {
 } from '../api/types';
 import * as api from '../api/client';
 import { useRoles, hasAdminRole } from '../auth/useRoles';
+import { downloadFile } from '../utils/downloadFile';
 
 type Tab = 'events' | 'export';
 
@@ -60,15 +61,8 @@ export function AuditCompliancePage() {
     setExportSuccess(null);
     try {
       const blob = await api.exportAuditEvents(exportFilters);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
       const ts = new Date().toISOString().replace(/[:.]/g, '-');
-      a.download = `audit-events-${ts}.ndjson`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      downloadFile(blob, `audit-events-${ts}.ndjson`);
       setExportSuccess('Export downloaded successfully.');
     } catch (e) {
       setExportError(e instanceof Error ? e.message : 'Export failed');

@@ -11,7 +11,8 @@ export function useRoles(): { roles: string[]; loading: boolean } {
       .then((info) => {
         if (!cancelled) setRoles(info.roles);
       })
-      .catch(() => {
+      .catch((err) => {
+        console.warn('[useRoles] Failed to fetch user roles:', err);
         if (!cancelled) setRoles([]);
       })
       .finally(() => {

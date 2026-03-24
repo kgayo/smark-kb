@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-24 (Asia/Manila) — iteration 138 (TECH-039 add aria-labels to 3 remaining unlabeled action buttons)
-Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2632 tests passing (2145 backend + 457 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 138: TECH-039 (add aria-labels to 3 remaining unlabeled action buttons across 3 frontend components; 3 new test assertions across 3 test files).
+Last updated: 2026-03-24 (Asia/Manila) — iteration 139 (TECH-040 log silent frontend catches + extract downloadFile utility)
+Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2632 tests passing (2145 backend + 457 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 139: TECH-040 (log silent frontend catches + extract shared downloadFile utility; 4 catch blocks logged, 2 pages deduplicated; 3 new utility tests).
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -221,6 +221,10 @@ Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-00
 - [x] TECH-039: Add aria-labels to 3 remaining unlabeled action buttons.
   - Root cause: Code quality scan found 3 action buttons missing `aria-label` attributes: RoutingAnalyticsPage "Generate Recommendations" button, PrivacyAdminPage "Submit Deletion Request" button, and PlaybooksPage "New Playbook" button.
   - Completed (iteration 138): Added `aria-label="Generate routing recommendations"` to RoutingAnalyticsPage. Added `aria-label="Submit data subject deletion request"` to PrivacyAdminPage. Added `aria-label="Create new playbook"` to PlaybooksPage. 3 new test assertions across 3 test files (RoutingAnalyticsPage, PrivacyAdminPage, PlaybooksPage). 457 frontend tests passing; TypeScript clean; build clean.
+
+- [x] TECH-040: Log silent frontend `.catch()` blocks + extract shared `downloadFile` utility.
+  - Root cause: 4 `.catch()` blocks in `useRoles`, `PatternDetailView` (×2), and `SourceViewerPanel` silently swallowed errors with no diagnostic trace. 2 pages (`GoldDatasetPage`, `AuditCompliancePage`) had identical 7-line DOM download sequences (createElement, appendChild, click, removeChild, revokeObjectURL).
+  - Completed (iteration 139): Added `console.warn` with component tag and error to all 4 silent `.catch()` blocks. Created `frontend/src/utils/downloadFile.ts` shared utility. Replaced duplicate download logic in both pages with `downloadFile()` call. 3 new `downloadFile` unit tests (`downloadFile.test.ts`). Existing page export tests pass unchanged (mock at `URL.createObjectURL` level).
 
 - [x] TECH-023: Add structured logging to all silent `catch (JsonException)` blocks.
   - Root cause: 25 `catch (JsonException)` blocks across 24 files silently swallowed deserialization errors with no logging. When JSON stored in SQL columns or received from external APIs was malformed, the code returned fallback values (null, empty list, empty dict) with no diagnostic trace, making production debugging impossible.

@@ -63,8 +63,8 @@ export function SourceViewerPanel({ chunkId, onBack }: SourceViewerPanelProps) {
         if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
         copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
       })
-      .catch(() => {
-        // Clipboard API may fail in insecure contexts or when denied permission.
+      .catch((err) => {
+        console.warn('[SourceViewerPanel] Clipboard write failed:', err);
       });
   }, [content]);
 

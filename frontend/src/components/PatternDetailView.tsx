@@ -53,12 +53,12 @@ export function PatternDetailView({
     setUsageLoading(true);
     getPatternUsage(pattern.patternId)
       .then((m) => { if (!cancelled) setUsage(m); })
-      .catch(() => { if (!cancelled) setUsage(null); })
+      .catch((err) => { console.warn('[PatternDetailView] Failed to load usage metrics:', err); if (!cancelled) setUsage(null); })
       .finally(() => { if (!cancelled) setUsageLoading(false); });
     setHistoryLoading(true);
     getPatternHistory(pattern.patternId)
       .then((h) => { if (!cancelled) setVersionHistory(h.entries); })
-      .catch(() => { if (!cancelled) setVersionHistory([]); })
+      .catch((err) => { console.warn('[PatternDetailView] Failed to load version history:', err); if (!cancelled) setVersionHistory([]); })
       .finally(() => { if (!cancelled) setHistoryLoading(false); });
     return () => { cancelled = true; };
   }, [pattern.patternId]);

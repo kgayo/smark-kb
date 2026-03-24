@@ -8,6 +8,7 @@ import type {
 } from '../api/types';
 import * as api from '../api/client';
 import { useRoles, hasAdminRole } from '../auth/useRoles';
+import { downloadFile } from '../utils/downloadFile';
 
 type Tab = 'cases' | 'create' | 'export';
 
@@ -128,15 +129,8 @@ export function GoldDatasetPage() {
     try {
       const jsonl = await api.exportGoldCases();
       const blob = new Blob([jsonl], { type: 'application/x-ndjson' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
       const ts = new Date().toISOString().replace(/[:.]/g, '-');
-      a.download = `gold-dataset-${ts}.jsonl`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      downloadFile(blob, `gold-dataset-${ts}.jsonl`);
     } catch (e) {
       setExportError(e instanceof Error ? e.message : 'Export failed');
     } finally {
