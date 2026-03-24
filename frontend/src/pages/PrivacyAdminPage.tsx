@@ -315,7 +315,7 @@ export function PrivacyAdminPage() {
                 {(piiForm.customPatterns ?? []).map((p, i) => (
                   <div key={i} className="admin-form-row">
                     <span>{p.name}: <code>{p.pattern}</code> &rarr; {p.placeholder}</span>
-                    <button className="btn btn-sm btn-close" onClick={() => removeCustomPattern(i)}>&times;</button>
+                    <button className="btn btn-sm btn-close" aria-label={`Remove custom pattern: ${p.name}`} onClick={() => removeCustomPattern(i)}>&times;</button>
                   </div>
                 ))}
                 <div className="admin-form-row">

@@ -122,4 +122,24 @@ describe('PlaybooksPage', () => {
     expect(screen.getByText('Connectors')).toBeInTheDocument();
     expect(screen.getByText('Routing')).toBeInTheDocument();
   });
+
+  it('checklist form has aria-labels on input and remove buttons', async () => {
+    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedApi.listPlaybooks.mockResolvedValue({ playbooks: [], totalCount: 0 });
+    renderPage();
+    await waitFor(() => expect(screen.getByTestId('new-playbook-btn')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('new-playbook-btn'));
+
+    // Checklist input has aria-label
+    expect(screen.getByLabelText('New checklist item')).toBeInTheDocument();
+
+    // Add a checklist item
+    const input = screen.getByLabelText('New checklist item');
+    fireEvent.change(input, { target: { value: 'Check logs' } });
+    fireEvent.click(screen.getByText('Add'));
+
+    // Remove button has descriptive aria-label
+    expect(screen.getByLabelText('Remove checklist item: Check logs')).toBeInTheDocument();
+  });
 });

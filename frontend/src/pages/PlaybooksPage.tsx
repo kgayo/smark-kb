@@ -349,14 +349,14 @@ export function PlaybooksPage() {
           <label>Checklist</label>
           <div className="admin-form-row">
             <input value={checklistInput} onChange={(e) => setChecklistInput(e.target.value)}
-              placeholder="Add checklist item" onKeyDown={(e) => e.key === 'Enter' && addChecklistItem()} />
+              placeholder="Add checklist item" aria-label="New checklist item" onKeyDown={(e) => e.key === 'Enter' && addChecklistItem()} />
             <button className="btn btn-sm" type="button" onClick={addChecklistItem}>Add</button>
           </div>
           <ol className="playbook-checklist editable">
             {(form.checklist ?? []).map((item, i) => (
               <li key={i}>
                 {item}
-                <button className="btn btn-sm btn-close" type="button" onClick={() => removeChecklistItem(i)}>&times;</button>
+                <button className="btn btn-sm btn-close" type="button" aria-label={`Remove checklist item: ${item}`} onClick={() => removeChecklistItem(i)}>&times;</button>
               </li>
             ))}
           </ol>

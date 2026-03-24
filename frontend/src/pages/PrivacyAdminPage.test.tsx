@@ -197,4 +197,24 @@ describe('PrivacyAdminPage', () => {
     expect(screen.getByText('Data Deletion')).toBeInTheDocument();
     expect(screen.getByText('Compliance')).toBeInTheDocument();
   });
+
+  it('custom pattern remove button has descriptive aria-label', async () => {
+    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedApi.getPiiPolicy.mockResolvedValue({
+      tenantId: 't1',
+      enforcementMode: 'redact',
+      enabledPiiTypes: ['email'],
+      customPatterns: [{ name: 'Internal ID', pattern: 'INT-\\d+', placeholder: '[INTERNAL_ID]' }],
+      auditRedactions: true,
+      updatedAt: '2026-03-19T00:00:00Z',
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('redact')).toBeInTheDocument());
+
+    // Enter edit mode
+    fireEvent.click(screen.getByText('Edit Policy'));
+
+    // Custom pattern remove button has descriptive aria-label
+    expect(screen.getByLabelText('Remove custom pattern: Internal ID')).toBeInTheDocument();
+  });
 });

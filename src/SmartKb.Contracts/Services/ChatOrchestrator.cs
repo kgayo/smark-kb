@@ -113,6 +113,10 @@ public sealed class ChatOrchestrator : IChatOrchestrator
                     traceId, classification.IssueCategory, classification.ProductArea,
                     classification.SeverityHint, classification.ClassificationConfidence);
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw; // Parent cancellation — propagate, don't mask as timeout.
+            }
             catch (OperationCanceledException)
             {
                 _logger.LogWarning("Query classification timed out after {TimeoutMs}ms. Proceeding without classification. TraceId={TraceId}",
@@ -289,6 +293,10 @@ public sealed class ChatOrchestrator : IChatOrchestrator
 
                 summarizationActivity?.SetTag("smartkb.summarization.dropped_count", droppedMessages.Count);
                 summarizationActivity?.SetTag("smartkb.summarization.summary_length", sessionSummary?.Length ?? 0);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw; // Parent cancellation — propagate, don't mask as timeout.
             }
             catch (OperationCanceledException)
             {

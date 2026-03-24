@@ -1521,6 +1521,69 @@ public class ChatOrchestratorIntegrationTests
             orchestrator.OrchestrateAsync("t1", "u1", "c1", new ChatRequest { Query = "test" }, cts.Token));
     }
 
+    [Fact]
+    public async Task OrchestrateAsync_ClassificationWithParentCancelled_PropagatesOperationCanceledException()
+    {
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var classificationService = new CancellingClassificationService();
+
+        var orchestrator = new ChatOrchestrator(
+            new StubEmbeddingService(),
+            new StubRetrievalService(new RetrievalResult
+            {
+                Chunks = [MakeChunk("c1", "Content", 0.8)],
+                AclFilteredOutCount = 0,
+                HasEvidence = true,
+            }),
+            new StubTraceWriter(),
+            new StubPiiRedactionService(), new StubAuditWriter(), new StubTokenUsageService(),
+            new StubHttpClientFactory(new StubHttpMessageHandler("{}", System.Net.HttpStatusCode.OK)),
+            new OpenAiSettings { ApiKey = "test-key", Model = "gpt-4o", Endpoint = "https://api.openai.com/v1" },
+            new ChatOrchestrationSettings { EnableQueryClassification = true },
+            new CostOptimizationSettings(),
+            NullLogger<ChatOrchestrator>.Instance,
+            classificationService: classificationService);
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            orchestrator.OrchestrateAsync("t1", "u1", "c1", new ChatRequest { Query = "test" }, cts.Token));
+    }
+
+    [Fact]
+    public async Task OrchestrateAsync_SummarizationWithParentCancelled_PropagatesOperationCanceledException()
+    {
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var summarizationService = new CancellingSummarizationService();
+
+        // Session history with enough messages to trigger summarization (>= SummarizationMinDroppedMessages)
+        var sessionHistory = Enumerable.Range(0, 20).Select(i =>
+            new ChatMessage { Role = "user", Content = $"Message {i}" }).ToList();
+
+        var orchestrator = new ChatOrchestrator(
+            new StubEmbeddingService(),
+            new StubRetrievalService(new RetrievalResult
+            {
+                Chunks = [MakeChunk("c1", "Content", 0.8)],
+                AclFilteredOutCount = 0,
+                HasEvidence = true,
+            }),
+            new StubTraceWriter(),
+            new StubPiiRedactionService(), new StubAuditWriter(), new StubTokenUsageService(),
+            new StubHttpClientFactory(new StubHttpMessageHandler("{}", System.Net.HttpStatusCode.OK)),
+            new OpenAiSettings { ApiKey = "test-key", Model = "gpt-4o", Endpoint = "https://api.openai.com/v1" },
+            new ChatOrchestrationSettings { MaxTokenBudget = 100 }, // Very low budget to force summarization
+            new CostOptimizationSettings(),
+            NullLogger<ChatOrchestrator>.Instance,
+            summarizationService: summarizationService);
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            orchestrator.OrchestrateAsync("t1", "u1", "c1",
+                new ChatRequest { Query = "test", SessionHistory = sessionHistory }, cts.Token));
+    }
+
     #endregion
 
     #region Test Doubles
@@ -1550,6 +1613,28 @@ public class ChatOrchestratorIntegrationTests
             IReadOnlyList<string>? userGroups = null, RetrievalFilter? filters = null,
             string? correlationId = null, CancellationToken cancellationToken = default)
             => throw new OperationCanceledException("Retrieval cancelled", cancellationToken);
+    }
+
+    private class CancellingClassificationService : IQueryClassificationService
+    {
+        public Task<ClassificationResult> ClassifyAsync(
+            string query, IReadOnlyList<ChatMessage>? sessionHistory = null,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(ClassificationResult.Empty);
+        }
+    }
+
+    private class CancellingSummarizationService : ISessionSummarizationService
+    {
+        public Task<string?> SummarizeAsync(
+            IReadOnlyList<ChatMessage> messagesToSummarize,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult<string?>(null);
+        }
     }
 
     private class CancellingHttpMessageHandler : HttpMessageHandler
