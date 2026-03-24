@@ -515,6 +515,20 @@ describe('ConnectorDetail', () => {
     expect(screen.getByTestId('retrieval-test-btn')).toHaveTextContent('Searching...');
   });
 
+  it('logs warning when sync run load fails', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    mockedApi.listSyncRuns.mockRejectedValue(new Error('Sync fetch failed'));
+    renderDetail();
+
+    await waitFor(() => {
+      expect(warnSpy).toHaveBeenCalledWith(
+        '[ConnectorDetail] Failed to load sync runs:',
+        expect.any(Error),
+      );
+    });
+    warnSpy.mockRestore();
+  });
+
   it('has aria-labels on back and cancel delete buttons', () => {
     renderDetail();
     expect(screen.getByLabelText('Back to connector list')).toBeInTheDocument();

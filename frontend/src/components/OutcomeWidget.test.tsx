@@ -102,6 +102,27 @@ describe('OutcomeWidget', () => {
     expect(screen.getByText('How was this session resolved?')).toBeInTheDocument();
   });
 
+  it('logs warning and stays interactive on submit failure', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const onSubmit = vi.fn().mockRejectedValue(new Error('Network error'));
+    render(<OutcomeWidget sessionId="s-1" onSubmit={onSubmit} />);
+
+    fireEvent.click(screen.getByTestId('resolution-ResolvedWithoutEscalation'));
+    fireEvent.click(screen.getByTestId('submit-outcome'));
+
+    await waitFor(() => {
+      expect(warnSpy).toHaveBeenCalledWith(
+        '[OutcomeWidget] Failed to record outcome:',
+        expect.any(Error),
+      );
+    });
+    // Should not show "Outcome recorded" on failure
+    expect(screen.queryByTestId('outcome-thanks')).not.toBeInTheDocument();
+    // Button should be re-enabled after failure
+    expect(screen.getByTestId('submit-outcome')).not.toBeDisabled();
+    warnSpy.mockRestore();
+  });
+
   it('has aria-labels on submit button and target team input', () => {
     render(<OutcomeWidget sessionId="s-1" onSubmit={vi.fn()} />);
     expect(screen.getByTestId('submit-outcome')).toHaveAttribute('aria-label', 'Record session outcome');

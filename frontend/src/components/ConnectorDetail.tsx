@@ -65,7 +65,8 @@ export function ConnectorDetail({
     try {
       const result = await api.listSyncRuns(connector.id);
       setSyncRuns(result.syncRuns);
-    } catch {
+    } catch (err) {
+      console.warn('[ConnectorDetail] Failed to load sync runs:', err);
       setSyncRuns([]);
     } finally {
       setSyncLoading(false);

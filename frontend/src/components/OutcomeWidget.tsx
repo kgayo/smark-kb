@@ -35,6 +35,8 @@ export function OutcomeWidget({ sessionId, existingOutcome, onSubmit }: OutcomeW
       };
       await onSubmit(sessionId, request);
       setSubmitted(true);
+    } catch (err) {
+      console.warn('[OutcomeWidget] Failed to record outcome:', err);
     } finally {
       setSubmitting(false);
     }

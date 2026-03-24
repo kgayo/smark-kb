@@ -41,8 +41,8 @@ export function ChatPage() {
     try {
       const result = await api.listSessions();
       setSessions(result.sessions);
-    } catch {
-      // Sessions may fail if not authenticated yet
+    } catch (err) {
+      console.warn('[ChatPage] Failed to load sessions:', err);
     }
   }
 
@@ -50,7 +50,8 @@ export function ChatPage() {
     try {
       const result = await api.getMessages(sessionId);
       setMessages(result.messages);
-    } catch {
+    } catch (err) {
+      console.warn('[ChatPage] Failed to load messages:', err);
       setMessages([]);
     }
   }

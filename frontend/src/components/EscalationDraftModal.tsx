@@ -140,7 +140,8 @@ export function EscalationDraftModal({
             c.status === 'Enabled',
         );
         setConnectors(escalationConnectors);
-      } catch {
+      } catch (err) {
+        console.warn('[EscalationDraftModal] Failed to load escalation connectors:', err);
         if (!cancelled) setConnectors([]);
       }
     })();

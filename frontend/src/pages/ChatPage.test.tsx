@@ -222,7 +222,8 @@ describe('ChatPage', () => {
     });
   });
 
-  it('silently handles listSessions failure on mount', async () => {
+  it('logs warning on listSessions failure without crashing', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     mockedApi.listSessions.mockRejectedValue(new Error('Auth required'));
     renderPage();
     // Should not crash, no error banner shown for session load failure
@@ -230,6 +231,11 @@ describe('ChatPage', () => {
       expect(screen.getByText('Smart KB')).toBeInTheDocument();
     });
     expect(screen.queryByTestId('error-banner')).not.toBeInTheDocument();
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[ChatPage] Failed to load sessions:',
+      expect.any(Error),
+    );
+    warnSpy.mockRestore();
   });
 
   it('handles feedback submission', async () => {

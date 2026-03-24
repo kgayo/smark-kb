@@ -66,7 +66,8 @@ export function GoldDatasetPage() {
     try {
       const detail = await api.getGoldCase(id);
       setSelectedCase(detail);
-    } catch {
+    } catch (err) {
+      console.warn('[GoldDatasetPage] Failed to load gold case detail:', err);
       setSelectedCase(null);
     } finally {
       setDetailLoading(false);
