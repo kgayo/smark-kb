@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
 using SmartKb.Eval.Models;
@@ -13,11 +15,13 @@ public sealed class EvalRunner
 {
     private readonly IChatOrchestrator _orchestrator;
     private readonly EvalSettings _settings;
+    private readonly ILogger<EvalRunner> _logger;
 
-    public EvalRunner(IChatOrchestrator orchestrator, EvalSettings settings)
+    public EvalRunner(IChatOrchestrator orchestrator, EvalSettings settings, ILogger<EvalRunner>? logger = null)
     {
         _orchestrator = orchestrator;
         _settings = settings;
+        _logger = logger ?? NullLogger<EvalRunner>.Instance;
     }
 
     /// <summary>
@@ -137,6 +141,7 @@ public sealed class EvalRunner
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             sw.Stop();
+            _logger.LogWarning(ex, "Evaluation case {CaseId} failed after {DurationMs}ms", evalCase.Id, sw.ElapsedMilliseconds);
 
             return new EvalResult
             {

@@ -1,10 +1,51 @@
+using Microsoft.Extensions.Logging;
 using SmartKb.Contracts.Models;
+using SmartKb.Contracts.Services;
 using SmartKb.Eval.Models;
 
 namespace SmartKb.Eval.Tests;
 
 public class EvalRunnerTests
 {
+    [Fact]
+    public async Task RunAsync_OrchestratorThrows_LogsWarningWithCaseId()
+    {
+        var orchestrator = new ThrowingOrchestrator(new InvalidOperationException("Test orchestrator failure"));
+        var logger = new CapturingLogger();
+        var runner = new EvalRunner(orchestrator, new EvalSettings(), logger);
+        var cases = new[] { MakeCase("eval-fail-001", "final_answer") };
+
+        var report = await runner.RunAsync(cases);
+
+        Assert.Equal(1, report.FailedCases);
+        Assert.Equal("Test orchestrator failure", report.Results[0].Error);
+        Assert.Single(logger.Entries);
+        Assert.Equal(LogLevel.Warning, logger.Entries[0].Level);
+        Assert.Contains("eval-fail-001", logger.Entries[0].Message);
+    }
+
+    [Fact]
+    public async Task RunAsync_OrchestratorThrows_CapturesDurationMs()
+    {
+        var orchestrator = new ThrowingOrchestrator(new InvalidOperationException("Timeout"));
+        var runner = new EvalRunner(orchestrator, new EvalSettings());
+        var cases = new[] { MakeCase("eval-dur-001", "final_answer") };
+
+        var report = await runner.RunAsync(cases);
+
+        Assert.True(report.Results[0].DurationMs >= 0);
+    }
+
+    [Fact]
+    public async Task RunAsync_OrchestratorThrowsOperationCanceled_Propagates()
+    {
+        var orchestrator = new ThrowingOrchestrator(new OperationCanceledException());
+        var runner = new EvalRunner(orchestrator, new EvalSettings());
+        var cases = new[] { MakeCase("eval-cancel-001", "final_answer") };
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() => runner.RunAsync(cases));
+    }
+
     [Fact]
     public void BuildReportFromResults_MatchesCasesToRecordings()
     {
@@ -144,4 +185,28 @@ public class EvalRunnerTests
         UpdatedAt = DateTimeOffset.UtcNow,
         AccessLabel = "Internal",
     };
+
+    // --- Test doubles ---
+
+    private sealed class ThrowingOrchestrator(Exception exception) : IChatOrchestrator
+    {
+        public Task<ChatResponse> OrchestrateAsync(
+            string tenantId, string userId, string correlationId,
+            ChatRequest request, CancellationToken cancellationToken = default)
+            => throw exception;
+    }
+
+    private sealed class CapturingLogger : ILogger<EvalRunner>
+    {
+        public List<(LogLevel Level, string Message)> Entries { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state,
+            Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            Entries.Add((logLevel, formatter(state, exception)));
+        }
+    }
 }
