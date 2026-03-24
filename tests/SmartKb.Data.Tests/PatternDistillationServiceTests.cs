@@ -693,6 +693,194 @@ public class PatternDistillationServiceTests : IDisposable
         Assert.Equal("Expired certificate on load balancer.", pattern.RootCause);
     }
 
+    // --- Optional service integration tests ---
+
+    [Fact]
+    public async Task Distill_EmbeddingFailure_ContinuesWithoutEmbedding()
+    {
+        SeedQualifiedSession();
+
+        var embeddingService = new ThrowingEmbeddingService();
+        var service = new PatternDistillationService(
+            _db, _settings, _auditWriter,
+            NullLogger<PatternDistillationService>.Instance,
+            embeddingService: embeddingService);
+
+        var result = await service.DistillAsync(TenantId, "admin", "corr-emb-fail");
+
+        Assert.Equal(1, result.PatternsCreated);
+        Assert.Empty(result.Errors);
+        var pattern = _db.CasePatterns.First(p => p.PatternId == result.CreatedPatternIds[0]);
+        Assert.NotNull(pattern);
+    }
+
+    [Fact]
+    public async Task Distill_EmbeddingSuccess_IndexesPatternsInPatternStore()
+    {
+        SeedQualifiedSession();
+
+        var embeddingService = new StubEmbeddingService();
+        var indexingService = new StubPatternIndexingService();
+        var service = new PatternDistillationService(
+            _db, _settings, _auditWriter,
+            NullLogger<PatternDistillationService>.Instance,
+            embeddingService: embeddingService,
+            patternIndexing: indexingService);
+
+        var result = await service.DistillAsync(TenantId, "admin", "corr-idx-ok");
+
+        Assert.Equal(1, result.PatternsCreated);
+        Assert.Equal(1, indexingService.IndexedPatterns.Count);
+        Assert.NotNull(indexingService.IndexedPatterns[0].EmbeddingVector);
+    }
+
+    [Fact]
+    public async Task Distill_IndexingFailure_PatternStillPersisted()
+    {
+        SeedQualifiedSession();
+
+        var embeddingService = new StubEmbeddingService();
+        var indexingService = new ThrowingPatternIndexingService();
+        var service = new PatternDistillationService(
+            _db, _settings, _auditWriter,
+            NullLogger<PatternDistillationService>.Instance,
+            embeddingService: embeddingService,
+            patternIndexing: indexingService);
+
+        var result = await service.DistillAsync(TenantId, "admin", "corr-idx-fail");
+
+        Assert.Equal(1, result.PatternsCreated);
+        Assert.Empty(result.Errors);
+        Assert.Single(_db.CasePatterns.Where(p => p.PatternId == result.CreatedPatternIds[0]));
+    }
+
+    [Fact]
+    public async Task Distill_NoEmbeddingService_SkipsIndexing()
+    {
+        SeedQualifiedSession();
+
+        var indexingService = new StubPatternIndexingService();
+        var service = new PatternDistillationService(
+            _db, _settings, _auditWriter,
+            NullLogger<PatternDistillationService>.Instance,
+            patternIndexing: indexingService);
+
+        var result = await service.DistillAsync(TenantId, "admin", "corr-no-emb");
+
+        Assert.Equal(1, result.PatternsCreated);
+        Assert.Empty(indexingService.IndexedPatterns);
+    }
+
+    [Fact]
+    public async Task Distill_QualityValidatorRejects_SkipsPattern()
+    {
+        SeedQualifiedSession();
+
+        var validator = new StubQualityValidator(rejected: true, qualityScore: 0.1f);
+        var service = new PatternDistillationService(
+            _db, _settings, _auditWriter,
+            NullLogger<PatternDistillationService>.Instance,
+            qualityValidator: validator);
+
+        var result = await service.DistillAsync(TenantId, "admin", "corr-reject");
+
+        Assert.Equal(0, result.PatternsCreated);
+        Assert.Equal(1, result.PatternsSkipped);
+        Assert.Empty(_db.CasePatterns.ToList());
+    }
+
+    [Fact]
+    public async Task Distill_QualityValidatorBelowThreshold_SavesWithQualityScore()
+    {
+        SeedQualifiedSession();
+
+        var validator = new StubQualityValidator(rejected: false, passed: false, qualityScore: 0.45f);
+        var service = new PatternDistillationService(
+            _db, _settings, _auditWriter,
+            NullLogger<PatternDistillationService>.Instance,
+            qualityValidator: validator);
+
+        var result = await service.DistillAsync(TenantId, "admin", "corr-low-q");
+
+        Assert.Equal(1, result.PatternsCreated);
+        var pattern = _db.CasePatterns.First(p => p.PatternId == result.CreatedPatternIds[0]);
+        Assert.Equal(0.45f, pattern.QualityScore!.Value, 0.01f);
+    }
+
+    [Fact]
+    public async Task Distill_QualityValidatorPasses_SavesWithQualityScore()
+    {
+        SeedQualifiedSession();
+
+        var validator = new StubQualityValidator(rejected: false, passed: true, qualityScore: 0.85f);
+        var service = new PatternDistillationService(
+            _db, _settings, _auditWriter,
+            NullLogger<PatternDistillationService>.Instance,
+            qualityValidator: validator);
+
+        var result = await service.DistillAsync(TenantId, "admin", "corr-pass-q");
+
+        Assert.Equal(1, result.PatternsCreated);
+        var pattern = _db.CasePatterns.First(p => p.PatternId == result.CreatedPatternIds[0]);
+        Assert.Equal(0.85f, pattern.QualityScore!.Value, 0.01f);
+    }
+
+    [Fact]
+    public async Task FindCandidates_ExcludesSessionsWithTooFewChunks()
+    {
+        _settings.GetType().GetProperty("MinCitedChunks")!.SetValue(_settings, 3);
+        SeedQualifiedSession(chunkCount: 2);
+
+        var result = await _service.FindCandidatesAsync(TenantId);
+
+        Assert.Equal(0, result.TotalCount);
+    }
+
+    [Fact]
+    public async Task Distill_CandidateThrows_CapturesErrorAndContinues()
+    {
+        // Seed two candidates: one with chunks and one where we'll delete chunks
+        // to cause a null return (skipped), plus test the error path via a failing embedding service.
+        SeedQualifiedSession();
+        var (sessionId2, _) = SeedQualifiedSession();
+
+        // Delete all chunks for the second session to make it get skipped (returns null).
+        var chunksToRemove = _db.EvidenceChunks
+            .Where(c => c.EvidenceId.Contains(sessionId2.ToString("N")))
+            .ToList();
+        _db.EvidenceChunks.RemoveRange(chunksToRemove);
+        _db.SaveChanges();
+
+        var result = await _service.DistillAsync(TenantId, "admin", "corr-mixed");
+
+        // One pattern created, one skipped (no chunks).
+        Assert.Equal(1, result.PatternsCreated);
+        Assert.Equal(1, result.PatternsSkipped);
+    }
+
+    [Fact]
+    public async Task Distill_AllServicesIntegrated_EmbedAndIndexAndValidate()
+    {
+        SeedQualifiedSession();
+
+        var embeddingService = new StubEmbeddingService();
+        var indexingService = new StubPatternIndexingService();
+        var validator = new StubQualityValidator(rejected: false, passed: true, qualityScore: 0.9f);
+        var service = new PatternDistillationService(
+            _db, _settings, _auditWriter,
+            NullLogger<PatternDistillationService>.Instance,
+            embeddingService: embeddingService,
+            patternIndexing: indexingService,
+            qualityValidator: validator);
+
+        var result = await service.DistillAsync(TenantId, "admin", "corr-all");
+
+        Assert.Equal(1, result.PatternsCreated);
+        Assert.Equal(1, indexingService.IndexedPatterns.Count);
+        var pattern = _db.CasePatterns.First(p => p.PatternId == result.CreatedPatternIds[0]);
+        Assert.Equal(0.9f, pattern.QualityScore!.Value, 0.01f);
+    }
+
     // --- Helpers ---
 
     private static DistillationCandidate CreateMinimalCandidate(
@@ -744,6 +932,68 @@ public class PatternDistillationServiceTests : IDisposable
         {
             Events.Add(auditEvent);
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class StubEmbeddingService : IEmbeddingService
+    {
+        public Task<float[]> GenerateEmbeddingAsync(string text, CancellationToken cancellationToken = default)
+            => Task.FromResult(new float[1536]);
+    }
+
+    private sealed class ThrowingEmbeddingService : IEmbeddingService
+    {
+        public Task<float[]> GenerateEmbeddingAsync(string text, CancellationToken cancellationToken = default)
+            => throw new HttpRequestException("Embedding API unavailable");
+    }
+
+    private sealed class StubPatternIndexingService : IPatternIndexingService
+    {
+        public List<CasePattern> IndexedPatterns { get; } = [];
+
+        public Task<IndexingResult> IndexPatternsAsync(IReadOnlyList<CasePattern> patterns, CancellationToken cancellationToken = default)
+        {
+            IndexedPatterns.AddRange(patterns);
+            return Task.FromResult(new IndexingResult(patterns.Count, 0, []));
+        }
+
+        public Task EnsureIndexAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<int> DeletePatternsAsync(IReadOnlyList<string> patternIds, CancellationToken cancellationToken = default) => Task.FromResult(0);
+    }
+
+    private sealed class ThrowingPatternIndexingService : IPatternIndexingService
+    {
+        public Task<IndexingResult> IndexPatternsAsync(IReadOnlyList<CasePattern> patterns, CancellationToken cancellationToken = default)
+            => throw new InvalidOperationException("Search service unavailable");
+
+        public Task EnsureIndexAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<int> DeletePatternsAsync(IReadOnlyList<string> patternIds, CancellationToken cancellationToken = default) => Task.FromResult(0);
+    }
+
+    private sealed class StubQualityValidator : ICaseCardQualityValidator
+    {
+        private readonly bool _rejected;
+        private readonly bool _passed;
+        private readonly float _qualityScore;
+
+        public StubQualityValidator(bool rejected, bool passed = true, float qualityScore = 0.8f)
+        {
+            _rejected = rejected;
+            _passed = passed;
+            _qualityScore = qualityScore;
+        }
+
+        public CaseCardQualityReport Validate(CasePattern pattern)
+        {
+            return new CaseCardQualityReport
+            {
+                QualityScore = _qualityScore,
+                Passed = _passed,
+                Rejected = _rejected,
+                Issues = _rejected
+                    ? [new QualityIssue { Field = "title", Severity = "error", Message = "Too short", Penalty = 0.5f }]
+                    : [],
+            };
         }
     }
 }
