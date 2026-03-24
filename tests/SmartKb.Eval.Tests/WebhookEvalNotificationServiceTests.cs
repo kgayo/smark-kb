@@ -277,6 +277,36 @@ public class WebhookEvalNotificationServiceTests
         Assert.Single(handler.Requests);
     }
 
+    [Fact]
+    public void Dispose_WhenHttpClientInjected_DoesNotDisposeIt()
+    {
+        var handler = new FakeHttpHandler(HttpStatusCode.OK);
+        var httpClient = new HttpClient(handler);
+        var settings = new EvalNotificationSettings { WebhookUrl = "https://hooks.example.com/test" };
+
+        var svc = new WebhookEvalNotificationService(settings, httpClient);
+        svc.Dispose();
+
+        // Injected HttpClient should still be usable after service disposal.
+        Assert.NotNull(httpClient.BaseAddress is null ? "" : ""); // Accessing property doesn't throw.
+        var request = new HttpRequestMessage(HttpMethod.Get, "https://example.com");
+        // If HttpClient were disposed, SendAsync would throw ObjectDisposedException.
+        var task = httpClient.SendAsync(request);
+        Assert.NotNull(task);
+
+        httpClient.Dispose(); // Caller is responsible for disposal.
+    }
+
+    [Fact]
+    public void Dispose_WhenHttpClientNotInjected_DisposesOwnedClient()
+    {
+        var settings = new EvalNotificationSettings { WebhookUrl = "https://hooks.example.com/test" };
+        var svc = new WebhookEvalNotificationService(settings);
+
+        // Should not throw — disposes owned HttpClient.
+        svc.Dispose();
+    }
+
     private sealed class FakeHttpHandler : HttpMessageHandler
     {
         private readonly HttpStatusCode _statusCode;

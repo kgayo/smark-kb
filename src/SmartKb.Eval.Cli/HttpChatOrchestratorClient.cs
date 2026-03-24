@@ -19,10 +19,13 @@ public sealed class HttpChatOrchestratorClient : IChatOrchestrator, IDisposable
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
 
-    public HttpChatOrchestratorClient(string baseUrl, string? apiToken = null)
+    private readonly bool _ownsHttpClient;
+
+    public HttpChatOrchestratorClient(string baseUrl, string? apiToken = null, HttpClient? httpClient = null)
     {
         _baseUrl = baseUrl.TrimEnd('/');
-        _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
+        _ownsHttpClient = httpClient is null;
+        _httpClient = httpClient ?? new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
 
         if (!string.IsNullOrEmpty(apiToken))
             _httpClient.DefaultRequestHeaders.Authorization =
@@ -53,7 +56,11 @@ public sealed class HttpChatOrchestratorClient : IChatOrchestrator, IDisposable
             $"Empty response from {_baseUrl}/api/chat");
     }
 
-    public void Dispose() => _httpClient.Dispose();
+    public void Dispose()
+    {
+        if (_ownsHttpClient)
+            _httpClient.Dispose();
+    }
 
     /// <summary>
     /// Envelope matching the API's ApiResponse&lt;T&gt; shape.

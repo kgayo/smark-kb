@@ -18,22 +18,17 @@ var runUrl = GetArg("--run-url") ?? Environment.GetEnvironmentVariable("EVAL_RUN
 var settings = new EvalSettings();
 var runner = new EvalCliRunner(settings);
 
-HttpChatOrchestratorClient? orchestratorClient = null;
-if (!string.IsNullOrEmpty(apiBaseUrl))
-{
-    orchestratorClient = new HttpChatOrchestratorClient(apiBaseUrl, apiToken);
-}
+using var orchestratorClient = !string.IsNullOrEmpty(apiBaseUrl)
+    ? new HttpChatOrchestratorClient(apiBaseUrl, apiToken)
+    : null;
 
-WebhookEvalNotificationService? notificationService = null;
-if (!string.IsNullOrEmpty(notifyWebhookUrl))
-{
-    var notificationSettings = new EvalNotificationSettings
+using var notificationService = !string.IsNullOrEmpty(notifyWebhookUrl)
+    ? new WebhookEvalNotificationService(new EvalNotificationSettings
     {
         WebhookUrl = notifyWebhookUrl,
         Format = notifyFormat,
-    };
-    notificationService = new WebhookEvalNotificationService(notificationSettings);
-}
+    })
+    : null;
 
 var options = new EvalCliOptions
 {
@@ -71,16 +66,12 @@ try
     else if (result.NotificationSent == false)
         Console.Error.WriteLine("::warning title=Eval Notification::Failed to send regression alert to webhook.");
 
-    orchestratorClient?.Dispose();
-    notificationService?.Dispose();
     return result.ExitCode;
 }
 catch (Exception ex)
 {
     Console.Error.WriteLine($"::error title=Eval Fatal Error::{ex.Message}");
     Console.Error.WriteLine(ex.StackTrace);
-    orchestratorClient?.Dispose();
-    notificationService?.Dispose();
     return 2;
 }
 

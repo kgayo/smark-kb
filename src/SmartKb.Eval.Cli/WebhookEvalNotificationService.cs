@@ -16,6 +16,7 @@ public sealed class WebhookEvalNotificationService : IEvalNotificationService, I
 {
     private readonly EvalNotificationSettings _settings;
     private readonly HttpClient _httpClient;
+    private readonly bool _ownsHttpClient;
     private readonly ILogger<WebhookEvalNotificationService> _logger;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -27,6 +28,7 @@ public sealed class WebhookEvalNotificationService : IEvalNotificationService, I
     public WebhookEvalNotificationService(EvalNotificationSettings settings, HttpClient? httpClient = null, ILogger<WebhookEvalNotificationService>? logger = null)
     {
         _settings = settings;
+        _ownsHttpClient = httpClient is null;
         _httpClient = httpClient ?? new HttpClient { Timeout = TimeSpan.FromSeconds(settings.TimeoutSeconds) };
         _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance.CreateLogger<WebhookEvalNotificationService>();
     }
@@ -174,5 +176,9 @@ public sealed class WebhookEvalNotificationService : IEvalNotificationService, I
         return JsonSerializer.Serialize(teamsObj, JsonOptions);
     }
 
-    public void Dispose() => _httpClient.Dispose();
+    public void Dispose()
+    {
+        if (_ownsHttpClient)
+            _httpClient.Dispose();
+    }
 }
