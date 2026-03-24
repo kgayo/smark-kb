@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-24 (Asia/Manila) — iteration 126 (TECH-027 Log silent catch blocks + final aria-label pass)
-Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2589 tests passing (2142 backend + 433 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 126: TECH-027 (add logging to 2 silent catch blocks in Program.cs, add aria-labels to SessionSidebar, PatternDetailView, ConnectorDetail, ConnectorList). Code quality clean; frontend build clean (no warnings).
+Last updated: 2026-03-24 (Asia/Manila) — iteration 127 (TECH-028 Fix FieldMappingEditor editIndex drift on row deletion)
+Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2590 tests passing (2142 backend + 434 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 127: TECH-028 (fix editIndex shift bug in FieldMappingEditor when removing a row before the edited row). Code quality clean; frontend build clean (no warnings).
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -173,6 +173,10 @@ Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-00
 - [x] TECH-027: Log silent catch blocks in Program.cs + final frontend aria-label pass.
   - Root cause: Code quality scan found 2 `catch (InvalidOperationException)` blocks in `Program.cs` (secrets status and diagnostics summary endpoints) that silently swallowed exceptions without any logging, making it impossible to diagnose OpenAI key misconfiguration in production. Also found ~15 interactive elements across 4 frontend components (SessionSidebar, PatternDetailView, ConnectorDetail, ConnectorList) lacking `aria-label` attributes.
   - Completed (iteration 126): Added `ILogger<Program>` injection to secrets status endpoint and `sp.GetRequiredService<ILogger<Program>>()` in diagnostics summary endpoint; both now `LogWarning` the `InvalidOperationException` with context message. Frontend: added `aria-label="Create new session"` and `aria-label="Open session {title}"` to SessionSidebar buttons. Added `aria-label` to 10 elements in PatternDetailView (back, review, approve, deprecate, notes input, deprecation reason, superseding ID, cancel deprecation). Added `aria-label="Back to connector list"` and `aria-label="Cancel delete"` to ConnectorDetail. Added `aria-label="Create new connector"` to ConnectorList. 5 new frontend tests across 4 test files. 433 frontend tests passing; 0 TypeScript errors; build clean.
+
+- [x] TECH-028: Fix FieldMappingEditor `editIndex` drift on row deletion.
+  - Root cause: `removeRule` only cleared `editIndex` when deleting the currently edited row. When deleting a row at an index lower than `editIndex`, the edit cursor silently shifted to the next row (wrong rule), because array indices shift downward but `editIndex` was not adjusted.
+  - Completed (iteration 127): Added `else if (editIndex !== null && index < editIndex) setEditIndex(editIndex - 1)` to `removeRule`. 1 new test verifies edit cursor stays on the correct rule (rule C) after removing an earlier row (rule A). 434 frontend tests passing; build clean.
 
 - [x] TECH-023: Add structured logging to all silent `catch (JsonException)` blocks.
   - Root cause: 25 `catch (JsonException)` blocks across 24 files silently swallowed deserialization errors with no logging. When JSON stored in SQL columns or received from external APIs was malformed, the code returned fallback values (null, empty list, empty dict) with no diagnostic trace, making production debugging impossible.

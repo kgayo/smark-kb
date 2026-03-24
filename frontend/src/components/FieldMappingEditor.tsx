@@ -46,6 +46,7 @@ export function FieldMappingEditor({
   function removeRule(index: number) {
     onChange({ rules: rules.filter((_, i) => i !== index) });
     if (editIndex === index) setEditIndex(null);
+    else if (editIndex !== null && index < editIndex) setEditIndex(editIndex - 1);
   }
 
   function routingTagLabel(tag: RoutingTagName | null): string {

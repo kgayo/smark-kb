@@ -115,6 +115,31 @@ describe('FieldMappingEditor', () => {
     expect(screen.getByRole('button', { name: 'Edit routing tag for rule 1' })).toBeInTheDocument();
   });
 
+  it('adjusts editIndex when removing a row before the edited row', () => {
+    const threeRuleMapping: FieldMappingConfig = {
+      rules: [
+        { sourceField: 'A', targetField: 'a', transform: 'Direct', transformExpression: null, isRequired: false, defaultValue: null, routingTag: null },
+        { sourceField: 'B', targetField: 'b', transform: 'Direct', transformExpression: null, isRequired: false, defaultValue: null, routingTag: null },
+        { sourceField: 'C', targetField: 'c', transform: 'Direct', transformExpression: null, isRequired: false, defaultValue: null, routingTag: null },
+      ],
+    };
+    let currentMapping = threeRuleMapping;
+    const onChange = vi.fn((m: FieldMappingConfig) => { currentMapping = m; });
+    const { rerender } = render(<FieldMappingEditor mapping={currentMapping} onChange={onChange} />);
+
+    // Click cell on row 2 (rule C) to enter edit mode on that row
+    fireEvent.click(screen.getByRole('button', { name: 'Edit source field for rule 3' }));
+    // Row 2 should now show an input for source field
+    expect(screen.getByTestId('source-field-2')).toHaveValue('C');
+
+    // Remove row 0 (rule A) — editIndex should shift from 2 to 1
+    fireEvent.click(screen.getByTestId('remove-rule-0'));
+    rerender(<FieldMappingEditor mapping={currentMapping} onChange={onChange} />);
+
+    // After removal, rule C is now at index 1. The edit input should still be on rule C.
+    expect(screen.getByTestId('source-field-1')).toHaveValue('C');
+  });
+
   it('clears routing tag when None is selected', () => {
     const onChange = vi.fn();
     render(<FieldMappingEditor mapping={mockMappingWithRoutingTag} onChange={onChange} />);
