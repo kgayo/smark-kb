@@ -245,7 +245,10 @@ describe('EscalationDraftModal', () => {
       expect(screen.getByTestId('escalation-draft-close')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByTestId('escalation-draft-close'));
+    const closeBtn = screen.getByTestId('escalation-draft-close');
+    expect(closeBtn).toHaveAttribute('aria-label', 'Close escalation draft modal');
+
+    fireEvent.click(closeBtn);
     expect(onClose).toHaveBeenCalledOnce();
   });
 

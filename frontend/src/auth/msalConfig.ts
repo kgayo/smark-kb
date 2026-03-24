@@ -17,8 +17,9 @@ export const msalConfig: Configuration = {
   system: {
     loggerOptions: {
       logLevel: LogLevel.Warning,
-      loggerCallback: (_level, message) => {
-        console.debug('[MSAL]', message);
+      loggerCallback: (level, message) => {
+        if (level === LogLevel.Error) console.error('[MSAL]', message);
+        else if (level === LogLevel.Warning) console.warn('[MSAL]', message);
       },
     },
   },

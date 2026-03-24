@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-24 (Asia/Manila) — iteration 144 (TECH-045 add aria-labels to 3 synonym inline-edit inputs in SynonymManagementPage)
-Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2643 tests passing (2145 backend + 467 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 144: TECH-045 (aria-labels on 3 synonym inline-edit inputs; 1 new test).
+Last updated: 2026-03-24 (Asia/Manila) — iteration 145 (TECH-046 fix MSAL logger severity mapping + descriptive close-modal aria-label)
+Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2647 tests passing (2145 backend + 471 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 145: TECH-046 (fix MSAL loggerCallback severity mapping; descriptive close-modal aria-label; 4 new tests).
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -245,6 +245,10 @@ Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-00
 - [x] TECH-045: Add aria-labels to 3 unlabeled synonym inline-edit inputs in SynonymManagementPage.
   - Root cause: Code quality scan found 3 `<input>` elements in the synonym rule inline-edit form (group name, rule value, description) lacking `aria-label` attributes, while all other inputs across the codebase were properly labeled.
   - Completed (iteration 144): Added `aria-label="Edit synonym group name"`, `aria-label="Edit synonym rule value"`, `aria-label="Edit synonym rule description"` to the 3 inline-edit inputs. 1 new test verifies all 3 aria-labels appear when entering edit mode. 467 frontend tests passing; TypeScript clean; build clean.
+
+- [x] TECH-046: Fix MSAL logger severity mapping + descriptive close-modal aria-label.
+  - Root cause: (1) `msalConfig.ts` loggerCallback used `console.debug` for all MSAL log messages regardless of severity level — Error and Warning messages were logged as debug, making them invisible in most browser console filters. (2) `EscalationDraftModal.tsx` close button had generic `aria-label="Close"` — screen readers could not identify what was being closed.
+  - Completed (iteration 145): (1) Replaced `console.debug` catch-all with severity-aware mapping: `LogLevel.Error` → `console.error`, `LogLevel.Warning` → `console.warn`, Info/Verbose silenced (no production noise). (2) Changed `aria-label="Close"` to `aria-label="Close escalation draft modal"`. 3 new msalConfig logger tests (error, warning, info/verbose silenced); 1 existing EscalationDraftModal close test updated with aria-label assertion. 471 frontend tests passing.
 
 - [x] TECH-023: Add structured logging to all silent `catch (JsonException)` blocks.
   - Root cause: 25 `catch (JsonException)` blocks across 24 files silently swallowed deserialization errors with no logging. When JSON stored in SQL columns or received from external APIs was malformed, the code returned fallback values (null, empty list, empty dict) with no diagnostic trace, making production debugging impossible.

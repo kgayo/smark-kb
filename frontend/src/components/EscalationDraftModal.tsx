@@ -238,7 +238,7 @@ export function EscalationDraftModal({
             className="btn-close"
             onClick={onClose}
             data-testid="escalation-draft-close"
-            aria-label="Close"
+            aria-label="Close escalation draft modal"
           >
             &times;
           </button>
