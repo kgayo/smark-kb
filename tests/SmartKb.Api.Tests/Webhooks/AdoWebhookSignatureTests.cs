@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.Extensions.Logging;
 using SmartKb.Api.Webhooks;
 
 namespace SmartKb.Api.Tests.Webhooks;
@@ -41,6 +42,14 @@ public sealed class AdoWebhookSignatureTests
     public void ValidateSignature_ReturnsFalse_WhenAuthHeaderInvalidBase64()
     {
         Assert.False(AdoWebhookHandler.ValidateSignature("{}", "Basic !!!invalid!!!", "secret"));
+    }
+
+    [Fact]
+    public void ValidateSignature_LogsWarning_WhenAuthHeaderInvalidBase64()
+    {
+        var logger = NullLogger<AdoWebhookHandler>.Instance;
+        // Should not throw; logger receives warning for malformed header
+        Assert.False(AdoWebhookHandler.ValidateSignature("{}", "Basic !!!invalid!!!", "secret", logger));
     }
 
     [Fact]

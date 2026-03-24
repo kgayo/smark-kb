@@ -309,4 +309,14 @@ describe('SynonymManagementPage', () => {
       expect(screen.getByText(/Special tokens.*are preserved during query preprocessing/)).toBeInTheDocument();
     });
   });
+
+  it('has aria-labels on tab buttons', async () => {
+    mockedClient.getMe.mockResolvedValue(adminUser);
+    renderWithRouter();
+    await waitFor(() => {
+      expect(screen.getByLabelText('Synonyms tab')).toBeInTheDocument();
+    });
+    expect(screen.getByLabelText('Stop Words tab')).toBeInTheDocument();
+    expect(screen.getByLabelText('Special Tokens tab')).toBeInTheDocument();
+  });
 });

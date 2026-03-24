@@ -290,9 +290,12 @@ describe('DiagnosticsPage', () => {
       expect(screen.getByTestId('dead-letter-panel')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByTestId('dl-expand-msg-001'));
+    const expandBtn = screen.getByTestId('dl-expand-msg-001');
+    expect(expandBtn).toHaveAttribute('aria-label', 'Show dead-letter details');
+    fireEvent.click(expandBtn);
     expect(screen.getByTestId('dl-detail-msg-001')).toBeInTheDocument();
     expect(screen.getByText('Delivery count exceeded')).toBeInTheDocument();
+    expect(expandBtn).toHaveAttribute('aria-label', 'Hide dead-letter details');
   });
 
   it('shows empty state for dead letters when none exist', async () => {

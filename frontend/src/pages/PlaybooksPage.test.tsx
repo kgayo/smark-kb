@@ -93,6 +93,9 @@ describe('PlaybooksPage', () => {
       expect(screen.getByText('#eng-oncall')).toBeInTheDocument();
       expect(screen.getByText('Check logs')).toBeInTheDocument();
     });
+    expect(screen.getByLabelText('Back to playbook list')).toBeInTheDocument();
+    expect(screen.getByLabelText('Edit playbook')).toBeInTheDocument();
+    expect(screen.getByLabelText('Delete playbook')).toBeInTheDocument();
   });
 
   it('shows create form', async () => {

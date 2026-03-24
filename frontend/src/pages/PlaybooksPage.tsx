@@ -242,11 +242,11 @@ export function PlaybooksPage() {
         {view === 'detail' && selected && (
           <div data-testid="playbook-detail">
             <div className="admin-toolbar">
-              <button className="btn btn-sm" onClick={() => { setView('list'); setEditing(false); }}>Back</button>
+              <button className="btn btn-sm" onClick={() => { setView('list'); setEditing(false); }} aria-label="Back to playbook list">Back</button>
               {!editing && (
                 <>
-                  <button className="btn btn-sm btn-primary" onClick={startEditing}>Edit</button>
-                  <button className="btn btn-sm btn-danger-outline" onClick={() => handleDelete(selected.id)}>Delete</button>
+                  <button className="btn btn-sm btn-primary" onClick={startEditing} aria-label="Edit playbook">Edit</button>
+                  <button className="btn btn-sm btn-danger-outline" onClick={() => handleDelete(selected.id)} aria-label="Delete playbook">Delete</button>
                 </>
               )}
             </div>

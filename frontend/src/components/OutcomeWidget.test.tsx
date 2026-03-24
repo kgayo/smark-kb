@@ -101,4 +101,11 @@ describe('OutcomeWidget', () => {
     render(<OutcomeWidget sessionId="s-1" onSubmit={vi.fn()} />);
     expect(screen.getByText('How was this session resolved?')).toBeInTheDocument();
   });
+
+  it('has aria-labels on submit button and target team input', () => {
+    render(<OutcomeWidget sessionId="s-1" onSubmit={vi.fn()} />);
+    expect(screen.getByTestId('submit-outcome')).toHaveAttribute('aria-label', 'Record session outcome');
+    fireEvent.click(screen.getByTestId('resolution-Escalated'));
+    expect(screen.getByTestId('outcome-target-team')).toHaveAttribute('aria-label', 'Target team for escalation or reroute');
+  });
 });

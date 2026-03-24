@@ -90,7 +90,7 @@ public sealed class AdoWebhookHandler
             try
             {
                 var secret = await _secretProvider.GetSecretAsync(subscription.WebhookSecretName, cancellationToken);
-                if (!ValidateSignature(requestBody, authorizationHeader, secret))
+                if (!ValidateSignature(requestBody, authorizationHeader, secret, _logger))
                 {
                     _logger.LogWarning(
                         "Webhook signature verification failed for connector {ConnectorId}", connectorId);
@@ -205,7 +205,7 @@ public sealed class AdoWebhookHandler
     /// Validates the HMAC signature from the ADO service hook.
     /// ADO sends the shared secret as basic auth password in the Authorization header.
     /// </summary>
-    internal static bool ValidateSignature(string requestBody, string? authorizationHeader, string? expectedSecret)
+    internal static bool ValidateSignature(string requestBody, string? authorizationHeader, string? expectedSecret, ILogger? logger = null)
     {
         if (string.IsNullOrEmpty(expectedSecret))
             return true; // No secret configured = skip verification.
@@ -232,8 +232,9 @@ public sealed class AdoWebhookHandler
                 Encoding.UTF8.GetBytes(password),
                 Encoding.UTF8.GetBytes(expectedSecret));
         }
-        catch (FormatException)
+        catch (FormatException ex)
         {
+            logger?.LogWarning(ex, "Malformed Basic auth header in ADO webhook signature validation");
             return false;
         }
     }

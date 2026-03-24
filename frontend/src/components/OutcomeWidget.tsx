@@ -71,6 +71,7 @@ export function OutcomeWidget({ sessionId, existingOutcome, onSubmit }: OutcomeW
           data-testid="outcome-target-team"
           type="text"
           placeholder="Target team (optional)"
+          aria-label="Target team for escalation or reroute"
           value={targetTeam}
           onChange={(e) => setTargetTeam(e.target.value)}
         />
@@ -105,6 +106,7 @@ export function OutcomeWidget({ sessionId, existingOutcome, onSubmit }: OutcomeW
         data-testid="submit-outcome"
         onClick={handleSubmit}
         disabled={submitting || !resolutionType}
+        aria-label={submitting ? 'Recording outcome' : 'Record session outcome'}
       >
         {submitting ? 'Recording...' : 'Record outcome'}
       </button>

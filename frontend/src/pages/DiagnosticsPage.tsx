@@ -388,6 +388,7 @@ function DeadLetterPanel({ deadLetters }: { deadLetters: DeadLetterListResponse 
                       className="btn btn-sm"
                       onClick={() => setExpanded(expanded === m.messageId ? null : m.messageId)}
                       data-testid={`dl-expand-${m.messageId}`}
+                      aria-label={expanded === m.messageId ? 'Hide dead-letter details' : 'Show dead-letter details'}
                     >
                       {expanded === m.messageId ? 'Hide' : 'Details'}
                     </button>

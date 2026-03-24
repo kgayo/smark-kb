@@ -46,9 +46,9 @@ export function SynonymManagementPage() {
       </p>
 
       <div style={{ borderBottom: '1px solid #ccc', marginBottom: 16 }}>
-        <button style={tabStyle('synonyms')} onClick={() => setActiveTab('synonyms')}>Synonyms</button>
-        <button style={tabStyle('stop-words')} onClick={() => setActiveTab('stop-words')}>Stop Words</button>
-        <button style={tabStyle('special-tokens')} onClick={() => setActiveTab('special-tokens')}>Special Tokens</button>
+        <button style={tabStyle('synonyms')} onClick={() => setActiveTab('synonyms')} aria-label="Synonyms tab">Synonyms</button>
+        <button style={tabStyle('stop-words')} onClick={() => setActiveTab('stop-words')} aria-label="Stop Words tab">Stop Words</button>
+        <button style={tabStyle('special-tokens')} onClick={() => setActiveTab('special-tokens')} aria-label="Special Tokens tab">Special Tokens</button>
       </div>
 
       {activeTab === 'synonyms' && <SynonymsTab />}
@@ -150,9 +150,9 @@ function SynonymsTab() {
       {syncMessage && <div style={{ color: '#0070f3', marginBottom: 12 }}>{syncMessage}</div>}
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        <button onClick={handleSync} disabled={syncing}>{syncing ? 'Syncing...' : 'Sync to Search'}</button>
-        <button onClick={handleSeed}>Seed Defaults</button>
-        <button onClick={() => setShowCreate(!showCreate)}>{showCreate ? 'Cancel' : 'Add Rule'}</button>
+        <button onClick={handleSync} disabled={syncing} aria-label={syncing ? 'Syncing synonym rules' : 'Sync synonym rules to search'}>{syncing ? 'Syncing...' : 'Sync to Search'}</button>
+        <button onClick={handleSeed} aria-label="Seed default synonym rules">Seed Defaults</button>
+        <button onClick={() => setShowCreate(!showCreate)} aria-label={showCreate ? 'Cancel adding synonym rule' : 'Add synonym rule'}>{showCreate ? 'Cancel' : 'Add Rule'}</button>
         <select value={selectedGroup} onChange={(e) => setSelectedGroup(e.target.value)} aria-label="Filter by group" style={{ marginLeft: 'auto' }}>
           <option value="">All Groups</option>
           {groups.map((g) => (<option key={g} value={g}>{g}</option>))}
@@ -182,7 +182,7 @@ function SynonymsTab() {
                 aria-label="Synonym rule description" />
             </div>
           </div>
-          <button onClick={handleCreate} disabled={!newRule.trim()}>Create</button>
+          <button onClick={handleCreate} disabled={!newRule.trim()} aria-label="Create synonym rule">Create</button>
         </div>
       )}
 
@@ -211,8 +211,8 @@ function SynonymsTab() {
                     <td style={{ padding: 8 }}><input value={editDescription} onChange={(e) => setEditDescription(e.target.value)} style={{ width: '100%', padding: 4 }} /></td>
                     <td style={{ padding: 8 }}>{rule.isActive ? 'Yes' : 'No'}</td>
                     <td style={{ padding: 8 }}>
-                      <button onClick={() => handleUpdate(rule.id)} style={{ marginRight: 4 }}>Save</button>
-                      <button onClick={() => setEditingId(null)}>Cancel</button>
+                      <button onClick={() => handleUpdate(rule.id)} style={{ marginRight: 4 }} aria-label="Save synonym rule changes">Save</button>
+                      <button onClick={() => setEditingId(null)} aria-label="Cancel editing synonym rule">Cancel</button>
                     </td>
                   </>
                 ) : (
@@ -221,11 +221,11 @@ function SynonymsTab() {
                     <td style={{ padding: 8, fontFamily: 'monospace', fontSize: 13 }}>{rule.rule}</td>
                     <td style={{ padding: 8, color: '#666', fontSize: 13 }}>{rule.description ?? ''}</td>
                     <td style={{ padding: 8 }}>
-                      <button onClick={() => handleToggleActive(rule)} style={{ background: rule.isActive ? '#4caf50' : '#ccc', color: '#fff', border: 'none', borderRadius: 4, padding: '2px 8px', cursor: 'pointer' }}>{rule.isActive ? 'Yes' : 'No'}</button>
+                      <button onClick={() => handleToggleActive(rule)} style={{ background: rule.isActive ? '#4caf50' : '#ccc', color: '#fff', border: 'none', borderRadius: 4, padding: '2px 8px', cursor: 'pointer' }} aria-label={rule.isActive ? 'Deactivate synonym rule' : 'Activate synonym rule'}>{rule.isActive ? 'Yes' : 'No'}</button>
                     </td>
                     <td style={{ padding: 8 }}>
-                      <button onClick={() => startEdit(rule)} style={{ marginRight: 4 }}>Edit</button>
-                      <button onClick={() => handleDelete(rule.id)} style={{ color: 'red' }}>Delete</button>
+                      <button onClick={() => startEdit(rule)} style={{ marginRight: 4 }} aria-label="Edit synonym rule">Edit</button>
+                      <button onClick={() => handleDelete(rule.id)} style={{ color: 'red' }} aria-label="Delete synonym rule">Delete</button>
                     </td>
                   </>
                 )}
@@ -304,8 +304,8 @@ function StopWordsTab() {
       {message && <div style={{ color: '#0070f3', marginBottom: 12 }}>{message}</div>}
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        <button onClick={handleSeed}>Seed Defaults</button>
-        <button onClick={() => setShowCreate(!showCreate)}>{showCreate ? 'Cancel' : 'Add Word'}</button>
+        <button onClick={handleSeed} aria-label="Seed default stop words">Seed Defaults</button>
+        <button onClick={() => setShowCreate(!showCreate)} aria-label={showCreate ? 'Cancel adding stop word' : 'Add stop word'}>{showCreate ? 'Cancel' : 'Add Word'}</button>
         <select value={selectedGroup} onChange={(e) => setSelectedGroup(e.target.value)} aria-label="Filter by group" style={{ marginLeft: 'auto' }}>
           <option value="">All Groups</option>
           {groups.map((g) => (<option key={g} value={g}>{g}</option>))}
@@ -329,7 +329,7 @@ function StopWordsTab() {
                 aria-label="Synonym group" />
             </div>
           </div>
-          <button onClick={handleCreate} disabled={!newWord.trim()}>Create</button>
+          <button onClick={handleCreate} disabled={!newWord.trim()} aria-label="Create stop word">Create</button>
         </div>
       )}
 
@@ -356,12 +356,13 @@ function StopWordsTab() {
                 <td style={{ padding: 8, fontFamily: 'monospace', fontSize: 13 }}>{word.word}</td>
                 <td style={{ padding: 8 }}>
                   <button onClick={() => handleToggleActive(word)}
-                    style={{ background: word.isActive ? '#4caf50' : '#ccc', color: '#fff', border: 'none', borderRadius: 4, padding: '2px 8px', cursor: 'pointer' }}>
+                    style={{ background: word.isActive ? '#4caf50' : '#ccc', color: '#fff', border: 'none', borderRadius: 4, padding: '2px 8px', cursor: 'pointer' }}
+                    aria-label={word.isActive ? 'Deactivate stop word' : 'Activate stop word'}>
                     {word.isActive ? 'Yes' : 'No'}
                   </button>
                 </td>
                 <td style={{ padding: 8 }}>
-                  <button onClick={() => handleDelete(word.id)} style={{ color: 'red' }}>Delete</button>
+                  <button onClick={() => handleDelete(word.id)} style={{ color: 'red' }} aria-label="Delete stop word">Delete</button>
                 </td>
               </tr>
             ))}
@@ -440,8 +441,8 @@ function SpecialTokensTab() {
       {message && <div style={{ color: '#0070f3', marginBottom: 12 }}>{message}</div>}
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        <button onClick={handleSeed}>Seed Defaults</button>
-        <button onClick={() => setShowCreate(!showCreate)}>{showCreate ? 'Cancel' : 'Add Token'}</button>
+        <button onClick={handleSeed} aria-label="Seed default special tokens">Seed Defaults</button>
+        <button onClick={() => setShowCreate(!showCreate)} aria-label={showCreate ? 'Cancel adding special token' : 'Add special token'}>{showCreate ? 'Cancel' : 'Add Token'}</button>
         <select value={selectedCategory} aria-label="Filter by category" onChange={(e) => setSelectedCategory(e.target.value)} style={{ marginLeft: 'auto' }}>
           <option value="">All Categories</option>
           {categories.map((c) => (<option key={c} value={c}>{c}</option>))}
@@ -476,7 +477,7 @@ function SpecialTokensTab() {
                 placeholder="Optional description" style={{ width: '100%', padding: 6 }} />
             </div>
           </div>
-          <button onClick={handleCreate} disabled={!newToken.trim()}>Create</button>
+          <button onClick={handleCreate} disabled={!newToken.trim()} aria-label="Create special token">Create</button>
         </div>
       )}
 
@@ -507,12 +508,13 @@ function SpecialTokensTab() {
                 <td style={{ padding: 8, color: '#666', fontSize: 13 }}>{token.description ?? ''}</td>
                 <td style={{ padding: 8 }}>
                   <button onClick={() => handleToggleActive(token)}
-                    style={{ background: token.isActive ? '#4caf50' : '#ccc', color: '#fff', border: 'none', borderRadius: 4, padding: '2px 8px', cursor: 'pointer' }}>
+                    style={{ background: token.isActive ? '#4caf50' : '#ccc', color: '#fff', border: 'none', borderRadius: 4, padding: '2px 8px', cursor: 'pointer' }}
+                    aria-label={token.isActive ? 'Deactivate special token' : 'Activate special token'}>
                     {token.isActive ? 'Yes' : 'No'}
                   </button>
                 </td>
                 <td style={{ padding: 8 }}>
-                  <button onClick={() => handleDelete(token.id)} style={{ color: 'red' }}>Delete</button>
+                  <button onClick={() => handleDelete(token.id)} style={{ color: 'red' }} aria-label="Delete special token">Delete</button>
                 </td>
               </tr>
             ))}
