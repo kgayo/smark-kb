@@ -420,7 +420,7 @@ export function RoutingAnalyticsPage() {
                 <option value="Applied">Applied</option>
                 <option value="Dismissed">Dismissed</option>
               </select>
-              <button className="btn btn-sm btn-primary" onClick={handleGenerateRecs}>
+              <button className="btn btn-sm btn-primary" onClick={handleGenerateRecs} aria-label="Generate routing recommendations">
                 Generate Recommendations
               </button>
             </div>

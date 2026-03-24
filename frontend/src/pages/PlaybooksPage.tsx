@@ -190,7 +190,7 @@ export function PlaybooksPage() {
         {view === 'list' && (
           <>
             <div className="admin-toolbar">
-              <button className="btn btn-primary" onClick={startCreate} data-testid="new-playbook-btn">
+              <button className="btn btn-primary" onClick={startCreate} data-testid="new-playbook-btn" aria-label="Create new playbook">
                 New Playbook
               </button>
             </div>

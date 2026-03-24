@@ -259,4 +259,20 @@ describe('RoutingAnalyticsPage', () => {
     expect(screen.getByLabelText('Rules tab')).toBeInTheDocument();
     expect(screen.getByLabelText('Recommendations tab')).toBeInTheDocument();
   });
+
+  it('Generate Recommendations button has aria-label', async () => {
+    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedApi.listRoutingRules.mockResolvedValue({ rules: [], totalCount: 0 });
+    mockedApi.listRoutingRecommendations.mockResolvedValue({ recommendations: [], totalCount: 0 });
+    mockedApi.getRoutingAnalytics.mockResolvedValue({
+      tenantId: 't1', totalOutcomes: 0, totalEscalations: 0, totalReroutes: 0,
+      totalResolvedWithoutEscalation: 0, overallAcceptanceRate: 0, overallRerouteRate: 0,
+      selfResolutionRate: 0, teamMetrics: [], productAreaMetrics: [],
+      computedAt: '2026-03-19T00:00:00Z', windowStart: null, windowEnd: null,
+    });
+    renderPage();
+    await waitFor(() => expect(mockedApi.getRoutingAnalytics).toHaveBeenCalled());
+    fireEvent.click(screen.getByLabelText('Recommendations tab'));
+    await waitFor(() => expect(screen.getByLabelText('Generate routing recommendations')).toBeInTheDocument());
+  });
 });

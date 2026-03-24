@@ -103,6 +103,7 @@ describe('PlaybooksPage', () => {
     mockedApi.listPlaybooks.mockResolvedValue({ playbooks: [], totalCount: 0 });
     renderPage();
     await waitFor(() => expect(screen.getByTestId('new-playbook-btn')).toBeInTheDocument());
+    expect(screen.getByLabelText('Create new playbook')).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('new-playbook-btn'));
     expect(screen.getByTestId('create-playbook-form')).toBeInTheDocument();

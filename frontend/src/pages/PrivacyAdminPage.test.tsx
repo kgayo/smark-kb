@@ -229,4 +229,12 @@ describe('PrivacyAdminPage', () => {
     // Enforcement mode select has aria-label
     expect(screen.getByLabelText('Enforcement mode')).toBeInTheDocument();
   });
+
+  it('Submit Deletion Request button has aria-label', async () => {
+    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedApi.getPiiPolicy.mockResolvedValue(null);
+    renderPage();
+    fireEvent.click(screen.getByLabelText('Data Deletion tab'));
+    await waitFor(() => expect(screen.getByLabelText('Submit data subject deletion request')).toBeInTheDocument());
+  });
 });

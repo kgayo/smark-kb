@@ -450,7 +450,7 @@ export function PrivacyAdminPage() {
                 onChange={(e) => setSubjectId(e.target.value)}
                 aria-label="Subject or user ID" />
               <button className="btn btn-sm btn-primary" onClick={handleCreateDeletion}
-                disabled={!subjectId.trim()}>
+                disabled={!subjectId.trim()} aria-label="Submit data subject deletion request">
                 Submit Deletion Request
               </button>
             </div>
