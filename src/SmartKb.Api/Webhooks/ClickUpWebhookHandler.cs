@@ -91,7 +91,7 @@ public sealed class ClickUpWebhookHandler
             try
             {
                 var secret = await _secretProvider.GetSecretAsync(subscription.WebhookSecretName, cancellationToken);
-                if (!ClickUpWebhookManager.ValidateSignature(requestBody, signatureHeader, secret))
+                if (!ClickUpWebhookManager.ValidateSignature(requestBody, signatureHeader, secret, _logger))
                 {
                     _logger.LogWarning(
                         "ClickUp webhook signature verification failed for connector {ConnectorId}", connectorId);

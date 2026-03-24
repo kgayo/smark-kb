@@ -91,7 +91,7 @@ public sealed class HubSpotWebhookHandler
             try
             {
                 var secret = await _secretProvider.GetSecretAsync(subscription.WebhookSecretName, cancellationToken);
-                if (!HubSpotWebhookManager.ValidateSignature(requestBody, signatureHeader, secret, timestampHeader))
+                if (!HubSpotWebhookManager.ValidateSignature(requestBody, signatureHeader, secret, timestampHeader, _logger))
                 {
                     _logger.LogWarning(
                         "HubSpot webhook signature verification failed for connector {ConnectorId}", connectorId);

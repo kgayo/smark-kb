@@ -245,11 +245,11 @@ describe('RoutingAnalyticsPage', () => {
 
   it('tab buttons have aria-labels', async () => {
     mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
-    mockedApi.listRoutingRules.mockResolvedValue([]);
-    mockedApi.listRoutingRecommendations.mockResolvedValue([]);
+    mockedApi.listRoutingRules.mockResolvedValue({ rules: [], totalCount: 0 });
+    mockedApi.listRoutingRecommendations.mockResolvedValue({ recommendations: [], totalCount: 0 });
     mockedApi.getRoutingAnalytics.mockResolvedValue({
-      totalEscalations: 0, acceptedCount: 0, rejectedCount: 0, avgResponseMinutes: 0,
-      p95ResponseMinutes: 0, acceptanceRate: 0, routingAccuracy: 0,
+      tenantId: 't1', totalOutcomes: 0, totalEscalations: 0, totalReroutes: 0,
+      totalResolvedWithoutEscalation: 0, overallAcceptanceRate: 0, overallRerouteRate: 0,
       selfResolutionRate: 0, teamMetrics: [], productAreaMetrics: [],
       computedAt: '2026-03-19T00:00:00Z', windowStart: null, windowEnd: null,
     });

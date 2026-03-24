@@ -102,8 +102,9 @@ public sealed class OAuthTokenService : IOAuthTokenService
             var now = _timeProvider.GetUtcNow();
             return (now - stateTime) <= StateMaxAge;
         }
-        catch (FormatException)
+        catch (FormatException ex)
         {
+            _logger.LogWarning(ex, "OAuth state validation failed due to malformed format");
             return false;
         }
     }

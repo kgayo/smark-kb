@@ -190,7 +190,7 @@ public sealed class HubSpotWebhookManager : IWebhookManager
     /// HubSpot signs the request body with the app secret.
     /// Signature = HMAC-SHA256(clientSecret, requestBody). Sent in X-HubSpot-Signature-v3 header.
     /// </summary>
-    public static bool ValidateSignature(string requestBody, string? signatureHeader, string? expectedSecret, string? timestampHeader)
+    public static bool ValidateSignature(string requestBody, string? signatureHeader, string? expectedSecret, string? timestampHeader, ILogger? logger = null)
     {
         if (string.IsNullOrEmpty(expectedSecret))
             return true; // No secret configured = skip verification.
@@ -213,8 +213,9 @@ public sealed class HubSpotWebhookManager : IWebhookManager
                 Encoding.UTF8.GetBytes(computed),
                 Encoding.UTF8.GetBytes(expected));
         }
-        catch (FormatException)
+        catch (FormatException ex)
         {
+            logger?.LogWarning(ex, "HubSpot webhook signature validation failed due to malformed format");
             return false;
         }
     }

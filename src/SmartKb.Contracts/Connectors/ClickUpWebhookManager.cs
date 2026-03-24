@@ -182,7 +182,7 @@ public sealed class ClickUpWebhookManager : IWebhookManager
     /// ClickUp signs the request body with the webhook secret.
     /// Signature = HMAC-SHA256(secret, requestBody). Sent in X-Signature header.
     /// </summary>
-    public static bool ValidateSignature(string requestBody, string? signatureHeader, string? expectedSecret)
+    public static bool ValidateSignature(string requestBody, string? signatureHeader, string? expectedSecret, ILogger? logger = null)
     {
         if (string.IsNullOrEmpty(expectedSecret))
             return true; // No secret configured = skip verification.
@@ -203,8 +203,9 @@ public sealed class ClickUpWebhookManager : IWebhookManager
                 Encoding.UTF8.GetBytes(computed),
                 Encoding.UTF8.GetBytes(expected));
         }
-        catch (FormatException)
+        catch (FormatException ex)
         {
+            logger?.LogWarning(ex, "ClickUp webhook signature validation failed due to malformed format");
             return false;
         }
     }

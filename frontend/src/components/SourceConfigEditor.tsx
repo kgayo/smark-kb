@@ -525,6 +525,7 @@ export function SourceConfigEditor({
               className="btn btn-sm"
               onClick={() => setUseRawJson(false)}
               data-testid="switch-to-form"
+              aria-label="Switch to form editor"
             >
               Switch to form
             </button>
@@ -560,6 +561,7 @@ export function SourceConfigEditor({
             setUseRawJson(true);
           }}
           data-testid="switch-to-json"
+          aria-label="Edit as JSON"
         >
           Edit as JSON
         </button>
