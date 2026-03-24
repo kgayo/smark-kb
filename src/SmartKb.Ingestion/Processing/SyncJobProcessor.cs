@@ -125,6 +125,7 @@ public sealed class SyncJobProcessor
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
+                _logger.LogWarning(ex, "Credential retrieval failed for sync run {SyncRunId}", syncRun.Id);
                 await FailRunAsync(syncRun, $"Failed to retrieve credentials: {ex.Message}", cancellationToken);
                 return false;
             }

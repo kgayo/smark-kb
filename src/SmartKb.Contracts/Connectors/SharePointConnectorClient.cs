@@ -95,6 +95,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
+            _logger.LogWarning(ex, "SharePoint test connection failed");
             return new TestConnectionResponse
             {
                 Success = false,
@@ -164,6 +165,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            _logger.LogWarning(ex, "Failed to acquire SharePoint access token");
             return ErrorResult($"Failed to acquire access token: {ex.Message}");
         }
 
@@ -277,6 +279,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
+                _logger.LogWarning(ex, "Delta query failed for drive {DriveName}", drive.Name);
                 errors.Add($"Delta query failed for drive '{drive.Name}': {ex.Message}");
                 break;
             }

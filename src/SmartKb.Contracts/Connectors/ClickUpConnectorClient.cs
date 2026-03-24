@@ -72,6 +72,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
+            _logger.LogWarning(ex, "ClickUp test connection failed");
             return new TestConnectionResponse
             {
                 Success = false,
@@ -371,6 +372,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
+                _logger.LogWarning(ex, "Failed to map ClickUp task id={TaskId}", task.Id);
                 errors.Add($"Failed to map task id={task.Id}: {ex.Message}");
                 failedCount++;
             }

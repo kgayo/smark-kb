@@ -75,6 +75,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
+            _logger.LogWarning(ex, "Azure DevOps test connection failed");
             return new TestConnectionResponse
             {
                 Success = false,

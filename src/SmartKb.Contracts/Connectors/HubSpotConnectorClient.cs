@@ -89,6 +89,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
+            _logger.LogWarning(ex, "HubSpot test connection failed");
             return new TestConnectionResponse
             {
                 Success = false,
@@ -276,6 +277,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
+                _logger.LogWarning(ex, "Failed to map HubSpot {ObjectType} id={ObjectId}", objectType, obj.Id);
                 errors.Add($"Failed to map {objectType} id={obj.Id}: {ex.Message}");
                 failedCount++;
             }
@@ -347,6 +349,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
+                _logger.LogWarning(ex, "Failed to map HubSpot {ObjectType} id={ObjectId}", objectType, obj.Id);
                 errors.Add($"Failed to map {objectType} id={obj.Id}: {ex.Message}");
                 failedCount++;
             }

@@ -613,6 +613,7 @@ public sealed class ConnectorAdminService
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
+                _logger.LogWarning(ex, "OAuth token resolution failed for connector {ConnectorId}", entity.Id);
                 return (null, $"OAuth token resolution error: {ex.Message}");
             }
         }
@@ -627,6 +628,7 @@ public sealed class ConnectorAdminService
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            _logger.LogWarning(ex, "Secret retrieval failed for connector {ConnectorId}", entity.Id);
             return (null, ex.Message);
         }
     }
