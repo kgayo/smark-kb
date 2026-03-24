@@ -34,6 +34,7 @@ export function SessionSidebar({
           onClick={onNew}
           className="btn btn-primary btn-sm"
           data-testid="new-session-btn"
+          aria-label="Create new session"
         >
           + New
         </button>
@@ -48,6 +49,7 @@ export function SessionSidebar({
               className="session-select-btn"
               onClick={() => onSelect(s.sessionId)}
               data-testid={`session-${s.sessionId}`}
+              aria-label={`Open session ${s.title || 'Untitled'}`}
             >
               <span className="session-title">
                 {s.title || 'Untitled session'}

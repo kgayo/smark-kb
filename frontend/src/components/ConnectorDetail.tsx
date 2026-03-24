@@ -199,7 +199,7 @@ export function ConnectorDetail({
   return (
     <div className="connector-detail" data-testid="connector-detail">
       <div className="detail-header">
-        <button className="btn btn-sm" onClick={onBack} data-testid="back-btn">
+        <button className="btn btn-sm" onClick={onBack} data-testid="back-btn" aria-label="Back to connector list">
           &larr; Back
         </button>
         <h2>{connector.name}</h2>
@@ -282,7 +282,7 @@ export function ConnectorDetail({
             <button className="btn btn-sm btn-danger" onClick={handleDelete} data-testid="confirm-delete-btn">
               Yes, Delete
             </button>
-            <button className="btn btn-sm" onClick={() => setConfirmDelete(false)}>
+            <button className="btn btn-sm" onClick={() => setConfirmDelete(false)} aria-label="Cancel delete">
               Cancel
             </button>
           </span>

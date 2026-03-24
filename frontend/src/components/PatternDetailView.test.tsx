@@ -303,4 +303,21 @@ describe('PatternDetailView', () => {
     render(<PatternDetailView {...defaultProps} />);
     await waitFor(() => expect(screen.getByTestId('no-history')).toBeTruthy());
   });
+
+  it('has aria-labels on governance action buttons and inputs', () => {
+    render(<PatternDetailView {...defaultProps} />);
+    expect(screen.getByLabelText('Back to pattern list')).toBeTruthy();
+    expect(screen.getByLabelText('Mark pattern as reviewed')).toBeTruthy();
+    expect(screen.getByLabelText('Approve pattern')).toBeTruthy();
+    expect(screen.getByLabelText('Deprecate pattern')).toBeTruthy();
+    expect(screen.getByLabelText('Governance action notes')).toBeTruthy();
+  });
+
+  it('has aria-labels on deprecation form inputs', () => {
+    render(<PatternDetailView {...defaultProps} />);
+    fireEvent.click(screen.getByTestId('btn-show-deprecate'));
+    expect(screen.getByLabelText('Deprecation reason')).toBeTruthy();
+    expect(screen.getByLabelText('Superseding pattern ID')).toBeTruthy();
+    expect(screen.getByLabelText('Cancel deprecation')).toBeTruthy();
+  });
 });

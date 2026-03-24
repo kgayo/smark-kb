@@ -96,4 +96,9 @@ describe('ConnectorList', () => {
     expect(screen.getByText('Production ADO')).toBeInTheDocument();
     expect(screen.getByText('Staging SP')).toBeInTheDocument();
   });
+
+  it('has aria-label on create connector button', () => {
+    render(<ConnectorList connectors={[]} onSelect={() => {}} onCreate={() => {}} />);
+    expect(screen.getByLabelText('Create new connector')).toBeInTheDocument();
+  });
 });

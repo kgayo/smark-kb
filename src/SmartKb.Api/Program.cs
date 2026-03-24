@@ -1658,7 +1658,8 @@ app.MapPost("/api/admin/patterns/maintenance-tasks/{id}/dismiss", async (
 app.MapGet("/api/admin/secrets/status", (
     ITenantContextAccessor tenantAccessor,
     OpenAiKeyProvider openAiKeyProvider,
-    IServiceProvider sp) =>
+    IServiceProvider sp,
+    ILogger<Program> logger) =>
 {
     var tenant = tenantAccessor.Current!;
     var keyVaultConfigured = sp.GetService<ISecretProvider>() is not null;
@@ -1669,8 +1670,9 @@ app.MapGet("/api/admin/secrets/status", (
         var key = openAiKeyProvider.GetApiKey();
         openAiConfigured = !string.IsNullOrWhiteSpace(key);
     }
-    catch (InvalidOperationException)
+    catch (InvalidOperationException ex)
     {
+        logger.LogWarning(ex, "OpenAI API key not configured for secrets status check");
         openAiConfigured = false;
     }
 
@@ -1735,9 +1737,10 @@ app.MapGet("/api/admin/diagnostics/summary", async (
     var summary = await webhookStatusService.GetDiagnosticsSummaryAsync(tenant.TenantId);
 
     var keyVaultConfigured = sp.GetService<ISecretProvider>() is not null;
+    var logger = sp.GetRequiredService<ILogger<Program>>();
     bool openAiConfigured;
     try { openAiConfigured = !string.IsNullOrWhiteSpace(openAiKeyProvider.GetApiKey()); }
-    catch (InvalidOperationException) { openAiConfigured = false; }
+    catch (InvalidOperationException ex) { logger.LogWarning(ex, "OpenAI API key not configured for diagnostics summary"); openAiConfigured = false; }
     var searchConfigured = sp.GetService<SearchIndexClient>() is not null;
     var sbConfigured = sp.GetService<ServiceBusClient>() is not null;
 

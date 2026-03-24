@@ -79,7 +79,7 @@ export function PatternDetailView({
   return (
     <div className="pattern-detail" data-testid="pattern-detail">
       <div className="pattern-detail-header">
-        <button className="btn btn-sm" onClick={onBack} data-testid="pattern-back">
+        <button className="btn btn-sm" onClick={onBack} data-testid="pattern-back" aria-label="Back to pattern list">
           Back
         </button>
         <h2>{pattern.title}</h2>
@@ -100,6 +100,7 @@ export function PatternDetailView({
             disabled={actionLoading}
             onClick={() => handleAction(() => onReview(notes))}
             data-testid="btn-review"
+            aria-label="Mark pattern as reviewed"
           >
             Mark Reviewed
           </button>
@@ -110,6 +111,7 @@ export function PatternDetailView({
             disabled={actionLoading}
             onClick={() => handleAction(() => onApprove(notes))}
             data-testid="btn-approve"
+            aria-label="Approve pattern"
           >
             Approve
           </button>
@@ -120,6 +122,7 @@ export function PatternDetailView({
             disabled={actionLoading}
             onClick={() => setShowDeprecateForm(true)}
             data-testid="btn-show-deprecate"
+            aria-label="Deprecate pattern"
           >
             Deprecate
           </button>
@@ -132,6 +135,7 @@ export function PatternDetailView({
             onChange={(e) => setNotes(e.target.value)}
             className="pattern-notes-input"
             data-testid="pattern-notes"
+            aria-label="Governance action notes"
           />
         )}
       </div>
@@ -146,6 +150,7 @@ export function PatternDetailView({
               onChange={(e) => setDeprecateReason(e.target.value)}
               placeholder="Why is this pattern being deprecated?"
               data-testid="deprecate-reason"
+              aria-label="Deprecation reason"
             />
           </div>
           <div className="field-row">
@@ -156,6 +161,7 @@ export function PatternDetailView({
               onChange={(e) => setSupersedingId(e.target.value)}
               placeholder="Optional: pattern-xxx"
               data-testid="deprecate-superseding"
+              aria-label="Superseding pattern ID"
             />
           </div>
           <div className="deprecate-actions">
@@ -173,6 +179,7 @@ export function PatternDetailView({
               className="btn btn-sm"
               onClick={() => setShowDeprecateForm(false)}
               data-testid="btn-cancel-deprecate"
+              aria-label="Cancel deprecation"
             >
               Cancel
             </button>

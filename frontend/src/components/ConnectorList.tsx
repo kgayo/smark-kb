@@ -32,7 +32,7 @@ export function ConnectorList({ connectors, onSelect, onCreate }: ConnectorListP
     <div className="connector-list" data-testid="connector-list">
       <div className="connector-list-header">
         <h2>Connectors</h2>
-        <button className="btn btn-primary" onClick={onCreate} data-testid="create-connector-btn">
+        <button className="btn btn-primary" onClick={onCreate} data-testid="create-connector-btn" aria-label="Create new connector">
           + New Connector
         </button>
       </div>

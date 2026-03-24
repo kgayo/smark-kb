@@ -114,4 +114,19 @@ describe('SessionSidebar', () => {
     );
     expect(screen.getByText('Untitled session')).toBeInTheDocument();
   });
+
+  it('has aria-labels on interactive elements', () => {
+    render(
+      <SessionSidebar
+        sessions={[mockSession]}
+        activeSessionId={null}
+        onSelect={() => {}}
+        onNew={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+    expect(screen.getByLabelText('Create new session')).toBeInTheDocument();
+    expect(screen.getByLabelText('Open session Deploy issue')).toBeInTheDocument();
+    expect(screen.getByLabelText('Delete session Deploy issue')).toBeInTheDocument();
+  });
 });

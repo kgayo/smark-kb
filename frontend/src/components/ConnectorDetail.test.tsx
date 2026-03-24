@@ -494,4 +494,11 @@ describe('ConnectorDetail', () => {
 
     expect(screen.getByTestId('retrieval-test-btn')).toHaveTextContent('Searching...');
   });
+
+  it('has aria-labels on back and cancel delete buttons', () => {
+    renderDetail();
+    expect(screen.getByLabelText('Back to connector list')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('delete-btn'));
+    expect(screen.getByLabelText('Cancel delete')).toBeInTheDocument();
+  });
 });
