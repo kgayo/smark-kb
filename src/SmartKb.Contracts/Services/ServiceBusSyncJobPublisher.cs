@@ -2,15 +2,10 @@ using System.Text.Json;
 using Azure.Messaging.ServiceBus;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Models;
-using SmartKb.Contracts.Services;
+using Microsoft.Extensions.Logging;
 
-namespace SmartKb.Ingestion;
+namespace SmartKb.Contracts.Services;
 
-/// <summary>
-/// Publishes sync job messages to the Service Bus ingestion queue.
-/// Mirrors the API publisher to allow the ScheduledSyncService to enqueue sync jobs
-/// from within the ingestion worker process.
-/// </summary>
 public sealed class ServiceBusSyncJobPublisher : ISyncJobPublisher, IAsyncDisposable
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -44,7 +39,7 @@ public sealed class ServiceBusSyncJobPublisher : ISyncJobPublisher, IAsyncDispos
         await _sender.SendMessageAsync(sbMessage, cancellationToken);
 
         _logger.LogInformation(
-            "Published scheduled sync job {SyncRunId} for connector {ConnectorId} (tenant={TenantId}, type={ConnectorType})",
+            "Published sync job {SyncRunId} for connector {ConnectorId} (tenant={TenantId}, type={ConnectorType})",
             message.SyncRunId, message.ConnectorId, message.TenantId, message.ConnectorType);
     }
 

@@ -75,11 +75,11 @@ if (serviceBusSettings.IsConfigured)
         : new ServiceBusClient(serviceBusSettings.ConnectionString);
 
     builder.Services.AddSingleton(sbClient);
-    builder.Services.AddSingleton<ISyncJobPublisher, SmartKb.Ingestion.ServiceBusSyncJobPublisher>();
+    builder.Services.AddSingleton<ISyncJobPublisher, ServiceBusSyncJobPublisher>();
 }
 else
 {
-    builder.Services.AddSingleton<ISyncJobPublisher, SmartKb.Ingestion.InMemorySyncJobPublisher>();
+    builder.Services.AddSingleton<ISyncJobPublisher, InMemorySyncJobPublisher>();
 }
 
 // Scheduled sync settings (P3-018).
