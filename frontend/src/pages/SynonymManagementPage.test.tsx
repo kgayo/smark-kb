@@ -319,4 +319,21 @@ describe('SynonymManagementPage', () => {
     expect(screen.getByLabelText('Stop Words tab')).toBeInTheDocument();
     expect(screen.getByLabelText('Special Tokens tab')).toBeInTheDocument();
   });
+
+  it('special token create form inputs have aria-labels', async () => {
+    mockedClient.getMe.mockResolvedValue(adminUser);
+    renderWithRouter();
+    await waitFor(() => { expect(screen.getByText('Special Tokens')).toBeInTheDocument(); });
+    fireEvent.click(screen.getByText('Special Tokens'));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Add special token')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByLabelText('Add special token'));
+
+    expect(screen.getByLabelText('Special token')).toBeInTheDocument();
+    expect(screen.getByLabelText('Token category')).toBeInTheDocument();
+    expect(screen.getByLabelText('Token boost factor')).toBeInTheDocument();
+    expect(screen.getByLabelText('Special token description')).toBeInTheDocument();
+  });
 });

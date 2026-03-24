@@ -297,6 +297,8 @@ export function PrivacyAdminPage() {
                     {PII_TYPES.map((type) => (
                       <button key={type} type="button"
                         className={`filter-chip ${piiForm.enabledPiiTypes.includes(type) ? 'active' : ''}`}
+                        aria-label={`Toggle PII type: ${type}`}
+                        aria-pressed={piiForm.enabledPiiTypes.includes(type)}
                         onClick={() => togglePiiType(type)}>
                         {type}
                       </button>
@@ -499,7 +501,7 @@ export function PrivacyAdminPage() {
         {tab === 'compliance' && (
           <div data-testid="compliance-panel">
             <div className="admin-toolbar">
-              <button className="btn btn-sm btn-primary" onClick={loadCompliance}>Refresh</button>
+              <button className="btn btn-sm btn-primary" aria-label="Refresh compliance report" onClick={loadCompliance}>Refresh</button>
             </div>
             {complianceLoading ? (
               <p>Loading compliance report...</p>

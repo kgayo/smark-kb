@@ -237,4 +237,43 @@ describe('PrivacyAdminPage', () => {
     fireEvent.click(screen.getByLabelText('Data Deletion tab'));
     await waitFor(() => expect(screen.getByLabelText('Submit data subject deletion request')).toBeInTheDocument());
   });
+
+  it('PII type chip buttons have aria-label and aria-pressed', async () => {
+    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedApi.getPiiPolicy.mockResolvedValue(null);
+    renderPage();
+    await waitFor(() => expect(screen.getByText(/No PII policy configured/)).toBeInTheDocument());
+
+    // Enter create mode which renders PII type chips
+    fireEvent.click(screen.getByLabelText('Configure PII policy'));
+
+    // All 4 PII type chips should have aria-label and aria-pressed
+    const emailChip = screen.getByLabelText('Toggle PII type: email');
+    expect(emailChip).toBeInTheDocument();
+    expect(emailChip).toHaveAttribute('aria-pressed', 'true');
+
+    const phoneChip = screen.getByLabelText('Toggle PII type: phone');
+    expect(phoneChip).toBeInTheDocument();
+
+    expect(screen.getByLabelText('Toggle PII type: ssn')).toBeInTheDocument();
+    expect(screen.getByLabelText('Toggle PII type: credit_card')).toBeInTheDocument();
+  });
+
+  it('Refresh compliance button has aria-label', async () => {
+    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedApi.getPiiPolicy.mockResolvedValue(null);
+    mockedApi.getRetentionCompliance.mockResolvedValue({
+      tenantId: 't1',
+      generatedAt: '2026-03-19T00:00:00Z',
+      isCompliant: true,
+      totalPolicies: 0,
+      overduePolicies: 0,
+      entries: [],
+    });
+    renderPage();
+    await waitFor(() => expect(mockedApi.getPiiPolicy).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByLabelText('Compliance tab'));
+    await waitFor(() => expect(screen.getByLabelText('Refresh compliance report')).toBeInTheDocument());
+  });
 });

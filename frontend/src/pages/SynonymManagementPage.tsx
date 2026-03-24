@@ -457,24 +457,24 @@ function SpecialTokensTab() {
             <div style={{ flex: 2 }}>
               <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 4 }}>Token</label>
               <input type="text" value={newToken} onChange={(e) => setNewToken(e.target.value)}
-                placeholder='e.g., 0x80070005, HTTP 502, BSOD, AADSTS50076' style={{ width: '100%', padding: 6 }} />
+                placeholder='e.g., 0x80070005, HTTP 502, BSOD, AADSTS50076' aria-label="Special token" style={{ width: '100%', padding: 6 }} />
             </div>
             <div style={{ flex: 1 }}>
               <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 4 }}>Category</label>
-              <input type="text" value={newCategory} onChange={(e) => setNewCategory(e.target.value)} style={{ width: '100%', padding: 6 }} />
+              <input type="text" value={newCategory} onChange={(e) => setNewCategory(e.target.value)} aria-label="Token category" style={{ width: '100%', padding: 6 }} />
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
             <div style={{ flex: 1 }}>
               <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 4 }}>Boost Factor (1-10)</label>
               <input type="number" value={newBoost} onChange={(e) => setNewBoost(Number(e.target.value))}
-                min={1} max={10} style={{ width: '100%', padding: 6 }} />
+                min={1} max={10} aria-label="Token boost factor" style={{ width: '100%', padding: 6 }} />
               <small style={{ color: '#888' }}>Higher = more weight in BM25 ranking</small>
             </div>
             <div style={{ flex: 2 }}>
               <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 4 }}>Description</label>
               <input type="text" value={newDescription} onChange={(e) => setNewDescription(e.target.value)}
-                placeholder="Optional description" style={{ width: '100%', padding: 6 }} />
+                placeholder="Optional description" aria-label="Special token description" style={{ width: '100%', padding: 6 }} />
             </div>
           </div>
           <button onClick={handleCreate} disabled={!newToken.trim()} aria-label="Create special token">Create</button>
