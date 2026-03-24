@@ -194,6 +194,128 @@ public class SessionServiceTests : IDisposable
         Assert.True(result!.Session.ExpiresAt >= originalExpiry);
     }
 
+    [Fact]
+    public async Task SendMessage_ReturnsNull_WhenSessionExpired()
+    {
+        var session = await _service.CreateSessionAsync("t1", "u1", new CreateSessionRequest());
+
+        // Force-expire the session in the database.
+        var entity = await _db.Sessions.FindAsync(session.SessionId);
+        entity!.ExpiresAt = DateTimeOffset.UtcNow.AddHours(-1);
+        await _db.SaveChangesAsync();
+
+        var result = await _service.SendMessageAsync("t1", "u1", "corr-1", session.SessionId,
+            new SendMessageRequest { Query = "after expiry" });
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task SendMessage_ReturnsNull_WhenMessageLimitReached()
+    {
+        // Use a very low limit so we can reach it quickly.
+        var lowLimitSettings = new SessionSettings { DefaultExpiryHours = 24, MaxMessagesPerSession = 2 };
+        var svc = new SessionService(_db, lowLimitSettings, NullLogger<SessionService>.Instance, new StubOrchestrator());
+
+        var session = await svc.CreateSessionAsync("t1", "u1", new CreateSessionRequest());
+
+        // First message creates 2 messages (user + assistant), reaching limit of 2.
+        var first = await svc.SendMessageAsync("t1", "u1", "corr-1", session.SessionId,
+            new SendMessageRequest { Query = "first" });
+        Assert.NotNull(first);
+
+        // Second message should be rejected.
+        var second = await svc.SendMessageAsync("t1", "u1", "corr-2", session.SessionId,
+            new SendMessageRequest { Query = "second" });
+        Assert.Null(second);
+    }
+
+    [Fact]
+    public async Task SendMessage_FallbackResponse_WhenNoOrchestrator()
+    {
+        var svc = new SessionService(_db, _settings, NullLogger<SessionService>.Instance);
+        var session = await svc.CreateSessionAsync("t1", "u1", new CreateSessionRequest());
+
+        var result = await svc.SendMessageAsync("t1", "u1", "corr-1", session.SessionId,
+            new SendMessageRequest { Query = "test" });
+
+        Assert.NotNull(result);
+        Assert.Equal("next_steps_only", result!.ChatResponse.ResponseType);
+        Assert.Equal("Chat orchestration is not configured.", result.ChatResponse.Answer);
+        Assert.Equal(0f, result.ChatResponse.Confidence);
+        Assert.False(result.ChatResponse.HasEvidence);
+    }
+
+    [Fact]
+    public async Task SendMessage_AutoTitle_TruncatesLongQuery()
+    {
+        var session = await _service.CreateSessionAsync("t1", "u1", new CreateSessionRequest());
+        var longQuery = new string('x', 150);
+
+        var result = await _service.SendMessageAsync("t1", "u1", "corr-1", session.SessionId,
+            new SendMessageRequest { Query = longQuery });
+
+        Assert.NotNull(result);
+        Assert.Equal(103, result!.Session.Title!.Length); // 100 chars + "..."
+        Assert.EndsWith("...", result.Session.Title);
+    }
+
+    [Fact]
+    public async Task CreateSession_PersistsCustomerRef()
+    {
+        var result = await _service.CreateSessionAsync("t1", "u1",
+            new CreateSessionRequest { Title = "T", CustomerRef = "CUST-42" });
+
+        Assert.Equal("CUST-42", result.CustomerRef);
+
+        // Round-trip through GetSession.
+        var fetched = await _service.GetSessionAsync("t1", "u1", result.SessionId);
+        Assert.Equal("CUST-42", fetched!.CustomerRef);
+    }
+
+    [Fact]
+    public async Task GetMessages_ReturnsNull_WhenSessionNotFound()
+    {
+        var result = await _service.GetMessagesAsync("t1", "u1", Guid.NewGuid());
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task ListSessions_ExcludesOtherTenants()
+    {
+        // Seed a second tenant.
+        _db.Tenants.Add(new TenantEntity
+        {
+            TenantId = "t2",
+            DisplayName = "Other",
+            CreatedAt = DateTimeOffset.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        await _service.CreateSessionAsync("t1", "u1", new CreateSessionRequest { Title = "Mine" });
+        await _service.CreateSessionAsync("t2", "u1", new CreateSessionRequest { Title = "Other tenant" });
+
+        var result = await _service.ListSessionsAsync("t1", "u1");
+        Assert.Single(result.Sessions);
+        Assert.Equal("Mine", result.Sessions[0].Title);
+    }
+
+    [Fact]
+    public async Task DeserializeCitations_ReturnsNull_ForMalformedJson()
+    {
+        var session = await _service.CreateSessionAsync("t1", "u1", new CreateSessionRequest());
+        await _service.SendMessageAsync("t1", "u1", "corr-1", session.SessionId,
+            new SendMessageRequest { Query = "test" });
+
+        // Corrupt the citations JSON directly in the database.
+        var assistantMsg = _db.Messages.First(m => m.SessionId == session.SessionId && m.Role == Contracts.Enums.MessageRole.Assistant);
+        assistantMsg.CitationsJson = "not valid json {{{";
+        await _db.SaveChangesAsync();
+
+        var messages = await _service.GetMessagesAsync("t1", "u1", session.SessionId);
+        var assistant = messages!.Messages.First(m => m.Role == "Assistant");
+        Assert.Null(assistant.Citations);
+    }
+
     private sealed class StubOrchestrator : IChatOrchestrator
     {
         public Task<ChatResponse> OrchestrateAsync(
