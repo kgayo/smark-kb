@@ -269,6 +269,16 @@ public sealed class AdoWebhookHandlerTests : IAsyncLifetime
         }
     }
 
+    [Fact]
+    public async Task HandleAsync_ThrowsOperationCanceled_WhenCancelled()
+    {
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            _handler.HandleAsync(_connectorId, "{}", null, cts.Token));
+    }
+
     private sealed class InMemoryAuditWriter : IAuditEventWriter
     {
         public List<AuditEvent> Events { get; } = [];

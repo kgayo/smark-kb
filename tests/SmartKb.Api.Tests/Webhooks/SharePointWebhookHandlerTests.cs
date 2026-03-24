@@ -278,6 +278,16 @@ public sealed class SharePointWebhookHandlerTests : IAsyncLifetime
 
     // --- Test doubles ---
 
+    [Fact]
+    public async Task HandleNotificationAsync_ThrowsOperationCanceled_WhenCancelled()
+    {
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            _handler.HandleNotificationAsync(_connectorId, "{}", cts.Token));
+    }
+
     private sealed class TestSyncJobPublisher : ISyncJobPublisher
     {
         public List<SyncJobMessage> PublishedMessages { get; } = [];

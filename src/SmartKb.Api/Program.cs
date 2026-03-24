@@ -849,11 +849,12 @@ app.MapPost("/api/webhooks/ado/{connectorId:guid}", async (
     AdoWebhookHandler handler) =>
 {
     // Read raw body for signature verification.
+    var ct = httpContext.RequestAborted;
     using var reader = new StreamReader(httpContext.Request.Body);
-    var body = await reader.ReadToEndAsync();
+    var body = await reader.ReadToEndAsync(ct);
     var authHeader = httpContext.Request.Headers.Authorization.FirstOrDefault();
 
-    var (statusCode, message) = await handler.HandleAsync(connectorId, body, authHeader);
+    var (statusCode, message) = await handler.HandleAsync(connectorId, body, authHeader, ct);
     return Results.Json(new { message }, statusCode: statusCode);
 }).AllowAnonymous();
 
@@ -873,10 +874,11 @@ app.MapPost("/api/webhooks/msgraph/{connectorId:guid}", async (
     }
 
     // Normal change notification.
+    var ct = httpContext.RequestAborted;
     using var reader = new StreamReader(httpContext.Request.Body);
-    var requestBody = await reader.ReadToEndAsync();
+    var requestBody = await reader.ReadToEndAsync(ct);
 
-    var (statusCode, message) = await handler.HandleNotificationAsync(connectorId, requestBody);
+    var (statusCode, message) = await handler.HandleNotificationAsync(connectorId, requestBody, ct);
     return Results.Json(new { message }, statusCode: statusCode);
 }).AllowAnonymous();
 
@@ -886,13 +888,14 @@ app.MapPost("/api/webhooks/hubspot/{connectorId:guid}", async (
     HttpContext httpContext,
     HubSpotWebhookHandler handler) =>
 {
+    var ct = httpContext.RequestAborted;
     using var reader = new StreamReader(httpContext.Request.Body);
-    var body = await reader.ReadToEndAsync();
+    var body = await reader.ReadToEndAsync(ct);
     var signatureHeader = httpContext.Request.Headers["X-HubSpot-Signature-v3"].FirstOrDefault()
         ?? httpContext.Request.Headers["X-HubSpot-Signature"].FirstOrDefault();
     var timestampHeader = httpContext.Request.Headers["X-HubSpot-Request-Timestamp"].FirstOrDefault();
 
-    var (statusCode, message) = await handler.HandleAsync(connectorId, body, signatureHeader, timestampHeader);
+    var (statusCode, message) = await handler.HandleAsync(connectorId, body, signatureHeader, timestampHeader, ct);
     return Results.Json(new { message }, statusCode: statusCode);
 }).AllowAnonymous();
 
@@ -902,11 +905,12 @@ app.MapPost("/api/webhooks/clickup/{connectorId:guid}", async (
     HttpContext httpContext,
     ClickUpWebhookHandler handler) =>
 {
+    var ct = httpContext.RequestAborted;
     using var reader = new StreamReader(httpContext.Request.Body);
-    var body = await reader.ReadToEndAsync();
+    var body = await reader.ReadToEndAsync(ct);
     var signatureHeader = httpContext.Request.Headers["X-Signature"].FirstOrDefault();
 
-    var (statusCode, message) = await handler.HandleAsync(connectorId, body, signatureHeader);
+    var (statusCode, message) = await handler.HandleAsync(connectorId, body, signatureHeader, ct);
     return Results.Json(new { message }, statusCode: statusCode);
 }).AllowAnonymous();
 

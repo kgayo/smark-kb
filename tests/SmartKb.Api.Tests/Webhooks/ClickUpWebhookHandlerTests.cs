@@ -328,6 +328,16 @@ public sealed class ClickUpWebhookHandlerTests : IAsyncLifetime
         return Convert.ToHexString(hmac).ToLowerInvariant();
     }
 
+    [Fact]
+    public async Task HandleAsync_ThrowsOperationCanceled_WhenCancelled()
+    {
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            _handler.HandleAsync(_connectorId, "{}", null, cts.Token));
+    }
+
     // --- Test doubles ---
 
     private sealed class TestSyncJobPublisher : ISyncJobPublisher
