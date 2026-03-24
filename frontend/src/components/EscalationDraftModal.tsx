@@ -359,7 +359,7 @@ export function EscalationDraftModal({
             {externalResult?.externalStatus === 'Created' && externalResult.externalUrl && (
               <div className="external-creation-success" data-testid="external-creation-success">
                 External {externalResult.connectorType === 'AzureDevOps' ? 'work item' : 'task'} created: {' '}
-                <a href={externalResult.externalUrl} target="_blank" rel="noopener noreferrer">
+                <a href={externalResult.externalUrl} target="_blank" rel="noopener noreferrer" aria-label={`Open external ${externalResult.connectorType === 'AzureDevOps' ? 'work item' : 'task'} ${externalResult.externalId} (opens in new tab)`}>
                   {externalResult.externalId}
                 </a>
               </div>

@@ -321,6 +321,54 @@ describe('EscalationDraftModal', () => {
     expect(screen.getByTestId('draft-create-external')).toHaveAttribute('aria-label', 'Create external work item from escalation draft');
   });
 
+  it('renders external creation success link with aria-label', async () => {
+    vi.mocked(api.createEscalationDraft).mockResolvedValue(mockDraftResponse);
+    vi.mocked(api.listConnectors).mockResolvedValue({
+      connectors: [{ id: 'c1', name: 'My ADO', connectorType: 'AzureDevOps', status: 'Enabled', authType: 'Pat', hasSecret: true, sourceConfig: '{}', fieldMapping: null, scheduleCron: null, createdAt: '', updatedAt: '', lastSyncRun: null }],
+      totalCount: 1,
+    });
+    vi.mocked(api.updateEscalationDraft).mockResolvedValue(mockDraftResponse);
+    vi.mocked(api.approveEscalationDraft).mockResolvedValue({
+      draftId: 'draft-1',
+      externalStatus: 'Created',
+      externalId: 'WI-42',
+      externalUrl: 'https://dev.azure.com/org/project/_workitems/edit/42',
+      errorDetail: null,
+      approvedAt: '2026-03-15T12:00:00Z',
+      connectorType: 'AzureDevOps',
+    });
+    vi.mocked(api.getEscalationDraft).mockResolvedValue({ ...mockDraftResponse, externalStatus: 'Created', externalId: 'WI-42', externalUrl: 'https://dev.azure.com/org/project/_workitems/edit/42' });
+
+    render(
+      <EscalationDraftModal
+        open={true}
+        sessionId="sess-1"
+        messageId="msg-1"
+        escalation={mockEscalation}
+        citations={[mockCitation]}
+        onClose={() => {}}
+      />,
+    );
+
+    // Wait for connector selector to appear and select the ADO connector
+    await waitFor(() => {
+      expect(screen.getByTestId('connector-selector')).toBeInTheDocument();
+    });
+    fireEvent.change(screen.getByTestId('connector-selector'), { target: { value: 'c1' } });
+
+    // Click create external item
+    await waitFor(() => {
+      expect(screen.getByTestId('draft-create-external')).not.toBeDisabled();
+    });
+    fireEvent.click(screen.getByTestId('draft-create-external'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('external-creation-success')).toBeInTheDocument();
+    });
+    const link = screen.getByTestId('external-creation-success').querySelector('a');
+    expect(link).toHaveAttribute('aria-label', 'Open external work item WI-42 (opens in new tab)');
+  });
+
   it('pre-fills fields from escalation signal', async () => {
     render(
       <EscalationDraftModal

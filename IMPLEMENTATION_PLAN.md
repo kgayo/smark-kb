@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-24 (Asia/Manila) — iteration 142 (TECH-043 log silent frontend catch blocks + add missing catch in OutcomeWidget)
-Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2641 tests passing (2145 backend + 465 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 142: TECH-043 (console.warn on 6 silent frontend catch blocks across 5 files + missing catch in OutcomeWidget; 3 new tests).
+Last updated: 2026-03-24 (Asia/Manila) — iteration 143 (TECH-044 add aria-label to external creation success link in EscalationDraftModal)
+Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2642 tests passing (2145 backend + 466 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 143: TECH-044 (aria-label on external creation success link in EscalationDraftModal; 1 new test).
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -237,6 +237,10 @@ Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-00
 - [x] TECH-043: Add `console.warn` to 6 silent frontend `catch` blocks + add missing `catch` in OutcomeWidget.
   - Root cause: 6 frontend `catch` blocks silently swallowed API errors without any logging: `ConnectorDetail.tsx` (sync runs fetch), `EscalationDraftModal.tsx` (connector list fetch), `GoldDatasetPage.tsx` (gold case detail), `ChatPage.tsx` (session list + message list). Additionally, `OutcomeWidget.tsx` had `try/finally` with no `catch` — errors from `onSubmit` would propagate uncaught.
   - Completed (iteration 142): Added `catch (err) { console.warn('[Component] ...', err); }` to all 6 silent catch blocks. Added `catch` block to `OutcomeWidget.handleSubmit` so submit failures are logged and the widget remains interactive. 3 new tests: OutcomeWidget submit failure (verifies console.warn + no "outcome recorded" + button re-enabled), ConnectorDetail sync run load failure (verifies console.warn), ChatPage listSessions failure (verifies console.warn). 465 frontend tests passing.
+
+- [x] TECH-044: Add aria-label to external creation success link in EscalationDraftModal.
+  - Root cause: Code quality scan found 1 `<a>` element in `EscalationDraftModal.tsx` (external work item/task creation success banner) lacking an `aria-label` attribute. The link opens in a new tab via `target="_blank"` but screen readers had no way to announce the link's purpose or destination.
+  - Completed (iteration 143): Added dynamic `aria-label={`Open external ${type} ${externalId} (opens in new tab)`}` to the external creation success link, where `type` is "work item" (ADO) or "task" (ClickUp). 1 new test (renders external creation success link with correct aria-label after creating an ADO work item). 466 frontend tests passing; TypeScript clean; build clean.
 
 - [x] TECH-023: Add structured logging to all silent `catch (JsonException)` blocks.
   - Root cause: 25 `catch (JsonException)` blocks across 24 files silently swallowed deserialization errors with no logging. When JSON stored in SQL columns or received from external APIs was malformed, the code returned fallback values (null, empty list, empty dict) with no diagnostic trace, making production debugging impossible.
