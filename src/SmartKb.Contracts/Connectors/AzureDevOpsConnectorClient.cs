@@ -298,7 +298,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
             patchOps.Add(new { op = "add", path = "/fields/Microsoft.VSTS.Common.Priority", value = (object)priority });
 
             var payload = JsonSerializer.Serialize(patchOps, JsonOptions);
-            var content = new StringContent(payload, Encoding.UTF8, "application/json-patch+json");
+            using var content = new StringContent(payload, Encoding.UTF8, "application/json-patch+json");
 
             var url = $"{Uri.EscapeDataString(project)}/_apis/wit/workitems/${Uri.EscapeDataString(workItemType)}?api-version={ApiVersion}";
             var response = await client.PatchAsync(url, content, ct);
@@ -372,7 +372,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
         var wiql = $"SELECT [System.Id] FROM WorkItems WHERE {string.Join(" AND ", conditions)} ORDER BY [System.ChangedDate] ASC";
 
         var wiqlPayload = JsonSerializer.Serialize(new { query = wiql }, JsonOptions);
-        var wiqlContent = new StringContent(wiqlPayload, Encoding.UTF8, "application/json");
+        using var wiqlContent = new StringContent(wiqlPayload, Encoding.UTF8, "application/json");
 
         var wiqlUrl = $"{project}/_apis/wit/wiql?api-version={ApiVersion}&$top={Math.Min(top, MaxWiqlResults)}";
         var wiqlResponse = await client.PostAsync(wiqlUrl, wiqlContent, ct);

@@ -90,7 +90,7 @@ public sealed class AdoWebhookManager : IWebhookManager
                 }
 
                 var json = JsonSerializer.Serialize(subscriptionRequest, JsonOptions);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 var url = $"_apis/hooks/subscriptions?api-version={ApiVersion}";
                 var response = await client.PostAsync(url, content, cancellationToken);

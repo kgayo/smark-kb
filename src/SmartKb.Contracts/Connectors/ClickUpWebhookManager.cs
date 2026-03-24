@@ -87,7 +87,7 @@ public sealed class ClickUpWebhookManager : IWebhookManager
             };
 
             var json = JsonSerializer.Serialize(webhookRequest, JsonOptions);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             var url = $"api/v2/team/{config.WorkspaceId}/webhook";
             var response = await client.PostAsync(url, content, cancellationToken);

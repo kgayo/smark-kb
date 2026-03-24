@@ -99,7 +99,7 @@ public sealed class HubSpotWebhookManager : IWebhookManager
                 };
 
                 var json = JsonSerializer.Serialize(subscriptionRequest, JsonOptions);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 // HubSpot Webhooks API: POST /webhooks/v3/{appId}/subscriptions
                 // For simplicity, we use a fixed path. The appId is derived from the API key scope.

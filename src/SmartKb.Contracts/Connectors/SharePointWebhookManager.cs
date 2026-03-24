@@ -109,7 +109,7 @@ public sealed class SharePointWebhookManager : IWebhookManager
                 };
 
                 var json = JsonSerializer.Serialize(subscriptionRequest, JsonOptions);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 var response = await graphClient.PostAsync($"{GraphBaseUrl}/subscriptions", content, cancellationToken);
 
@@ -214,7 +214,7 @@ public sealed class SharePointWebhookManager : IWebhookManager
     {
         using var client = _httpClientFactory.CreateClient("SharePoint");
         var tokenUrl = string.Format(GraphTokenUrl, config.EntraIdTenantId);
-        var requestBody = new FormUrlEncodedContent(new Dictionary<string, string>
+        using var requestBody = new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["grant_type"] = "client_credentials",
             ["client_id"] = config.ClientId,

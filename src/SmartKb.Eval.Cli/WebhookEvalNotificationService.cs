@@ -42,7 +42,7 @@ public sealed class WebhookEvalNotificationService : IEvalNotificationService, I
             return true; // Notification not needed for this payload.
 
         var body = BuildPayload(payload);
-        var content = new StringContent(body, Encoding.UTF8, "application/json");
+        using var content = new StringContent(body, Encoding.UTF8, "application/json");
 
         try
         {

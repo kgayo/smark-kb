@@ -325,7 +325,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
         };
 
         var json = JsonSerializer.Serialize(searchRequest, JsonOptions);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
         var url = $"crm/v3/objects/{objectType}/search";
         var response = await client.PostAsync(url, content, ct);

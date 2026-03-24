@@ -491,7 +491,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
         using var client = _httpClientFactory.CreateClient("SharePoint");
 
         var tokenUrl = string.Format(GraphTokenUrl, entraIdTenantId);
-        var requestBody = new FormUrlEncodedContent(new Dictionary<string, string>
+        using var requestBody = new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["grant_type"] = "client_credentials",
             ["client_id"] = clientId,
