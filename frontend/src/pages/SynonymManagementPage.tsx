@@ -206,9 +206,9 @@ function SynonymsTab() {
               <tr key={rule.id} style={{ borderBottom: '1px solid #eee' }}>
                 {editingId === rule.id ? (
                   <>
-                    <td style={{ padding: 8 }}><input value={editGroup} onChange={(e) => setEditGroup(e.target.value)} style={{ width: '100%', padding: 4 }} /></td>
-                    <td style={{ padding: 8 }}><input value={editRule} onChange={(e) => setEditRule(e.target.value)} style={{ width: '100%', padding: 4 }} /></td>
-                    <td style={{ padding: 8 }}><input value={editDescription} onChange={(e) => setEditDescription(e.target.value)} style={{ width: '100%', padding: 4 }} /></td>
+                    <td style={{ padding: 8 }}><input value={editGroup} onChange={(e) => setEditGroup(e.target.value)} style={{ width: '100%', padding: 4 }} aria-label="Edit synonym group name" /></td>
+                    <td style={{ padding: 8 }}><input value={editRule} onChange={(e) => setEditRule(e.target.value)} style={{ width: '100%', padding: 4 }} aria-label="Edit synonym rule value" /></td>
+                    <td style={{ padding: 8 }}><input value={editDescription} onChange={(e) => setEditDescription(e.target.value)} style={{ width: '100%', padding: 4 }} aria-label="Edit synonym rule description" /></td>
                     <td style={{ padding: 8 }}>{rule.isActive ? 'Yes' : 'No'}</td>
                     <td style={{ padding: 8 }}>
                       <button onClick={() => handleUpdate(rule.id)} style={{ marginRight: 4 }} aria-label="Save synonym rule changes">Save</button>

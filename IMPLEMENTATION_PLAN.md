@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-24 (Asia/Manila) — iteration 143 (TECH-044 add aria-label to external creation success link in EscalationDraftModal)
-Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2642 tests passing (2145 backend + 466 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 143: TECH-044 (aria-label on external creation success link in EscalationDraftModal; 1 new test).
+Last updated: 2026-03-24 (Asia/Manila) — iteration 144 (TECH-045 add aria-labels to 3 synonym inline-edit inputs in SynonymManagementPage)
+Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2643 tests passing (2145 backend + 467 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 144: TECH-045 (aria-labels on 3 synonym inline-edit inputs; 1 new test).
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -241,6 +241,10 @@ Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-00
 - [x] TECH-044: Add aria-label to external creation success link in EscalationDraftModal.
   - Root cause: Code quality scan found 1 `<a>` element in `EscalationDraftModal.tsx` (external work item/task creation success banner) lacking an `aria-label` attribute. The link opens in a new tab via `target="_blank"` but screen readers had no way to announce the link's purpose or destination.
   - Completed (iteration 143): Added dynamic `aria-label={`Open external ${type} ${externalId} (opens in new tab)`}` to the external creation success link, where `type` is "work item" (ADO) or "task" (ClickUp). 1 new test (renders external creation success link with correct aria-label after creating an ADO work item). 466 frontend tests passing; TypeScript clean; build clean.
+
+- [x] TECH-045: Add aria-labels to 3 unlabeled synonym inline-edit inputs in SynonymManagementPage.
+  - Root cause: Code quality scan found 3 `<input>` elements in the synonym rule inline-edit form (group name, rule value, description) lacking `aria-label` attributes, while all other inputs across the codebase were properly labeled.
+  - Completed (iteration 144): Added `aria-label="Edit synonym group name"`, `aria-label="Edit synonym rule value"`, `aria-label="Edit synonym rule description"` to the 3 inline-edit inputs. 1 new test verifies all 3 aria-labels appear when entering edit mode. 467 frontend tests passing; TypeScript clean; build clean.
 
 - [x] TECH-023: Add structured logging to all silent `catch (JsonException)` blocks.
   - Root cause: 25 `catch (JsonException)` blocks across 24 files silently swallowed deserialization errors with no logging. When JSON stored in SQL columns or received from external APIs was malformed, the code returned fallback values (null, empty list, empty dict) with no diagnostic trace, making production debugging impossible.

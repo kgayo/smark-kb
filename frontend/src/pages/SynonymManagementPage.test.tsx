@@ -336,4 +336,23 @@ describe('SynonymManagementPage', () => {
     expect(screen.getByLabelText('Token boost factor')).toBeInTheDocument();
     expect(screen.getByLabelText('Special token description')).toBeInTheDocument();
   });
+
+  it('synonym inline-edit inputs have aria-labels', async () => {
+    mockedClient.getMe.mockResolvedValue(adminUser);
+    mockedClient.listSynonymRules.mockResolvedValue({
+      rules: [{ id: 'r1', groupName: 'test-group', rule: 'foo,bar', description: 'test desc', isActive: true, createdAt: '', updatedAt: '' }],
+      totalCount: 1,
+      groups: ['test-group'],
+    });
+    renderWithRouter();
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Edit synonym rule')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByLabelText('Edit synonym rule'));
+
+    expect(screen.getByLabelText('Edit synonym group name')).toBeInTheDocument();
+    expect(screen.getByLabelText('Edit synonym rule value')).toBeInTheDocument();
+    expect(screen.getByLabelText('Edit synonym rule description')).toBeInTheDocument();
+  });
 });
