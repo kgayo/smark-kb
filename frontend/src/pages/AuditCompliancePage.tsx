@@ -247,6 +247,7 @@ function EventsPanel({
                     className={expandedEventId === evt.eventId ? 'expanded' : ''}
                     data-testid={`event-row-${evt.eventId}`}
                     style={{ cursor: 'pointer' }}
+                    aria-label={`Toggle details for ${evt.eventType} event`}
                   >
                     <td>{formatTimestamp(evt.timestamp)}</td>
                     <td>

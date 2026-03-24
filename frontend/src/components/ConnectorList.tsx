@@ -61,6 +61,7 @@ export function ConnectorList({ connectors, onSelect, onCreate }: ConnectorListP
                 className="connector-row"
                 onClick={() => onSelect(c.id)}
                 data-testid={`connector-row-${c.id}`}
+                aria-label={`Open connector ${c.name}`}
               >
                 <td className="connector-name">{c.name}</td>
                 <td>{c.connectorType}</td>

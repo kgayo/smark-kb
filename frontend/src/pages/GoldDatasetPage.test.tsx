@@ -126,6 +126,7 @@ describe('GoldDatasetPage', () => {
     });
     expect(screen.getByTestId('case-row-eval-00100')).toBeInTheDocument();
     expect(screen.getByTestId('case-row-eval-00200')).toBeInTheDocument();
+    expect(screen.getByLabelText('Open gold case eval-00100')).toBeInTheDocument();
     expect(screen.getByLabelText('Filter cases by tag')).toBeInTheDocument();
     expect(screen.getByLabelText('Previous page')).toBeInTheDocument();
     expect(screen.getByLabelText('Next page')).toBeInTheDocument();

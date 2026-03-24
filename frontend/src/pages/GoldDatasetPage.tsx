@@ -306,6 +306,7 @@ function CasesPanel({
                   onClick={() => onSelectCase(c.id)}
                   style={{ cursor: 'pointer' }}
                   data-testid={`case-row-${c.caseId}`}
+                  aria-label={`Open gold case ${c.caseId}`}
                 >
                   <td><code>{c.caseId}</code></td>
                   <td>{c.query.length > 60 ? c.query.slice(0, 60) + '...' : c.query}</td>

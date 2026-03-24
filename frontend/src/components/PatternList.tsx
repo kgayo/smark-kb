@@ -84,6 +84,7 @@ export function PatternList({
                 className={`pattern-row${selectedPatternId === p.patternId ? ' selected' : ''}`}
                 onClick={() => onSelect(p.patternId)}
                 data-testid={`pattern-row-${p.patternId}`}
+                aria-label={`Open pattern ${p.title}`}
               >
                 <td className="pattern-title-cell">
                   <span className="pattern-title">{p.title}</span>

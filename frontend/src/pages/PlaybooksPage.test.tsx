@@ -69,6 +69,7 @@ describe('PlaybooksPage', () => {
       expect(screen.getByText('Engineering')).toBeInTheDocument();
       expect(screen.getByText('Eng team playbook')).toBeInTheDocument();
     });
+    expect(screen.getByLabelText('Open playbook for team Engineering')).toBeInTheDocument();
   });
 
   it('shows empty state', async () => {

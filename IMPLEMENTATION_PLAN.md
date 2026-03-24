@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-24 (Asia/Manila) — iteration 146 (TECH-047 aria-labels on 2 EscalationDraftModal selects + fix SynonymManagementPage test TS error)
-Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2651 tests passing (2145 backend + 470 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 146: TECH-047 (aria-labels on 2 EscalationDraftModal select elements; fix SynonymManagementPage.test.tsx TS error; 2 new test assertions).
+Last updated: 2026-03-24 (Asia/Manila) — iteration 147 (TECH-048 aria-labels on 5 clickable table rows)
+Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2651 tests passing (2145 backend + 470 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 147: TECH-048 (aria-labels on 5 clickable table rows across PlaybooksPage, GoldDatasetPage, AuditCompliancePage, PatternList, ConnectorList; 5 new test assertions).
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -253,6 +253,10 @@ Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-00
 - [x] TECH-047: Add aria-labels to 2 unlabeled select elements in EscalationDraftModal + fix SynonymManagementPage test TS error.
   - Root cause: Code quality scan found 2 `<select>` elements in `EscalationDraftModal.tsx` (severity selector and connector selector) missing `aria-label` attributes, while all other selects across the codebase were properly labeled. Also, `SynonymManagementPage.test.tsx` had a pre-existing TypeScript error — mock `SynonymRuleResponse` was missing `tenantId`, `createdBy`, and `updatedBy` fields.
   - Completed (iteration 146): Added `aria-label="Escalation severity"` to severity select. Added `aria-label="Select connector for external work item creation"` to connector select. Fixed SynonymManagementPage test mock with missing fields. 2 new test assertions in existing EscalationDraftModal tests. 470 frontend tests passing; TypeScript clean; build clean.
+
+- [x] TECH-048: Add aria-labels to 5 clickable table rows missing accessible labels.
+  - Root cause: Code quality scan found 5 `<tr>` elements with `onClick` handlers but no `aria-label` attribute — screen readers could not announce what clicking each row does. Affected components: PlaybooksPage (playbook rows), GoldDatasetPage (gold case rows), AuditCompliancePage (audit event rows), PatternList (pattern rows), ConnectorList (connector rows).
+  - Completed (iteration 147): Added descriptive `aria-label` to all 5 clickable rows: `"Open playbook for team {teamName}"`, `"Open gold case {caseId}"`, `"Toggle details for {eventType} event"`, `"Open pattern {title}"`, `"Open connector {name}"`. 5 new test assertions in existing test files verify aria-labels are rendered. 470 frontend tests passing; TypeScript clean; build clean.
 
 - [x] TECH-023: Add structured logging to all silent `catch (JsonException)` blocks.
   - Root cause: 25 `catch (JsonException)` blocks across 24 files silently swallowed deserialization errors with no logging. When JSON stored in SQL columns or received from external APIs was malformed, the code returned fallback values (null, empty list, empty dict) with no diagnostic trace, making production debugging impossible.

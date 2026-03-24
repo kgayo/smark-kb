@@ -210,7 +210,7 @@ export function PlaybooksPage() {
                 </thead>
                 <tbody>
                   {playbooks.map((pb) => (
-                    <tr key={pb.id} onClick={() => handleSelectPlaybook(pb.id)} className="clickable-row">
+                    <tr key={pb.id} onClick={() => handleSelectPlaybook(pb.id)} className="clickable-row" aria-label={`Open playbook for team ${pb.teamName}`}>
                       <td>{pb.teamName}</td>
                       <td>{pb.description || '-'}</td>
                       <td>{pb.requiredFields.length}</td>

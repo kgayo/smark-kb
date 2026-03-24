@@ -95,6 +95,7 @@ describe('AuditCompliancePage', () => {
     expect(screen.getByText('chat.feedback')).toBeInTheDocument();
     expect(screen.getByText('user-1')).toBeInTheDocument();
     expect(screen.getByText('user-2')).toBeInTheDocument();
+    expect(screen.getByLabelText('Toggle details for connector.created event')).toBeInTheDocument();
   });
 
   it('shows events summary with total count', async () => {

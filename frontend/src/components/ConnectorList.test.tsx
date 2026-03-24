@@ -44,6 +44,7 @@ describe('ConnectorList', () => {
     expect(screen.getByText('Production ADO')).toBeInTheDocument();
     expect(screen.getByText('AzureDevOps')).toBeInTheDocument();
     expect(screen.getByText('Enabled')).toBeInTheDocument();
+    expect(screen.getByLabelText('Open connector Production ADO')).toBeInTheDocument();
   });
 
   it('shows empty state when no connectors', () => {

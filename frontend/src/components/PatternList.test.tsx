@@ -49,6 +49,7 @@ describe('PatternList', () => {
     expect(screen.getAllByText('Draft').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('65%')).toBeTruthy();
     expect(screen.getByText('Auth')).toBeTruthy();
+    expect(screen.getByLabelText('Open pattern Auth Token Fix')).toBeInTheDocument();
   });
 
   it('shows empty state when no patterns', () => {
