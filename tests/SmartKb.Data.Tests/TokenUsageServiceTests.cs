@@ -354,4 +354,325 @@ public class TokenUsageServiceTests : IDisposable
         Assert.False(result.BudgetWarning);
         Assert.Null(result.WarningMessage);
     }
+
+    // --- Tenant isolation tests ---
+
+    [Fact]
+    public async Task GetSummary_ExcludesOtherTenantData()
+    {
+        _db.Tenants.Add(new TenantEntity
+        {
+            TenantId = "tenant-2",
+            DisplayName = "Other Tenant",
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        var now = DateTimeOffset.UtcNow;
+        await _service.RecordUsageAsync("tenant-1", "u1", "c1",
+            MakeUsage(prompt: 100, completion: 50, cost: 0.01m));
+        await _service.RecordUsageAsync("tenant-2", "u2", "c2",
+            MakeUsage(prompt: 9000, completion: 9000, cost: 9.00m));
+
+        var summary = await _service.GetSummaryAsync(
+            "tenant-1", now.AddHours(-1), now.AddHours(1));
+
+        Assert.Equal(150, summary.TotalTokens);
+        Assert.Equal(1, summary.TotalRequests);
+        Assert.Equal(0.01m, summary.TotalEstimatedCostUsd);
+    }
+
+    [Fact]
+    public async Task GetDailyBreakdown_ExcludesOtherTenantData()
+    {
+        _db.Tenants.Add(new TenantEntity
+        {
+            TenantId = "tenant-2",
+            DisplayName = "Other Tenant",
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        var now = DateTimeOffset.UtcNow;
+        await _service.RecordUsageAsync("tenant-1", "u1", "c1",
+            MakeUsage(prompt: 100, completion: 50));
+        await _service.RecordUsageAsync("tenant-2", "u2", "c2",
+            MakeUsage(prompt: 5000, completion: 5000));
+
+        var breakdown = await _service.GetDailyBreakdownAsync(
+            "tenant-1", now.AddHours(-1), now.AddHours(1));
+
+        Assert.Single(breakdown);
+        Assert.Equal(150, breakdown[0].TotalTokens);
+        Assert.Equal(1, breakdown[0].RequestCount);
+    }
+
+    [Fact]
+    public async Task CheckBudget_ExcludesOtherTenantUsage()
+    {
+        _db.Tenants.Add(new TenantEntity
+        {
+            TenantId = "tenant-2",
+            DisplayName = "Other Tenant",
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        _db.TenantCostSettings.Add(new TenantCostSettingsEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = "tenant-1",
+            DailyTokenBudget = 1000,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        // tenant-2 has huge usage but it shouldn't affect tenant-1
+        _db.TokenUsages.Add(new TokenUsageEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = "tenant-2",
+            UserId = "u2",
+            CorrelationId = "c2",
+            PromptTokens = 50000,
+            CompletionTokens = 50000,
+            TotalTokens = 100000,
+            EmbeddingTokens = 0,
+            EmbeddingCacheHit = false,
+            EvidenceChunksUsed = 0,
+            EstimatedCostUsd = 5.00m,
+            CreatedAt = DateTimeOffset.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        var result = await _service.CheckBudgetAsync("tenant-1");
+
+        Assert.True(result.Allowed);
+        Assert.Equal(0f, result.DailyUtilizationPercent);
+    }
+
+    // --- Budget utilization percentage tests ---
+
+    [Fact]
+    public async Task GetSummary_IncludesBudgetUtilizationPercents()
+    {
+        _db.TenantCostSettings.Add(new TenantCostSettingsEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = "tenant-1",
+            DailyTokenBudget = 10000,
+            MonthlyTokenBudget = 100000,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        // Record 5000 tokens today.
+        _db.TokenUsages.Add(new TokenUsageEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = "tenant-1",
+            UserId = "u1",
+            CorrelationId = "c1",
+            PromptTokens = 3000,
+            CompletionTokens = 2000,
+            TotalTokens = 5000,
+            EmbeddingTokens = 100,
+            EmbeddingCacheHit = false,
+            EvidenceChunksUsed = 5,
+            EstimatedCostUsd = 0.05m,
+            CreatedAt = DateTimeOffset.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        var now = DateTimeOffset.UtcNow;
+        var summary = await _service.GetSummaryAsync(
+            "tenant-1", now.AddHours(-1), now.AddHours(1));
+
+        Assert.Equal(10000, summary.DailyTokenBudget);
+        Assert.Equal(100000, summary.MonthlyTokenBudget);
+        Assert.True(summary.DailyBudgetUtilizationPercent > 0f);
+        Assert.True(summary.MonthlyBudgetUtilizationPercent > 0f);
+        // 5000/10000 = 50%
+        Assert.InRange(summary.DailyBudgetUtilizationPercent, 49f, 51f);
+        // 5000/100000 = 5%
+        Assert.InRange(summary.MonthlyBudgetUtilizationPercent, 4f, 6f);
+    }
+
+    [Fact]
+    public async Task GetSummary_NoBudgetConfigured_UtilizationZero()
+    {
+        await _service.RecordUsageAsync("tenant-1", "u1", "c1",
+            MakeUsage(prompt: 1000, completion: 500));
+
+        var now = DateTimeOffset.UtcNow;
+        var summary = await _service.GetSummaryAsync(
+            "tenant-1", now.AddHours(-1), now.AddHours(1));
+
+        Assert.Null(summary.DailyTokenBudget);
+        Assert.Null(summary.MonthlyTokenBudget);
+        Assert.Equal(0f, summary.DailyBudgetUtilizationPercent);
+        Assert.Equal(0f, summary.MonthlyBudgetUtilizationPercent);
+    }
+
+    // --- Monthly warning and both-budgets tests ---
+
+    [Fact]
+    public async Task CheckBudget_MonthlyApproachingThreshold_WarnsWithMonthlyMessage()
+    {
+        _db.TenantCostSettings.Add(new TenantCostSettingsEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = "tenant-1",
+            MonthlyTokenBudget = 1000,
+            BudgetAlertThresholdPercent = 80,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        // Record 850 tokens this month (85% of 1000).
+        _db.TokenUsages.Add(new TokenUsageEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = "tenant-1",
+            UserId = "u1",
+            CorrelationId = "c1",
+            PromptTokens = 500,
+            CompletionTokens = 350,
+            TotalTokens = 850,
+            EmbeddingTokens = 30,
+            EmbeddingCacheHit = false,
+            EvidenceChunksUsed = 3,
+            EstimatedCostUsd = 0.02m,
+            CreatedAt = DateTimeOffset.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        var result = await _service.CheckBudgetAsync("tenant-1");
+
+        Assert.True(result.Allowed);
+        Assert.True(result.BudgetWarning);
+        Assert.NotNull(result.WarningMessage);
+        Assert.Contains("Monthly", result.WarningMessage);
+    }
+
+    [Fact]
+    public async Task CheckBudget_DailyOkButMonthlyExceeded_DeniesWithMonthlyReason()
+    {
+        _db.TenantCostSettings.Add(new TenantCostSettingsEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = "tenant-1",
+            DailyTokenBudget = 100000,  // generous daily
+            MonthlyTokenBudget = 500,   // tight monthly
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        _db.TokenUsages.Add(new TokenUsageEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = "tenant-1",
+            UserId = "u1",
+            CorrelationId = "c1",
+            PromptTokens = 400,
+            CompletionTokens = 200,
+            TotalTokens = 600,
+            EmbeddingTokens = 50,
+            EmbeddingCacheHit = false,
+            EvidenceChunksUsed = 5,
+            EstimatedCostUsd = 0.03m,
+            CreatedAt = DateTimeOffset.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        var result = await _service.CheckBudgetAsync("tenant-1");
+
+        Assert.False(result.Allowed);
+        Assert.NotNull(result.DenialReason);
+        Assert.Contains("Monthly", result.DenialReason);
+    }
+
+    [Fact]
+    public async Task CheckBudget_UsesGlobalDefaultAlertThreshold_WhenTenantSettingNull()
+    {
+        var customSettings = new CostOptimizationSettings { BudgetAlertThresholdPercent = 50 };
+        var customService = new TokenUsageService(
+            _db, customSettings, NullLogger<TokenUsageService>.Instance);
+
+        _db.TenantCostSettings.Add(new TenantCostSettingsEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = "tenant-1",
+            DailyTokenBudget = 1000,
+            BudgetAlertThresholdPercent = null, // falls back to global
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        // 550/1000 = 55% — above global threshold of 50%, below default 80%.
+        _db.TokenUsages.Add(new TokenUsageEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = "tenant-1",
+            UserId = "u1",
+            CorrelationId = "c1",
+            PromptTokens = 350,
+            CompletionTokens = 200,
+            TotalTokens = 550,
+            EmbeddingTokens = 30,
+            EmbeddingCacheHit = false,
+            EvidenceChunksUsed = 3,
+            EstimatedCostUsd = 0.02m,
+            CreatedAt = DateTimeOffset.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        var result = await customService.CheckBudgetAsync("tenant-1");
+
+        Assert.True(result.Allowed);
+        Assert.True(result.BudgetWarning);
+        Assert.NotNull(result.WarningMessage);
+    }
+
+    // --- GetDailyBreakdown edge cases ---
+
+    [Fact]
+    public async Task GetDailyBreakdown_EmptyPeriod_ReturnsEmptyList()
+    {
+        var far = DateTimeOffset.UtcNow.AddYears(1);
+
+        var breakdown = await _service.GetDailyBreakdownAsync(
+            "tenant-1", far, far.AddDays(1));
+
+        Assert.Empty(breakdown);
+    }
+
+    [Fact]
+    public async Task RecordUsage_MultipleRecords_AllPersisted()
+    {
+        await _service.RecordUsageAsync("tenant-1", "u1", "c1",
+            MakeUsage(prompt: 100, completion: 50, cacheHit: true));
+        await _service.RecordUsageAsync("tenant-1", "u1", "c2",
+            MakeUsage(prompt: 200, completion: 100, cacheHit: false));
+        await _service.RecordUsageAsync("tenant-1", "u2", "c3",
+            MakeUsage(prompt: 300, completion: 150, cacheHit: true));
+
+        Assert.Equal(3, _db.TokenUsages.Count());
+
+        var now = DateTimeOffset.UtcNow;
+        var summary = await _service.GetSummaryAsync(
+            "tenant-1", now.AddHours(-1), now.AddHours(1));
+
+        Assert.Equal(3, summary.TotalRequests);
+        Assert.Equal(2, summary.EmbeddingCacheHits);
+        Assert.Equal(1, summary.EmbeddingCacheMisses);
+    }
 }
