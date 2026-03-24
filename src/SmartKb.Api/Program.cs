@@ -994,7 +994,8 @@ app.MapPost("/api/sessions/{sessionId:guid}/messages/{messageId:guid}/feedback",
     Guid messageId,
     SubmitFeedbackRequest request,
     ITenantContextAccessor tenantAccessor,
-    IFeedbackService feedbackService) =>
+    IFeedbackService feedbackService,
+    ILogger<Program> logger) =>
 {
     var tenant = tenantAccessor.Current!;
     try
@@ -1006,6 +1007,7 @@ app.MapPost("/api/sessions/{sessionId:guid}/messages/{messageId:guid}/feedback",
     }
     catch (InvalidOperationException ex)
     {
+        logger.LogWarning(ex, "Feedback submission failed for session {SessionId}, message {MessageId}", sessionId, messageId);
         return Results.UnprocessableEntity(
             ApiResponse<object>.Failure(ex.Message, tenant.CorrelationId));
     }
@@ -1044,7 +1046,8 @@ app.MapPost("/api/sessions/{sessionId:guid}/outcome", async (
     Guid sessionId,
     RecordOutcomeRequest request,
     ITenantContextAccessor tenantAccessor,
-    IOutcomeService outcomeService) =>
+    IOutcomeService outcomeService,
+    ILogger<Program> logger) =>
 {
     var tenant = tenantAccessor.Current!;
     try
@@ -1057,6 +1060,7 @@ app.MapPost("/api/sessions/{sessionId:guid}/outcome", async (
     }
     catch (InvalidOperationException ex)
     {
+        logger.LogWarning(ex, "Outcome recording failed for session {SessionId}", sessionId);
         return Results.UnprocessableEntity(
             ApiResponse<object>.Failure(ex.Message, tenant.CorrelationId));
     }
@@ -1080,7 +1084,8 @@ app.MapGet("/api/sessions/{sessionId:guid}/outcome", async (
 app.MapPost("/api/escalations/draft", async (
     CreateEscalationDraftRequest request,
     ITenantContextAccessor tenantAccessor,
-    IEscalationDraftService escalationService) =>
+    IEscalationDraftService escalationService,
+    ILogger<Program> logger) =>
 {
     var tenant = tenantAccessor.Current!;
     try
@@ -1092,6 +1097,7 @@ app.MapPost("/api/escalations/draft", async (
     }
     catch (InvalidOperationException ex)
     {
+        logger.LogWarning(ex, "Escalation draft creation failed");
         return Results.UnprocessableEntity(
             ApiResponse<object>.Failure(ex.Message, tenant.CorrelationId));
     }
@@ -1152,7 +1158,8 @@ app.MapPost("/api/escalations/draft/{draftId:guid}/approve", async (
     Guid draftId,
     ApproveEscalationDraftRequest request,
     ITenantContextAccessor tenantAccessor,
-    IEscalationDraftService escalationService) =>
+    IEscalationDraftService escalationService,
+    ILogger<Program> logger) =>
 {
     var tenant = tenantAccessor.Current!;
     try
@@ -1168,6 +1175,7 @@ app.MapPost("/api/escalations/draft/{draftId:guid}/approve", async (
     }
     catch (InvalidOperationException ex)
     {
+        logger.LogWarning(ex, "External escalation creation failed for draft {DraftId}", draftId);
         return Results.UnprocessableEntity(
             ApiResponse<object>.Failure(ex.Message, tenant.CorrelationId));
     }
@@ -2101,7 +2109,8 @@ app.MapGet("/api/admin/privacy/pii-policy", async (
 app.MapPut("/api/admin/privacy/pii-policy", async (
     PiiPolicyUpdateRequest request,
     ITenantContextAccessor tenantAccessor,
-    IPiiPolicyService piiPolicyService) =>
+    IPiiPolicyService piiPolicyService,
+    ILogger<Program> logger) =>
 {
     var tenant = tenantAccessor.Current!;
     try
@@ -2111,6 +2120,7 @@ app.MapPut("/api/admin/privacy/pii-policy", async (
     }
     catch (ArgumentException ex)
     {
+        logger.LogWarning(ex, "PII policy upsert validation failed for tenant {TenantId}", tenant.TenantId);
         return Results.BadRequest(ApiResponse<object>.Failure(ex.Message, tenant.CorrelationId));
     }
 }).RequirePermission("privacy:manage");
@@ -2138,7 +2148,8 @@ app.MapGet("/api/admin/privacy/retention", async (
 app.MapPut("/api/admin/privacy/retention", async (
     RetentionPolicyUpdateRequest request,
     ITenantContextAccessor tenantAccessor,
-    IRetentionCleanupService retentionService) =>
+    IRetentionCleanupService retentionService,
+    ILogger<Program> logger) =>
 {
     var tenant = tenantAccessor.Current!;
     try
@@ -2148,6 +2159,7 @@ app.MapPut("/api/admin/privacy/retention", async (
     }
     catch (ArgumentException ex)
     {
+        logger.LogWarning(ex, "Retention policy upsert validation failed for tenant {TenantId}", tenant.TenantId);
         return Results.BadRequest(ApiResponse<object>.Failure(ex.Message, tenant.CorrelationId));
     }
 }).RequirePermission("privacy:manage");
