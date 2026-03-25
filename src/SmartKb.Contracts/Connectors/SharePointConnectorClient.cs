@@ -15,8 +15,8 @@ namespace SmartKb.Contracts.Connectors;
 /// </summary>
 public sealed class SharePointConnectorClient : IConnectorClient
 {
-    private const string GraphBaseUrl = "https://graph.microsoft.com/v1.0";
-    private const string GraphTokenUrl = "https://login.microsoftonline.com/{0}/oauth2/v2.0/token";
+    private const string GraphBaseUrl = GraphApiConstants.BaseUrl;
+    private const string GraphTokenUrl = GraphApiConstants.TokenUrl;
 
     // File extensions we can extract text from. Others are skipped.
     private static readonly HashSet<string> SupportedExtensions = new(StringComparer.OrdinalIgnoreCase)

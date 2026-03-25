@@ -104,6 +104,15 @@ public class HttpChatOrchestratorClientTests
     }
 
     [Fact]
+    public void Dispose_CalledTwice_DoesNotThrow()
+    {
+        var client = new HttpChatOrchestratorClient("https://api.example.com");
+
+        client.Dispose();
+        client.Dispose(); // GC.SuppressFinalize prevents finalizer; double-dispose is safe.
+    }
+
+    [Fact]
     public async Task Constructor_TrimsTrailingSlashFromBaseUrl()
     {
         var handler = new FakeHttpHandler(HttpStatusCode.OK, MakeApiEnvelope());

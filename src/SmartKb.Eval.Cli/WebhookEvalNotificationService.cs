@@ -58,5 +58,6 @@ public sealed class WebhookEvalNotificationService : IEvalNotificationService, I
     {
         if (_ownsHttpClient)
             _httpClient.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

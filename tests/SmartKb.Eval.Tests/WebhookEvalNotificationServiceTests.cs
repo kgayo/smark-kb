@@ -322,6 +322,16 @@ public class WebhookEvalNotificationServiceTests
         svc.Dispose();
     }
 
+    [Fact]
+    public void Dispose_CalledTwice_DoesNotThrow()
+    {
+        var settings = new EvalNotificationSettings { WebhookUrl = "https://hooks.example.com/test" };
+        var svc = new WebhookEvalNotificationService(settings);
+
+        svc.Dispose();
+        svc.Dispose(); // GC.SuppressFinalize prevents finalizer; double-dispose is safe.
+    }
+
     private sealed class FakeHttpHandler : HttpMessageHandler
     {
         private readonly HttpStatusCode _statusCode;

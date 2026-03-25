@@ -55,6 +55,7 @@ public sealed class HttpChatOrchestratorClient : IChatOrchestrator, IDisposable
     {
         if (_ownsHttpClient)
             _httpClient.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>

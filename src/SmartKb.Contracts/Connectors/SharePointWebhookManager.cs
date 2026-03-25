@@ -17,8 +17,8 @@ namespace SmartKb.Contracts.Connectors;
 /// </summary>
 public sealed class SharePointWebhookManager : IWebhookManager
 {
-    private const string GraphBaseUrl = "https://graph.microsoft.com/v1.0";
-    private const string GraphTokenUrl = "https://login.microsoftonline.com/{0}/oauth2/v2.0/token";
+    private const string GraphBaseUrl = GraphApiConstants.BaseUrl;
+    private const string GraphTokenUrl = GraphApiConstants.TokenUrl;
 
     // Graph allows max 4230 minutes (about 2.94 days) for driveItem subscriptions.
     private static readonly TimeSpan SubscriptionLifetime = TimeSpan.FromMinutes(4230);
