@@ -393,6 +393,81 @@ public class GoldCaseServiceTests : IDisposable
         Assert.Empty(jsonl);
     }
 
+    // ── Malformed JSON resilience ──
+
+    [Fact]
+    public async Task MapToSummary_MalformedExpectedJson_ReturnsUnknownResponseType()
+    {
+        // Insert entity with malformed ExpectedJson directly into DB.
+        _db.GoldCases.Add(new GoldCaseEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = "t1",
+            CaseId = "eval-99901",
+            Query = "malformed expected test",
+            ExpectedJson = "NOT VALID JSON",
+            TagsJson = "[]",
+            CreatedBy = "admin-1",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        var result = await _service.ListAsync("t1", 1, 10);
+
+        Assert.Single(result.Cases);
+        Assert.Equal("unknown", result.Cases[0].ResponseType);
+    }
+
+    [Fact]
+    public async Task MapToDetail_MalformedExpectedJson_ReturnsFallbackExpected()
+    {
+        var id = Guid.NewGuid();
+        _db.GoldCases.Add(new GoldCaseEntity
+        {
+            Id = id,
+            TenantId = "t1",
+            CaseId = "eval-99902",
+            Query = "malformed detail test",
+            ExpectedJson = "{{{INVALID",
+            ContextJson = "{{{ALSO INVALID",
+            TagsJson = "[]",
+            CreatedBy = "admin-1",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        var result = await _service.GetAsync("t1", id);
+
+        Assert.NotNull(result);
+        Assert.Equal("unknown", result!.Expected.ResponseType);
+        Assert.Null(result.Context);
+    }
+
+    [Fact]
+    public async Task ExportAsJsonl_MalformedExpectedJson_DoesNotThrow()
+    {
+        _db.GoldCases.Add(new GoldCaseEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = "t1",
+            CaseId = "eval-99903",
+            Query = "export malformed test",
+            ExpectedJson = "NOT JSON",
+            TagsJson = "[]",
+            CreatedBy = "admin-1",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        var jsonl = await _service.ExportAsJsonlAsync("t1");
+
+        // Should not throw; the expected field should have a fallback.
+        Assert.NotEmpty(jsonl);
+    }
+
     // ── Stubs ──
 
     private sealed class StubAuditWriter : IAuditEventWriter

@@ -236,9 +236,10 @@ public sealed class GoldCaseService : IGoldCaseService
             };
 
             if (e.ContextJson is not null)
-                obj["context"] = JsonSerializer.Deserialize<object>(e.ContextJson, SharedJsonOptions.CamelCase);
+                obj["context"] = JsonDeserializeHelper.DeserializeOrNull<object>(e.ContextJson, SharedJsonOptions.CamelCase, _logger);
 
-            obj["expected"] = JsonSerializer.Deserialize<object>(e.ExpectedJson, SharedJsonOptions.CamelCase);
+            obj["expected"] = JsonDeserializeHelper.DeserializeOrNull<object>(e.ExpectedJson, SharedJsonOptions.CamelCase, _logger)
+                              ?? new { responseType = "unknown" };
 
             var tags = DeserializeTags(e.TagsJson);
             if (tags.Count > 0)
@@ -287,9 +288,9 @@ public sealed class GoldCaseService : IGoldCaseService
 
     // ── Mapping ──
 
-    private static GoldCaseSummary MapToSummary(GoldCaseEntity e)
+    private GoldCaseSummary MapToSummary(GoldCaseEntity e)
     {
-        var expected = JsonSerializer.Deserialize<GoldCaseExpected>(e.ExpectedJson, SharedJsonOptions.CamelCase);
+        var expected = JsonDeserializeHelper.DeserializeOrNull<GoldCaseExpected>(e.ExpectedJson, SharedJsonOptions.CamelCase, _logger);
         return new GoldCaseSummary
         {
             Id = e.Id,
@@ -304,7 +305,7 @@ public sealed class GoldCaseService : IGoldCaseService
         };
     }
 
-    private static GoldCaseDetail MapToDetail(GoldCaseEntity e)
+    private GoldCaseDetail MapToDetail(GoldCaseEntity e)
     {
         return new GoldCaseDetail
         {
@@ -312,9 +313,10 @@ public sealed class GoldCaseService : IGoldCaseService
             CaseId = e.CaseId,
             Query = e.Query,
             Context = e.ContextJson is not null
-                ? JsonSerializer.Deserialize<GoldCaseContext>(e.ContextJson, SharedJsonOptions.CamelCase)
+                ? JsonDeserializeHelper.DeserializeOrNull<GoldCaseContext>(e.ContextJson, SharedJsonOptions.CamelCase, _logger)
                 : null,
-            Expected = JsonSerializer.Deserialize<GoldCaseExpected>(e.ExpectedJson, SharedJsonOptions.CamelCase)!,
+            Expected = JsonDeserializeHelper.DeserializeOrNull<GoldCaseExpected>(e.ExpectedJson, SharedJsonOptions.CamelCase, _logger)
+                       ?? new GoldCaseExpected { ResponseType = "unknown" },
             Tags = DeserializeTags(e.TagsJson),
             SourceFeedbackId = e.SourceFeedbackId,
             CreatedBy = e.CreatedBy,

@@ -53,9 +53,24 @@ public sealed class EmbeddingCacheService : IEmbeddingCacheService
             cached.LastAccessedAt = now;
             await _db.SaveChangesAsync(ct);
 
-            var embedding = JsonSerializer.Deserialize<float[]>(cached.EmbeddingJson);
-            _logger.LogDebug("Embedding cache hit. ContentHash={Hash}", contentHash);
-            return (embedding, true);
+            float[]? embedding;
+            try
+            {
+                embedding = JsonSerializer.Deserialize<float[]>(cached.EmbeddingJson);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogWarning(ex, "Failed to deserialize cached embedding JSON. ContentHash={Hash}", contentHash);
+                embedding = null;
+            }
+
+            if (embedding is not null)
+            {
+                _logger.LogDebug("Embedding cache hit. ContentHash={Hash}", contentHash);
+                return (embedding, true);
+            }
+
+            // Cache entry corrupted — treat as miss and regenerate below.
         }
 
         // Cache miss: generate fresh embedding.

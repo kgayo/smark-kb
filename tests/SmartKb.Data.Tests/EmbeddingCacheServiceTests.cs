@@ -163,6 +163,34 @@ public class EmbeddingCacheServiceTests : IDisposable
         Assert.Equal(2, _db.EmbeddingCache.Count());
     }
 
+    [Fact]
+    public async Task CacheHit_MalformedJson_TreatsAsMissAndRegenerates()
+    {
+        // Insert a cache entry with corrupted JSON.
+        var hash = ConnectorHttpHelper.ComputeHash("corrupt query");
+        _db.EmbeddingCache.Add(new EmbeddingCacheEntity
+        {
+            Id = Guid.NewGuid(),
+            ContentHash = hash,
+            InputText = "corrupt query",
+            EmbeddingJson = "NOT VALID JSON",
+            ModelId = "text-embedding-3-large",
+            Dimensions = 3,
+            CreatedAt = DateTimeOffset.UtcNow.AddHours(-1),
+            LastAccessedAt = DateTimeOffset.UtcNow.AddHours(-1),
+            ExpiresAt = DateTimeOffset.UtcNow.AddHours(23),
+        });
+        await _db.SaveChangesAsync();
+
+        var (embedding, cacheHit) = await _service.GetOrGenerateAsync("corrupt query");
+
+        // Should treat corrupted cache as miss and regenerate.
+        Assert.False(cacheHit);
+        Assert.NotNull(embedding);
+        Assert.Equal(new float[] { 0.1f, 0.2f, 0.3f }, embedding);
+        Assert.Equal(1, _fakeEmbedding.CallCount);
+    }
+
     private class FakeEmbeddingService : IEmbeddingService
     {
         public int CallCount { get; private set; }

@@ -122,11 +122,11 @@ public sealed class PiiPolicyService : IPiiPolicyService
         return true;
     }
 
-    private static PiiPolicyResponse ToResponse(PiiPolicyEntity entity)
+    private PiiPolicyResponse ToResponse(PiiPolicyEntity entity)
     {
         var customPatterns = string.IsNullOrWhiteSpace(entity.CustomPatternsJson) || entity.CustomPatternsJson == "[]"
-            ? []
-            : JsonSerializer.Deserialize<List<CustomPiiPattern>>(entity.CustomPatternsJson, SharedJsonOptions.CamelCaseWrite) ?? [];
+            ? new List<CustomPiiPattern>()
+            : JsonDeserializeHelper.Deserialize<List<CustomPiiPattern>>(entity.CustomPatternsJson, SharedJsonOptions.CamelCaseWrite, _logger, []);
 
         return new PiiPolicyResponse
         {

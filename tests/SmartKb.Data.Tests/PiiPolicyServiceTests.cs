@@ -206,6 +206,29 @@ public class PiiPolicyServiceTests : IDisposable
         Assert.False(result.AuditRedactions);
     }
 
+    [Fact]
+    public async Task GetPolicy_MalformedCustomPatternsJson_ReturnsEmptyList()
+    {
+        // Insert entity with corrupted CustomPatternsJson directly into DB.
+        _db.PiiPolicies.Add(new PiiPolicyEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = "t1",
+            EnforcementMode = "redact",
+            EnabledPiiTypes = "email",
+            CustomPatternsJson = "NOT VALID JSON",
+            AuditRedactions = false,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        var result = await _service.GetPolicyAsync("t1");
+
+        Assert.NotNull(result);
+        Assert.Equal("redact", result!.EnforcementMode);
+        Assert.Empty(result.CustomPatterns); // Malformed JSON falls back to empty.
+    }
+
     private sealed class StubAuditWriter : IAuditEventWriter
     {
         public List<AuditEvent> Events { get; } = [];
