@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SmartKb.Contracts;
@@ -196,51 +195,12 @@ public sealed class EvalReportService : IEvalReportService
         };
     }
 
-    internal EvalMetricsDto DeserializeMetrics(string json)
-    {
-        if (string.IsNullOrWhiteSpace(json))
-            return new EvalMetricsDto();
+    internal EvalMetricsDto DeserializeMetrics(string json) =>
+        JsonDeserializeHelper.Deserialize(json, SharedJsonOptions.CamelCaseWrite, _logger, new EvalMetricsDto());
 
-        try
-        {
-            return JsonSerializer.Deserialize<EvalMetricsDto>(json, SharedJsonOptions.CamelCaseWrite) ?? new EvalMetricsDto();
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Failed to deserialize JSON in {MethodName}", nameof(DeserializeMetrics));
-            return new EvalMetricsDto();
-        }
-    }
+    internal IReadOnlyList<EvalViolationDto> DeserializeViolations(string? json) =>
+        JsonDeserializeHelper.Deserialize<List<EvalViolationDto>>(json, SharedJsonOptions.CamelCaseWrite, _logger, []);
 
-    internal IReadOnlyList<EvalViolationDto> DeserializeViolations(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json))
-            return [];
-
-        try
-        {
-            return JsonSerializer.Deserialize<List<EvalViolationDto>>(json, SharedJsonOptions.CamelCaseWrite) ?? [];
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Failed to deserialize JSON in {MethodName}", nameof(DeserializeViolations));
-            return [];
-        }
-    }
-
-    internal EvalBaselineComparisonDto? DeserializeBaseline(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json))
-            return null;
-
-        try
-        {
-            return JsonSerializer.Deserialize<EvalBaselineComparisonDto>(json, SharedJsonOptions.CamelCaseWrite);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Failed to deserialize JSON in {MethodName}", nameof(DeserializeBaseline));
-            return null;
-        }
-    }
+    internal EvalBaselineComparisonDto? DeserializeBaseline(string? json) =>
+        JsonDeserializeHelper.DeserializeOrNull<EvalBaselineComparisonDto>(json, SharedJsonOptions.CamelCaseWrite, _logger);
 }

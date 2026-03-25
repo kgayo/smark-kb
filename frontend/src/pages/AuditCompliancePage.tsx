@@ -37,6 +37,7 @@ export function AuditCompliancePage() {
       const result = await api.queryAuditEvents(params);
       setEvents(result);
     } catch (e) {
+      console.warn('[AuditCompliancePage]', e);
       setEventsError(e instanceof Error ? e.message : 'Failed to load audit events');
     } finally {
       setEventsLoading(false);
@@ -66,6 +67,7 @@ export function AuditCompliancePage() {
       downloadFile(blob, `audit-events-${ts}.ndjson`);
       setExportSuccess('Export downloaded successfully.');
     } catch (e) {
+      console.warn('[AuditCompliancePage]', e);
       setExportError(e instanceof Error ? e.message : 'Export failed');
     } finally {
       setExporting(false);

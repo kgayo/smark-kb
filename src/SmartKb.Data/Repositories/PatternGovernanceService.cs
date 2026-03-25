@@ -417,18 +417,6 @@ public sealed class PatternGovernanceService : IPatternGovernanceService
     private IReadOnlyList<string> DeserializeStringList(string? json) =>
         JsonDeserializeHelper.Deserialize<List<string>>(json, SharedJsonOptions.CamelCaseWrite, _logger, []);
 
-    private IReadOnlyDictionary<string, string?> DeserializeStringDictionary(string? json)
-    {
-        if (string.IsNullOrEmpty(json)) return new Dictionary<string, string?>();
-        try
-        {
-            return JsonSerializer.Deserialize<Dictionary<string, string?>>(json, SharedJsonOptions.CamelCaseWrite)
-                ?? new Dictionary<string, string?>();
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Failed to deserialize JSON in {MethodName}", nameof(DeserializeStringDictionary));
-            return new Dictionary<string, string?>();
-        }
-    }
+    private IReadOnlyDictionary<string, string?> DeserializeStringDictionary(string? json) =>
+        JsonDeserializeHelper.Deserialize<Dictionary<string, string?>>(json, SharedJsonOptions.CamelCaseWrite, _logger, new Dictionary<string, string?>());
 }

@@ -232,22 +232,22 @@ public sealed class AzureSearchRetrievalService : IRetrievalService
 
             var raw = new RawSearchResult
             {
-                ChunkId = GetStringValue(doc, SearchFieldNames.ChunkId),
-                EvidenceId = GetStringValue(doc, SearchFieldNames.EvidenceId),
-                ChunkText = GetStringValue(doc, SearchFieldNames.ChunkText),
-                ChunkContext = GetStringOrNull(doc, SearchFieldNames.ChunkContext),
-                Title = GetStringValue(doc, SearchFieldNames.Title),
-                SourceUrl = GetStringValue(doc, SearchFieldNames.SourceUrl),
-                SourceSystem = GetStringValue(doc, SearchFieldNames.SourceSystem),
-                SourceType = GetStringValue(doc, SearchFieldNames.SourceType),
+                ChunkId = SearchDocumentHelper.GetString(doc, SearchFieldNames.ChunkId),
+                EvidenceId = SearchDocumentHelper.GetString(doc, SearchFieldNames.EvidenceId),
+                ChunkText = SearchDocumentHelper.GetString(doc, SearchFieldNames.ChunkText),
+                ChunkContext = SearchDocumentHelper.GetStringOrNull(doc, SearchFieldNames.ChunkContext),
+                Title = SearchDocumentHelper.GetString(doc, SearchFieldNames.Title),
+                SourceUrl = SearchDocumentHelper.GetString(doc, SearchFieldNames.SourceUrl),
+                SourceSystem = SearchDocumentHelper.GetString(doc, SearchFieldNames.SourceSystem),
+                SourceType = SearchDocumentHelper.GetString(doc, SearchFieldNames.SourceType),
                 UpdatedAt = doc.TryGetValue(SearchFieldNames.UpdatedAt, out var updatedAtObj) && updatedAtObj is DateTimeOffset dto
                     ? dto
                     : DateTimeOffset.MinValue,
-                ProductArea = GetStringOrNull(doc, SearchFieldNames.ProductArea),
-                AccessLabel = GetStringValue(doc, SearchFieldNames.AccessLabel),
-                Tags = GetStringList(doc, SearchFieldNames.Tags),
-                Visibility = GetStringValue(doc, SearchFieldNames.Visibility),
-                AllowedGroups = GetStringList(doc, SearchFieldNames.AllowedGroups),
+                ProductArea = SearchDocumentHelper.GetStringOrNull(doc, SearchFieldNames.ProductArea),
+                AccessLabel = SearchDocumentHelper.GetString(doc, SearchFieldNames.AccessLabel),
+                Tags = SearchDocumentHelper.GetStringList(doc, SearchFieldNames.Tags),
+                Visibility = SearchDocumentHelper.GetString(doc, SearchFieldNames.Visibility),
+                AllowedGroups = SearchDocumentHelper.GetStringList(doc, SearchFieldNames.AllowedGroups),
                 // Azure AI Search hybrid query returns a combined score via result.Score.
                 // When semantic reranking is enabled, SemanticSearch.RerankerScore has the reranker score.
                 Score = result.Score ?? 0.0,
@@ -260,52 +260,10 @@ public sealed class AzureSearchRetrievalService : IRetrievalService
         return results;
     }
 
-    /// <summary>
-    /// Applies ACL security trimming: restricted documents are only returned if user is in allowed_groups.
-    /// Internal and public documents pass through for all authenticated users.
-    /// CRITICAL: This ensures restricted content never reaches the model (jtbd-03, jtbd-10).
-    /// </summary>
     internal static (List<RawSearchResult> Filtered, int FilteredOutCount) ApplyAclFilter(
         List<RawSearchResult> results,
-        IReadOnlyList<string>? userGroups)
-    {
-        var filtered = new List<RawSearchResult>();
-        var filteredOut = 0;
-        var groupSet = userGroups is { Count: > 0 }
-            ? new HashSet<string>(userGroups, StringComparer.OrdinalIgnoreCase)
-            : null;
-
-        foreach (var result in results)
-        {
-            // Public and Internal visibility: accessible to all authenticated users.
-            if (!string.Equals(result.Visibility, VisibilityLevel.Restricted, StringComparison.OrdinalIgnoreCase))
-            {
-                filtered.Add(result);
-                continue;
-            }
-
-            // Restricted visibility: user must be in at least one allowed group.
-            if (groupSet is not null && result.AllowedGroups.Any(g => groupSet.Contains(g)))
-            {
-                filtered.Add(result);
-            }
-            else
-            {
-                filteredOut++;
-            }
-        }
-
-        return (filtered, filteredOut);
-    }
-
-    private static string GetStringValue(SearchDocument doc, string key) =>
-        SearchDocumentHelper.GetString(doc, key);
-
-    private static string? GetStringOrNull(SearchDocument doc, string key) =>
-        SearchDocumentHelper.GetStringOrNull(doc, key);
-
-    private static IReadOnlyList<string> GetStringList(SearchDocument doc, string key) =>
-        SearchDocumentHelper.GetStringList(doc, key);
+        IReadOnlyList<string>? userGroups) =>
+        AclFilterHelper.ApplyAclFilter(results, userGroups);
 
     internal static string EscapeODataValue(string value) =>
         ODataFilterBuilder.EscapeODataValue(value);
@@ -314,7 +272,7 @@ public sealed class AzureSearchRetrievalService : IRetrievalService
 /// <summary>
 /// Internal representation of a search result before ACL filtering and DTO mapping.
 /// </summary>
-internal sealed class RawSearchResult
+internal sealed class RawSearchResult : IAclFilterable
 {
     public required string ChunkId { get; init; }
     public required string EvidenceId { get; init; }

@@ -39,6 +39,7 @@ export function DiagnosticsPage() {
       setSloStatus(slo);
       setSecretsStatus(secrets);
     } catch (e) {
+      console.warn('[DiagnosticsPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to load diagnostics');
     } finally {
       setLoading(false);
@@ -52,6 +53,7 @@ export function DiagnosticsPage() {
       const result = await api.getAllWebhooks();
       setWebhooks(result);
     } catch (e) {
+      console.warn('[DiagnosticsPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to load webhooks');
     } finally {
       setLoading(false);
@@ -65,6 +67,7 @@ export function DiagnosticsPage() {
       const result = await api.getDeadLetters(50);
       setDeadLetters(result);
     } catch (e) {
+      console.warn('[DiagnosticsPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to load dead letters');
     } finally {
       setLoading(false);

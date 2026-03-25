@@ -170,7 +170,7 @@ public sealed class FusedRetrievalService : IRetrievalService
         string tenantId, string query, float[] queryEmbedding, RetrievalFilter? filters, CancellationToken cancellationToken)
     {
         var searchClient = _indexClient.GetSearchClient(_searchSettings.EvidenceIndexName);
-        var tenantFilter = $"{SearchFieldNames.TenantId} eq '{EscapeODataValue(tenantId)}'";
+        var tenantFilter = $"{SearchFieldNames.TenantId} eq '{ODataFilterBuilder.EscapeODataValue(tenantId)}'";
         var combinedFilter = ODataFilterBuilder.CombineFilters(tenantFilter, ODataFilterBuilder.BuildEvidenceFilter(filters));
 
         var options = new SearchOptions
@@ -234,21 +234,21 @@ public sealed class FusedRetrievalService : IRetrievalService
                 var doc = result.Document;
                 results.Add(new RankedResult
                 {
-                    Id = GetString(doc, SearchFieldNames.ChunkId),
-                    SourceId = GetString(doc, SearchFieldNames.EvidenceId),
-                    ChunkText = GetString(doc, SearchFieldNames.ChunkText),
-                    ChunkContext = GetStringOrNull(doc, SearchFieldNames.ChunkContext),
-                    Title = GetString(doc, SearchFieldNames.Title),
-                    SourceUrl = GetString(doc, SearchFieldNames.SourceUrl),
-                    SourceSystem = GetString(doc, SearchFieldNames.SourceSystem),
-                    SourceType = GetString(doc, SearchFieldNames.SourceType),
+                    Id = SearchDocumentHelper.GetString(doc, SearchFieldNames.ChunkId),
+                    SourceId = SearchDocumentHelper.GetString(doc, SearchFieldNames.EvidenceId),
+                    ChunkText = SearchDocumentHelper.GetString(doc, SearchFieldNames.ChunkText),
+                    ChunkContext = SearchDocumentHelper.GetStringOrNull(doc, SearchFieldNames.ChunkContext),
+                    Title = SearchDocumentHelper.GetString(doc, SearchFieldNames.Title),
+                    SourceUrl = SearchDocumentHelper.GetString(doc, SearchFieldNames.SourceUrl),
+                    SourceSystem = SearchDocumentHelper.GetString(doc, SearchFieldNames.SourceSystem),
+                    SourceType = SearchDocumentHelper.GetString(doc, SearchFieldNames.SourceType),
                     UpdatedAt = doc.TryGetValue(SearchFieldNames.UpdatedAt, out var u) && u is DateTimeOffset dto
                         ? dto : DateTimeOffset.MinValue,
-                    ProductArea = GetStringOrNull(doc, SearchFieldNames.ProductArea),
-                    AccessLabel = GetString(doc, SearchFieldNames.AccessLabel),
-                    Tags = GetStringList(doc, SearchFieldNames.Tags),
-                    Visibility = GetString(doc, SearchFieldNames.Visibility),
-                    AllowedGroups = GetStringList(doc, SearchFieldNames.AllowedGroups),
+                    ProductArea = SearchDocumentHelper.GetStringOrNull(doc, SearchFieldNames.ProductArea),
+                    AccessLabel = SearchDocumentHelper.GetString(doc, SearchFieldNames.AccessLabel),
+                    Tags = SearchDocumentHelper.GetStringList(doc, SearchFieldNames.Tags),
+                    Visibility = SearchDocumentHelper.GetString(doc, SearchFieldNames.Visibility),
+                    AllowedGroups = SearchDocumentHelper.GetStringList(doc, SearchFieldNames.AllowedGroups),
                     Score = result.Score ?? 0.0,
                     SemanticScore = result.SemanticSearch?.RerankerScore,
                     ResultSource = "Evidence",
@@ -271,7 +271,7 @@ public sealed class FusedRetrievalService : IRetrievalService
         var searchClient = _indexClient.GetSearchClient(_searchSettings.PatternIndexName);
 
         // Filter: tenant + exclude deprecated patterns from retrieval.
-        var baseFilter = $"{PatternFieldNames.TenantId} eq '{EscapeODataValue(tenantId)}' " +
+        var baseFilter = $"{PatternFieldNames.TenantId} eq '{ODataFilterBuilder.EscapeODataValue(tenantId)}' " +
                          $"and {PatternFieldNames.TrustLevel} ne '{TrustLevelName.Deprecated}'";
         var combinedFilter = ODataFilterBuilder.CombineFilters(baseFilter, ODataFilterBuilder.BuildPatternFilter(filters));
 
@@ -336,15 +336,15 @@ public sealed class FusedRetrievalService : IRetrievalService
             await foreach (var result in response.Value.GetResultsAsync())
             {
                 var doc = result.Document;
-                var problemStatement = GetString(doc, PatternFieldNames.ProblemStatement);
-                var resolutionSteps = GetString(doc, PatternFieldNames.ResolutionSteps);
-                var symptoms = GetString(doc, PatternFieldNames.Symptoms);
+                var problemStatement = SearchDocumentHelper.GetString(doc, PatternFieldNames.ProblemStatement);
+                var resolutionSteps = SearchDocumentHelper.GetString(doc, PatternFieldNames.ResolutionSteps);
+                var symptoms = SearchDocumentHelper.GetString(doc, PatternFieldNames.Symptoms);
 
                 // Build composite chunk text from pattern fields for the orchestrator.
                 var chunkText = $"{problemStatement}\n\n## Resolution Steps\n{resolutionSteps}";
                 var chunkContext = !string.IsNullOrEmpty(symptoms) ? $"Symptoms: {symptoms}" : null;
 
-                var patternId = GetString(doc, PatternFieldNames.PatternId);
+                var patternId = SearchDocumentHelper.GetString(doc, PatternFieldNames.PatternId);
 
                 results.Add(new RankedResult
                 {
@@ -352,21 +352,21 @@ public sealed class FusedRetrievalService : IRetrievalService
                     SourceId = patternId,
                     ChunkText = chunkText,
                     ChunkContext = chunkContext,
-                    Title = GetString(doc, PatternFieldNames.Title),
-                    SourceUrl = GetString(doc, PatternFieldNames.SourceUrl),
+                    Title = SearchDocumentHelper.GetString(doc, PatternFieldNames.Title),
+                    SourceUrl = SearchDocumentHelper.GetString(doc, PatternFieldNames.SourceUrl),
                     SourceSystem = "Pattern",
                     SourceType = "CasePattern",
                     UpdatedAt = doc.TryGetValue(PatternFieldNames.UpdatedAt, out var u) && u is DateTimeOffset dto
                         ? dto : DateTimeOffset.MinValue,
-                    ProductArea = GetStringOrNull(doc, PatternFieldNames.ProductArea),
-                    AccessLabel = GetString(doc, PatternFieldNames.AccessLabel),
-                    Tags = GetStringList(doc, PatternFieldNames.Tags),
-                    Visibility = GetString(doc, PatternFieldNames.Visibility),
-                    AllowedGroups = GetStringList(doc, PatternFieldNames.AllowedGroups),
+                    ProductArea = SearchDocumentHelper.GetStringOrNull(doc, PatternFieldNames.ProductArea),
+                    AccessLabel = SearchDocumentHelper.GetString(doc, PatternFieldNames.AccessLabel),
+                    Tags = SearchDocumentHelper.GetStringList(doc, PatternFieldNames.Tags),
+                    Visibility = SearchDocumentHelper.GetString(doc, PatternFieldNames.Visibility),
+                    AllowedGroups = SearchDocumentHelper.GetStringList(doc, PatternFieldNames.AllowedGroups),
                     Score = result.Score ?? 0.0,
                     SemanticScore = result.SemanticSearch?.RerankerScore,
                     ResultSource = "Pattern",
-                    TrustLevel = GetStringOrNull(doc, PatternFieldNames.TrustLevel),
+                    TrustLevel = SearchDocumentHelper.GetStringOrNull(doc, PatternFieldNames.TrustLevel),
                 });
             }
         }
@@ -412,40 +412,10 @@ public sealed class FusedRetrievalService : IRetrievalService
         return score; // 30-90 days: neutral (1.0x)
     }
 
-    /// <summary>
-    /// Applies ACL security trimming: restricted documents are only returned if user is in allowed_groups.
-    /// Internal and public documents pass through for all authenticated users.
-    /// </summary>
     internal static (List<RankedResult> Filtered, int FilteredOutCount) ApplyAclFilter(
         List<RankedResult> results,
-        IReadOnlyList<string>? userGroups)
-    {
-        var filtered = new List<RankedResult>();
-        var filteredOut = 0;
-        var groupSet = userGroups is { Count: > 0 }
-            ? new HashSet<string>(userGroups, StringComparer.OrdinalIgnoreCase)
-            : null;
-
-        foreach (var result in results)
-        {
-            if (!string.Equals(result.Visibility, VisibilityLevel.Restricted, StringComparison.OrdinalIgnoreCase))
-            {
-                filtered.Add(result);
-                continue;
-            }
-
-            if (groupSet is not null && result.AllowedGroups.Any(g => groupSet.Contains(g)))
-            {
-                filtered.Add(result);
-            }
-            else
-            {
-                filteredOut++;
-            }
-        }
-
-        return (filtered, filteredOut);
-    }
+        IReadOnlyList<string>? userGroups) =>
+        AclFilterHelper.ApplyAclFilter(results, userGroups);
 
     /// <summary>
     /// Enforces diversity constraint: max N results from the same source ID.
@@ -471,15 +441,6 @@ public sealed class FusedRetrievalService : IRetrievalService
         return diversified;
     }
 
-    private static string GetString(SearchDocument doc, string key) =>
-        SearchDocumentHelper.GetString(doc, key);
-
-    private static string? GetStringOrNull(SearchDocument doc, string key) =>
-        SearchDocumentHelper.GetStringOrNull(doc, key);
-
-    private static IReadOnlyList<string> GetStringList(SearchDocument doc, string key) =>
-        SearchDocumentHelper.GetStringList(doc, key);
-
     internal static string EscapeODataValue(string value) =>
         ODataFilterBuilder.EscapeODataValue(value);
 }
@@ -487,7 +448,7 @@ public sealed class FusedRetrievalService : IRetrievalService
 /// <summary>
 /// Internal representation of a search result from either index before ACL filtering and DTO mapping.
 /// </summary>
-internal sealed class RankedResult
+internal sealed class RankedResult : IAclFilterable
 {
     public required string Id { get; init; }
     public required string SourceId { get; init; }

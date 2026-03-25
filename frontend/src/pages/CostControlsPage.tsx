@@ -45,6 +45,7 @@ export function CostControlsPage() {
       setSummary(s);
       setDaily(d);
     } catch (e) {
+      console.warn('[CostControlsPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to load usage data');
     } finally {
       setUsageLoading(false);
@@ -58,6 +59,7 @@ export function CostControlsPage() {
       const data = await api.getCostSettings();
       setSettings(data);
     } catch (e) {
+      console.warn('[CostControlsPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to load cost settings');
     } finally {
       setSettingsLoading(false);
@@ -71,6 +73,7 @@ export function CostControlsPage() {
       const data = await api.getBudgetCheck();
       setBudget(data);
     } catch (e) {
+      console.warn('[CostControlsPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to load budget status');
     } finally {
       setBudgetLoading(false);
@@ -122,6 +125,7 @@ export function CostControlsPage() {
       setEditing(false);
       setSuccess('Cost settings updated');
     } catch (e) {
+      console.warn('[CostControlsPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to save settings');
     }
   }
@@ -134,6 +138,7 @@ export function CostControlsPage() {
       await loadSettings();
       setSuccess('Settings reset to defaults');
     } catch (e) {
+      console.warn('[CostControlsPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to reset settings');
     }
   }

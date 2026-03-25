@@ -313,13 +313,8 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
 
     private IReadOnlyDictionary<string, object> DeserializeMetrics(string json)
     {
-        if (string.IsNullOrEmpty(json)) return new Dictionary<string, object>();
-        try
-        {
-            var dict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json, SharedJsonOptions.CamelCaseWrite);
-            if (dict is null) return new Dictionary<string, object>();
-            return dict.ToDictionary(kv => kv.Key, kv => (object)kv.Value.ToString()!);
-        }
-        catch (JsonException ex) { _logger.LogWarning(ex, "Failed to deserialize JSON in {MethodName}", nameof(DeserializeMetrics)); return new Dictionary<string, object>(); }
+        var dict = JsonDeserializeHelper.DeserializeOrNull<Dictionary<string, JsonElement>>(json, SharedJsonOptions.CamelCaseWrite, _logger);
+        if (dict is null) return new Dictionary<string, object>();
+        return dict.ToDictionary(kv => kv.Key, kv => (object)kv.Value.ToString()!);
     }
 }
