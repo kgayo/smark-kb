@@ -1,5 +1,4 @@
 using System.Net.Http.Headers;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -120,10 +119,10 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
     {
         var config = ParseSourceConfig(sourceConfig, _logger);
         if (config is null)
-            return ErrorResult("Invalid or missing source configuration.");
+            return FetchResult.Error("Invalid or missing source configuration.");
 
         if (string.IsNullOrEmpty(secretValue))
-            return ErrorResult("No credentials provided.");
+            return FetchResult.Error("No credentials provided.");
 
         using var client = CreateHttpClient(config.BaseUrl, secretValue);
 
@@ -143,11 +142,11 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogWarning(ex, "Failed to resolve ClickUp list IDs");
-            return ErrorResult($"Failed to resolve list IDs: {ex.Message}");
+            return FetchResult.Error($"Failed to resolve list IDs: {ex.Message}");
         }
 
         if (listIds.Count == 0)
-            return ErrorResult("No lists found in the configured workspace/spaces.");
+            return FetchResult.Error("No lists found in the configured workspace/spaces.");
 
         var startListIndex = parsedCheckpoint?.ListIndex ?? 0;
         var startPage = parsedCheckpoint?.Page ?? 0;
@@ -466,7 +465,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
         var updatedAt = ParseClickUpTimestamp(task.DateUpdated);
 
         var deepLink = task.Url ?? $"https://app.clickup.com/t/{task.Id}";
-        var contentHash = ComputeHash($"{title}|{textContent}|{updatedAt:O}");
+        var contentHash = ConnectorHttpHelper.ComputeHash($"{title}|{textContent}|{updatedAt:O}");
 
         var tags = new List<string>();
         if (task.Tags is not null)
@@ -544,12 +543,6 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
         return DateTimeOffset.UtcNow;
     }
 
-    internal static string ComputeHash(string input)
-    {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
-        return Convert.ToHexString(bytes).ToLowerInvariant();
-    }
-
     private static string? MapPriority(ClickUpPriority? priority)
     {
         if (priority is null) return null;
@@ -576,14 +569,6 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
 
     private static Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)
         => ConnectorHttpHelper.DeserializeAsync<T>(response, SharedJsonOptions.CamelCaseIgnoreNull, ct);
-
-    private static FetchResult ErrorResult(string error) => new()
-    {
-        Records = [],
-        FailedRecords = 0,
-        Errors = [error],
-        HasMore = false,
-    };
 
     // --- ClickUp API response models ---
 

@@ -1,6 +1,4 @@
 using System.Net.Http.Headers;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
@@ -146,10 +144,10 @@ public sealed class SharePointConnectorClient : IConnectorClient
     {
         var config = ParseSourceConfig(sourceConfig, _logger);
         if (config is null)
-            return ErrorResult("Invalid or missing source configuration.");
+            return FetchResult.Error("Invalid or missing source configuration.");
 
         if (string.IsNullOrEmpty(secretValue))
-            return ErrorResult("No credentials provided.");
+            return FetchResult.Error("No credentials provided.");
 
         string accessToken;
         try
@@ -159,19 +157,19 @@ public sealed class SharePointConnectorClient : IConnectorClient
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogWarning(ex, "Failed to acquire SharePoint access token");
-            return ErrorResult($"Failed to acquire access token: {ex.Message}");
+            return FetchResult.Error($"Failed to acquire access token: {ex.Message}");
         }
 
         using var client = CreateGraphClient(accessToken);
 
         var siteId = await ResolveSiteIdAsync(client, config.SiteUrl, cancellationToken);
         if (siteId is null)
-            return ErrorResult("Could not resolve SharePoint site.");
+            return FetchResult.Error("Could not resolve SharePoint site.");
 
         var parsedCheckpoint = SharePointCheckpoint.Parse(checkpoint);
         var drives = await ResolveDrivesAsync(client, siteId, config, cancellationToken);
         if (drives.Count == 0)
-            return ErrorResult("No accessible document libraries found.");
+            return FetchResult.Error("No accessible document libraries found.");
 
         var records = new List<CanonicalRecord>();
         var errors = new List<string>();
@@ -369,7 +367,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
         // Content hash: based on item metadata since we don't download file content during ingestion.
         // Full text extraction happens in P0-010 (normalization/chunking pipeline).
         var contentForHash = $"{item.Id}|{item.Name}|{updatedAt:O}|{item.Size}";
-        var contentHash = ComputeHash(contentForHash);
+        var contentHash = ConnectorHttpHelper.ComputeHash(contentForHash);
 
         // ACL mapping: SharePoint document libraries are scoped by site.
         // Use drive name as the access group. Items in shared drives are Internal by default.
@@ -619,22 +617,8 @@ public sealed class SharePointConnectorClient : IConnectorClient
         _ => SourceType.Document,
     };
 
-    internal static string ComputeHash(string input)
-    {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
-        return Convert.ToHexString(bytes).ToLowerInvariant();
-    }
-
     private static Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)
         => ConnectorHttpHelper.DeserializeAsync<T>(response, SharedJsonOptions.CamelCaseIgnoreNull, ct);
-
-    private static FetchResult ErrorResult(string error) => new()
-    {
-        Records = [],
-        FailedRecords = 0,
-        Errors = [error],
-        HasMore = false,
-    };
 
     // --- Graph API response models ---
 

@@ -1,8 +1,7 @@
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Services;
 using SmartKb.Data.Entities;
@@ -39,7 +38,7 @@ public sealed class EmbeddingCacheService : IEmbeddingCacheService
         string text,
         CancellationToken ct = default)
     {
-        var contentHash = ComputeHash(text);
+        var contentHash = ConnectorHttpHelper.ComputeHash(text);
         var now = DateTimeOffset.UtcNow;
 
         // Try cache lookup (load by hash, then filter expiry in memory for SQLite compat).
@@ -109,9 +108,4 @@ public sealed class EmbeddingCacheService : IEmbeddingCacheService
         return expired.Count;
     }
 
-    internal static string ComputeHash(string text)
-    {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(text));
-        return Convert.ToHexStringLower(bytes);
-    }
 }

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging.Abstractions;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Services;
 using SmartKb.Data.Entities;
@@ -42,7 +43,7 @@ public class EmbeddingCacheServiceTests : IDisposable
 
         // Verify cached in DB.
         var cached = Assert.Single(_db.EmbeddingCache);
-        Assert.Equal(EmbeddingCacheService.ComputeHash("hello world"), cached.ContentHash);
+        Assert.Equal(ConnectorHttpHelper.ComputeHash("hello world"), cached.ContentHash);
         Assert.Equal("hello world", cached.InputText);
     }
 
@@ -66,7 +67,7 @@ public class EmbeddingCacheServiceTests : IDisposable
     public async Task ExpiredEntries_AreNotReturned()
     {
         // Manually insert an expired cache entry.
-        var hash = EmbeddingCacheService.ComputeHash("expired query");
+        var hash = ConnectorHttpHelper.ComputeHash("expired query");
         _db.EmbeddingCache.Add(new EmbeddingCacheEntity
         {
             Id = Guid.NewGuid(),
@@ -129,8 +130,8 @@ public class EmbeddingCacheServiceTests : IDisposable
     [Fact]
     public void ComputeHash_ConsistentForSameInput()
     {
-        var hash1 = EmbeddingCacheService.ComputeHash("test input");
-        var hash2 = EmbeddingCacheService.ComputeHash("test input");
+        var hash1 = ConnectorHttpHelper.ComputeHash("test input");
+        var hash2 = ConnectorHttpHelper.ComputeHash("test input");
 
         Assert.Equal(hash1, hash2);
         Assert.NotEmpty(hash1);
@@ -139,8 +140,8 @@ public class EmbeddingCacheServiceTests : IDisposable
     [Fact]
     public void ComputeHash_DifferentForDifferentInput()
     {
-        var hash1 = EmbeddingCacheService.ComputeHash("input A");
-        var hash2 = EmbeddingCacheService.ComputeHash("input B");
+        var hash1 = ConnectorHttpHelper.ComputeHash("input A");
+        var hash2 = ConnectorHttpHelper.ComputeHash("input B");
 
         Assert.NotEqual(hash1, hash2);
     }

@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using SmartKb.Contracts;
+using SmartKb.Contracts.Models;
 
 namespace SmartKb.Contracts.Tests;
 
@@ -85,6 +86,47 @@ public class ConnectorHttpHelperTests
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => ConnectorHttpHelper.DeserializeAsync<TestDto>(response, CamelCase, cts.Token));
+    }
+
+    // --- FetchResult.Error factory tests ---
+
+    [Fact]
+    public void FetchResult_Error_ReturnsEmptyRecordsWithSingleError()
+    {
+        var result = FetchResult.Error("Something went wrong.");
+
+        Assert.Empty(result.Records);
+        Assert.Equal(0, result.FailedRecords);
+        Assert.Single(result.Errors);
+        Assert.Equal("Something went wrong.", result.Errors[0]);
+        Assert.False(result.HasMore);
+        Assert.Null(result.NewCheckpoint);
+    }
+
+    // --- ComputeHash tests ---
+
+    [Fact]
+    public void ComputeHash_DeterministicOutput()
+    {
+        var hash1 = ConnectorHttpHelper.ComputeHash("test input");
+        var hash2 = ConnectorHttpHelper.ComputeHash("test input");
+        Assert.Equal(hash1, hash2);
+    }
+
+    [Fact]
+    public void ComputeHash_DifferentInputs_DifferentHashes()
+    {
+        var hash1 = ConnectorHttpHelper.ComputeHash("input A");
+        var hash2 = ConnectorHttpHelper.ComputeHash("input B");
+        Assert.NotEqual(hash1, hash2);
+    }
+
+    [Fact]
+    public void ComputeHash_ReturnsLowercaseHex()
+    {
+        var hash = ConnectorHttpHelper.ComputeHash("test");
+        Assert.Matches("^[0-9a-f]+$", hash);
+        Assert.Equal(64, hash.Length); // SHA256 = 32 bytes = 64 hex chars
     }
 
     // --- ParseJson<T> tests ---

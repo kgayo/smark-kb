@@ -1,5 +1,4 @@
 using System.Net.Http.Headers;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -132,17 +131,17 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
     {
         var config = ParseSourceConfig(sourceConfig, _logger);
         if (config is null)
-            return ErrorResult("Invalid or missing source configuration.");
+            return FetchResult.Error("Invalid or missing source configuration.");
 
         if (string.IsNullOrEmpty(secretValue))
-            return ErrorResult("No credentials provided.");
+            return FetchResult.Error("No credentials provided.");
 
         using var client = CreateHttpClient(config.OrganizationUrl, secretValue);
 
         var parsedCheckpoint = AdoCheckpoint.Parse(checkpoint);
         var projects = await ResolveProjectsAsync(client, config, cancellationToken);
         if (projects.Count == 0)
-            return ErrorResult("No accessible projects found.");
+            return FetchResult.Error("No accessible projects found.");
 
         var records = new List<CanonicalRecord>();
         var errors = new List<string>();
@@ -425,7 +424,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
 
         var deepLink = $"{orgUrl.TrimEnd('/')}/{Uri.EscapeDataString(project)}/_workitems/edit/{id}";
         var contentForHash = $"{title}|{description}|{state}|{changedDate:O}";
-        var contentHash = ComputeHash(contentForHash);
+        var contentHash = ConnectorHttpHelper.ComputeHash(contentForHash);
 
         // Map area path to ACL groups.
         var allowedGroups = string.IsNullOrEmpty(areaPath) ? [] : new List<string> { areaPath };
@@ -547,7 +546,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
         var content = page.Content ?? "";
         var deepLink = $"{orgUrl.TrimEnd('/')}/{Uri.EscapeDataString(project)}/_wiki/wikis/{Uri.EscapeDataString(wiki.Name)}/{pageId}";
 
-        var contentHash = ComputeHash($"{title}|{content}");
+        var contentHash = ConnectorHttpHelper.ComputeHash($"{title}|{content}");
 
         return new CanonicalRecord
         {
@@ -655,12 +654,6 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
         return DateTimeOffset.UtcNow;
     }
 
-    internal static string ComputeHash(string input)
-    {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
-        return Convert.ToHexString(bytes).ToLowerInvariant();
-    }
-
     internal static string StripHtml(string html)
     {
         if (string.IsNullOrEmpty(html)) return "";
@@ -670,14 +663,6 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
         result = System.Text.RegularExpressions.Regex.Replace(result, @"\s+", " ");
         return result.Trim();
     }
-
-    private static FetchResult ErrorResult(string error) => new()
-    {
-        Records = [],
-        FailedRecords = 0,
-        Errors = [error],
-        HasMore = false,
-    };
 
     private static IEnumerable<List<T>> Chunk<T>(List<T> source, int size)
     {

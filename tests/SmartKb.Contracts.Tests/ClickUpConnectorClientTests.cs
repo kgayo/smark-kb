@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Connectors;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
@@ -70,23 +71,23 @@ public class ClickUpConnectorClientTests
     [Fact]
     public void ComputeHash_DeterministicOutput()
     {
-        var hash1 = ClickUpConnectorClient.ComputeHash("test input");
-        var hash2 = ClickUpConnectorClient.ComputeHash("test input");
+        var hash1 = ConnectorHttpHelper.ComputeHash("test input");
+        var hash2 = ConnectorHttpHelper.ComputeHash("test input");
         Assert.Equal(hash1, hash2);
     }
 
     [Fact]
     public void ComputeHash_DifferentInputs_DifferentHashes()
     {
-        var hash1 = ClickUpConnectorClient.ComputeHash("input A");
-        var hash2 = ClickUpConnectorClient.ComputeHash("input B");
+        var hash1 = ConnectorHttpHelper.ComputeHash("input A");
+        var hash2 = ConnectorHttpHelper.ComputeHash("input B");
         Assert.NotEqual(hash1, hash2);
     }
 
     [Fact]
     public void ComputeHash_ReturnsLowercaseHex()
     {
-        var hash = ClickUpConnectorClient.ComputeHash("test");
+        var hash = ConnectorHttpHelper.ComputeHash("test");
         Assert.Matches("^[0-9a-f]+$", hash);
         Assert.Equal(64, hash.Length); // SHA256 = 32 bytes = 64 hex chars
     }

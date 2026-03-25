@@ -1,5 +1,4 @@
 using System.Net.Http.Headers;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -134,17 +133,17 @@ public sealed class HubSpotConnectorClient : IConnectorClient
     {
         var config = ParseSourceConfig(sourceConfig, _logger);
         if (config is null)
-            return ErrorResult("Invalid or missing source configuration.");
+            return FetchResult.Error("Invalid or missing source configuration.");
 
         if (string.IsNullOrEmpty(secretValue))
-            return ErrorResult("No credentials provided.");
+            return FetchResult.Error("No credentials provided.");
 
         using var client = CreateHttpClient(config.BaseUrl, secretValue);
 
         var parsedCheckpoint = HubSpotCheckpoint.Parse(checkpoint);
         var objectTypes = ResolveObjectTypes(config);
         if (objectTypes.Count == 0)
-            return ErrorResult("No valid object types configured.");
+            return FetchResult.Error("No valid object types configured.");
 
         var records = new List<CanonicalRecord>();
         var errors = new List<string>();
@@ -369,7 +368,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
             ?? obj.UpdatedAt?.ToString("O"));
 
         var deepLink = $"https://app.hubspot.com/contacts/{portalId}/{MapObjectTypeToUrlPath(objectType)}/{id}";
-        var contentHash = ComputeHash($"{title}|{textContent}|{updatedAt:O}");
+        var contentHash = ConnectorHttpHelper.ComputeHash($"{title}|{textContent}|{updatedAt:O}");
 
         var pipeline = obj.Properties.GetValueOrDefault("hs_pipeline")
             ?? obj.Properties.GetValueOrDefault("pipeline");
@@ -525,22 +524,8 @@ public sealed class HubSpotConnectorClient : IConnectorClient
         return DateTimeOffset.UtcNow;
     }
 
-    internal static string ComputeHash(string input)
-    {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
-        return Convert.ToHexString(bytes).ToLowerInvariant();
-    }
-
     private static Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)
         => ConnectorHttpHelper.DeserializeAsync<T>(response, SharedJsonOptions.CamelCaseIgnoreNull, ct);
-
-    private static FetchResult ErrorResult(string error) => new()
-    {
-        Records = [],
-        FailedRecords = 0,
-        Errors = [error],
-        HasMore = false,
-    };
 
     // --- HubSpot API response models ---
 

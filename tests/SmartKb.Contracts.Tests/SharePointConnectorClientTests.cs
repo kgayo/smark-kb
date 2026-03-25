@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Connectors;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
@@ -69,23 +70,23 @@ public class SharePointConnectorClientTests
     [Fact]
     public void ComputeHash_DeterministicOutput()
     {
-        var hash1 = SharePointConnectorClient.ComputeHash("test input");
-        var hash2 = SharePointConnectorClient.ComputeHash("test input");
+        var hash1 = ConnectorHttpHelper.ComputeHash("test input");
+        var hash2 = ConnectorHttpHelper.ComputeHash("test input");
         Assert.Equal(hash1, hash2);
     }
 
     [Fact]
     public void ComputeHash_DifferentInputs_DifferentHashes()
     {
-        var hash1 = SharePointConnectorClient.ComputeHash("input A");
-        var hash2 = SharePointConnectorClient.ComputeHash("input B");
+        var hash1 = ConnectorHttpHelper.ComputeHash("input A");
+        var hash2 = ConnectorHttpHelper.ComputeHash("input B");
         Assert.NotEqual(hash1, hash2);
     }
 
     [Fact]
     public void ComputeHash_ReturnsLowercaseHex()
     {
-        var hash = SharePointConnectorClient.ComputeHash("test");
+        var hash = ConnectorHttpHelper.ComputeHash("test");
         Assert.Matches("^[0-9a-f]+$", hash);
         Assert.Equal(64, hash.Length);
     }
