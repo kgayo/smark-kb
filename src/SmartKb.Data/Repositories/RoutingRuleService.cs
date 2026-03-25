@@ -50,7 +50,7 @@ public sealed class RoutingRuleService : IRoutingRuleService
         string tenantId, string userId, string correlationId,
         CreateRoutingRuleRequest request, CancellationToken ct = default)
     {
-        var severity = NormalizeSeverity(request.MinSeverity);
+        var severity = EscalationSettings.NormalizeSeverity(request.MinSeverity);
         var now = DateTimeOffset.UtcNow;
 
         var entity = new EscalationRoutingRuleEntity
@@ -98,7 +98,7 @@ public sealed class RoutingRuleService : IRoutingRuleService
 
         if (request.TargetTeam is not null) entity.TargetTeam = request.TargetTeam;
         if (request.EscalationThreshold.HasValue) entity.EscalationThreshold = request.EscalationThreshold.Value;
-        if (request.MinSeverity is not null) entity.MinSeverity = NormalizeSeverity(request.MinSeverity);
+        if (request.MinSeverity is not null) entity.MinSeverity = EscalationSettings.NormalizeSeverity(request.MinSeverity);
         if (request.IsActive.HasValue) entity.IsActive = request.IsActive.Value;
         entity.UpdatedAt = now;
 
@@ -156,5 +156,4 @@ public sealed class RoutingRuleService : IRoutingRuleService
         UpdatedAt = entity.UpdatedAt,
     };
 
-    private static string NormalizeSeverity(string severity) => EscalationSettings.NormalizeSeverity(severity);
 }

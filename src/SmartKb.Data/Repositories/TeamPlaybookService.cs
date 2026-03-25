@@ -84,9 +84,9 @@ public sealed class TeamPlaybookService : ITeamPlaybookService
 
         // Validate severity values if provided.
         if (request.MinSeverity is not null)
-            ValidateSeverity(request.MinSeverity);
+            EscalationSettings.ValidateSeverity(request.MinSeverity);
         if (request.AutoRouteSeverity is not null)
-            ValidateSeverity(request.AutoRouteSeverity);
+            EscalationSettings.ValidateSeverity(request.AutoRouteSeverity);
 
         // Validate required fields reference known handoff fields.
         ValidateRequiredFields(request.RequiredFields);
@@ -150,9 +150,9 @@ public sealed class TeamPlaybookService : ITeamPlaybookService
         if (entity is null) return null;
 
         if (request.MinSeverity is not null)
-            ValidateSeverity(request.MinSeverity);
+            EscalationSettings.ValidateSeverity(request.MinSeverity);
         if (request.AutoRouteSeverity is not null)
-            ValidateSeverity(request.AutoRouteSeverity);
+            EscalationSettings.ValidateSeverity(request.AutoRouteSeverity);
         if (request.RequiredFields is not null)
             ValidateRequiredFields(request.RequiredFields);
         if (request.MaxConcurrentEscalations is < 1)
@@ -310,8 +310,6 @@ public sealed class TeamPlaybookService : ITeamPlaybookService
             return draft.EvidenceLinks.Count > 0;
         return false;
     }
-
-    private static void ValidateSeverity(string severity) => EscalationSettings.ValidateSeverity(severity);
 
     private static void ValidateRequiredFields(IReadOnlyList<string> fields)
     {

@@ -299,22 +299,16 @@ public sealed class AzureSearchRetrievalService : IRetrievalService
     }
 
     private static string GetStringValue(SearchDocument doc, string key) =>
-        doc.TryGetValue(key, out var val) && val is string s ? s : string.Empty;
+        SearchDocumentHelper.GetString(doc, key);
 
     private static string? GetStringOrNull(SearchDocument doc, string key) =>
-        doc.TryGetValue(key, out var val) && val is string s && !string.IsNullOrEmpty(s) ? s : null;
+        SearchDocumentHelper.GetStringOrNull(doc, key);
 
-    private static IReadOnlyList<string> GetStringList(SearchDocument doc, string key)
-    {
-        if (!doc.TryGetValue(key, out var val)) return [];
-        if (val is IEnumerable<string> strings) return strings.ToList();
-        if (val is IEnumerable<object> objects) return objects.Select(o => o?.ToString() ?? "").ToList();
-        return [];
-    }
+    private static IReadOnlyList<string> GetStringList(SearchDocument doc, string key) =>
+        SearchDocumentHelper.GetStringList(doc, key);
 
-    /// <summary>Escapes single quotes in OData filter values.</summary>
     internal static string EscapeODataValue(string value) =>
-        value.Replace("'", "''", StringComparison.Ordinal);
+        ODataFilterBuilder.EscapeODataValue(value);
 }
 
 /// <summary>

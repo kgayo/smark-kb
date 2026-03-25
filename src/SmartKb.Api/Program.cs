@@ -1323,9 +1323,18 @@ app.MapGet("/api/evidence/{chunkId}/content", async (
     // ACL enforcement: restricted content requires user membership in allowed groups.
     if (string.Equals(chunk.Visibility, VisibilityLevel.Restricted, StringComparison.OrdinalIgnoreCase))
     {
-        var allowedGroups = string.IsNullOrEmpty(chunk.AllowedGroups)
-            ? Array.Empty<string>()
-            : System.Text.Json.JsonSerializer.Deserialize<string[]>(chunk.AllowedGroups) ?? Array.Empty<string>();
+        string[] allowedGroups;
+        try
+        {
+            allowedGroups = string.IsNullOrEmpty(chunk.AllowedGroups)
+                ? Array.Empty<string>()
+                : System.Text.Json.JsonSerializer.Deserialize<string[]>(chunk.AllowedGroups) ?? Array.Empty<string>();
+        }
+        catch (System.Text.Json.JsonException ex)
+        {
+            logger.LogWarning(ex, "Malformed AllowedGroups JSON for chunk {ChunkId}, treating as empty", chunkId);
+            allowedGroups = Array.Empty<string>();
+        }
         var userGroups = tenant.UserGroups;
         var hasAccess = allowedGroups.Any(ag => userGroups.Any(ug =>
             string.Equals(ag, ug, StringComparison.OrdinalIgnoreCase)));
@@ -1358,9 +1367,18 @@ app.MapGet("/api/evidence/{chunkId}/content", async (
         }
     }
 
-    var tags = string.IsNullOrEmpty(chunk.Tags)
-        ? Array.Empty<string>()
-        : System.Text.Json.JsonSerializer.Deserialize<string[]>(chunk.Tags) ?? Array.Empty<string>();
+    string[] tags;
+    try
+    {
+        tags = string.IsNullOrEmpty(chunk.Tags)
+            ? Array.Empty<string>()
+            : System.Text.Json.JsonSerializer.Deserialize<string[]>(chunk.Tags) ?? Array.Empty<string>();
+    }
+    catch (System.Text.Json.JsonException ex)
+    {
+        logger.LogWarning(ex, "Malformed Tags JSON for chunk {ChunkId}, treating as empty", chunkId);
+        tags = Array.Empty<string>();
+    }
 
     var response = new EvidenceContentResponse
     {

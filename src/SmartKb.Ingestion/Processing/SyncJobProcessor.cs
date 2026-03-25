@@ -203,7 +203,7 @@ public sealed class SyncJobProcessor
             await _db.SaveChangesAsync(cancellationToken);
 
             await WriteAuditAsync(message, AuditEventTypes.SyncCompleted,
-                $"Sync run {message.SyncRunId} completed: {totalProcessed} processed, {totalFailed} failed, {totalChunks} chunks produced.");
+                $"Sync run {message.SyncRunId} completed: {totalProcessed} processed, {totalFailed} failed, {totalChunks} chunks produced.", cancellationToken);
 
             activity?.SetTag("smartkb.records_processed", totalProcessed);
             activity?.SetTag("smartkb.records_failed", totalFailed);
@@ -244,7 +244,7 @@ public sealed class SyncJobProcessor
             await FailRunAsync(syncRun, ex.Message, cancellationToken);
 
             await WriteAuditAsync(message, AuditEventTypes.SyncFailed,
-                $"Sync run {message.SyncRunId} failed: {ex.Message}");
+                $"Sync run {message.SyncRunId} failed: {ex.Message}", cancellationToken);
 
             // P1-008 + P3-020: Track source API rate-limit hits (HTTP 429).
             if (ex is HttpRequestException hre && hre.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
@@ -292,7 +292,7 @@ public sealed class SyncJobProcessor
         _logger.LogError("Sync run {SyncRunId} failed: {Error}", syncRun.Id, error);
     }
 
-    private async Task WriteAuditAsync(SyncJobMessage message, string eventType, string detail)
+    private async Task WriteAuditAsync(SyncJobMessage message, string eventType, string detail, CancellationToken ct = default)
     {
         await _auditWriter.WriteAsync(new AuditEvent(
             EventId: Guid.NewGuid().ToString(),
@@ -301,7 +301,7 @@ public sealed class SyncJobProcessor
             ActorId: "system:ingestion-worker",
             CorrelationId: message.CorrelationId,
             Timestamp: DateTimeOffset.UtcNow,
-            Detail: detail));
+            Detail: detail), ct);
     }
 
     private async Task UploadRawContentAsync(

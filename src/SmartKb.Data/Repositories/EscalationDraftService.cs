@@ -75,7 +75,7 @@ public sealed class EscalationDraftService : IEscalationDraftService
             StepsToReproduce = request.StepsToReproduce,
             LogsIdsRequested = request.LogsIdsRequested,
             SuspectedComponent = request.SuspectedComponent,
-            Severity = ValidateSeverity(request.Severity),
+            Severity = EscalationSettings.NormalizeSeverity(request.Severity),
             EvidenceLinksJson = JsonSerializer.Serialize(request.EvidenceLinks, SharedJsonOptions.CamelCaseWrite),
             TargetTeam = targetTeam,
             Reason = request.Reason,
@@ -167,7 +167,7 @@ public sealed class EscalationDraftService : IEscalationDraftService
         if (request.StepsToReproduce is not null) entity.StepsToReproduce = request.StepsToReproduce;
         if (request.LogsIdsRequested is not null) entity.LogsIdsRequested = request.LogsIdsRequested;
         if (request.SuspectedComponent is not null) entity.SuspectedComponent = request.SuspectedComponent;
-        if (request.Severity is not null) entity.Severity = ValidateSeverity(request.Severity);
+        if (request.Severity is not null) entity.Severity = EscalationSettings.NormalizeSeverity(request.Severity);
         if (request.EvidenceLinks is not null) entity.EvidenceLinksJson = JsonSerializer.Serialize(request.EvidenceLinks, SharedJsonOptions.CamelCaseWrite);
         if (request.TargetTeam is not null) entity.TargetTeam = request.TargetTeam;
         if (request.Reason is not null) entity.Reason = request.Reason;
@@ -414,8 +414,6 @@ public sealed class EscalationDraftService : IEscalationDraftService
 
         return rule?.TargetTeam ?? _escalationSettings.FallbackTargetTeam;
     }
-
-    private static string ValidateSeverity(string severity) => EscalationSettings.NormalizeSeverity(severity);
 
     internal static string BuildMarkdown(EscalationDraftEntity entity)
     {
