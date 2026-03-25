@@ -309,15 +309,7 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
     }
 
     internal HashSet<string> ExtractPatternIds(string citedChunkIdsJson)
-    {
-        if (string.IsNullOrEmpty(citedChunkIdsJson)) return [];
-        try
-        {
-            var ids = JsonSerializer.Deserialize<List<string>>(citedChunkIdsJson, SharedJsonOptions.CamelCaseWrite) ?? [];
-            return ids.Where(id => id.StartsWith("pattern-", StringComparison.OrdinalIgnoreCase)).ToHashSet();
-        }
-        catch (JsonException ex) { _logger.LogWarning(ex, "Failed to deserialize JSON in {MethodName}", nameof(ExtractPatternIds)); return []; }
-    }
+        => PatternIdHelper.ExtractPatternIds(citedChunkIdsJson, _logger);
 
     private IReadOnlyDictionary<string, object> DeserializeMetrics(string json)
     {

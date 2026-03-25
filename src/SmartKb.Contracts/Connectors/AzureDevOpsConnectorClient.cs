@@ -1,4 +1,3 @@
-using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -571,12 +570,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
     internal HttpClient CreateHttpClient(string organizationUrl, string pat)
     {
         var client = _httpClientFactory.CreateClient("AzureDevOps");
-        client.BaseAddress = new Uri(organizationUrl.TrimEnd('/') + "/");
-
-        var credentials = Convert.ToBase64String(Encoding.ASCII.GetBytes($":{pat}"));
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", credentials);
-        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
+        ConnectorHttpHelper.ConfigureBasicClient(client, organizationUrl, pat);
         return client;
     }
 

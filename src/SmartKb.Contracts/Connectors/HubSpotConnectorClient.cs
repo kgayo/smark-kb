@@ -1,4 +1,3 @@
-using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -410,9 +409,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
     internal HttpClient CreateHttpClient(string baseUrl, string token)
     {
         var client = _httpClientFactory.CreateClient("HubSpot");
-        client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        ConnectorHttpHelper.ConfigureBearerClient(client, baseUrl, token);
         return client;
     }
 

@@ -223,11 +223,7 @@ public sealed class ClickUpWebhookManager : IWebhookManager
     private HttpClient CreateHttpClient(string baseUrl, string token)
     {
         var client = _httpClientFactory.CreateClient("ClickUp");
-        client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
-        client.DefaultRequestHeaders.Authorization =
-            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-        client.DefaultRequestHeaders.Accept.Add(
-            new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+        ConnectorHttpHelper.ConfigureBearerClient(client, baseUrl, token);
         return client;
     }
 

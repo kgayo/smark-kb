@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SmartKb.Contracts;
@@ -108,14 +107,5 @@ public sealed class PatternUsageMetricsService : IPatternUsageMetricsService
     }
 
     internal HashSet<string> ExtractPatternIds(string citedChunkIdsJson)
-    {
-        if (string.IsNullOrEmpty(citedChunkIdsJson)) return [];
-        try
-        {
-            var ids = JsonSerializer.Deserialize<List<string>>(citedChunkIdsJson, SharedJsonOptions.CaseInsensitive) ?? [];
-            return ids.Where(id => id.StartsWith("pattern-", StringComparison.OrdinalIgnoreCase))
-                      .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        }
-        catch (JsonException ex) { _logger.LogWarning(ex, "Failed to deserialize JSON in {MethodName}", nameof(ExtractPatternIds)); return []; }
-    }
+        => PatternIdHelper.ExtractPatternIds(citedChunkIdsJson, _logger);
 }

@@ -193,6 +193,79 @@ public class ConnectorHttpHelperTests
         Assert.Null(result);
     }
 
+    // --- ConfigureBearerClient tests ---
+
+    [Fact]
+    public void ConfigureBearerClient_SetsBaseAddress()
+    {
+        using var client = new HttpClient();
+        ConnectorHttpHelper.ConfigureBearerClient(client, "https://api.example.com", "token123");
+
+        Assert.Equal(new Uri("https://api.example.com/"), client.BaseAddress);
+    }
+
+    [Fact]
+    public void ConfigureBearerClient_TrimsTrailingSlash()
+    {
+        using var client = new HttpClient();
+        ConnectorHttpHelper.ConfigureBearerClient(client, "https://api.example.com/", "token123");
+
+        Assert.Equal(new Uri("https://api.example.com/"), client.BaseAddress);
+    }
+
+    [Fact]
+    public void ConfigureBearerClient_SetsBearerAuth()
+    {
+        using var client = new HttpClient();
+        ConnectorHttpHelper.ConfigureBearerClient(client, "https://api.example.com", "my-token");
+
+        Assert.Equal("Bearer", client.DefaultRequestHeaders.Authorization?.Scheme);
+        Assert.Equal("my-token", client.DefaultRequestHeaders.Authorization?.Parameter);
+    }
+
+    [Fact]
+    public void ConfigureBearerClient_SetsJsonAcceptHeader()
+    {
+        using var client = new HttpClient();
+        ConnectorHttpHelper.ConfigureBearerClient(client, "https://api.example.com", "token");
+
+        Assert.Contains(client.DefaultRequestHeaders.Accept,
+            h => h.MediaType == "application/json");
+    }
+
+    // --- ConfigureBasicClient tests ---
+
+    [Fact]
+    public void ConfigureBasicClient_SetsBaseAddress()
+    {
+        using var client = new HttpClient();
+        ConnectorHttpHelper.ConfigureBasicClient(client, "https://dev.azure.com/org", "pat123");
+
+        Assert.Equal(new Uri("https://dev.azure.com/org/"), client.BaseAddress);
+    }
+
+    [Fact]
+    public void ConfigureBasicClient_SetsBasicAuthWithEncodedPat()
+    {
+        using var client = new HttpClient();
+        ConnectorHttpHelper.ConfigureBasicClient(client, "https://dev.azure.com/org", "my-pat");
+
+        Assert.Equal("Basic", client.DefaultRequestHeaders.Authorization?.Scheme);
+        var decoded = Encoding.ASCII.GetString(
+            Convert.FromBase64String(client.DefaultRequestHeaders.Authorization!.Parameter!));
+        Assert.Equal(":my-pat", decoded);
+    }
+
+    [Fact]
+    public void ConfigureBasicClient_SetsJsonAcceptHeader()
+    {
+        using var client = new HttpClient();
+        ConnectorHttpHelper.ConfigureBasicClient(client, "https://dev.azure.com/org", "pat");
+
+        Assert.Contains(client.DefaultRequestHeaders.Accept,
+            h => h.MediaType == "application/json");
+    }
+
     private sealed class TestDto
     {
         public string? Name { get; set; }
