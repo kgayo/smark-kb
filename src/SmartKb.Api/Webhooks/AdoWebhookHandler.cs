@@ -237,36 +237,11 @@ public sealed class AdoWebhookHandler
     /// Records a webhook delivery failure and activates polling fallback if threshold is exceeded.
     /// Called by the polling fallback service when webhook health checks fail.
     /// </summary>
-    public async Task RecordDeliveryFailureAsync(
+    public Task RecordDeliveryFailureAsync(
         Guid connectorId, CancellationToken cancellationToken = default)
-    {
-        var subscriptions = await _db.Set<WebhookSubscriptionEntity>()
-            .Where(w => w.ConnectorId == connectorId && w.IsActive)
-            .ToListAsync(cancellationToken);
-
-        var now = DateTimeOffset.UtcNow;
-        foreach (var sub in subscriptions)
-        {
-            sub.ConsecutiveFailures++;
-            sub.UpdatedAt = now;
-
-            if (sub.ConsecutiveFailures >= _webhookSettings.FailureThresholdForFallback)
-            {
-                sub.PollingFallbackActive = true;
-                sub.NextPollAt = ComputeNextPollTime(now);
-                _logger.LogWarning(
-                    "Webhook fallback activated: connector={ConnectorId}, failures={Failures}, nextPoll={NextPoll}",
-                    connectorId, sub.ConsecutiveFailures, sub.NextPollAt);
-            }
-        }
-
-        await _db.SaveChangesAsync(cancellationToken);
-    }
+        => WebhookFailureHelper.RecordDeliveryFailureAsync(
+            _db, _webhookSettings, connectorId, "ADO", _logger, cancellationToken);
 
     internal DateTimeOffset ComputeNextPollTime(DateTimeOffset from)
-    {
-        var intervalSeconds = _webhookSettings.PollingFallbackIntervalSeconds;
-        var jitter = Random.Shared.Next(0, _webhookSettings.PollingJitterMaxSeconds + 1);
-        return from.AddSeconds(intervalSeconds + jitter);
-    }
+        => WebhookFailureHelper.ComputeNextPollTime(_webhookSettings, from);
 }

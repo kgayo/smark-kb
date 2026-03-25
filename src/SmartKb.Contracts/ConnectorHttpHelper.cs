@@ -45,13 +45,26 @@ public static class ConnectorHttpHelper
         return Convert.ToHexStringLower(bytes);
     }
 
+    /// <summary>
+    /// Deserializes an HTTP response body as <typeparamref name="T"/>.
+    /// Returns null on malformed JSON instead of throwing <see cref="JsonException"/>.
+    /// </summary>
     public static async Task<T?> DeserializeAsync<T>(
         HttpResponseMessage response,
         JsonSerializerOptions options,
-        CancellationToken ct)
+        CancellationToken ct,
+        ILogger? logger = null)
     {
         var stream = await response.Content.ReadAsStreamAsync(ct);
-        return await JsonSerializer.DeserializeAsync<T>(stream, options, ct);
+        try
+        {
+            return await JsonSerializer.DeserializeAsync<T>(stream, options, ct);
+        }
+        catch (JsonException ex)
+        {
+            logger?.LogWarning(ex, "Failed to deserialize {TypeName} from HTTP response", typeof(T).Name);
+            return default;
+        }
     }
 
     /// <summary>

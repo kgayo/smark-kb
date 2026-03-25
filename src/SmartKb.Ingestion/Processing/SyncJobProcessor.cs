@@ -419,8 +419,7 @@ public sealed class SyncJobProcessor
     private static string ComputeChunkHash(EvidenceChunk chunk)
     {
         var input = $"{chunk.ChunkId}|{chunk.ChunkText}|{chunk.EnrichmentVersion}";
-        var bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(input));
-        return Convert.ToHexString(bytes).ToLowerInvariant();
+        return ConnectorHttpHelper.ComputeHash(input);
     }
 
     private async Task IndexChunksAsync(

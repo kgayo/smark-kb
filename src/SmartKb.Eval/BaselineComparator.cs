@@ -53,7 +53,14 @@ public static class BaselineComparator
             return null;
 
         var json = await File.ReadAllTextAsync(filePath, cancellationToken);
-        return JsonSerializer.Deserialize<EvalBaseline>(json, SharedJsonOptions.CaseInsensitiveIndented);
+        try
+        {
+            return JsonSerializer.Deserialize<EvalBaseline>(json, SharedJsonOptions.CaseInsensitiveIndented);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     /// <summary>
@@ -78,7 +85,14 @@ public static class BaselineComparator
     /// </summary>
     public static EvalBaseline? DeserializeBaseline(string json)
     {
-        return JsonSerializer.Deserialize<EvalBaseline>(json, SharedJsonOptions.CaseInsensitiveIndented);
+        try
+        {
+            return JsonSerializer.Deserialize<EvalBaseline>(json, SharedJsonOptions.CaseInsensitiveIndented);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     /// <summary>

@@ -28,8 +28,18 @@ public static class GoldDatasetLoader
             if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith('#'))
                 continue;
 
-            var evalCase = JsonSerializer.Deserialize<EvalCase>(trimmed, SharedJsonOptions.CaseInsensitive)
-                ?? throw new InvalidOperationException($"Failed to deserialize eval case at line {lineNumber}");
+            EvalCase? evalCase;
+            try
+            {
+                evalCase = JsonSerializer.Deserialize<EvalCase>(trimmed, SharedJsonOptions.CaseInsensitive);
+            }
+            catch (JsonException ex)
+            {
+                throw new InvalidOperationException($"Failed to deserialize eval case at line {lineNumber}: {ex.Message}", ex);
+            }
+
+            if (evalCase is null)
+                throw new InvalidOperationException($"Failed to deserialize eval case at line {lineNumber}");
 
             var errors = Validate(evalCase, lineNumber);
             if (errors.Count > 0)
@@ -56,8 +66,18 @@ public static class GoldDatasetLoader
             if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith('#'))
                 continue;
 
-            var evalCase = JsonSerializer.Deserialize<EvalCase>(trimmed, SharedJsonOptions.CaseInsensitive)
-                ?? throw new InvalidOperationException($"Failed to deserialize eval case at line {lineNumber}");
+            EvalCase? evalCase;
+            try
+            {
+                evalCase = JsonSerializer.Deserialize<EvalCase>(trimmed, SharedJsonOptions.CaseInsensitive);
+            }
+            catch (JsonException ex)
+            {
+                throw new InvalidOperationException($"Failed to deserialize eval case at line {lineNumber}: {ex.Message}", ex);
+            }
+
+            if (evalCase is null)
+                throw new InvalidOperationException($"Failed to deserialize eval case at line {lineNumber}");
 
             var errors = Validate(evalCase, lineNumber);
             if (errors.Count > 0)

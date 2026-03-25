@@ -43,15 +43,32 @@ public class ConnectorHttpHelperTests
     }
 
     [Fact]
-    public async Task DeserializeAsync_Throws_ForMalformedJson()
+    public async Task DeserializeAsync_ReturnsDefault_ForMalformedJson()
     {
         using var response = new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent("{invalid", Encoding.UTF8, "application/json"),
         };
 
-        await Assert.ThrowsAsync<JsonException>(
-            () => ConnectorHttpHelper.DeserializeAsync<TestDto>(response, CamelCase, CancellationToken.None));
+        var result = await ConnectorHttpHelper.DeserializeAsync<TestDto>(response, CamelCase, CancellationToken.None);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task DeserializeAsync_LogsWarning_ForMalformedJson()
+    {
+        using var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("{invalid", Encoding.UTF8, "application/json"),
+        };
+
+        var logger = new CapturingLogger();
+        await ConnectorHttpHelper.DeserializeAsync<TestDto>(response, CamelCase, CancellationToken.None, logger);
+
+        Assert.Single(logger.Entries);
+        Assert.Equal(Microsoft.Extensions.Logging.LogLevel.Warning, logger.Entries[0].Level);
+        Assert.Contains("TestDto", logger.Entries[0].Message);
     }
 
     [Fact]

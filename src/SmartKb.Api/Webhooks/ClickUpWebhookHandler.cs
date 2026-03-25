@@ -199,36 +199,11 @@ public sealed class ClickUpWebhookHandler
     /// <summary>
     /// Records a webhook delivery failure and activates polling fallback if threshold exceeded.
     /// </summary>
-    public async Task RecordDeliveryFailureAsync(
+    public Task RecordDeliveryFailureAsync(
         Guid connectorId, CancellationToken cancellationToken = default)
-    {
-        var subscriptions = await _db.Set<WebhookSubscriptionEntity>()
-            .Where(w => w.ConnectorId == connectorId && w.IsActive)
-            .ToListAsync(cancellationToken);
-
-        var now = DateTimeOffset.UtcNow;
-        foreach (var sub in subscriptions)
-        {
-            sub.ConsecutiveFailures++;
-            sub.UpdatedAt = now;
-
-            if (sub.ConsecutiveFailures >= _webhookSettings.FailureThresholdForFallback)
-            {
-                sub.PollingFallbackActive = true;
-                sub.NextPollAt = ComputeNextPollTime(now);
-                _logger.LogWarning(
-                    "ClickUp webhook fallback activated: connector={ConnectorId}, failures={Failures}, nextPoll={NextPoll}",
-                    connectorId, sub.ConsecutiveFailures, sub.NextPollAt);
-            }
-        }
-
-        await _db.SaveChangesAsync(cancellationToken);
-    }
+        => WebhookFailureHelper.RecordDeliveryFailureAsync(
+            _db, _webhookSettings, connectorId, "ClickUp", _logger, cancellationToken);
 
     internal DateTimeOffset ComputeNextPollTime(DateTimeOffset from)
-    {
-        var intervalSeconds = _webhookSettings.PollingFallbackIntervalSeconds;
-        var jitter = Random.Shared.Next(0, _webhookSettings.PollingJitterMaxSeconds + 1);
-        return from.AddSeconds(intervalSeconds + jitter);
-    }
+        => WebhookFailureHelper.ComputeNextPollTime(_webhookSettings, from);
 }

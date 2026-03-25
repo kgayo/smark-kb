@@ -278,6 +278,16 @@ public class GoldDatasetLoaderTests
         Expected = new EvalExpected { ResponseType = "final_answer" },
     };
 
+    [Fact]
+    public void LoadFromString_MalformedJson_ThrowsInvalidOperationWithInnerJsonException()
+    {
+        var malformed = "{not valid json}";
+
+        var ex = Assert.Throws<InvalidOperationException>(() => GoldDatasetLoader.LoadFromString(malformed));
+        Assert.IsType<System.Text.Json.JsonException>(ex.InnerException);
+        Assert.Contains("line 1", ex.Message);
+    }
+
     private static string FindRepoRoot()
     {
         var dir = AppContext.BaseDirectory;

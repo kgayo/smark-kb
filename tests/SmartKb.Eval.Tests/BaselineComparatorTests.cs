@@ -149,6 +149,13 @@ public class BaselineComparatorTests
         Assert.Equal("warning", groundedness.Severity);
     }
 
+    [Fact]
+    public void DeserializeBaseline_ReturnsNull_ForMalformedJson()
+    {
+        var result = BaselineComparator.DeserializeBaseline("{invalid json");
+        Assert.Null(result);
+    }
+
     private static AggregateMetrics MakeMetrics(
         float groundedness = 0.85f,
         float citationCoverage = 0.75f,
