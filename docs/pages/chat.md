@@ -61,7 +61,7 @@ Click **"View content"** on any citation card to drill into the full evidence co
 - Full chunk text and surrounding context
 - Metadata badges: source type, source system, access label, product area
 - Tag chips for all associated tags
-- **Copy citation link** button (clipboard copy with "Copied!" feedback)
+- **Copy citation link** button (clipboard copy with "Copied!" success feedback or "Copy failed" error feedback if the clipboard is unavailable)
 - **Open external** link to the original source URL
 - **Back to citations** button to return to the citation list
 
@@ -78,6 +78,8 @@ At session end, record the resolution:
 - Resolved without escalation
 - Escalated to a team
 - Rerouted to another channel
+
+If submission fails, an error banner is displayed with a retry prompt. The submit button remains enabled so the agent can try again.
 
 ### Escalation
 When confidence is low or the query warrants it, the assistant shows an escalation banner. Click to open the **Escalation Draft Modal** which pre-fills:

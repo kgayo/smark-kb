@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-25 (Asia/Manila) — iteration 192 (TECH-099: add user-visible clipboard error feedback in SourceViewerPanel)
-Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~3091 tests passing (2545 backend + 482 frontend + 6 parity + 28 new); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 192: TECH-099 (clipboard error feedback in SourceViewerPanel).
+Last updated: 2026-03-25 (Asia/Manila) — iteration 193 (TECH-100: update chat page docs for TECH-094 + TECH-099 user-facing changes)
+Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~3091 tests passing (2545 backend + 482 frontend + 6 parity + 28 new); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 193: TECH-100 (chat page docs update for OutcomeWidget error feedback + SourceViewerPanel clipboard error).
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -445,6 +445,10 @@ Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-00
 - [x] TECH-099: Add user-visible clipboard error feedback in `SourceViewerPanel`.
   - Root cause: `handleCopyCitation` clipboard write failure was only logged to `console.warn` with no UI feedback. The user clicked "Copy citation link" and saw no change when clipboard was blocked (e.g., permissions denied). The peer component `EscalationDraftModal` already had proper clipboard error handling with visible error state.
   - Completed (iteration 192): Added `copyError` state variable. On clipboard write failure, button text changes to "Copy failed" for 3 seconds (auto-clears via timer). Matches the existing "Copied!" success feedback pattern. 1 new test: `shows "Copy failed" when clipboard write fails`. 482 frontend tests passing.
+
+- [x] TECH-100: Update chat page docs for TECH-094 and TECH-099 user-facing changes.
+  - Root cause: TECH-094 (OutcomeWidget error banner on submit failure) and TECH-099 (SourceViewerPanel "Copy failed" clipboard error feedback) added user-visible behavior changes, but `docs/pages/chat.md` was not updated. The Outcome Recording section did not mention error feedback, and the Source Viewer section only mentioned "Copied!" success feedback without the error case.
+  - Completed (iteration 193): Updated `docs/pages/chat.md` Outcome Recording section to document error banner with retry prompt on submit failure. Updated Source Viewer section to document "Copy failed" error feedback alongside existing "Copied!" success feedback.
 
 - [x] TECH-090: Log 2 silent `catch (JsonException)` blocks in `BaselineComparator`.
   - Root cause: `BaselineComparator.LoadBaselineAsync` and `BaselineComparator.DeserializeBaseline` caught `JsonException` and returned `null` without any logging, making it impossible to diagnose corrupted baseline files during eval runs. These catches were added by TECH-087 to guard unprotected deserialization but were left silent (same gap addressed by TECH-023 across all other `catch (JsonException)` blocks).
