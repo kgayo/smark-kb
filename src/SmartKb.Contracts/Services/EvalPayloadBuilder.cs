@@ -10,6 +10,18 @@ namespace SmartKb.Contracts.Services;
 /// </summary>
 public static class EvalPayloadBuilder
 {
+    public static bool ShouldNotify(EvalNotificationPayload payload, bool notifyOnRegressions, bool notifyOnViolations)
+    {
+        if (notifyOnRegressions && payload.HasBlockingRegression)
+            return true;
+        if (notifyOnViolations && payload.ViolationCount > 0)
+            return true;
+        // Also notify on warning-level regressions if regression notifications are on.
+        if (notifyOnRegressions && payload.BaselineComparison?.HasRegression == true)
+            return true;
+        return false;
+    }
+
     public static string BuildPayload(string format, EvalNotificationPayload payload) =>
         string.Equals(format, "slack", StringComparison.OrdinalIgnoreCase) ? BuildSlackPayload(payload) :
         string.Equals(format, "teams", StringComparison.OrdinalIgnoreCase) ? BuildTeamsPayload(payload) :

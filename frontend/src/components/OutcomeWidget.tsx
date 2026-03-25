@@ -23,10 +23,12 @@ export function OutcomeWidget({ sessionId, existingOutcome, onSubmit }: OutcomeW
   const [acceptance, setAcceptance] = useState<boolean | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(!!existingOutcome);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = useCallback(async () => {
     if (!resolutionType) return;
     setSubmitting(true);
+    setError(null);
     try {
       const request: RecordOutcomeRequest = {
         resolutionType,
@@ -37,6 +39,7 @@ export function OutcomeWidget({ sessionId, existingOutcome, onSubmit }: OutcomeW
       setSubmitted(true);
     } catch (err) {
       console.warn('[OutcomeWidget] Failed to record outcome:', err);
+      setError('Failed to record outcome. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -101,6 +104,11 @@ export function OutcomeWidget({ sessionId, existingOutcome, onSubmit }: OutcomeW
             />
             No
           </label>
+        </div>
+      )}
+      {error && (
+        <div className="outcome-error" data-testid="outcome-error" role="alert">
+          {error}
         </div>
       )}
       <button

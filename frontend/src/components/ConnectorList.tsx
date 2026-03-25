@@ -1,8 +1,7 @@
 import type { ConnectorResponse } from '../api/types';
+import { formatDateTimeLocale } from '../utils/dateFormat';
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString();
-}
+const formatDate = formatDateTimeLocale;
 
 function statusClass(status: string): string {
   return status === 'Enabled' ? 'status-enabled' : 'status-disabled';

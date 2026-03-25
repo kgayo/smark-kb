@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { formatDateTimeLocale } from '../utils/dateFormat';
 import type {
   AuditEventListResponse,
   AuditEventQueryParams,
@@ -422,12 +423,4 @@ function ExportPanel({ filters, exporting, error, success, onFilterChange, onExp
 
 // ── Helpers ──
 
-function formatTimestamp(iso: string): string {
-  try {
-    const d = new Date(iso);
-    return d.toLocaleString();
-  } catch (e) {
-    console.warn('[AuditCompliancePage] Failed to format timestamp', e);
-    return iso;
-  }
-}
+const formatTimestamp = formatDateTimeLocale;

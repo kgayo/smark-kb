@@ -22,10 +22,9 @@ function trustLevelBadgeClass(level: string): string {
   }
 }
 
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-}
+import { formatDateOnly } from '../utils/dateFormat';
+
+const formatDate = formatDateOnly;
 
 export function PatternList({
   patterns,

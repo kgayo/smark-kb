@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { CitationDto } from '../api/types';
 import { SourceViewerPanel } from './SourceViewerPanel';
+import { formatDateTime } from '../utils/dateFormat';
 
 interface EvidenceDrawerProps {
   citations: CitationDto[];
@@ -8,15 +9,7 @@ interface EvidenceDrawerProps {
   onClose: () => void;
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
+const formatDate = formatDateTime;
 
 export function EvidenceDrawer({ citations, open, onClose }: EvidenceDrawerProps) {
   const [viewingChunkId, setViewingChunkId] = useState<string | null>(null);

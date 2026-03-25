@@ -118,6 +118,10 @@ describe('OutcomeWidget', () => {
     });
     // Should not show "Outcome recorded" on failure
     expect(screen.queryByTestId('outcome-thanks')).not.toBeInTheDocument();
+    // Should show error banner with role="alert"
+    const errorBanner = screen.getByTestId('outcome-error');
+    expect(errorBanner).toHaveAttribute('role', 'alert');
+    expect(errorBanner).toHaveTextContent('Failed to record outcome');
     // Button should be re-enabled after failure
     expect(screen.getByTestId('submit-outcome')).not.toBeDisabled();
     warnSpy.mockRestore();

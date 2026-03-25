@@ -164,4 +164,46 @@ public class EvalPayloadBuilderTests
         Assert.DoesNotContain("stable_metric", text);
         Assert.Contains("latency", text);
     }
+
+    // ── ShouldNotify tests ──
+
+    [Fact]
+    public void ShouldNotify_BlockingRegression_ReturnsTrue()
+    {
+        var payload = CreatePayload(blocking: true);
+        Assert.True(EvalPayloadBuilder.ShouldNotify(payload, notifyOnRegressions: true, notifyOnViolations: false));
+    }
+
+    [Fact]
+    public void ShouldNotify_Violations_ReturnsTrue()
+    {
+        var payload = CreatePayload(violations: 2);
+        Assert.True(EvalPayloadBuilder.ShouldNotify(payload, notifyOnRegressions: false, notifyOnViolations: true));
+    }
+
+    [Fact]
+    public void ShouldNotify_WarningRegression_ReturnsTrue()
+    {
+        var payload = CreatePayload();
+        payload.BaselineComparison = new BaselineComparison
+        {
+            HasRegression = true,
+            Details = [new RegressionDetail { MetricName = "m", Severity = "warning", BaselineValue = 1, CurrentValue = 2, Delta = 1 }],
+        };
+        Assert.True(EvalPayloadBuilder.ShouldNotify(payload, notifyOnRegressions: true, notifyOnViolations: false));
+    }
+
+    [Fact]
+    public void ShouldNotify_BothFlagsDisabled_ReturnsFalse()
+    {
+        var payload = CreatePayload(blocking: true, violations: 5);
+        Assert.False(EvalPayloadBuilder.ShouldNotify(payload, notifyOnRegressions: false, notifyOnViolations: false));
+    }
+
+    [Fact]
+    public void ShouldNotify_CleanPayload_ReturnsFalse()
+    {
+        var payload = CreatePayload();
+        Assert.False(EvalPayloadBuilder.ShouldNotify(payload, notifyOnRegressions: true, notifyOnViolations: true));
+    }
 }

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { formatRelativeTime } from '../utils/dateFormat';
 import type {
   DeadLetterListResponse,
   DeadLetterMessage,
@@ -438,17 +439,4 @@ function WebhookStatusBadge({ sub }: { sub: WebhookSubscriptionStatus }) {
   return <span className="diag-badge-inline badge-success">Healthy</span>;
 }
 
-function formatTime(iso: string): string {
-  try {
-    const d = new Date(iso);
-    const now = Date.now();
-    const diff = now - d.getTime();
-    if (diff < 60000) return 'just now';
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-    return d.toLocaleDateString();
-  } catch (e) {
-    console.warn('[DiagnosticsPage] Failed to format time', e);
-    return iso;
-  }
-}
+const formatTime = formatRelativeTime;

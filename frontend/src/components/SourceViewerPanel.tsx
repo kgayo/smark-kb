@@ -1,21 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { EvidenceContentResponse } from '../api/types';
 import * as api from '../api/client';
+import { formatDateTime } from '../utils/dateFormat';
 
 interface SourceViewerPanelProps {
   chunkId: string;
   onBack: () => void;
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
+const formatDate = formatDateTime;
 
 export function SourceViewerPanel({ chunkId, onBack }: SourceViewerPanelProps) {
   const [content, setContent] = useState<EvidenceContentResponse | null>(null);

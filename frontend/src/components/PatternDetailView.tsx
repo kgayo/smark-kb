@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { PatternDetail, PatternUsageMetrics, PatternVersionHistoryEntry } from '../api/types';
 import { getPatternUsage, getPatternHistory } from '../api/client';
+import { formatDateTimeOrDash } from '../utils/dateFormat';
 
 interface PatternDetailViewProps {
   pattern: PatternDetail;
@@ -21,14 +22,7 @@ function trustLevelBadgeClass(level: string): string {
   }
 }
 
-function formatDate(iso: string | null): string {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  return d.toLocaleString(undefined, {
-    month: 'short', day: 'numeric', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  });
-}
+const formatDate = formatDateTimeOrDash;
 
 export function PatternDetailView({
   pattern,
@@ -375,28 +369,28 @@ export function PatternDetailView({
       {pattern.symptoms.length > 0 && (
         <div className="pattern-content-section">
           <h3>Symptoms</h3>
-          <ul>{pattern.symptoms.map((s, i) => <li key={i}>{s}</li>)}</ul>
+          <ul>{pattern.symptoms.map((s) => <li key={s}>{s}</li>)}</ul>
         </div>
       )}
 
       {pattern.diagnosisSteps.length > 0 && (
         <div className="pattern-content-section">
           <h3>Diagnosis Steps</h3>
-          <ol>{pattern.diagnosisSteps.map((s, i) => <li key={i}>{s}</li>)}</ol>
+          <ol>{pattern.diagnosisSteps.map((s) => <li key={s}>{s}</li>)}</ol>
         </div>
       )}
 
       {pattern.resolutionSteps.length > 0 && (
         <div className="pattern-content-section">
           <h3>Resolution Steps</h3>
-          <ol data-testid="resolution-steps">{pattern.resolutionSteps.map((s, i) => <li key={i}>{s}</li>)}</ol>
+          <ol data-testid="resolution-steps">{pattern.resolutionSteps.map((s) => <li key={s}>{s}</li>)}</ol>
         </div>
       )}
 
       {pattern.verificationSteps.length > 0 && (
         <div className="pattern-content-section">
           <h3>Verification Steps</h3>
-          <ol>{pattern.verificationSteps.map((s, i) => <li key={i}>{s}</li>)}</ol>
+          <ol>{pattern.verificationSteps.map((s) => <li key={s}>{s}</li>)}</ol>
         </div>
       )}
 
@@ -410,14 +404,14 @@ export function PatternDetailView({
       {pattern.escalationCriteria.length > 0 && (
         <div className="pattern-content-section">
           <h3>Escalation Criteria</h3>
-          <ul>{pattern.escalationCriteria.map((c, i) => <li key={i}>{c}</li>)}</ul>
+          <ul>{pattern.escalationCriteria.map((c) => <li key={c}>{c}</li>)}</ul>
         </div>
       )}
 
       {pattern.tags.length > 0 && (
         <div className="pattern-tags">
-          {pattern.tags.map((tag, i) => (
-            <span key={i} className="pattern-tag">{tag}</span>
+          {pattern.tags.map((tag) => (
+            <span key={tag} className="pattern-tag">{tag}</span>
           ))}
         </div>
       )}

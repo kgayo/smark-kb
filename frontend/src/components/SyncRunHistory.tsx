@@ -1,8 +1,7 @@
 import type { SyncRunSummary } from '../api/types';
+import { formatDateTimeLocale } from '../utils/dateFormat';
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString();
-}
+const formatDate = formatDateTimeLocale;
 
 function durationStr(start: string, end: string | null): string {
   if (!end) return 'In progress';

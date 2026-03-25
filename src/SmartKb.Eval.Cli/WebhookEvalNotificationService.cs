@@ -48,20 +48,8 @@ public sealed class WebhookEvalNotificationService : IEvalNotificationService, I
         }
     }
 
-    internal bool ShouldNotify(EvalNotificationPayload payload)
-    {
-        if (_settings.NotifyOnRegressions && payload.HasBlockingRegression)
-            return true;
-
-        if (_settings.NotifyOnViolations && payload.ViolationCount > 0)
-            return true;
-
-        // Also notify on warning-level regressions if regression notifications are on.
-        if (_settings.NotifyOnRegressions && payload.BaselineComparison?.HasRegression == true)
-            return true;
-
-        return false;
-    }
+    internal bool ShouldNotify(EvalNotificationPayload payload) =>
+        EvalPayloadBuilder.ShouldNotify(payload, _settings.NotifyOnRegressions, _settings.NotifyOnViolations);
 
     internal string BuildPayload(EvalNotificationPayload payload) =>
         EvalPayloadBuilder.BuildPayload(_settings.Format ?? "generic", payload);
