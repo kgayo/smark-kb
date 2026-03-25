@@ -1,6 +1,7 @@
 using Azure.Messaging.ServiceBus;
 using Azure.Search.Documents.Indexes;
 using SmartKb.Api.Auth;
+using SmartKb.Contracts;
 using SmartKb.Api.Connectors;
 using SmartKb.Api.Secrets;
 using SmartKb.Api.Tenant;
@@ -50,7 +51,7 @@ public static class DiagnosticsEndpoints
                 },
                 dashboardHint = "Query these metrics in Azure Monitor / Application Insights customMetrics table.",
             }, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         // --- Secrets Status Endpoint ---
 
@@ -82,7 +83,7 @@ public static class DiagnosticsEndpoints
                 openAiKeyConfigured = openAiConfigured,
                 openAiModel = openAiKeyProvider.GetModel(),
             });
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         // --- Dead-Letter Queue Inspection ---
 
@@ -102,7 +103,7 @@ public static class DiagnosticsEndpoints
             var maxMessages = int.TryParse(maxParam, out var m) ? m : 20;
             var result = await dlService.PeekAsync(maxMessages, ct);
             return Results.Ok(ApiResponse<DeadLetterListResponse>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         // --- Webhook Status Endpoint (P1-008) ---
 
@@ -116,7 +117,7 @@ public static class DiagnosticsEndpoints
             var ct = httpContext.RequestAborted;
             var result = await webhookStatusService.GetByConnectorAsync(tenant.TenantId, connectorId, ct);
             return Results.Ok(ApiResponse<WebhookStatusListResponse>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapGet("/api/admin/webhooks", async (
             HttpContext httpContext,
@@ -127,7 +128,7 @@ public static class DiagnosticsEndpoints
             var ct = httpContext.RequestAborted;
             var result = await webhookStatusService.GetAllAsync(tenant.TenantId, ct);
             return Results.Ok(ApiResponse<WebhookStatusListResponse>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         // --- Diagnostics Summary Endpoint (P1-008) ---
 
@@ -218,7 +219,7 @@ public static class DiagnosticsEndpoints
             };
 
             return Results.Ok(ApiResponse<DiagnosticsSummaryResponse>.Success(enriched, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         // --- Rate-Limit Alerts (P3-020) ---
 
@@ -231,7 +232,7 @@ public static class DiagnosticsEndpoints
             var rateLimitService = httpContext.RequestServices.GetRequiredService<IRateLimitAlertService>();
             var result = await rateLimitService.GetRateLimitAlertsAsync(tenant.TenantId, ct);
             return Results.Ok(ApiResponse<RateLimitAlertSummary>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         // --- Credential Status and Rotation (P3-009) ---
 
@@ -244,7 +245,7 @@ public static class DiagnosticsEndpoints
             var rotationService = httpContext.RequestServices.GetRequiredService<ISecretRotationService>();
             var result = await rotationService.GetAllCredentialStatusesAsync(tenant.TenantId, ct);
             return Results.Ok(ApiResponse<CredentialStatusSummary>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapGet("/api/admin/connectors/{connectorId:guid}/credential-status", async (
             Guid connectorId,
@@ -256,7 +257,7 @@ public static class DiagnosticsEndpoints
             var rotationService = httpContext.RequestServices.GetRequiredService<ISecretRotationService>();
             var result = await rotationService.GetCredentialStatusAsync(connectorId, tenant.TenantId, ct);
             return Results.Ok(ApiResponse<ConnectorCredentialStatus>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPost("/api/admin/connectors/{connectorId:guid}/rotate-secret", async (
             Guid connectorId,
@@ -268,11 +269,11 @@ public static class DiagnosticsEndpoints
             var ct = httpContext.RequestAborted;
             var rotationService = httpContext.RequestServices.GetRequiredService<ISecretRotationService>();
             var result = await rotationService.RotateSecretAsync(
-                connectorId, tenant.TenantId, request.NewSecretValue, tenant.UserId ?? "system", ct);
+                connectorId, tenant.TenantId, request.NewSecretValue, tenant.UserId ?? ResponseMessages.SystemActorId, ct);
             return result.Success
                 ? Results.Ok(ApiResponse<CredentialRotationResult>.Success(result, tenant.CorrelationId))
                 : Results.UnprocessableEntity(ApiResponse<CredentialRotationResult>.Failure(result.Message, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         return app;
     }

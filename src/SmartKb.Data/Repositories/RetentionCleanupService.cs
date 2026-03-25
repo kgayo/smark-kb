@@ -185,7 +185,7 @@ public sealed class RetentionCleanupService : IRetentionCleanupService
                 CutoffDate = cutoff,
                 ExecutedAt = now,
                 DurationMs = sw.ElapsedMilliseconds,
-                ActorId = "system",
+                ActorId = ResponseMessages.SystemActorId,
             });
 
             results.Add(new RetentionCleanupResult

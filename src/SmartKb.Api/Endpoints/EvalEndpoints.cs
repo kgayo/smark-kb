@@ -1,4 +1,5 @@
 using SmartKb.Api.Auth;
+using SmartKb.Contracts;
 using SmartKb.Api.Tenant;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
@@ -24,7 +25,7 @@ public static class EvalEndpoints
             var result = await evalReportService.ListReportsAsync(
                 tenant.TenantId, runType, page ?? 1, pageSize ?? 20, ct);
             return Results.Ok(ApiResponse<EvalReportListResponse>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapGet("/api/admin/eval/reports/{reportId:guid}", async (
             Guid reportId,
@@ -38,7 +39,7 @@ public static class EvalEndpoints
             return report is not null
                 ? Results.Ok(ApiResponse<EvalReportDetail>.Success(report, tenant.CorrelationId))
                 : Results.NotFound(ApiResponse<object>.Failure("Eval report not found.", tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPost("/api/admin/eval/reports", async (
             PersistEvalReportRequest request,
@@ -51,7 +52,7 @@ public static class EvalEndpoints
             var report = await evalReportService.PersistReportAsync(tenant.TenantId, request, tenant.UserId, ct);
             return Results.Created($"/api/admin/eval/reports/{report.Id}",
                 ApiResponse<EvalReportDetail>.Success(report, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         // Gold case management endpoints (P3-022).
         app.MapGet("/api/admin/eval/gold-cases", async (
@@ -66,7 +67,7 @@ public static class EvalEndpoints
             var svc = httpContext.RequestServices.GetRequiredService<IGoldCaseService>();
             var result = await svc.ListAsync(tenant.TenantId, tag, page ?? 1, pageSize ?? 20, ct);
             return Results.Ok(ApiResponse<GoldCaseListResponse>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapGet("/api/admin/eval/gold-cases/{id:guid}", async (
             Guid id,
@@ -80,7 +81,7 @@ public static class EvalEndpoints
             return detail is not null
                 ? Results.Ok(ApiResponse<GoldCaseDetail>.Success(detail, tenant.CorrelationId))
                 : Results.NotFound(ApiResponse<object>.Failure("Gold case not found.", tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPost("/api/admin/eval/gold-cases", async (
             CreateGoldCaseRequest request,
@@ -93,7 +94,7 @@ public static class EvalEndpoints
             var detail = await svc.CreateAsync(tenant.TenantId, request, tenant.UserId, ct);
             return Results.Created($"/api/admin/eval/gold-cases/{detail.Id}",
                 ApiResponse<GoldCaseDetail>.Success(detail, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPut("/api/admin/eval/gold-cases/{id:guid}", async (
             Guid id,
@@ -108,7 +109,7 @@ public static class EvalEndpoints
             return detail is not null
                 ? Results.Ok(ApiResponse<GoldCaseDetail>.Success(detail, tenant.CorrelationId))
                 : Results.NotFound(ApiResponse<object>.Failure("Gold case not found.", tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapDelete("/api/admin/eval/gold-cases/{id:guid}", async (
             Guid id,
@@ -122,7 +123,7 @@ public static class EvalEndpoints
             return deleted
                 ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
                 : Results.NotFound(ApiResponse<object>.Failure("Gold case not found.", tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapGet("/api/admin/eval/gold-cases/export", async (
             ITenantContextAccessor tenantAccessor,
@@ -133,7 +134,7 @@ public static class EvalEndpoints
             var svc = httpContext.RequestServices.GetRequiredService<IGoldCaseService>();
             var jsonl = await svc.ExportAsJsonlAsync(tenant.TenantId, ct);
             return Results.Text(jsonl, "application/x-ndjson");
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPost("/api/admin/eval/gold-cases/promote", async (
             PromoteFromFeedbackRequest request,
@@ -146,7 +147,7 @@ public static class EvalEndpoints
             var detail = await svc.PromoteFromFeedbackAsync(tenant.TenantId, request, tenant.UserId, ct);
             return Results.Created($"/api/admin/eval/gold-cases/{detail.Id}",
                 ApiResponse<GoldCaseDetail>.Success(detail, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         return app;
     }

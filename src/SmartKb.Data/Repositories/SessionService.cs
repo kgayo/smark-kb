@@ -197,7 +197,7 @@ public sealed class SessionService : ISessionService
             .OrderBy(m => m.CreatedAt)
             .Select(m => new ChatMessage
             {
-                Role = m.Role == MessageRole.User ? "user" : "assistant",
+                Role = m.Role == MessageRole.User ? MessageRoleName.User : MessageRoleName.Assistant,
                 Content = m.Content,
             })
             .ToList();

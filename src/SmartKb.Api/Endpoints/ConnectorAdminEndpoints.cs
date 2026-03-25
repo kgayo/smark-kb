@@ -1,4 +1,5 @@
 using SmartKb.Api.Auth;
+using SmartKb.Contracts;
 using SmartKb.Api.Connectors;
 using SmartKb.Api.Tenant;
 using SmartKb.Contracts.Models;
@@ -19,7 +20,7 @@ public static class ConnectorAdminEndpoints
             var ct = httpContext.RequestAborted;
             var result = await service.ListAsync(tenant.TenantId, ct);
             return Results.Ok(ApiResponse<ConnectorListResponse>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPost("/api/admin/connectors", async (
             HttpContext httpContext,
@@ -38,7 +39,7 @@ public static class ConnectorAdminEndpoints
 
             return Results.Created($"/api/admin/connectors/{response!.Id}",
                 ApiResponse<ConnectorResponse>.Success(response, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapGet("/api/admin/connectors/{connectorId:guid}", async (
             HttpContext httpContext,
@@ -52,7 +53,7 @@ public static class ConnectorAdminEndpoints
             return response is null
                 ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.ConnectorNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<ConnectorResponse>.Success(response, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPut("/api/admin/connectors/{connectorId:guid}", async (
             HttpContext httpContext,
@@ -73,7 +74,7 @@ public static class ConnectorAdminEndpoints
                     string.Join("; ", validation.Errors), tenant.CorrelationId));
 
             return Results.Ok(ApiResponse<ConnectorResponse>.Success(response!, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapDelete("/api/admin/connectors/{connectorId:guid}", async (
             HttpContext httpContext,
@@ -88,7 +89,7 @@ public static class ConnectorAdminEndpoints
             return deleted
                 ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
                 : Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.ConnectorNotFound, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPost("/api/admin/connectors/{connectorId:guid}/enable", async (
             HttpContext httpContext,
@@ -108,7 +109,7 @@ public static class ConnectorAdminEndpoints
                     string.Join("; ", validation.Errors), tenant.CorrelationId));
 
             return Results.Ok(ApiResponse<ConnectorResponse>.Success(response!, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPost("/api/admin/connectors/{connectorId:guid}/disable", async (
             HttpContext httpContext,
@@ -125,7 +126,7 @@ public static class ConnectorAdminEndpoints
                 return Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.ConnectorNotFound, tenant.CorrelationId));
 
             return Results.Ok(ApiResponse<ConnectorResponse>.Success(response!, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPost("/api/admin/connectors/{connectorId:guid}/test", async (
             HttpContext httpContext,
@@ -140,7 +141,7 @@ public static class ConnectorAdminEndpoints
             return result is null
                 ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.ConnectorNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<TestConnectionResponse>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPost("/api/admin/connectors/{connectorId:guid}/sync-now", async (
             HttpContext httpContext,
@@ -159,7 +160,7 @@ public static class ConnectorAdminEndpoints
 
             return Results.Accepted($"/api/admin/connectors/{connectorId}/sync-runs/{syncRunId}",
                 ApiResponse<object>.Success(new { syncRunId, status = WorkflowStatus.Pending }, tenant.CorrelationId));
-        }).RequirePermission("connector:sync");
+        }).RequirePermission(Permissions.ConnectorSync);
 
         app.MapPost("/api/admin/connectors/{connectorId:guid}/preview", async (
             HttpContext httpContext,
@@ -175,7 +176,7 @@ public static class ConnectorAdminEndpoints
             return result is null
                 ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.ConnectorNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<PreviewResponse>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPost("/api/admin/connectors/{connectorId:guid}/validate-mapping", (
             Guid connectorId,
@@ -186,7 +187,7 @@ public static class ConnectorAdminEndpoints
             var tenant = tenantAccessor.Current!;
             var result = service.ValidateFieldMapping(mapping);
             return Results.Ok(ApiResponse<ConnectorValidationResult>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPost("/api/admin/connectors/{connectorId:guid}/preview-retrieval", async (
             HttpContext httpContext,
@@ -202,7 +203,7 @@ public static class ConnectorAdminEndpoints
             return result is null
                 ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.ConnectorNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<PreviewRetrievalResponse>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapGet("/api/admin/connectors/{connectorId:guid}/sync-runs", async (
             HttpContext httpContext,
@@ -216,7 +217,7 @@ public static class ConnectorAdminEndpoints
             return result is null
                 ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.ConnectorNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<SyncRunListResponse>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapGet("/api/admin/connectors/{connectorId:guid}/sync-runs/{syncRunId:guid}", async (
             HttpContext httpContext,
@@ -231,7 +232,7 @@ public static class ConnectorAdminEndpoints
             return result is null
                 ? Results.NotFound(ApiResponse<object>.Failure("Sync run not found.", tenant.CorrelationId))
                 : Results.Ok(ApiResponse<SyncRunSummary>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         // --- OAuth Endpoints (P3-019) ---
 
@@ -249,7 +250,7 @@ public static class ConnectorAdminEndpoints
                     "Connector not found, not configured for OAuth, or OAuth is not enabled.", tenant.CorrelationId));
 
             return Results.Ok(ApiResponse<OAuthAuthorizeUrlResponse>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapGet("/api/admin/connectors/{connectorId:guid}/oauth/callback", async (
             HttpContext httpContext,
@@ -270,7 +271,7 @@ public static class ConnectorAdminEndpoints
                 return Results.BadRequest(ApiResponse<object>.Failure("Invalid or expired state parameter.", tenant.CorrelationId));
 
             return Results.Ok(ApiResponse<OAuthCallbackResponse>.Success(response!, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         return app;
     }

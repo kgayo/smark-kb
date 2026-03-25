@@ -1,4 +1,5 @@
 using SmartKb.Api.Auth;
+using SmartKb.Contracts;
 using SmartKb.Api.Tenant;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
@@ -27,7 +28,7 @@ public static class IndexMigrationEndpoints
             return result is null
                 ? Results.NotFound(ApiResponse<object>.Failure($"No version tracked for index type '{indexType}'.", tenant.CorrelationId))
                 : Results.Ok(ApiResponse<IndexSchemaVersionInfo>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapGet("/api/admin/index-migrations/{indexType}/versions", async (
             string indexType,
@@ -41,7 +42,7 @@ public static class IndexMigrationEndpoints
                 return Results.Json(ApiResponse<object>.Failure(ResponseMessages.SearchServiceNotConfigured, tenant.CorrelationId), statusCode: 503);
             var result = await service.ListVersionsAsync(indexType, ct);
             return Results.Ok(ApiResponse<IReadOnlyList<IndexSchemaVersionInfo>>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapGet("/api/admin/index-migrations/{indexType}/plan", async (
             string indexType,
@@ -55,7 +56,7 @@ public static class IndexMigrationEndpoints
                 return Results.Json(ApiResponse<object>.Failure(ResponseMessages.SearchServiceNotConfigured, tenant.CorrelationId), statusCode: 503);
             var result = await service.PlanMigrationAsync(indexType, ct);
             return Results.Ok(ApiResponse<MigrationPlan>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPost("/api/admin/index-migrations/{indexType}/execute", async (
             string indexType,
@@ -72,7 +73,7 @@ public static class IndexMigrationEndpoints
                 ? Results.Ok(ApiResponse<MigrationResult>.Success(result, tenant.CorrelationId))
                 : Results.UnprocessableEntity(ApiResponse<MigrationResult>.Failure(
                     result.Error ?? "Migration failed.", tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPost("/api/admin/index-migrations/{indexType}/rollback", async (
             string indexType,
@@ -89,7 +90,7 @@ public static class IndexMigrationEndpoints
                 ? Results.Ok(ApiResponse<MigrationResult>.Success(result, tenant.CorrelationId))
                 : Results.UnprocessableEntity(ApiResponse<MigrationResult>.Failure(
                     result.Error ?? "Rollback failed.", tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPost("/api/admin/index-migrations/{indexType}/bootstrap", async (
             string indexType,
@@ -103,7 +104,7 @@ public static class IndexMigrationEndpoints
                 return Results.Json(ApiResponse<object>.Failure(ResponseMessages.SearchServiceNotConfigured, tenant.CorrelationId), statusCode: 503);
             var result = await service.EnsureVersionTrackingAsync(indexType, tenant.UserId, ct);
             return Results.Ok(ApiResponse<IndexSchemaVersionInfo>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapDelete("/api/admin/index-migrations/retired/{versionId:guid}", async (
             Guid versionId,
@@ -119,7 +120,7 @@ public static class IndexMigrationEndpoints
             return deleted
                 ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
                 : Results.NotFound(ApiResponse<object>.Failure("Retired version not found or not eligible for deletion.", tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         return app;
     }

@@ -99,8 +99,8 @@ public sealed class OpenAiSessionSummarizationService : ISessionSummarizationSer
 
         return
         [
-            new { role = "system", content = SummarizationSystemPrompt },
-            new { role = "user", content = conversationText.ToString() },
+            new { role = MessageRoleName.System, content = SummarizationSystemPrompt },
+            new { role = MessageRoleName.User, content = conversationText.ToString() },
         ];
     }
 

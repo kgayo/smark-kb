@@ -1,4 +1,5 @@
 using SmartKb.Api.Auth;
+using SmartKb.Contracts;
 using SmartKb.Api.Tenant;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
@@ -23,7 +24,7 @@ public static class PrivacyEndpoints
             return policy is not null
                 ? Results.Ok(ApiResponse<PiiPolicyResponse>.Success(policy, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<object>.Success(new { message = "No custom PII policy. Using defaults (all types, redact mode)." }, tenant.CorrelationId));
-        }).RequirePermission("privacy:manage");
+        }).RequirePermission(Permissions.PrivacyManage);
 
         app.MapPut("/api/admin/privacy/pii-policy", async (
             HttpContext httpContext,
@@ -44,7 +45,7 @@ public static class PrivacyEndpoints
                 logger.LogWarning(ex, "PII policy upsert validation failed for tenant {TenantId}", tenant.TenantId);
                 return Results.BadRequest(ApiResponse<object>.Failure(ex.Message, tenant.CorrelationId));
             }
-        }).RequirePermission("privacy:manage");
+        }).RequirePermission(Permissions.PrivacyManage);
 
         app.MapDelete("/api/admin/privacy/pii-policy", async (
             HttpContext httpContext,
@@ -57,7 +58,7 @@ public static class PrivacyEndpoints
             return deleted
                 ? Results.Ok(ApiResponse<object>.Success(new { reset = true }, tenant.CorrelationId))
                 : Results.NotFound(ApiResponse<object>.Failure("No custom PII policy found.", tenant.CorrelationId));
-        }).RequirePermission("privacy:manage");
+        }).RequirePermission(Permissions.PrivacyManage);
 
         app.MapGet("/api/admin/privacy/retention", async (
             HttpContext httpContext,
@@ -68,7 +69,7 @@ public static class PrivacyEndpoints
             var ct = httpContext.RequestAborted;
             var result = await retentionService.GetPoliciesAsync(tenant.TenantId, ct);
             return Results.Ok(ApiResponse<RetentionPolicyResponse>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("privacy:manage");
+        }).RequirePermission(Permissions.PrivacyManage);
 
         app.MapPut("/api/admin/privacy/retention", async (
             HttpContext httpContext,
@@ -89,7 +90,7 @@ public static class PrivacyEndpoints
                 logger.LogWarning(ex, "Retention policy upsert validation failed for tenant {TenantId}", tenant.TenantId);
                 return Results.BadRequest(ApiResponse<object>.Failure(ex.Message, tenant.CorrelationId));
             }
-        }).RequirePermission("privacy:manage");
+        }).RequirePermission(Permissions.PrivacyManage);
 
         app.MapDelete("/api/admin/privacy/retention/{entityType}", async (
             HttpContext httpContext,
@@ -103,7 +104,7 @@ public static class PrivacyEndpoints
             return deleted
                 ? Results.Ok(ApiResponse<object>.Success(new { deleted = true, entityType }, tenant.CorrelationId))
                 : Results.NotFound(ApiResponse<object>.Failure($"No retention policy found for {entityType}.", tenant.CorrelationId));
-        }).RequirePermission("privacy:manage");
+        }).RequirePermission(Permissions.PrivacyManage);
 
         app.MapPost("/api/admin/privacy/retention/cleanup", async (
             HttpContext httpContext,
@@ -114,7 +115,7 @@ public static class PrivacyEndpoints
             var ct = httpContext.RequestAborted;
             var results = await retentionService.ExecuteCleanupAsync(tenant.TenantId, ct);
             return Results.Ok(ApiResponse<IReadOnlyList<RetentionCleanupResult>>.Success(results, tenant.CorrelationId));
-        }).RequirePermission("privacy:manage");
+        }).RequirePermission(Permissions.PrivacyManage);
 
         app.MapPost("/api/admin/privacy/data-subject-deletion", async (
             HttpContext httpContext,
@@ -135,7 +136,7 @@ public static class PrivacyEndpoints
                 logger.LogError(ex, "Data subject deletion request failed. TenantId={TenantId}", tenant.TenantId);
                 return Results.Problem(detail: ex.Message, statusCode: 500);
             }
-        }).RequirePermission("privacy:manage");
+        }).RequirePermission(Permissions.PrivacyManage);
 
         app.MapGet("/api/admin/privacy/data-subject-deletion", async (
             HttpContext httpContext,
@@ -146,7 +147,7 @@ public static class PrivacyEndpoints
             var ct = httpContext.RequestAborted;
             var result = await deletionService.ListDeletionRequestsAsync(tenant.TenantId, ct);
             return Results.Ok(ApiResponse<DataSubjectDeletionListResponse>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("privacy:manage");
+        }).RequirePermission(Permissions.PrivacyManage);
 
         app.MapGet("/api/admin/privacy/data-subject-deletion/{requestId:guid}", async (
             HttpContext httpContext,
@@ -160,7 +161,7 @@ public static class PrivacyEndpoints
             return result is not null
                 ? Results.Ok(ApiResponse<DataSubjectDeletionResponse>.Success(result, tenant.CorrelationId))
                 : Results.NotFound(ApiResponse<object>.Failure("Deletion request not found.", tenant.CorrelationId));
-        }).RequirePermission("privacy:manage");
+        }).RequirePermission(Permissions.PrivacyManage);
 
         // ──── Retention Measurable Execution Endpoints (P2-005) ────
 
@@ -177,7 +178,7 @@ public static class PrivacyEndpoints
             var result = await retentionService.GetExecutionHistoryAsync(
                 tenant.TenantId, entityType, skip ?? 0, take ?? 50, ct);
             return Results.Ok(ApiResponse<RetentionExecutionHistoryResponse>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("privacy:manage");
+        }).RequirePermission(Permissions.PrivacyManage);
 
         app.MapGet("/api/admin/privacy/retention/compliance", async (
             HttpContext httpContext,
@@ -188,7 +189,7 @@ public static class PrivacyEndpoints
             var ct = httpContext.RequestAborted;
             var report = await retentionService.GetComplianceReportAsync(tenant.TenantId, ct);
             return Results.Ok(ApiResponse<RetentionComplianceReport>.Success(report, tenant.CorrelationId));
-        }).RequirePermission("privacy:manage");
+        }).RequirePermission(Permissions.PrivacyManage);
 
         return app;
     }

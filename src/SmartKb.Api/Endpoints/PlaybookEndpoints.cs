@@ -1,4 +1,5 @@
 using SmartKb.Api.Auth;
+using SmartKb.Contracts;
 using SmartKb.Api.Tenant;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
@@ -19,7 +20,7 @@ public static class PlaybookEndpoints
             var ct = httpContext.RequestAborted;
             var result = await playbookService.GetPlaybooksAsync(tenant.TenantId, ct);
             return Results.Ok(ApiResponse<TeamPlaybookListResponse>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapGet("/api/admin/playbooks/{playbookId:guid}", async (
             HttpContext httpContext,
@@ -33,7 +34,7 @@ public static class PlaybookEndpoints
             return result is null
                 ? Results.NotFound(ApiResponse<TeamPlaybookDto>.Failure("Playbook not found.", tenant.CorrelationId))
                 : Results.Ok(ApiResponse<TeamPlaybookDto>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapGet("/api/admin/playbooks/team/{teamName}", async (
             HttpContext httpContext,
@@ -47,7 +48,7 @@ public static class PlaybookEndpoints
             return result is null
                 ? Results.NotFound(ApiResponse<TeamPlaybookDto>.Failure("Playbook not found for team.", tenant.CorrelationId))
                 : Results.Ok(ApiResponse<TeamPlaybookDto>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPost("/api/admin/playbooks", async (
             HttpContext httpContext,
@@ -61,7 +62,7 @@ public static class PlaybookEndpoints
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, request, ct);
             return Results.Created($"/api/admin/playbooks/{result.Id}",
                 ApiResponse<TeamPlaybookDto>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPut("/api/admin/playbooks/{playbookId:guid}", async (
             HttpContext httpContext,
@@ -77,7 +78,7 @@ public static class PlaybookEndpoints
             return result is null
                 ? Results.NotFound(ApiResponse<TeamPlaybookDto>.Failure("Playbook not found.", tenant.CorrelationId))
                 : Results.Ok(ApiResponse<TeamPlaybookDto>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapDelete("/api/admin/playbooks/{playbookId:guid}", async (
             HttpContext httpContext,
@@ -92,7 +93,7 @@ public static class PlaybookEndpoints
             return deleted
                 ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
                 : Results.NotFound(ApiResponse<object>.Failure("Playbook not found.", tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPost("/api/admin/playbooks/validate", async (
             HttpContext httpContext,
@@ -105,7 +106,7 @@ public static class PlaybookEndpoints
             var result = await playbookService.ValidateDraftAsync(
                 tenant.TenantId, request.TargetTeam, request.Draft, ct);
             return Results.Ok(ApiResponse<PlaybookValidationResult>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("chat:query");
+        }).RequirePermission(Permissions.ChatQuery);
 
         return app;
     }

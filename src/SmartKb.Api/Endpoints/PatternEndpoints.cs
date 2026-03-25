@@ -1,4 +1,5 @@
 using SmartKb.Api.Auth;
+using SmartKb.Contracts;
 using SmartKb.Api.Tenant;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
@@ -21,7 +22,7 @@ public static class PatternEndpoints
             var ct = httpContext.RequestAborted;
             var result = await settingsService.GetSettingsAsync(tenant.TenantId, ct);
             return Results.Ok(ApiResponse<RetrievalSettingsResponse>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPut("/api/admin/retrieval-settings", async (
             HttpContext httpContext,
@@ -33,7 +34,7 @@ public static class PatternEndpoints
             var ct = httpContext.RequestAborted;
             var result = await settingsService.UpdateSettingsAsync(tenant.TenantId, request, ct);
             return Results.Ok(ApiResponse<RetrievalSettingsResponse>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapDelete("/api/admin/retrieval-settings", async (
             HttpContext httpContext,
@@ -46,7 +47,7 @@ public static class PatternEndpoints
             return deleted
                 ? Results.Ok(ApiResponse<object>.Success(new { reset = true }, tenant.CorrelationId))
                 : Results.NotFound(ApiResponse<object>.Failure("No tenant overrides found.", tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         // --- Pattern Distillation Endpoints (P1-005) ---
 
@@ -59,7 +60,7 @@ public static class PatternEndpoints
             var ct = httpContext.RequestAborted;
             var result = await distillationService.FindCandidatesAsync(tenant.TenantId, ct);
             return Results.Ok(ApiResponse<DistillationCandidateListResponse>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPost("/api/admin/patterns/distill", async (
             HttpContext httpContext,
@@ -71,7 +72,7 @@ public static class PatternEndpoints
             var result = await distillationService.DistillAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, ct);
             return Results.Ok(ApiResponse<DistillationResult>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         // --- Pattern Governance Endpoints (P1-006) ---
 
@@ -89,7 +90,7 @@ public static class PatternEndpoints
             var result = await governanceService.GetGovernanceQueueAsync(
                 tenant.TenantId, trustLevel, productArea, page ?? 1, pageSize ?? 20, ct);
             return Results.Ok(ApiResponse<PatternGovernanceQueueResponse>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("pattern:approve");
+        }).RequirePermission(Permissions.PatternApprove);
 
         app.MapGet("/api/patterns/{patternId}", async (
             HttpContext httpContext,
@@ -103,7 +104,7 @@ public static class PatternEndpoints
             return result is null
                 ? Results.NotFound()
                 : Results.Ok(ApiResponse<PatternDetail>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("pattern:approve");
+        }).RequirePermission(Permissions.PatternApprove);
 
         app.MapPost("/api/patterns/{patternId}/review", async (
             HttpContext httpContext,
@@ -119,7 +120,7 @@ public static class PatternEndpoints
             return result is null
                 ? Results.NotFound()
                 : Results.Ok(ApiResponse<PatternGovernanceResult>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("pattern:approve");
+        }).RequirePermission(Permissions.PatternApprove);
 
         app.MapPost("/api/patterns/{patternId}/approve", async (
             HttpContext httpContext,
@@ -135,7 +136,7 @@ public static class PatternEndpoints
             return result is null
                 ? Results.NotFound()
                 : Results.Ok(ApiResponse<PatternGovernanceResult>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("pattern:approve");
+        }).RequirePermission(Permissions.PatternApprove);
 
         app.MapPost("/api/patterns/{patternId}/deprecate", async (
             HttpContext httpContext,
@@ -151,7 +152,7 @@ public static class PatternEndpoints
             return result is null
                 ? Results.NotFound()
                 : Results.Ok(ApiResponse<PatternGovernanceResult>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("pattern:deprecate");
+        }).RequirePermission(Permissions.PatternDeprecate);
 
         // --- Pattern Version History Endpoint (P3-013) ---
 
@@ -168,7 +169,7 @@ public static class PatternEndpoints
             return result is null
                 ? Results.NotFound()
                 : Results.Ok(ApiResponse<PatternVersionHistoryResponse>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("pattern:approve");
+        }).RequirePermission(Permissions.PatternApprove);
 
         // --- Pattern Usage Metrics Endpoint (P3-012) ---
 
@@ -182,7 +183,7 @@ public static class PatternEndpoints
             var usageService = httpContext.RequestServices.GetRequiredService<IPatternUsageMetricsService>();
             var metrics = await usageService.GetUsageAsync(tenant.TenantId, patternId, ct);
             return Results.Ok(ApiResponse<PatternUsageMetrics>.Success(metrics, tenant.CorrelationId));
-        }).RequirePermission("connector:manage");
+        }).RequirePermission(Permissions.ConnectorManage);
 
         // --- Pattern Maintenance Endpoints (P2-004) ---
 
@@ -195,7 +196,7 @@ public static class PatternEndpoints
             var result = await contradictionService.DetectContradictionsAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, httpContext.RequestAborted);
             return Results.Ok(ApiResponse<ContradictionDetectionResult>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("pattern:approve");
+        }).RequirePermission(Permissions.PatternApprove);
 
         app.MapGet("/api/admin/patterns/contradictions", async (
             HttpContext httpContext,
@@ -209,7 +210,7 @@ public static class PatternEndpoints
             var result = await contradictionService.GetContradictionsAsync(
                 tenant.TenantId, status, page ?? 1, pageSize ?? 20, httpContext.RequestAborted);
             return Results.Ok(ApiResponse<ContradictionListResponse>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("pattern:approve");
+        }).RequirePermission(Permissions.PatternApprove);
 
         app.MapPost("/api/admin/patterns/contradictions/{id}/resolve", async (
             Guid id,
@@ -224,7 +225,7 @@ public static class PatternEndpoints
             return result is null
                 ? Results.NotFound()
                 : Results.Ok(ApiResponse<ContradictionSummary>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("pattern:approve");
+        }).RequirePermission(Permissions.PatternApprove);
 
         app.MapPost("/api/admin/patterns/detect-maintenance", async (
             HttpContext httpContext,
@@ -235,7 +236,7 @@ public static class PatternEndpoints
             var result = await maintenanceService.DetectMaintenanceIssuesAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, httpContext.RequestAborted);
             return Results.Ok(ApiResponse<MaintenanceDetectionResult>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("pattern:approve");
+        }).RequirePermission(Permissions.PatternApprove);
 
         app.MapGet("/api/admin/patterns/maintenance-tasks", async (
             HttpContext httpContext,
@@ -250,7 +251,7 @@ public static class PatternEndpoints
             var result = await maintenanceService.GetMaintenanceTasksAsync(
                 tenant.TenantId, status, taskType, page ?? 1, pageSize ?? 20, httpContext.RequestAborted);
             return Results.Ok(ApiResponse<MaintenanceTaskListResponse>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("pattern:approve");
+        }).RequirePermission(Permissions.PatternApprove);
 
         app.MapPost("/api/admin/patterns/maintenance-tasks/{id}/resolve", async (
             Guid id,
@@ -265,7 +266,7 @@ public static class PatternEndpoints
             return result is null
                 ? Results.NotFound()
                 : Results.Ok(ApiResponse<MaintenanceTaskSummary>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("pattern:approve");
+        }).RequirePermission(Permissions.PatternApprove);
 
         app.MapPost("/api/admin/patterns/maintenance-tasks/{id}/dismiss", async (
             Guid id,
@@ -280,7 +281,7 @@ public static class PatternEndpoints
             return result is null
                 ? Results.NotFound()
                 : Results.Ok(ApiResponse<MaintenanceTaskSummary>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("pattern:approve");
+        }).RequirePermission(Permissions.PatternApprove);
 
         return app;
     }

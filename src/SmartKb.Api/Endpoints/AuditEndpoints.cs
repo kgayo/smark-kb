@@ -1,4 +1,5 @@
 using SmartKb.Api.Auth;
+using SmartKb.Contracts;
 using SmartKb.Api.Tenant;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
@@ -36,7 +37,7 @@ public static class AuditEndpoints
             };
             var result = await auditQuery.QueryAsync(tenant.TenantId, request, ct);
             return Results.Ok(ApiResponse<AuditEventListResponse>.Success(result, tenant.CorrelationId));
-        }).RequirePermission("audit:read");
+        }).RequirePermission(Permissions.AuditRead);
 
         app.MapGet("/api/audit/events/export", async (
             HttpContext httpContext,
@@ -90,7 +91,7 @@ public static class AuditEndpoints
                 var cursorJson = System.Text.Json.JsonSerializer.Serialize(nextCursor);
                 await httpContext.Response.WriteAsync(cursorJson + "\n", ct);
             }
-        }).RequirePermission("audit:export");
+        }).RequirePermission(Permissions.AuditExport);
 
         return app;
     }

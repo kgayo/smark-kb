@@ -95,7 +95,7 @@ public sealed class OpenAiQueryClassificationService : IQueryClassificationServi
     {
         var messages = new List<object>
         {
-            new { role = "system", content = ClassificationSystemPrompt },
+            new { role = MessageRoleName.System, content = ClassificationSystemPrompt },
         };
 
         // Include condensed session context if available.
@@ -113,11 +113,11 @@ public sealed class OpenAiQueryClassificationService : IQueryClassificationServi
             }
 
             contextParts.Add($"\nCurrent question:\n{query}");
-            messages.Add(new { role = "user", content = string.Join("\n", contextParts) });
+            messages.Add(new { role = MessageRoleName.User, content = string.Join("\n", contextParts) });
         }
         else
         {
-            messages.Add(new { role = "user", content = query });
+            messages.Add(new { role = MessageRoleName.User, content = query });
         }
 
         return messages;

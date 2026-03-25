@@ -596,7 +596,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         var messages = new List<object>();
 
         // System prompt is always included.
-        messages.Add(new { role = "system", content = systemPrompt });
+        messages.Add(new { role = MessageRoleName.System, content = systemPrompt });
 
         var budgetForHistory = ComputeHistoryBudget(systemPrompt, currentQuery);
 
@@ -624,7 +624,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
             // P3-002: Inject session summary before remaining history messages.
             if (startIndex > 0 && sessionSummary is not null)
             {
-                messages.Add(new { role = "system", content = sessionSummary });
+                messages.Add(new { role = MessageRoleName.System, content = sessionSummary });
                 _logger.LogInformation(
                     "Token budget: dropped {DroppedCount} oldest session messages, injected summary ({SummaryTokens} tokens). Budget={Budget}",
                     startIndex, summaryTokens, _settings.MaxTokenBudget);
@@ -645,14 +645,14 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         else if (sessionSummary is not null && budgetForHistory > summaryTokens)
         {
             // All history messages dropped but summary fits.
-            messages.Add(new { role = "system", content = sessionSummary });
+            messages.Add(new { role = MessageRoleName.System, content = sessionSummary });
             _logger.LogInformation(
                 "Token budget: all {Count} session messages dropped, injected summary only. Budget={Budget}",
                 sessionHistory.Count, _settings.MaxTokenBudget);
         }
 
         // Current user query always included.
-        messages.Add(new { role = "user", content = currentQuery });
+        messages.Add(new { role = MessageRoleName.User, content = currentQuery });
 
         return messages;
     }

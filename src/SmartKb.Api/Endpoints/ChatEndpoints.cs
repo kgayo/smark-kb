@@ -1,4 +1,5 @@
 using SmartKb.Api.Auth;
+using SmartKb.Contracts;
 using SmartKb.Api.Tenant;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
@@ -23,7 +24,7 @@ public static class ChatEndpoints
             var response = await sessionService.CreateSessionAsync(tenant.TenantId, tenant.UserId, request, ct);
             return Results.Created($"/api/sessions/{response.SessionId}",
                 ApiResponse<SessionResponse>.Success(response, tenant.CorrelationId));
-        }).RequirePermission("chat:query");
+        }).RequirePermission(Permissions.ChatQuery);
 
         app.MapGet("/api/sessions", async (
             HttpContext httpContext,
@@ -34,7 +35,7 @@ public static class ChatEndpoints
             var ct = httpContext.RequestAborted;
             var response = await sessionService.ListSessionsAsync(tenant.TenantId, tenant.UserId, ct);
             return Results.Ok(ApiResponse<SessionListResponse>.Success(response, tenant.CorrelationId));
-        }).RequirePermission("chat:query");
+        }).RequirePermission(Permissions.ChatQuery);
 
         app.MapGet("/api/sessions/{sessionId:guid}", async (
             HttpContext httpContext,
@@ -48,7 +49,7 @@ public static class ChatEndpoints
             return response is null
                 ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.SessionNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<SessionResponse>.Success(response, tenant.CorrelationId));
-        }).RequirePermission("chat:query");
+        }).RequirePermission(Permissions.ChatQuery);
 
         app.MapDelete("/api/sessions/{sessionId:guid}", async (
             HttpContext httpContext,
@@ -62,7 +63,7 @@ public static class ChatEndpoints
             return deleted
                 ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
                 : Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.SessionNotFound, tenant.CorrelationId));
-        }).RequirePermission("chat:query");
+        }).RequirePermission(Permissions.ChatQuery);
 
         app.MapGet("/api/sessions/{sessionId:guid}/messages", async (
             HttpContext httpContext,
@@ -76,7 +77,7 @@ public static class ChatEndpoints
             return response is null
                 ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.SessionNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<MessageListResponse>.Success(response, tenant.CorrelationId));
-        }).RequirePermission("chat:query");
+        }).RequirePermission(Permissions.ChatQuery);
 
         app.MapPost("/api/sessions/{sessionId:guid}/messages", async (
             HttpContext httpContext,
@@ -97,7 +98,7 @@ public static class ChatEndpoints
             return response is null
                 ? Results.NotFound(ApiResponse<object>.Failure("Session not found or expired.", tenant.CorrelationId))
                 : Results.Ok(ApiResponse<SessionChatResponse>.Success(response, tenant.CorrelationId));
-        }).RequirePermission("chat:query");
+        }).RequirePermission(Permissions.ChatQuery);
 
         // --- Feedback Endpoints ---
 
@@ -125,7 +126,7 @@ public static class ChatEndpoints
                 return Results.UnprocessableEntity(
                     ApiResponse<object>.Failure(ex.Message, tenant.CorrelationId));
             }
-        }).RequirePermission("chat:feedback");
+        }).RequirePermission(Permissions.ChatFeedback);
 
         app.MapGet("/api/sessions/{sessionId:guid}/messages/{messageId:guid}/feedback", async (
             HttpContext httpContext,
@@ -141,7 +142,7 @@ public static class ChatEndpoints
             return response is null
                 ? Results.NotFound(ApiResponse<object>.Failure("Feedback not found.", tenant.CorrelationId))
                 : Results.Ok(ApiResponse<FeedbackResponse>.Success(response, tenant.CorrelationId));
-        }).RequirePermission("chat:feedback");
+        }).RequirePermission(Permissions.ChatFeedback);
 
         app.MapGet("/api/sessions/{sessionId:guid}/feedbacks", async (
             HttpContext httpContext,
@@ -156,7 +157,7 @@ public static class ChatEndpoints
             return response is null
                 ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.SessionNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<FeedbackListResponse>.Success(response, tenant.CorrelationId));
-        }).RequirePermission("chat:feedback");
+        }).RequirePermission(Permissions.ChatFeedback);
 
         // --- Outcome Endpoints ---
 
@@ -184,7 +185,7 @@ public static class ChatEndpoints
                 return Results.UnprocessableEntity(
                     ApiResponse<object>.Failure(ex.Message, tenant.CorrelationId));
             }
-        }).RequirePermission("chat:outcome");
+        }).RequirePermission(Permissions.ChatOutcome);
 
         app.MapGet("/api/sessions/{sessionId:guid}/outcome", async (
             HttpContext httpContext,
@@ -199,7 +200,7 @@ public static class ChatEndpoints
             return response is null
                 ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.SessionNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<OutcomeListResponse>.Success(response, tenant.CorrelationId));
-        }).RequirePermission("chat:outcome");
+        }).RequirePermission(Permissions.ChatOutcome);
 
         // --- Escalation Draft Endpoints ---
 
@@ -225,7 +226,7 @@ public static class ChatEndpoints
                 return Results.UnprocessableEntity(
                     ApiResponse<object>.Failure(ex.Message, tenant.CorrelationId));
             }
-        }).RequirePermission("chat:query");
+        }).RequirePermission(Permissions.ChatQuery);
 
         app.MapGet("/api/escalations/draft/{draftId:guid}", async (
             HttpContext httpContext,
@@ -239,7 +240,7 @@ public static class ChatEndpoints
             return response is null
                 ? Results.NotFound(ApiResponse<object>.Failure("Escalation draft not found.", tenant.CorrelationId))
                 : Results.Ok(ApiResponse<EscalationDraftResponse>.Success(response, tenant.CorrelationId));
-        }).RequirePermission("chat:query");
+        }).RequirePermission(Permissions.ChatQuery);
 
         app.MapGet("/api/sessions/{sessionId:guid}/escalations/drafts", async (
             HttpContext httpContext,
@@ -253,7 +254,7 @@ public static class ChatEndpoints
             return response is null
                 ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.SessionNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<EscalationDraftListResponse>.Success(response, tenant.CorrelationId));
-        }).RequirePermission("chat:query");
+        }).RequirePermission(Permissions.ChatQuery);
 
         app.MapPut("/api/escalations/draft/{draftId:guid}", async (
             HttpContext httpContext,
@@ -269,7 +270,7 @@ public static class ChatEndpoints
             return notFound
                 ? Results.NotFound(ApiResponse<object>.Failure("Escalation draft not found.", tenant.CorrelationId))
                 : Results.Ok(ApiResponse<EscalationDraftResponse>.Success(response!, tenant.CorrelationId));
-        }).RequirePermission("chat:query");
+        }).RequirePermission(Permissions.ChatQuery);
 
         app.MapGet("/api/escalations/draft/{draftId:guid}/export", async (
             HttpContext httpContext,
@@ -284,7 +285,7 @@ public static class ChatEndpoints
             return response is null
                 ? Results.NotFound(ApiResponse<object>.Failure("Escalation draft not found.", tenant.CorrelationId))
                 : Results.Ok(ApiResponse<EscalationDraftExportResponse>.Success(response, tenant.CorrelationId));
-        }).RequirePermission("chat:query");
+        }).RequirePermission(Permissions.ChatQuery);
 
         app.MapPost("/api/escalations/draft/{draftId:guid}/approve", async (
             HttpContext httpContext,
@@ -313,7 +314,7 @@ public static class ChatEndpoints
                 return Results.UnprocessableEntity(
                     ApiResponse<object>.Failure(ex.Message, tenant.CorrelationId));
             }
-        }).RequirePermission("chat:query");
+        }).RequirePermission(Permissions.ChatQuery);
 
         app.MapDelete("/api/escalations/draft/{draftId:guid}", async (
             HttpContext httpContext,
@@ -327,7 +328,7 @@ public static class ChatEndpoints
             return deleted
                 ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
                 : Results.NotFound(ApiResponse<object>.Failure("Escalation draft not found.", tenant.CorrelationId));
-        }).RequirePermission("chat:query");
+        }).RequirePermission(Permissions.ChatQuery);
 
         // --- Evidence Content Endpoint (P3-025: Source Viewer drill-down) ---
 
@@ -427,7 +428,7 @@ public static class ChatEndpoints
             };
 
             return Results.Ok(ApiResponse<EvidenceContentResponse>.Success(response, tenant.CorrelationId));
-        }).RequirePermission("chat:query");
+        }).RequirePermission(Permissions.ChatQuery);
 
         // --- Chat Endpoint (stateless, kept for backward compatibility) ---
 
@@ -454,7 +455,7 @@ public static class ChatEndpoints
             var response = await orchestrator.OrchestrateAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, effectiveRequest, ct);
             return Results.Ok(ApiResponse<ChatResponse>.Success(response, tenant.CorrelationId));
-        }).RequirePermission("chat:query");
+        }).RequirePermission(Permissions.ChatQuery);
 
         return app;
     }
