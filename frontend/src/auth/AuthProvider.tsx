@@ -33,6 +33,8 @@ function TokenProviderSetup(): null {
     } catch (error) {
       if (error instanceof InteractionRequiredAuthError) {
         await instance.acquireTokenRedirect(loginRequest);
+      } else {
+        console.warn('[AuthProvider] Token acquisition failed:', error);
       }
       return null;
     }

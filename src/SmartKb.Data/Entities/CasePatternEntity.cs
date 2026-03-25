@@ -24,7 +24,7 @@ public sealed class CasePatternEntity
     public string? EscalationTargetTeam { get; set; }
     public string RelatedEvidenceIdsJson { get; set; } = "[]";
     public float Confidence { get; set; }
-    public string TrustLevel { get; set; } = "Draft";
+    public string TrustLevel { get; set; } = TrustLevelName.Draft;
     public int Version { get; set; } = 1;
     public string? SupersedesPatternId { get; set; }
     public string ApplicabilityConstraintsJson { get; set; } = "[]";

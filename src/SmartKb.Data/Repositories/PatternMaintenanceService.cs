@@ -39,7 +39,7 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
 
         // Load active patterns.
         var patterns = await _db.CasePatterns
-            .Where(p => p.TenantId == tenantId && p.TrustLevel != "Deprecated")
+            .Where(p => p.TenantId == tenantId && p.TrustLevel != TrustLevelName.Deprecated)
             .ToListAsync(ct);
 
         // Load existing pending tasks to avoid duplicates.

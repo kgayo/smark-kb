@@ -42,7 +42,7 @@ public sealed class ContradictionDetectionService : IContradictionDetectionServi
 
         // Load all active (non-deprecated) patterns for the tenant.
         var patterns = await _db.CasePatterns
-            .Where(p => p.TenantId == tenantId && p.TrustLevel != "Deprecated")
+            .Where(p => p.TenantId == tenantId && p.TrustLevel != TrustLevelName.Deprecated)
             .ToListAsync(ct);
 
         // Load existing pending contradictions to avoid duplicates.
@@ -188,7 +188,7 @@ public sealed class ContradictionDetectionService : IContradictionDetectionServi
         string correlationId, ResolveContradictionRequest request, CancellationToken ct = default)
     {
         var validResolutions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            { "Merged", "Deprecated", "Kept", "Dismissed" };
+            { ContradictionResolution.Merged, ContradictionResolution.Deprecated, ContradictionResolution.Kept, ContradictionResolution.Dismissed };
 
         if (!validResolutions.Contains(request.Resolution))
             return null;

@@ -272,7 +272,7 @@ public sealed class FusedRetrievalService : IRetrievalService
 
         // Filter: tenant + exclude deprecated patterns from retrieval.
         var baseFilter = $"{PatternFieldNames.TenantId} eq '{EscapeODataValue(tenantId)}' " +
-                         $"and {PatternFieldNames.TrustLevel} ne 'Deprecated'";
+                         $"and {PatternFieldNames.TrustLevel} ne '{TrustLevelName.Deprecated}'";
         var combinedFilter = ODataFilterBuilder.CombineFilters(baseFilter, ODataFilterBuilder.BuildPatternFilter(filters));
 
         var options = new SearchOptions
@@ -387,13 +387,13 @@ public sealed class FusedRetrievalService : IRetrievalService
     {
         if (trustLevel is null) return 1.0f;
 
-        if (string.Equals(trustLevel, "approved", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(trustLevel, TrustLevelName.Approved, StringComparison.OrdinalIgnoreCase))
             return _retrievalSettings.TrustBoostApproved;
-        if (string.Equals(trustLevel, "reviewed", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(trustLevel, TrustLevelName.Reviewed, StringComparison.OrdinalIgnoreCase))
             return _retrievalSettings.TrustBoostReviewed;
-        if (string.Equals(trustLevel, "draft", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(trustLevel, TrustLevelName.Draft, StringComparison.OrdinalIgnoreCase))
             return _retrievalSettings.TrustBoostDraft;
-        if (string.Equals(trustLevel, "deprecated", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(trustLevel, TrustLevelName.Deprecated, StringComparison.OrdinalIgnoreCase))
             return _retrievalSettings.TrustBoostDeprecated;
         return 1.0f;
     }
