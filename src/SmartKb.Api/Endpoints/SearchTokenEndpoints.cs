@@ -1,0 +1,303 @@
+using SmartKb.Api.Auth;
+using SmartKb.Api.Tenant;
+using SmartKb.Contracts.Models;
+using SmartKb.Contracts.Services;
+using SmartKb.Data.Repositories;
+
+namespace SmartKb.Api.Endpoints;
+
+public static class SearchTokenEndpoints
+{
+    public static WebApplication MapSearchTokenEndpoints(this WebApplication app)
+    {
+        // --- Synonym Map Admin Endpoints (P3-004) ---
+
+        app.MapGet("/api/admin/synonym-rules", async (
+            HttpContext httpContext,
+            string? groupName,
+            ITenantContextAccessor tenantAccessor,
+            ISynonymMapService service) =>
+        {
+            var tenant = tenantAccessor.Current!;
+            var ct = httpContext.RequestAborted;
+            var result = await service.ListAsync(tenant.TenantId, groupName, ct);
+            return Results.Ok(ApiResponse<SynonymRuleListResponse>.Success(result, tenant.CorrelationId));
+        }).RequirePermission("connector:manage");
+
+        app.MapGet("/api/admin/synonym-rules/{ruleId:guid}", async (
+            HttpContext httpContext,
+            Guid ruleId,
+            ITenantContextAccessor tenantAccessor,
+            ISynonymMapService service) =>
+        {
+            var tenant = tenantAccessor.Current!;
+            var ct = httpContext.RequestAborted;
+            var result = await service.GetAsync(tenant.TenantId, ruleId, ct);
+            return result is null
+                ? Results.NotFound(ApiResponse<object>.Failure("Synonym rule not found.", tenant.CorrelationId))
+                : Results.Ok(ApiResponse<SynonymRuleResponse>.Success(result, tenant.CorrelationId));
+        }).RequirePermission("connector:manage");
+
+        app.MapPost("/api/admin/synonym-rules", async (
+            HttpContext httpContext,
+            CreateSynonymRuleRequest request,
+            ITenantContextAccessor tenantAccessor,
+            ISynonymMapService service) =>
+        {
+            var tenant = tenantAccessor.Current!;
+            var ct = httpContext.RequestAborted;
+            var (response, validation) = await service.CreateAsync(
+                tenant.TenantId, tenant.UserId, tenant.CorrelationId, request, ct);
+
+            if (validation is not null)
+                return Results.UnprocessableEntity(ApiResponse<SynonymRuleValidationResult>.Failure(
+                    string.Join("; ", validation.Errors), tenant.CorrelationId));
+
+            return Results.Created($"/api/admin/synonym-rules/{response!.Id}",
+                ApiResponse<SynonymRuleResponse>.Success(response, tenant.CorrelationId));
+        }).RequirePermission("connector:manage");
+
+        app.MapPut("/api/admin/synonym-rules/{ruleId:guid}", async (
+            HttpContext httpContext,
+            Guid ruleId,
+            UpdateSynonymRuleRequest request,
+            ITenantContextAccessor tenantAccessor,
+            ISynonymMapService service) =>
+        {
+            var tenant = tenantAccessor.Current!;
+            var ct = httpContext.RequestAborted;
+            var (response, validation, notFound) = await service.UpdateAsync(
+                tenant.TenantId, tenant.UserId, tenant.CorrelationId, ruleId, request, ct);
+
+            if (notFound)
+                return Results.NotFound(ApiResponse<object>.Failure("Synonym rule not found.", tenant.CorrelationId));
+            if (validation is not null)
+                return Results.UnprocessableEntity(ApiResponse<SynonymRuleValidationResult>.Failure(
+                    string.Join("; ", validation.Errors), tenant.CorrelationId));
+
+            return Results.Ok(ApiResponse<SynonymRuleResponse>.Success(response!, tenant.CorrelationId));
+        }).RequirePermission("connector:manage");
+
+        app.MapDelete("/api/admin/synonym-rules/{ruleId:guid}", async (
+            HttpContext httpContext,
+            Guid ruleId,
+            ITenantContextAccessor tenantAccessor,
+            ISynonymMapService service) =>
+        {
+            var tenant = tenantAccessor.Current!;
+            var ct = httpContext.RequestAborted;
+            var deleted = await service.DeleteAsync(
+                tenant.TenantId, tenant.UserId, tenant.CorrelationId, ruleId, ct);
+            return deleted
+                ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
+                : Results.NotFound(ApiResponse<object>.Failure("Synonym rule not found.", tenant.CorrelationId));
+        }).RequirePermission("connector:manage");
+
+        app.MapPost("/api/admin/synonym-rules/sync", async (
+            HttpContext httpContext,
+            ITenantContextAccessor tenantAccessor,
+            ISynonymMapService service) =>
+        {
+            var tenant = tenantAccessor.Current!;
+            var ct = httpContext.RequestAborted;
+            var result = await service.SyncToSearchAsync(tenant.TenantId, tenant.CorrelationId, ct);
+            return result.Success
+                ? Results.Ok(ApiResponse<SynonymMapSyncResult>.Success(result, tenant.CorrelationId))
+                : Results.UnprocessableEntity(ApiResponse<SynonymMapSyncResult>.Failure(
+                    result.ErrorDetail ?? "Sync failed.", tenant.CorrelationId));
+        }).RequirePermission("connector:manage");
+
+        app.MapPost("/api/admin/synonym-rules/seed", async (
+            HttpContext httpContext,
+            SeedSynonymRulesRequest request,
+            ITenantContextAccessor tenantAccessor,
+            ISynonymMapService service) =>
+        {
+            var tenant = tenantAccessor.Current!;
+            var ct = httpContext.RequestAborted;
+            var count = await service.SeedDefaultsAsync(
+                tenant.TenantId, tenant.UserId, tenant.CorrelationId, request.OverwriteExisting, ct);
+            return Results.Ok(ApiResponse<object>.Success(new { seeded = count }, tenant.CorrelationId));
+        }).RequirePermission("connector:manage");
+
+        // --- Stop-Word Management Endpoints (P3-028) ---
+
+        app.MapGet("/api/admin/stop-words", async (
+            HttpContext httpContext,
+            string? groupName,
+            ITenantContextAccessor tenantAccessor,
+            ISearchTokenService service) =>
+        {
+            var tenant = tenantAccessor.Current!;
+            var ct = httpContext.RequestAborted;
+            var result = await service.ListStopWordsAsync(tenant.TenantId, groupName, ct);
+            return Results.Ok(ApiResponse<StopWordListResponse>.Success(result, tenant.CorrelationId));
+        }).RequirePermission("connector:manage");
+
+        app.MapGet("/api/admin/stop-words/{id:guid}", async (
+            HttpContext httpContext,
+            Guid id,
+            ITenantContextAccessor tenantAccessor,
+            ISearchTokenService service) =>
+        {
+            var tenant = tenantAccessor.Current!;
+            var ct = httpContext.RequestAborted;
+            var result = await service.GetStopWordAsync(tenant.TenantId, id, ct);
+            return result is null
+                ? Results.NotFound()
+                : Results.Ok(ApiResponse<StopWordResponse>.Success(result, tenant.CorrelationId));
+        }).RequirePermission("connector:manage");
+
+        app.MapPost("/api/admin/stop-words", async (
+            HttpContext httpContext,
+            CreateStopWordRequest request,
+            ITenantContextAccessor tenantAccessor,
+            ISearchTokenService service) =>
+        {
+            var tenant = tenantAccessor.Current!;
+            var ct = httpContext.RequestAborted;
+            var (response, validation) = await service.CreateStopWordAsync(
+                tenant.TenantId, tenant.UserId, tenant.CorrelationId, request, ct);
+            if (validation is not null)
+                return Results.UnprocessableEntity(ApiResponse<object>.Fail(
+                    string.Join("; ", validation.Errors), tenant.CorrelationId));
+            return Results.Created($"/api/admin/stop-words/{response!.Id}",
+                ApiResponse<StopWordResponse>.Success(response, tenant.CorrelationId));
+        }).RequirePermission("connector:manage");
+
+        app.MapPut("/api/admin/stop-words/{id:guid}", async (
+            HttpContext httpContext,
+            Guid id,
+            UpdateStopWordRequest request,
+            ITenantContextAccessor tenantAccessor,
+            ISearchTokenService service) =>
+        {
+            var tenant = tenantAccessor.Current!;
+            var ct = httpContext.RequestAborted;
+            var (response, validation, notFound) = await service.UpdateStopWordAsync(
+                tenant.TenantId, tenant.UserId, tenant.CorrelationId, id, request, ct);
+            if (notFound) return Results.NotFound();
+            if (validation is not null)
+                return Results.UnprocessableEntity(ApiResponse<object>.Fail(
+                    string.Join("; ", validation.Errors), tenant.CorrelationId));
+            return Results.Ok(ApiResponse<StopWordResponse>.Success(response!, tenant.CorrelationId));
+        }).RequirePermission("connector:manage");
+
+        app.MapDelete("/api/admin/stop-words/{id:guid}", async (
+            HttpContext httpContext,
+            Guid id,
+            ITenantContextAccessor tenantAccessor,
+            ISearchTokenService service) =>
+        {
+            var tenant = tenantAccessor.Current!;
+            var ct = httpContext.RequestAborted;
+            var deleted = await service.DeleteStopWordAsync(
+                tenant.TenantId, tenant.UserId, tenant.CorrelationId, id, ct);
+            return deleted ? Results.NoContent() : Results.NotFound();
+        }).RequirePermission("connector:manage");
+
+        app.MapPost("/api/admin/stop-words/seed", async (
+            HttpContext httpContext,
+            SeedStopWordsRequest request,
+            ITenantContextAccessor tenantAccessor,
+            ISearchTokenService service) =>
+        {
+            var tenant = tenantAccessor.Current!;
+            var ct = httpContext.RequestAborted;
+            var count = await service.SeedDefaultStopWordsAsync(
+                tenant.TenantId, tenant.UserId, tenant.CorrelationId, request.OverwriteExisting, ct);
+            return Results.Ok(ApiResponse<object>.Success(new { seeded = count }, tenant.CorrelationId));
+        }).RequirePermission("connector:manage");
+
+        // --- Special Token Management Endpoints (P3-028) ---
+
+        app.MapGet("/api/admin/special-tokens", async (
+            HttpContext httpContext,
+            string? category,
+            ITenantContextAccessor tenantAccessor,
+            ISearchTokenService service) =>
+        {
+            var tenant = tenantAccessor.Current!;
+            var ct = httpContext.RequestAborted;
+            var result = await service.ListSpecialTokensAsync(tenant.TenantId, category, ct);
+            return Results.Ok(ApiResponse<SpecialTokenListResponse>.Success(result, tenant.CorrelationId));
+        }).RequirePermission("connector:manage");
+
+        app.MapGet("/api/admin/special-tokens/{id:guid}", async (
+            HttpContext httpContext,
+            Guid id,
+            ITenantContextAccessor tenantAccessor,
+            ISearchTokenService service) =>
+        {
+            var tenant = tenantAccessor.Current!;
+            var ct = httpContext.RequestAborted;
+            var result = await service.GetSpecialTokenAsync(tenant.TenantId, id, ct);
+            return result is null
+                ? Results.NotFound()
+                : Results.Ok(ApiResponse<SpecialTokenResponse>.Success(result, tenant.CorrelationId));
+        }).RequirePermission("connector:manage");
+
+        app.MapPost("/api/admin/special-tokens", async (
+            HttpContext httpContext,
+            CreateSpecialTokenRequest request,
+            ITenantContextAccessor tenantAccessor,
+            ISearchTokenService service) =>
+        {
+            var tenant = tenantAccessor.Current!;
+            var ct = httpContext.RequestAborted;
+            var (response, validation) = await service.CreateSpecialTokenAsync(
+                tenant.TenantId, tenant.UserId, tenant.CorrelationId, request, ct);
+            if (validation is not null)
+                return Results.UnprocessableEntity(ApiResponse<object>.Fail(
+                    string.Join("; ", validation.Errors), tenant.CorrelationId));
+            return Results.Created($"/api/admin/special-tokens/{response!.Id}",
+                ApiResponse<SpecialTokenResponse>.Success(response, tenant.CorrelationId));
+        }).RequirePermission("connector:manage");
+
+        app.MapPut("/api/admin/special-tokens/{id:guid}", async (
+            HttpContext httpContext,
+            Guid id,
+            UpdateSpecialTokenRequest request,
+            ITenantContextAccessor tenantAccessor,
+            ISearchTokenService service) =>
+        {
+            var tenant = tenantAccessor.Current!;
+            var ct = httpContext.RequestAborted;
+            var (response, validation, notFound) = await service.UpdateSpecialTokenAsync(
+                tenant.TenantId, tenant.UserId, tenant.CorrelationId, id, request, ct);
+            if (notFound) return Results.NotFound();
+            if (validation is not null)
+                return Results.UnprocessableEntity(ApiResponse<object>.Fail(
+                    string.Join("; ", validation.Errors), tenant.CorrelationId));
+            return Results.Ok(ApiResponse<SpecialTokenResponse>.Success(response!, tenant.CorrelationId));
+        }).RequirePermission("connector:manage");
+
+        app.MapDelete("/api/admin/special-tokens/{id:guid}", async (
+            HttpContext httpContext,
+            Guid id,
+            ITenantContextAccessor tenantAccessor,
+            ISearchTokenService service) =>
+        {
+            var tenant = tenantAccessor.Current!;
+            var ct = httpContext.RequestAborted;
+            var deleted = await service.DeleteSpecialTokenAsync(
+                tenant.TenantId, tenant.UserId, tenant.CorrelationId, id, ct);
+            return deleted ? Results.NoContent() : Results.NotFound();
+        }).RequirePermission("connector:manage");
+
+        app.MapPost("/api/admin/special-tokens/seed", async (
+            HttpContext httpContext,
+            SeedSpecialTokensRequest request,
+            ITenantContextAccessor tenantAccessor,
+            ISearchTokenService service) =>
+        {
+            var tenant = tenantAccessor.Current!;
+            var ct = httpContext.RequestAborted;
+            var count = await service.SeedDefaultSpecialTokensAsync(
+                tenant.TenantId, tenant.UserId, tenant.CorrelationId, request.OverwriteExisting, ct);
+            return Results.Ok(ApiResponse<object>.Success(new { seeded = count }, tenant.CorrelationId));
+        }).RequirePermission("connector:manage");
+
+        return app;
+    }
+}

@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-25 (Asia/Manila) — iteration 193 (TECH-100: update chat page docs for TECH-094 + TECH-099 user-facing changes)
-Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~3091 tests passing (2545 backend + 482 frontend + 6 parity + 28 new); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 193: TECH-100 (chat page docs update for OutcomeWidget error feedback + SourceViewerPanel clipboard error).
+Last updated: 2026-03-25 (Asia/Manila) — iteration 194 (TECH-101: extract Program.cs endpoints into 13 feature-scoped endpoint classes)
+Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~3091 tests passing (2545 backend + 482 frontend + 6 parity + 28 new); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 194: TECH-101 (Program.cs endpoint extraction into 13 feature-scoped static extension method classes).
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -445,6 +445,10 @@ Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-00
 - [x] TECH-099: Add user-visible clipboard error feedback in `SourceViewerPanel`.
   - Root cause: `handleCopyCitation` clipboard write failure was only logged to `console.warn` with no UI feedback. The user clicked "Copy citation link" and saw no change when clipboard was blocked (e.g., permissions denied). The peer component `EscalationDraftModal` already had proper clipboard error handling with visible error state.
   - Completed (iteration 192): Added `copyError` state variable. On clipboard write failure, button text changes to "Copy failed" for 3 seconds (auto-clears via timer). Matches the existing "Copied!" success feedback pattern. 1 new test: `shows "Copy failed" when clipboard write fails`. 482 frontend tests passing.
+
+- [x] TECH-101: Extract Program.cs endpoints into 13 feature-scoped endpoint classes.
+  - Root cause: `Program.cs` had grown to ~2,812 lines containing ~134 inline endpoint definitions across 31 route groups. This made the file difficult to navigate, review, and maintain. Endpoint logic was interleaved with service registration and middleware configuration.
+  - Completed (iteration 194): Extracted all endpoint definitions from `Program.cs` into 13 static extension method classes in `src/SmartKb.Api/Endpoints/`: `ConnectorAdminEndpoints` (17 endpoints), `SearchTokenEndpoints` (20 endpoints), `WebhookEndpoints` (4 endpoints), `ChatEndpoints` (21 endpoints), `AuditEndpoints` (2 endpoints), `PatternEndpoints` (19 endpoints), `DiagnosticsEndpoints` (11 endpoints), `RoutingEndpoints` (11 endpoints), `PlaybookEndpoints` (8 endpoints), `PrivacyEndpoints` (13 endpoints), `CostEndpoints` (6 endpoints), `IndexMigrationEndpoints` (7 endpoints), `EvalEndpoints` (11 endpoints). Each class follows the `MapXxxEndpoints(this WebApplication app)` extension method pattern. `Program.cs` reduced from ~2,812 to 378 lines, retaining only service registration, middleware, health/root/me endpoints, and 13 `app.MapXxxEndpoints()` calls. No behavioral changes; pure structural refactor.
 
 - [x] TECH-100: Update chat page docs for TECH-094 and TECH-099 user-facing changes.
   - Root cause: TECH-094 (OutcomeWidget error banner on submit failure) and TECH-099 (SourceViewerPanel "Copy failed" clipboard error feedback) added user-visible behavior changes, but `docs/pages/chat.md` was not updated. The Outcome Recording section did not mention error feedback, and the Source Viewer section only mentioned "Copied!" success feedback without the error case.
