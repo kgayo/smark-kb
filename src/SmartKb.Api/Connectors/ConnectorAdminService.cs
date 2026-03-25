@@ -112,7 +112,7 @@ public sealed class ConnectorAdminService
         await _db.SaveChangesAsync(ct);
 
         await WriteAuditAsync(tenantId, actorId, correlationId, AuditEventTypes.ConnectorCreated,
-            $"Connector '{entity.Name}' (id={entity.Id}, type={entity.ConnectorType}) created.");
+            $"Connector '{entity.Name}' (id={entity.Id}, type={entity.ConnectorType}) created.", ct);
 
         return (ToResponse(entity), null);
     }
@@ -146,7 +146,7 @@ public sealed class ConnectorAdminService
         await _db.SaveChangesAsync(ct);
 
         await WriteAuditAsync(tenantId, actorId, correlationId, AuditEventTypes.ConnectorUpdated,
-            $"Connector '{entity.Name}' (id={entity.Id}) updated.");
+            $"Connector '{entity.Name}' (id={entity.Id}) updated.", ct);
 
         return (ToResponse(entity), null, false);
     }
@@ -163,7 +163,7 @@ public sealed class ConnectorAdminService
         await _db.SaveChangesAsync(ct);
 
         await WriteAuditAsync(tenantId, actorId, correlationId, AuditEventTypes.ConnectorDeleted,
-            $"Connector '{entity.Name}' (id={entity.Id}) soft-deleted.");
+            $"Connector '{entity.Name}' (id={entity.Id}) soft-deleted.", ct);
 
         return true;
     }
@@ -183,7 +183,7 @@ public sealed class ConnectorAdminService
         await _db.SaveChangesAsync(ct);
 
         await WriteAuditAsync(tenantId, actorId, correlationId, AuditEventTypes.ConnectorDisabled,
-            $"Connector '{entity.Name}' (id={entity.Id}) disabled.");
+            $"Connector '{entity.Name}' (id={entity.Id}) disabled.", ct);
 
         return (true, ToResponse(entity));
     }
@@ -207,7 +207,7 @@ public sealed class ConnectorAdminService
         await RegisterWebhooksAsync(entity, correlationId, ct);
 
         await WriteAuditAsync(tenantId, actorId, correlationId, AuditEventTypes.ConnectorEnabled,
-            $"Connector '{entity.Name}' (id={entity.Id}) enabled.");
+            $"Connector '{entity.Name}' (id={entity.Id}) enabled.", ct);
 
         return (true, null, ToResponse(entity));
     }
@@ -242,7 +242,7 @@ public sealed class ConnectorAdminService
                     DiagnosticDetail = secretError,
                 };
                 await WriteAuditAsync(tenantId, actorId, correlationId, AuditEventTypes.ConnectorTestFailed,
-                    $"Connector '{entity.Name}' (id={entity.Id}) test failed: credential retrieval error.");
+                    $"Connector '{entity.Name}' (id={entity.Id}) test failed: credential retrieval error.", ct);
                 return result;
             }
 
@@ -251,7 +251,7 @@ public sealed class ConnectorAdminService
 
         var eventType = result.Success ? AuditEventTypes.ConnectorTestPassed : AuditEventTypes.ConnectorTestFailed;
         await WriteAuditAsync(tenantId, actorId, correlationId, eventType,
-            $"Connector '{entity.Name}' (id={entity.Id}) test: {result.Message}");
+            $"Connector '{entity.Name}' (id={entity.Id}) test: {result.Message}", ct);
 
         return result;
     }
@@ -307,7 +307,7 @@ public sealed class ConnectorAdminService
         await _syncJobPublisher.PublishAsync(message, ct);
 
         await WriteAuditAsync(tenantId, actorId, correlationId, AuditEventTypes.ConnectorSyncTriggered,
-            $"Sync triggered for connector '{entity.Name}' (id={entity.Id}, runId={syncRun.Id}, backfill={request.IsBackfill}).");
+            $"Sync triggered for connector '{entity.Name}' (id={entity.Id}, runId={syncRun.Id}, backfill={request.IsBackfill}).", ct);
 
         return (syncRun.Id, false);
     }
@@ -353,7 +353,7 @@ public sealed class ConnectorAdminService
         }
 
         await WriteAuditAsync(tenantId, actorId, correlationId, AuditEventTypes.ConnectorPreview,
-            $"Preview for connector '{entity.Name}' (id={entity.Id}): {records.Count} records, {errors.Count} errors.");
+            $"Preview for connector '{entity.Name}' (id={entity.Id}): {records.Count} records, {errors.Count} errors.", ct);
 
         return new PreviewResponse { Records = records.ToList(), ValidationErrors = errors };
     }
@@ -400,7 +400,7 @@ public sealed class ConnectorAdminService
         if (totalChunks == 0)
         {
             await WriteAuditAsync(tenantId, actorId, correlationId, AuditEventTypes.ConnectorPreviewRetrieval,
-                $"Preview retrieval for connector '{entity.Name}' (id={entity.Id}): no chunks indexed.");
+                $"Preview retrieval for connector '{entity.Name}' (id={entity.Id}): no chunks indexed.", ct);
             return new PreviewRetrievalResponse
             {
                 Chunks = [],
@@ -434,7 +434,7 @@ public sealed class ConnectorAdminService
         }).ToList();
 
         await WriteAuditAsync(tenantId, actorId, correlationId, AuditEventTypes.ConnectorPreviewRetrieval,
-            $"Preview retrieval for connector '{entity.Name}' (id={entity.Id}): query='{request.Query}', {chunks.Count} results from {totalChunks} total chunks.");
+            $"Preview retrieval for connector '{entity.Name}' (id={entity.Id}): query='{request.Query}', {chunks.Count} results from {totalChunks} total chunks.", ct);
 
         return new PreviewRetrievalResponse
         {
@@ -549,7 +549,7 @@ public sealed class ConnectorAdminService
         {
             _logger.LogWarning("Invalid OAuth state parameter for connector {ConnectorId}.", connectorId);
             await WriteAuditAsync(tenantId, actorId, correlationId, AuditEventTypes.ConnectorOAuthFailed,
-                $"OAuth callback for connector '{entity.Name}' (id={entity.Id}) failed: invalid state parameter.");
+                $"OAuth callback for connector '{entity.Name}' (id={entity.Id}) failed: invalid state parameter.", ct);
             return (null, false, true);
         }
 
@@ -569,12 +569,12 @@ public sealed class ConnectorAdminService
         if (success)
         {
             await WriteAuditAsync(tenantId, actorId, correlationId, AuditEventTypes.ConnectorOAuthCompleted,
-                $"OAuth authorization completed for connector '{entity.Name}' (id={entity.Id}).");
+                $"OAuth authorization completed for connector '{entity.Name}' (id={entity.Id}).", ct);
         }
         else
         {
             await WriteAuditAsync(tenantId, actorId, correlationId, AuditEventTypes.ConnectorOAuthFailed,
-                $"OAuth token exchange failed for connector '{entity.Name}' (id={entity.Id}).");
+                $"OAuth token exchange failed for connector '{entity.Name}' (id={entity.Id}).", ct);
         }
 
         return (new OAuthCallbackResponse
@@ -834,7 +834,7 @@ public sealed class ConnectorAdminService
             subscriptions.Count, entity.Id);
     }
 
-    private async Task WriteAuditAsync(string tenantId, string actorId, string correlationId, string eventType, string detail)
+    private async Task WriteAuditAsync(string tenantId, string actorId, string correlationId, string eventType, string detail, CancellationToken ct = default)
     {
         await _auditWriter.WriteAsync(new AuditEvent(
             EventId: Guid.NewGuid().ToString(),
@@ -843,6 +843,6 @@ public sealed class ConnectorAdminService
             ActorId: actorId,
             CorrelationId: correlationId,
             Timestamp: DateTimeOffset.UtcNow,
-            Detail: detail));
+            Detail: detail), ct);
     }
 }

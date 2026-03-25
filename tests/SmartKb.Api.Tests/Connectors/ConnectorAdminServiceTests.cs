@@ -682,4 +682,42 @@ public sealed class ConnectorAdminServiceTests : IDisposable
             string? secretValue, string? checkpoint, bool isBackfill, CancellationToken ct = default)
             => Task.FromResult(new FetchResult { Records = [], FailedRecords = 0, Errors = [] });
     }
+
+    private sealed class CancellationAwareAuditWriter : IAuditEventWriter
+    {
+        public Task WriteAsync(AuditEvent auditEvent, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.CompletedTask;
+        }
+    }
+
+    [Fact]
+    public async Task Create_CancelledToken_PropagatesCancellationToAuditWrite()
+    {
+        // Arrange: build a service with a cancellation-aware audit writer
+        using var conn = new SqliteConnection("DataSource=:memory:");
+        conn.Open();
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddDbContext<SmartKbDbContext>(o => o.UseSqlite(conn));
+        using var sp = services.BuildServiceProvider();
+        var db = sp.GetRequiredService<SmartKbDbContext>();
+        db.Database.EnsureCreated();
+        db.Tenants.Add(new TenantEntity { TenantId = "cancel-tenant", DisplayName = "Cancel" });
+        db.SaveChanges();
+
+        var svc = new ConnectorAdminService(
+            db, new CancellationAwareAuditWriter(),
+            Array.Empty<IConnectorClient>(), Array.Empty<IWebhookManager>(),
+            new TestSyncJobPublisher(), new WebhookSettings(),
+            NullLogger<ConnectorAdminService>.Instance, new InMemorySecretProvider());
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // Act & Assert: the pre-cancelled token propagates through WriteAuditAsync
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            svc.CreateAsync("cancel-tenant", "actor", "corr", MakeCreateRequest(), cts.Token));
+    }
 }
