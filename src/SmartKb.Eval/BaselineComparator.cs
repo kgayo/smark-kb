@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using SmartKb.Contracts;
 using SmartKb.Eval.Models;
 
@@ -47,7 +48,7 @@ public static class BaselineComparator
     /// <summary>
     /// Loads a baseline from a JSON file.
     /// </summary>
-    public static async Task<EvalBaseline?> LoadBaselineAsync(string filePath, CancellationToken cancellationToken = default)
+    public static async Task<EvalBaseline?> LoadBaselineAsync(string filePath, CancellationToken cancellationToken = default, ILogger? logger = null)
     {
         if (!File.Exists(filePath))
             return null;
@@ -57,8 +58,9 @@ public static class BaselineComparator
         {
             return JsonSerializer.Deserialize<EvalBaseline>(json, SharedJsonOptions.CaseInsensitiveIndented);
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            logger?.LogWarning(ex, "Failed to deserialize baseline from file {FilePath}", filePath);
             return null;
         }
     }
@@ -83,14 +85,15 @@ public static class BaselineComparator
     /// <summary>
     /// Deserializes a baseline from a JSON string (for testing).
     /// </summary>
-    public static EvalBaseline? DeserializeBaseline(string json)
+    public static EvalBaseline? DeserializeBaseline(string json, ILogger? logger = null)
     {
         try
         {
             return JsonSerializer.Deserialize<EvalBaseline>(json, SharedJsonOptions.CaseInsensitiveIndented);
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            logger?.LogWarning(ex, "Failed to deserialize baseline from JSON string");
             return null;
         }
     }

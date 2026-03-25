@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using SmartKb.Eval.Models;
 
 namespace SmartKb.Eval.Tests;
@@ -154,6 +155,73 @@ public class BaselineComparatorTests
     {
         var result = BaselineComparator.DeserializeBaseline("{invalid json");
         Assert.Null(result);
+    }
+
+    [Fact]
+    public void DeserializeBaseline_MalformedJson_LogsWarningWhenLoggerProvided()
+    {
+        var logger = new CapturingLogger();
+
+        var result = BaselineComparator.DeserializeBaseline("{invalid json", logger);
+
+        Assert.Null(result);
+        Assert.Single(logger.Entries);
+        Assert.Equal(LogLevel.Warning, logger.Entries[0].Level);
+        Assert.Contains("deserialize baseline", logger.Entries[0].Message);
+    }
+
+    [Fact]
+    public async Task LoadBaselineAsync_MalformedJsonFile_LogsWarningWhenLoggerProvided()
+    {
+        var logger = new CapturingLogger();
+        var tempFile = Path.GetTempFileName();
+        try
+        {
+            await File.WriteAllTextAsync(tempFile, "{not valid json!!!");
+
+            var result = await BaselineComparator.LoadBaselineAsync(tempFile, logger: logger);
+
+            Assert.Null(result);
+            Assert.Single(logger.Entries);
+            Assert.Equal(LogLevel.Warning, logger.Entries[0].Level);
+            Assert.Contains(tempFile, logger.Entries[0].Message);
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    [Fact]
+    public async Task LoadBaselineAsync_MalformedJsonFile_ReturnsNullWithoutLogger()
+    {
+        var tempFile = Path.GetTempFileName();
+        try
+        {
+            await File.WriteAllTextAsync(tempFile, "{not valid json!!!");
+
+            var result = await BaselineComparator.LoadBaselineAsync(tempFile);
+
+            Assert.Null(result);
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    private sealed class CapturingLogger : ILogger
+    {
+        public List<(LogLevel Level, string Message)> Entries { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state,
+            Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            Entries.Add((logLevel, formatter(state, exception)));
+        }
     }
 
     private static AggregateMetrics MakeMetrics(
