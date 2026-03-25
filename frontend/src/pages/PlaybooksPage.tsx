@@ -275,7 +275,7 @@ export function PlaybooksPage() {
                 <h3>Checklist</h3>
                 {selected.checklist.length > 0 ? (
                   <ol className="playbook-checklist">
-                    {selected.checklist.map((item, i) => <li key={i}>{item}</li>)}
+                    {selected.checklist.map((item) => <li key={item}>{item}</li>)}
                   </ol>
                 ) : (
                   <p className="text-muted">No checklist items</p>

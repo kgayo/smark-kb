@@ -96,7 +96,7 @@ public sealed class HubSpotWebhookManager : IWebhookManager
                 // HubSpot Webhooks API: POST /webhooks/v3/{appId}/subscriptions
                 // For simplicity, we use a fixed path. The appId is derived from the API key scope.
                 var url = $"webhooks/v3/{config.PortalId}/subscriptions";
-                var response = await client.PostAsync(url, content, cancellationToken);
+                using var response = await client.PostAsync(url, content, cancellationToken);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -153,7 +153,7 @@ public sealed class HubSpotWebhookManager : IWebhookManager
             try
             {
                 var url = $"webhooks/v3/{config.PortalId}/subscriptions/{subscriptionId}";
-                var response = await client.DeleteAsync(url, cancellationToken);
+                using var response = await client.DeleteAsync(url, cancellationToken);
 
                 if (response.IsSuccessStatusCode)
                 {

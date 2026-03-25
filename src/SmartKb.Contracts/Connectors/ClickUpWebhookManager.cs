@@ -82,7 +82,7 @@ public sealed class ClickUpWebhookManager : IWebhookManager
             using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             var url = $"api/v2/team/{config.WorkspaceId}/webhook";
-            var response = await client.PostAsync(url, content, cancellationToken);
+            using var response = await client.PostAsync(url, content, cancellationToken);
 
             if (response.IsSuccessStatusCode)
             {
@@ -145,7 +145,7 @@ public sealed class ClickUpWebhookManager : IWebhookManager
             try
             {
                 var url = $"api/v2/webhook/{webhookId}";
-                var response = await client.DeleteAsync(url, cancellationToken);
+                using var response = await client.DeleteAsync(url, cancellationToken);
 
                 if (response.IsSuccessStatusCode)
                 {

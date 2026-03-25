@@ -42,7 +42,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
         try
         {
             using var client = CreateHttpClient(config.BaseUrl, secretValue);
-            var response = await client.GetAsync("api/v2/user", cancellationToken);
+            using var response = await client.GetAsync("api/v2/user", cancellationToken);
 
             if (response.IsSuccessStatusCode)
             {
@@ -283,7 +283,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
             using var content = new StringContent(payload, Encoding.UTF8, "application/json");
 
             var url = $"api/v2/list/{listId}/task";
-            var response = await client.PostAsync(url, content, ct);
+            using var response = await client.PostAsync(url, content, ct);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -342,7 +342,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
                 url += $"&statuses[]={Uri.EscapeDataString(status)}";
         }
 
-        var response = await client.GetAsync(url, ct);
+        using var response = await client.GetAsync(url, ct);
         response.EnsureSuccessStatusCode();
 
         var result = await DeserializeAsync<ClickUpTaskListResponse>(response, ct);
@@ -421,7 +421,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
 
     internal async Task<List<string>> GetSpaceIdsAsync(HttpClient client, string workspaceId, CancellationToken ct)
     {
-        var response = await client.GetAsync($"api/v2/team/{workspaceId}/space?archived=false", ct);
+        using var response = await client.GetAsync($"api/v2/team/{workspaceId}/space?archived=false", ct);
         response.EnsureSuccessStatusCode();
         var result = await DeserializeAsync<ClickUpSpacesResponse>(response, ct);
         return result?.Spaces?.Select(s => s.Id).ToList() ?? [];
@@ -429,7 +429,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
 
     internal async Task<List<string>> GetFolderIdsAsync(HttpClient client, string spaceId, CancellationToken ct)
     {
-        var response = await client.GetAsync($"api/v2/space/{spaceId}/folder?archived=false", ct);
+        using var response = await client.GetAsync($"api/v2/space/{spaceId}/folder?archived=false", ct);
         response.EnsureSuccessStatusCode();
         var result = await DeserializeAsync<ClickUpFoldersResponse>(response, ct);
         return result?.Folders?.Select(f => f.Id).ToList() ?? [];
@@ -437,7 +437,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
 
     internal async Task<List<string>> GetListsFromFolderAsync(HttpClient client, string folderId, CancellationToken ct)
     {
-        var response = await client.GetAsync($"api/v2/folder/{folderId}/list?archived=false", ct);
+        using var response = await client.GetAsync($"api/v2/folder/{folderId}/list?archived=false", ct);
         response.EnsureSuccessStatusCode();
         var result = await DeserializeAsync<ClickUpListsResponse>(response, ct);
         return result?.Lists?.Select(l => l.Id).ToList() ?? [];
@@ -445,7 +445,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
 
     internal async Task<List<string>> GetFolderlessListsAsync(HttpClient client, string spaceId, CancellationToken ct)
     {
-        var response = await client.GetAsync($"api/v2/space/{spaceId}/list?archived=false", ct);
+        using var response = await client.GetAsync($"api/v2/space/{spaceId}/list?archived=false", ct);
         response.EnsureSuccessStatusCode();
         var result = await DeserializeAsync<ClickUpListsResponse>(response, ct);
         return result?.Lists?.Select(l => l.Id).ToList() ?? [];

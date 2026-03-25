@@ -59,7 +59,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
         {
             using var client = CreateHttpClient(config.BaseUrl, secretValue);
             // Use the account info endpoint to validate credentials.
-            var response = await client.GetAsync("account-info/v3/details", cancellationToken);
+            using var response = await client.GetAsync("account-info/v3/details", cancellationToken);
 
             if (response.IsSuccessStatusCode)
             {
@@ -247,7 +247,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
                 after, lastModified.Value, effectiveLimit, ct);
         }
 
-        var response = await client.GetAsync(url, ct);
+        using var response = await client.GetAsync(url, ct);
         response.EnsureSuccessStatusCode();
 
         var result = await DeserializeAsync<HubSpotListResponse>(response, ct);
@@ -319,7 +319,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
         using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
         var url = $"crm/v3/objects/{objectType}/search";
-        var response = await client.PostAsync(url, content, ct);
+        using var response = await client.PostAsync(url, content, ct);
         response.EnsureSuccessStatusCode();
 
         var result = await DeserializeAsync<HubSpotListResponse>(response, ct);

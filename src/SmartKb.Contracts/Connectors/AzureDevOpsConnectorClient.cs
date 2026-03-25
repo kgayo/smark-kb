@@ -45,7 +45,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
         {
             using var client = CreateHttpClient(config.OrganizationUrl, secretValue);
             var url = $"_apis/projects?api-version={ApiVersion}&$top=1";
-            var response = await client.GetAsync(url, cancellationToken);
+            using var response = await client.GetAsync(url, cancellationToken);
 
             if (response.IsSuccessStatusCode)
             {
@@ -292,7 +292,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
             using var content = new StringContent(payload, Encoding.UTF8, "application/json-patch+json");
 
             var url = $"{Uri.EscapeDataString(project)}/_apis/wit/workitems/${Uri.EscapeDataString(workItemType)}?api-version={ApiVersion}";
-            var response = await client.PatchAsync(url, content, ct);
+            using var response = await client.PatchAsync(url, content, ct);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -585,7 +585,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
 
         // List all accessible projects.
         var url = $"_apis/projects?api-version={ApiVersion}";
-        var response = await client.GetAsync(url, ct);
+        using var response = await client.GetAsync(url, ct);
         response.EnsureSuccessStatusCode();
 
         var result = await DeserializeAsync<ProjectListResponse>(response, ct);

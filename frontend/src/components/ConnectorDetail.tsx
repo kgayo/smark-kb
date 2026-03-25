@@ -441,8 +441,8 @@ export function ConnectorDetail({
           <h4>Preview Records ({previewRecords.length})</h4>
           {previewErrors.length > 0 && (
             <div className="error-banner" role="alert" data-testid="preview-errors">
-              {previewErrors.map((err, i) => (
-                <div key={i}>{err}</div>
+              {previewErrors.map((err) => (
+                <div key={err}>{err}</div>
               ))}
             </div>
           )}
@@ -460,7 +460,7 @@ export function ConnectorDetail({
               </thead>
               <tbody>
                 {previewRecords.map((r, i) => (
-                  <tr key={i}>
+                  <tr key={`${r.title}-${r.sourceType}-${i}`}>
                     <td>{r.title || <span className="missing-field">missing</span>}</td>
                     <td>{r.sourceType || <span className="missing-field">missing</span>}</td>
                     <td>{r.productArea ?? '—'}</td>

@@ -105,7 +105,7 @@ public sealed class SharePointWebhookManager : IWebhookManager
                 var json = JsonSerializer.Serialize(subscriptionRequest, SharedJsonOptions.CamelCase);
                 using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var response = await graphClient.PostAsync($"{GraphBaseUrl}/subscriptions", content, cancellationToken);
+                using var response = await graphClient.PostAsync($"{GraphBaseUrl}/subscriptions", content, cancellationToken);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -173,7 +173,7 @@ public sealed class SharePointWebhookManager : IWebhookManager
             try
             {
                 var url = $"{GraphBaseUrl}/subscriptions/{subscriptionId}";
-                var response = await graphClient.DeleteAsync(url, cancellationToken);
+                using var response = await graphClient.DeleteAsync(url, cancellationToken);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -216,7 +216,7 @@ public sealed class SharePointWebhookManager : IWebhookManager
             ["scope"] = "https://graph.microsoft.com/.default",
         });
 
-        var response = await client.PostAsync(tokenUrl, requestBody, ct);
+        using var response = await client.PostAsync(tokenUrl, requestBody, ct);
         response.EnsureSuccessStatusCode();
 
         var tokenResponse = await DeserializeAsync<SharePointConnectorClient.OAuthTokenResponse>(response, ct);

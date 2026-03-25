@@ -490,7 +490,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
             ["scope"] = "https://graph.microsoft.com/.default",
         });
 
-        var response = await client.PostAsync(tokenUrl, requestBody, ct);
+        using var response = await client.PostAsync(tokenUrl, requestBody, ct);
         response.EnsureSuccessStatusCode();
 
         var tokenResponse = await DeserializeAsync<OAuthTokenResponse>(response, ct);
@@ -516,7 +516,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
         {
             // Root site.
             var url = $"{GraphBaseUrl}/sites/{hostname}";
-            var response = await client.GetAsync(url, ct);
+            using var response = await client.GetAsync(url, ct);
             if (!response.IsSuccessStatusCode) return null;
             var site = await DeserializeAsync<GraphSite>(response, ct);
             return site?.Id;
@@ -524,7 +524,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
         else
         {
             var url = $"{GraphBaseUrl}/sites/{hostname}:{sitePath}";
-            var response = await client.GetAsync(url, ct);
+            using var response = await client.GetAsync(url, ct);
             if (!response.IsSuccessStatusCode) return null;
             var site = await DeserializeAsync<GraphSite>(response, ct);
             return site?.Id;
@@ -543,7 +543,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
                 try
                 {
                     var url = $"{GraphBaseUrl}/drives/{driveId}";
-                    var response = await client.GetAsync(url, ct);
+                    using var response = await client.GetAsync(url, ct);
                     if (response.IsSuccessStatusCode)
                     {
                         var drive = await DeserializeAsync<GraphDrive>(response, ct);

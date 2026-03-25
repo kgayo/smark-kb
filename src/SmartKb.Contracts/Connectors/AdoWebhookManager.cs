@@ -86,7 +86,7 @@ public sealed class AdoWebhookManager : IWebhookManager
                 using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 var url = $"_apis/hooks/subscriptions?api-version={ApiVersion}";
-                var response = await client.PostAsync(url, content, cancellationToken);
+                using var response = await client.PostAsync(url, content, cancellationToken);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -143,7 +143,7 @@ public sealed class AdoWebhookManager : IWebhookManager
             try
             {
                 var url = $"_apis/hooks/subscriptions/{subscriptionId}?api-version={ApiVersion}";
-                var response = await client.DeleteAsync(url, cancellationToken);
+                using var response = await client.DeleteAsync(url, cancellationToken);
 
                 if (response.IsSuccessStatusCode)
                 {

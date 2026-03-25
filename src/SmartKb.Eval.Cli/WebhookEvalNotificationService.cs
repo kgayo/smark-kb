@@ -38,7 +38,7 @@ public sealed class WebhookEvalNotificationService : IEvalNotificationService, I
 
         try
         {
-            var response = await _httpClient.PostAsync(_settings.WebhookUrl, content, ct);
+            using var response = await _httpClient.PostAsync(_settings.WebhookUrl, content, ct);
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex) when (!ct.IsCancellationRequested)

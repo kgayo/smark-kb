@@ -12,18 +12,15 @@ public sealed class HttpChatOrchestratorClient : IChatOrchestrator, IDisposable
 {
     private readonly HttpClient _httpClient;
     private readonly string _baseUrl;
-
+    private readonly string? _apiToken;
     private readonly bool _ownsHttpClient;
 
     public HttpChatOrchestratorClient(string baseUrl, string? apiToken = null, HttpClient? httpClient = null)
     {
         _baseUrl = baseUrl.TrimEnd('/');
+        _apiToken = apiToken;
         _ownsHttpClient = httpClient is null;
         _httpClient = httpClient ?? new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
-
-        if (!string.IsNullOrEmpty(apiToken))
-            _httpClient.DefaultRequestHeaders.Authorization =
-                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiToken);
     }
 
     public async Task<ChatResponse> OrchestrateAsync(
@@ -33,13 +30,17 @@ public sealed class HttpChatOrchestratorClient : IChatOrchestrator, IDisposable
         ChatRequest request,
         CancellationToken cancellationToken = default)
     {
-        _httpClient.DefaultRequestHeaders.Remove("X-Tenant-Id");
-        _httpClient.DefaultRequestHeaders.Remove("X-Correlation-Id");
-        _httpClient.DefaultRequestHeaders.Add("X-Tenant-Id", tenantId);
-        _httpClient.DefaultRequestHeaders.Add("X-Correlation-Id", correlationId);
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/api/chat")
+        {
+            Content = JsonContent.Create(request, options: SharedJsonOptions.CamelCase)
+        };
+        httpRequest.Headers.Add("X-Tenant-Id", tenantId);
+        httpRequest.Headers.Add("X-Correlation-Id", correlationId);
+        if (!string.IsNullOrEmpty(_apiToken))
+            httpRequest.Headers.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _apiToken);
 
-        var response = await _httpClient.PostAsJsonAsync(
-            $"{_baseUrl}/api/chat", request, SharedJsonOptions.CamelCase, cancellationToken);
+        using var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
 
         response.EnsureSuccessStatusCode();
 
