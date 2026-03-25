@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Http;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -542,6 +544,315 @@ public class SyncJobProcessorTests : IDisposable
         Assert.True(result);
     }
 
+    [Fact]
+    public async Task ProcessAsync_ResolvesOAuthToken_WhenAuthTypeIsOAuth()
+    {
+        var connector = CreateConnector("tenant-1");
+        connector.KeyVaultSecretName = "oauth-secret";
+        connector.AuthType = SecretAuthType.OAuth;
+        var syncRun = CreateSyncRun(connector, SyncRunStatus.Pending);
+        await _db.SaveChangesAsync();
+
+        var client = new CapturingConnectorClient(new FetchResult
+        {
+            Records = [],
+            FailedRecords = 0,
+            Errors = [],
+            HasMore = false,
+        });
+
+        var oauthService = new FakeOAuthTokenService("resolved-access-token");
+        var processor = new SyncJobProcessor(_db, [client], _auditWriter, _pipeline, _logger,
+            oauthTokenService: oauthService);
+        var message = CreateMessage(syncRun, connector) with
+        {
+            KeyVaultSecretName = "oauth-secret",
+            AuthType = SecretAuthType.OAuth,
+        };
+
+        var result = await processor.ProcessAsync(message, CancellationToken.None);
+
+        Assert.True(result);
+        Assert.Equal("resolved-access-token", client.LastSecretValue);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_FailsRun_WhenOAuthTokenReturnsNull()
+    {
+        var connector = CreateConnector("tenant-1");
+        connector.KeyVaultSecretName = "oauth-secret";
+        connector.AuthType = SecretAuthType.OAuth;
+        var syncRun = CreateSyncRun(connector, SyncRunStatus.Pending);
+        await _db.SaveChangesAsync();
+
+        var client = new FakeConnectorClient(new FetchResult
+        {
+            Records = [],
+            FailedRecords = 0,
+            Errors = [],
+            HasMore = false,
+        });
+
+        var oauthService = new FakeOAuthTokenService(null);
+        var processor = new SyncJobProcessor(_db, [client], _auditWriter, _pipeline, _logger,
+            oauthTokenService: oauthService);
+        var message = CreateMessage(syncRun, connector) with
+        {
+            KeyVaultSecretName = "oauth-secret",
+            AuthType = SecretAuthType.OAuth,
+        };
+
+        var result = await processor.ProcessAsync(message, CancellationToken.None);
+
+        Assert.False(result);
+        var updated = await _db.SyncRuns.FirstAsync(s => s.Id == syncRun.Id);
+        Assert.Equal(SyncRunStatus.Failed, updated.Status);
+        Assert.Contains("OAuth token resolution failed", updated.ErrorDetail);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_PropagatesCancellation()
+    {
+        var connector = CreateConnector("tenant-1");
+        var syncRun = CreateSyncRun(connector, SyncRunStatus.Pending);
+        await _db.SaveChangesAsync();
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // FetchAsync will throw OperationCanceledException because the token is already cancelled.
+        var client = new FakeConnectorClient(throwOnFetch: new OperationCanceledException(cts.Token));
+        var processor = CreateProcessor(client);
+        var message = CreateMessage(syncRun, connector);
+
+        await Assert.ThrowsAsync<OperationCanceledException>(
+            () => processor.ProcessAsync(message, cts.Token));
+
+        // SyncRun should remain Running (not Failed) for retry on restart.
+        var updated = await _db.SyncRuns.FirstAsync(s => s.Id == syncRun.Id);
+        Assert.Equal(SyncRunStatus.Running, updated.Status);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_AppliesRoutingTags_WhenResolverConfigured()
+    {
+        var connector = CreateConnector("tenant-1");
+        var syncRun = CreateSyncRun(connector, SyncRunStatus.Pending);
+        await _db.SaveChangesAsync();
+
+        var record = CreateRecord();
+        var client = new FakeConnectorClient(new FetchResult
+        {
+            Records = [record],
+            FailedRecords = 0,
+            Errors = [],
+            NewCheckpoint = "cp-1",
+            HasMore = false,
+        });
+
+        var resolver = new FakeRoutingTagResolver("injected-tag");
+        var processor = new SyncJobProcessor(_db, [client], _auditWriter, _pipeline, _logger,
+            routingTagResolver: resolver);
+        var message = CreateMessage(syncRun, connector);
+
+        var result = await processor.ProcessAsync(message, CancellationToken.None);
+
+        Assert.True(result);
+        Assert.Equal(1, resolver.CallCount);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_UpsertsExistingChunk_WithReprocessedAt()
+    {
+        var connector = CreateConnector("tenant-1");
+        var syncRun = CreateSyncRun(connector, SyncRunStatus.Pending);
+        await _db.SaveChangesAsync();
+
+        var record = CreateRecord();
+        var client = new FakeConnectorClient(new FetchResult
+        {
+            Records = [record],
+            FailedRecords = 0,
+            Errors = [],
+            NewCheckpoint = "cp-1",
+            HasMore = false,
+        });
+
+        // First run: insert chunks.
+        var processor = CreateProcessor(client);
+        var message = CreateMessage(syncRun, connector);
+        await processor.ProcessAsync(message, CancellationToken.None);
+
+        var firstChunk = await _db.EvidenceChunks.FirstAsync();
+        var originalCreatedAt = firstChunk.CreatedAt;
+        Assert.Null(firstChunk.ReprocessedAt);
+
+        // Second run uses a fresh DbContext to avoid EF tracking conflict.
+        var options = new DbContextOptionsBuilder<SmartKbDbContext>()
+            .UseSqlite(_connection)
+            .Options;
+        using var db2 = new SmartKbDbContext(options);
+
+        var syncRun2 = new SyncRunEntity
+        {
+            Id = Guid.NewGuid(),
+            ConnectorId = connector.Id,
+            TenantId = connector.TenantId,
+            Status = SyncRunStatus.Pending,
+            IsBackfill = false,
+            StartedAt = DateTimeOffset.UtcNow,
+            IdempotencyKey = Guid.NewGuid().ToString(),
+        };
+        db2.SyncRuns.Add(syncRun2);
+        await db2.SaveChangesAsync();
+
+        var client2 = new FakeConnectorClient(new FetchResult
+        {
+            Records = [record],
+            FailedRecords = 0,
+            Errors = [],
+            NewCheckpoint = "cp-2",
+            HasMore = false,
+        });
+        var pipeline2 = new NormalizationPipeline(
+            new TextChunkingService(),
+            new EnhancedEnrichmentService(),
+            new ChunkingSettings(),
+            new LoggerFactory().CreateLogger<NormalizationPipeline>());
+        var processor2 = new SyncJobProcessor(db2, [client2], _auditWriter, pipeline2, _logger);
+        var message2 = CreateMessage(syncRun2, connector);
+        await processor2.ProcessAsync(message2, CancellationToken.None);
+
+        // Chunk should be updated (ReprocessedAt set), not duplicated.
+        var chunks = await db2.EvidenceChunks.Where(c => c.EvidenceId == record.EvidenceId).ToListAsync();
+        Assert.All(chunks, c =>
+        {
+            Assert.NotNull(c.ReprocessedAt);
+            Assert.Equal(originalCreatedAt, c.CreatedAt);
+        });
+    }
+
+    [Fact]
+    public async Task ProcessAsync_TruncatesErrorDetail_WhenExceedsMaxLength()
+    {
+        var connector = CreateConnector("tenant-1");
+        var syncRun = CreateSyncRun(connector, SyncRunStatus.Pending);
+        await _db.SaveChangesAsync();
+
+        var longError = new string('X', 5000);
+        var client = new FakeConnectorClient(throwOnFetch: new InvalidOperationException(longError));
+        var processor = CreateProcessor(client);
+        var message = CreateMessage(syncRun, connector);
+
+        await processor.ProcessAsync(message, CancellationToken.None);
+
+        var updated = await _db.SyncRuns.FirstAsync(s => s.Id == syncRun.Id);
+        Assert.Equal(SyncRunStatus.Failed, updated.Status);
+        Assert.Equal(4000, updated.ErrorDetail!.Length);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_RecordsRateLimitEvent_OnHttp429()
+    {
+        var connector = CreateConnector("tenant-1");
+        var syncRun = CreateSyncRun(connector, SyncRunStatus.Pending);
+        await _db.SaveChangesAsync();
+
+        var client = new FakeConnectorClient(throwOnFetch:
+            new HttpRequestException("Rate limited", null, System.Net.HttpStatusCode.TooManyRequests));
+        var rateLimitService = new FakeRateLimitAlertService();
+        var processor = new SyncJobProcessor(_db, [client], _auditWriter, _pipeline, _logger,
+            rateLimitAlertService: rateLimitService);
+        var message = CreateMessage(syncRun, connector);
+
+        var result = await processor.ProcessAsync(message, CancellationToken.None);
+
+        Assert.False(result);
+        Assert.Equal(1, rateLimitService.RecordedEvents);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_ReturnsFalse_WhenSyncRunBelongsToOtherTenant()
+    {
+        SeedTenant("tenant-2");
+        var connector = CreateConnector("tenant-2");
+        var syncRun = CreateSyncRun(connector, SyncRunStatus.Pending);
+        await _db.SaveChangesAsync();
+
+        var processor = CreateProcessor();
+        // Message claims tenant-1 but SyncRun belongs to tenant-2.
+        var message = new SyncJobMessage
+        {
+            SyncRunId = syncRun.Id,
+            ConnectorId = connector.Id,
+            TenantId = "tenant-1",
+            ConnectorType = ConnectorType.AzureDevOps,
+            IsBackfill = false,
+            CorrelationId = "corr-1",
+            EnqueuedAt = DateTimeOffset.UtcNow,
+        };
+
+        var result = await processor.ProcessAsync(message, CancellationToken.None);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_CapsErrorsAt50InErrorDetail()
+    {
+        var connector = CreateConnector("tenant-1");
+        var syncRun = CreateSyncRun(connector, SyncRunStatus.Pending);
+        await _db.SaveChangesAsync();
+
+        var errors = Enumerable.Range(1, 75).Select(i => $"Error #{i}").ToList();
+        var client = new FakeConnectorClient(new FetchResult
+        {
+            Records = [CreateRecord()],
+            FailedRecords = 75,
+            Errors = errors,
+            NewCheckpoint = "cp-1",
+            HasMore = false,
+        });
+
+        var processor = CreateProcessor(client);
+        var message = CreateMessage(syncRun, connector);
+
+        await processor.ProcessAsync(message, CancellationToken.None);
+
+        var updated = await _db.SyncRuns.FirstAsync(s => s.Id == syncRun.Id);
+        Assert.NotNull(updated.ErrorDetail);
+        // Only first 50 errors should be serialized.
+        Assert.Contains("Error #50", updated.ErrorDetail);
+        Assert.DoesNotContain("Error #51", updated.ErrorDetail);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_CompletesWithZeroRecords()
+    {
+        var connector = CreateConnector("tenant-1");
+        var syncRun = CreateSyncRun(connector, SyncRunStatus.Pending);
+        await _db.SaveChangesAsync();
+
+        var client = new FakeConnectorClient(new FetchResult
+        {
+            Records = [],
+            FailedRecords = 0,
+            Errors = [],
+            HasMore = false,
+        });
+
+        var processor = CreateProcessor(client);
+        var message = CreateMessage(syncRun, connector);
+
+        var result = await processor.ProcessAsync(message, CancellationToken.None);
+
+        Assert.True(result);
+        var updated = await _db.SyncRuns.FirstAsync(s => s.Id == syncRun.Id);
+        Assert.Equal(SyncRunStatus.Completed, updated.Status);
+        Assert.Equal(0, updated.RecordsProcessed);
+        Assert.Empty(await _db.EvidenceChunks.ToListAsync());
+    }
+
     // --- Helpers ---
 
     private void SeedTenant(string tenantId)
@@ -736,6 +1047,70 @@ internal class FakeSecretProvider : ISecretProvider
 
     public Task<SecretProperties?> GetSecretPropertiesAsync(string secretName, CancellationToken cancellationToken = default)
         => Task.FromResult<SecretProperties?>(new SecretProperties(secretName, DateTimeOffset.UtcNow, null, null, true));
+}
+
+internal class CapturingConnectorClient : IConnectorClient
+{
+    private readonly FetchResult _result;
+    public string? LastSecretValue { get; private set; }
+
+    public CapturingConnectorClient(FetchResult result) => _result = result;
+
+    public ConnectorType Type => ConnectorType.AzureDevOps;
+
+    public Task<TestConnectionResponse> TestConnectionAsync(string tenantId, string? sourceConfig, string? secretValue, CancellationToken cancellationToken = default)
+        => Task.FromResult(new TestConnectionResponse { Success = true, Message = "OK" });
+
+    public Task<IReadOnlyList<CanonicalRecord>> PreviewAsync(string tenantId, string? sourceConfig, FieldMappingConfig? fieldMapping, string? secretValue, int sampleSize, CancellationToken cancellationToken = default)
+        => Task.FromResult<IReadOnlyList<CanonicalRecord>>([]);
+
+    public Task<FetchResult> FetchAsync(string tenantId, string? sourceConfig, FieldMappingConfig? fieldMapping, string? secretValue, string? checkpoint, bool isBackfill, CancellationToken cancellationToken = default)
+    {
+        LastSecretValue = secretValue;
+        return Task.FromResult(_result);
+    }
+}
+
+internal class FakeOAuthTokenService : IOAuthTokenService
+{
+    private readonly string? _token;
+
+    public FakeOAuthTokenService(string? token) => _token = token;
+
+    public string BuildAuthorizeUrl(ConnectorType connectorType, Guid connectorId, string tenantId, string? sourceConfig) => "https://example.com/auth";
+    public bool ValidateState(string state, Guid connectorId, string tenantId) => false;
+    public Task<bool> ExchangeCodeAsync(Guid connectorId, string tenantId, string code, string kvSecretName, string? sourceConfig, ConnectorType connectorType, CancellationToken ct = default) => Task.FromResult(false);
+    public Task<string?> ResolveAccessTokenAsync(string kvSecretName, string? sourceConfig, ConnectorType connectorType, CancellationToken ct = default) => Task.FromResult(_token);
+}
+
+internal class FakeRoutingTagResolver : IRoutingTagResolver
+{
+    private readonly string _tag;
+    public int CallCount { get; private set; }
+
+    public FakeRoutingTagResolver(string tag) => _tag = tag;
+
+    public CanonicalRecord ApplyRoutingTags(CanonicalRecord record, FieldMappingConfig? mapping) => record;
+
+    public IReadOnlyList<CanonicalRecord> ApplyRoutingTagsBatch(IReadOnlyList<CanonicalRecord> records, FieldMappingConfig? mapping)
+    {
+        CallCount++;
+        return records.Select(r => r with { Tags = r.Tags.Append(_tag).ToList() }).ToList();
+    }
+}
+
+internal class FakeRateLimitAlertService : IRateLimitAlertService
+{
+    public int RecordedEvents { get; private set; }
+
+    public Task RecordRateLimitEventAsync(string tenantId, Guid connectorId, string connectorType, CancellationToken ct = default)
+    {
+        RecordedEvents++;
+        return Task.CompletedTask;
+    }
+
+    public Task<RateLimitAlertSummary> GetRateLimitAlertsAsync(string tenantId, CancellationToken ct = default)
+        => Task.FromResult(new RateLimitAlertSummary(0, []));
 }
 
 internal class FakeIndexingService : IIndexingService
