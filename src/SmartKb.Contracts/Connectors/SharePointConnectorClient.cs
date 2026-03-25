@@ -358,7 +358,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
         // Build path for context.
         var parentPath = item.ParentReference?.Path;
         var folderPath = parentPath is not null
-            ? parentPath.Contains(":/") ? parentPath[(parentPath.IndexOf(":/") + 2)..] : parentPath
+            ? parentPath.Contains(":/", StringComparison.Ordinal) ? parentPath[(parentPath.IndexOf(":/", StringComparison.Ordinal) + 2)..] : parentPath
             : "";
 
         var author = item.LastModifiedBy?.User?.DisplayName;
@@ -601,7 +601,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
         if (parentPath is null) return false;
 
         // Extract relative path after "root:".
-        var colonIndex = parentPath.IndexOf(":/");
+        var colonIndex = parentPath.IndexOf(":/", StringComparison.Ordinal);
         var relativePath = colonIndex >= 0 ? parentPath[(colonIndex + 2)..] : parentPath;
 
         return config.ExcludeFolders.Any(f =>

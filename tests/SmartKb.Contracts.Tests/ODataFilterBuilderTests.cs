@@ -263,6 +263,13 @@ public class ODataFilterBuilderTests
         Assert.Contains("'value1,value2'", result);
     }
 
+    [Fact]
+    public void EscapeODataValue_UnicodeChars_Unchanged()
+    {
+        // Verify ordinal comparison doesn't alter Unicode content
+        Assert.Equal("café''s", ODataFilterBuilder.EscapeODataValue("café's"));
+    }
+
     #endregion
 
     #region RetrievalFilter.IsEmpty

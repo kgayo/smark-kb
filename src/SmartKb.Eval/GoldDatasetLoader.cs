@@ -78,7 +78,7 @@ public static class GoldDatasetLoader
 
         if (string.IsNullOrWhiteSpace(evalCase.Id))
             errors.Add($"{prefix}Id is required");
-        else if (!evalCase.Id.StartsWith("eval-") || evalCase.Id.Length != 10)
+        else if (!evalCase.Id.StartsWith("eval-", StringComparison.Ordinal) || evalCase.Id.Length != 10)
             errors.Add($"{prefix}Id must match format eval-NNNNN (got '{evalCase.Id}')");
 
         if (string.IsNullOrWhiteSpace(evalCase.TenantId))

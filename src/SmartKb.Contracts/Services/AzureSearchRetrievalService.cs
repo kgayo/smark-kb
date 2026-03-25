@@ -314,7 +314,7 @@ public sealed class AzureSearchRetrievalService : IRetrievalService
 
     /// <summary>Escapes single quotes in OData filter values.</summary>
     internal static string EscapeODataValue(string value) =>
-        value.Replace("'", "''");
+        value.Replace("'", "''", StringComparison.Ordinal);
 }
 
 /// <summary>

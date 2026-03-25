@@ -360,6 +360,20 @@ public class SynonymMapServiceTests : IDisposable
         Assert.False(result.IsValid);
     }
 
+    [Fact]
+    public void ValidateRule_UnicodeExplicitMapping_Valid()
+    {
+        var result = SynonymMapService.ValidateRule("Ärger => anger");
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void ValidateRule_UnicodeEquivalent_Valid()
+    {
+        var result = SynonymMapService.ValidateRule("café, coffee shop");
+        Assert.True(result.IsValid);
+    }
+
     // --- Default rules ---
 
     [Fact]

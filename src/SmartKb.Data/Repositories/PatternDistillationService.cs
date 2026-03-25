@@ -145,8 +145,8 @@ public sealed class PatternDistillationService : IPatternDistillationService
             .ToListAsync(ct);
 
         var distilledSessionIds = existingPatternSessions
-            .Where(url => url.StartsWith("session://"))
-            .Select(url => url.Replace("session://", ""))
+            .Where(url => url.StartsWith("session://", StringComparison.Ordinal))
+            .Select(url => url.Replace("session://", "", StringComparison.Ordinal))
             .Where(id => Guid.TryParse(id, out _))
             .Select(Guid.Parse)
             .ToHashSet();

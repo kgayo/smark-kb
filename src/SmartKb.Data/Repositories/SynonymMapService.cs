@@ -319,7 +319,7 @@ public sealed class SynonymMapService : ISynonymMapService
 
         // Solr synonym format: either "term1, term2, term3" (equivalent) or "term1 => term2" (explicit).
         var trimmed = rule.Trim();
-        if (trimmed.Contains("=>"))
+        if (trimmed.Contains("=>", StringComparison.Ordinal))
         {
             var parts = trimmed.Split("=>", 2);
             if (string.IsNullOrWhiteSpace(parts[0]) || string.IsNullOrWhiteSpace(parts[1]))

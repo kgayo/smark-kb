@@ -485,7 +485,7 @@ public sealed class FusedRetrievalService : IRetrievalService
     }
 
     internal static string EscapeODataValue(string value) =>
-        value.Replace("'", "''");
+        value.Replace("'", "''", StringComparison.Ordinal);
 }
 
 /// <summary>

@@ -89,9 +89,9 @@ public static class ODataFilterBuilder
     }
 
     /// <summary>Escapes single quotes in OData filter values.</summary>
-    public static string EscapeODataValue(string value) => value.Replace("'", "''");
+    public static string EscapeODataValue(string value) => value.Replace("'", "''", StringComparison.Ordinal);
 
     /// <summary>Escapes values for search.in() delimiter-separated list (single quotes and commas).</summary>
     private static string EscapeODataSearchInValue(string value) =>
-        value.Replace("'", "''").Replace(",", "");
+        value.Replace("'", "''", StringComparison.Ordinal).Replace(",", "", StringComparison.Ordinal);
 }
