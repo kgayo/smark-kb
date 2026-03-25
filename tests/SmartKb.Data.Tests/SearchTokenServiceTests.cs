@@ -1,7 +1,9 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
 using SmartKb.Data.Entities;
+using SmartKb.Data.Exceptions;
 using SmartKb.Data.Repositories;
 
 namespace SmartKb.Data.Tests;
@@ -382,6 +384,38 @@ public class SearchTokenServiceTests : IDisposable
         await _service.CreateSpecialTokenAsync(TenantId, ActorId, CorrelationId, new CreateSpecialTokenRequest { Token = "BSOD" });
 
         Assert.Contains(_auditWriter.Events, e => e.EventType == "search.special_token.created");
+    }
+
+    [Fact]
+    public async Task UpdateStopWord_ConcurrentModification_ThrowsConcurrencyConflictException()
+    {
+        var (created, _) = await _service.CreateStopWordAsync(
+            TenantId, ActorId, CorrelationId, new CreateStopWordRequest { Word = "hello" });
+
+        var entity = await _db.StopWords.FirstAsync(s => s.Id == created!.Id);
+        await _db.Database.ExecuteSqlRawAsync(
+            "UPDATE StopWords SET UpdatedAt = {0} WHERE Id = {1}",
+            entity.UpdatedAt.AddMinutes(5), entity.Id);
+
+        await Assert.ThrowsAsync<ConcurrencyConflictException>(() =>
+            _service.UpdateStopWordAsync(TenantId, ActorId, CorrelationId, created!.Id,
+                new UpdateStopWordRequest { GroupName = "updated" }));
+    }
+
+    [Fact]
+    public async Task UpdateSpecialToken_ConcurrentModification_ThrowsConcurrencyConflictException()
+    {
+        var (created, _) = await _service.CreateSpecialTokenAsync(
+            TenantId, ActorId, CorrelationId, new CreateSpecialTokenRequest { Token = "BSOD" });
+
+        var entity = await _db.SpecialTokens.FirstAsync(s => s.Id == created!.Id);
+        await _db.Database.ExecuteSqlRawAsync(
+            "UPDATE SpecialTokens SET UpdatedAt = {0} WHERE Id = {1}",
+            entity.UpdatedAt.AddMinutes(5), entity.Id);
+
+        await Assert.ThrowsAsync<ConcurrencyConflictException>(() =>
+            _service.UpdateSpecialTokenAsync(TenantId, ActorId, CorrelationId, created!.Id,
+                new UpdateSpecialTokenRequest { Category = "updated" }));
     }
 
     // ==================== Test Helpers ====================

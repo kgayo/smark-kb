@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using SmartKb.Contracts;
 using SmartKb.Contracts.Models;
@@ -227,6 +228,29 @@ public class PiiPolicyServiceTests : IDisposable
         Assert.NotNull(result);
         Assert.Equal("redact", result!.EnforcementMode);
         Assert.Empty(result.CustomPatterns); // Malformed JSON falls back to empty.
+    }
+
+    [Fact]
+    public async Task UpdatedAt_IsConcurrencyToken_DetectsConflict()
+    {
+        await _service.UpsertPolicyAsync("t1", new PiiPolicyUpdateRequest
+        {
+            EnforcementMode = "redact",
+            EnabledPiiTypes = ["email"],
+            AuditRedactions = true,
+        }, "actor", default);
+
+        var entity = await _db.PiiPolicies.FirstAsync(p => p.TenantId == "t1");
+
+        await _db.Database.ExecuteSqlRawAsync(
+            "UPDATE PiiPolicies SET UpdatedAt = {0} WHERE TenantId = 't1'",
+            entity.UpdatedAt.AddMinutes(5));
+
+        entity.EnforcementMode = "detect";
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(
+            () => _db.SaveChangesAsync());
     }
 
     private sealed class StubAuditWriter : IAuditEventWriter

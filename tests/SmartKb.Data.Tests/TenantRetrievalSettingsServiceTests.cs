@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Models;
@@ -165,5 +166,25 @@ public class TenantRetrievalSettingsServiceTests : IDisposable
             new UpdateRetrievalSettingsRequest { EnableSemanticReranking = false });
 
         Assert.False(result.EnableSemanticReranking);
+    }
+
+    [Fact]
+    public async Task UpdatedAt_IsConcurrencyToken_DetectsConflict()
+    {
+        await _service.UpdateSettingsAsync("tenant-1",
+            new UpdateRetrievalSettingsRequest { TopK = 30 });
+
+        var entity = await _db.TenantRetrievalSettings.FirstAsync(s => s.TenantId == "tenant-1");
+
+        // Simulate concurrent modification behind EF Core's back.
+        await _db.Database.ExecuteSqlRawAsync(
+            "UPDATE TenantRetrievalSettings SET UpdatedAt = {0} WHERE TenantId = 'tenant-1'",
+            entity.UpdatedAt.AddMinutes(5));
+
+        entity.PatternTopK = 10;
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(
+            () => _db.SaveChangesAsync());
     }
 }

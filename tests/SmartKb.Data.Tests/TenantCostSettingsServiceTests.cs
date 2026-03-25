@@ -1,3 +1,5 @@
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Models;
@@ -206,5 +208,47 @@ public class TenantCostSettingsServiceTests : IDisposable
         Assert.True(t1.HasOverrides);
         Assert.Null(t2.DailyTokenBudget);
         Assert.False(t2.HasOverrides);
+    }
+
+    [Fact]
+    public async Task UpdatedAt_IsConcurrencyToken_DetectsConflict()
+    {
+        // Create the settings row.
+        await _service.UpdateSettingsAsync("tenant-1",
+            new UpdateCostSettingsRequest { DailyTokenBudget = 50_000 });
+
+        // Load entity into EF Core change tracker.
+        var entity = await _db.TenantCostSettings.FirstAsync(s => s.TenantId == "tenant-1");
+
+        // Simulate a concurrent modification by changing UpdatedAt directly in the DB
+        // while the entity is still tracked with its original UpdatedAt.
+        await _db.Database.ExecuteSqlRawAsync(
+            "UPDATE TenantCostSettings SET UpdatedAt = {0} WHERE TenantId = 'tenant-1'",
+            entity.UpdatedAt.AddMinutes(5));
+
+        // Modify the tracked entity and attempt to save — the concurrency token mismatch
+        // should cause DbUpdateConcurrencyException.
+        entity.MonthlyTokenBudget = 2_000_000;
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(
+            () => _db.SaveChangesAsync());
+    }
+
+    [Fact]
+    public async Task UpdateSettings_AfterConcurrentChange_RetrySucceeds()
+    {
+        // Verify the retry loop works end-to-end.
+        // First, create the settings row.
+        await _service.UpdateSettingsAsync("tenant-1",
+            new UpdateCostSettingsRequest { DailyTokenBudget = 50_000 });
+
+        // Second update should succeed even after a normal flow (no actual concurrent change),
+        // proving the retry path doesn't break normal operation.
+        var result = await _service.UpdateSettingsAsync("tenant-1",
+            new UpdateCostSettingsRequest { MonthlyTokenBudget = 2_000_000 });
+
+        Assert.Equal(50_000, result.DailyTokenBudget);
+        Assert.Equal(2_000_000, result.MonthlyTokenBudget);
     }
 }

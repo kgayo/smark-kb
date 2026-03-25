@@ -446,6 +446,7 @@ public class SmartKbDbContext : DbContext
             e.ToTable("TenantRetrievalSettings");
             e.HasKey(s => s.Id);
             e.Property(s => s.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(s => s.UpdatedAt).IsConcurrencyToken();
             e.HasIndex(s => s.TenantId).IsUnique();
             e.HasOne(s => s.Tenant).WithMany().HasForeignKey(s => s.TenantId);
         });
@@ -484,6 +485,7 @@ public class SmartKbDbContext : DbContext
             e.Property(p => p.EnforcementMode).HasMaxLength(32).IsRequired();
             e.Property(p => p.EnabledPiiTypes).HasMaxLength(512).IsRequired();
             e.Property(p => p.CustomPatternsJson).IsRequired();
+            e.Property(p => p.UpdatedAt).IsConcurrencyToken();
             e.HasIndex(p => p.TenantId).IsUnique();
             e.HasOne(p => p.Tenant).WithMany().HasForeignKey(p => p.TenantId);
         });
@@ -553,6 +555,7 @@ public class SmartKbDbContext : DbContext
             e.ToTable("TenantCostSettings");
             e.HasKey(s => s.Id);
             e.Property(s => s.TenantId).HasMaxLength(128).IsRequired();
+            e.Property(s => s.UpdatedAt).IsConcurrencyToken();
             e.HasIndex(s => s.TenantId).IsUnique();
             e.HasOne(s => s.Tenant).WithMany().HasForeignKey(s => s.TenantId);
         });
@@ -648,6 +651,7 @@ public class SmartKbDbContext : DbContext
             e.Property(s => s.Description).HasMaxLength(512);
             e.Property(s => s.CreatedBy).HasMaxLength(128).IsRequired();
             e.Property(s => s.UpdatedBy).HasMaxLength(128);
+            e.Property(s => s.UpdatedAt).IsConcurrencyToken();
             e.HasIndex(s => s.TenantId);
             e.HasIndex(s => new { s.TenantId, s.GroupName });
             e.HasOne(s => s.Tenant).WithMany().HasForeignKey(s => s.TenantId);
@@ -753,6 +757,7 @@ public class SmartKbDbContext : DbContext
             e.Property(s => s.Word).HasMaxLength(128).IsRequired();
             e.Property(s => s.GroupName).HasMaxLength(128).IsRequired();
             e.Property(s => s.CreatedBy).HasMaxLength(128).IsRequired();
+            e.Property(s => s.UpdatedAt).IsConcurrencyToken();
             e.HasIndex(s => s.TenantId);
             e.HasIndex(s => new { s.TenantId, s.Word }).IsUnique();
             e.HasOne(s => s.Tenant).WithMany().HasForeignKey(s => s.TenantId);
@@ -770,6 +775,7 @@ public class SmartKbDbContext : DbContext
             e.Property(s => s.Category).HasMaxLength(128).IsRequired();
             e.Property(s => s.Description).HasMaxLength(512);
             e.Property(s => s.CreatedBy).HasMaxLength(128).IsRequired();
+            e.Property(s => s.UpdatedAt).IsConcurrencyToken();
             e.HasIndex(s => s.TenantId);
             e.HasIndex(s => new { s.TenantId, s.Token }).IsUnique();
             e.HasOne(s => s.Tenant).WithMany().HasForeignKey(s => s.TenantId);

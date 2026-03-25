@@ -59,43 +59,56 @@ public sealed class PiiPolicyService : IPiiPolicyService
             }
         }
 
-        var now = DateTimeOffset.UtcNow;
-        var entity = await _db.PiiPolicies
-            .FirstOrDefaultAsync(p => p.TenantId == tenantId, ct);
-
-        if (entity is null)
+        const int maxRetries = 1;
+        for (var attempt = 0; ; attempt++)
         {
-            entity = new PiiPolicyEntity
+            var now = DateTimeOffset.UtcNow;
+            var entity = await _db.PiiPolicies
+                .FirstOrDefaultAsync(p => p.TenantId == tenantId, ct);
+
+            if (entity is null)
             {
-                Id = Guid.NewGuid(),
-                TenantId = tenantId,
-                CreatedAt = now,
-            };
-            _db.PiiPolicies.Add(entity);
+                entity = new PiiPolicyEntity
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = tenantId,
+                    CreatedAt = now,
+                };
+                _db.PiiPolicies.Add(entity);
+            }
+
+            entity.EnforcementMode = request.EnforcementMode;
+            entity.EnabledPiiTypes = string.Join(",", request.EnabledPiiTypes);
+            entity.CustomPatternsJson = JsonSerializer.Serialize(request.CustomPatterns ?? [], SharedJsonOptions.CamelCaseWrite);
+            entity.AuditRedactions = request.AuditRedactions;
+            entity.UpdatedAt = now;
+
+            try
+            {
+                await _db.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateConcurrencyException) when (attempt < maxRetries)
+            {
+                _logger.LogWarning("Concurrency conflict updating PII policy for tenant {TenantId}, retrying.", tenantId);
+                ReloadTrackedEntities();
+                continue;
+            }
+
+            _logger.LogInformation(
+                "PII policy updated. TenantId={TenantId} Mode={Mode} Types={Types}",
+                tenantId, request.EnforcementMode, entity.EnabledPiiTypes);
+
+            await _auditWriter.WriteAsync(new AuditEvent(
+                EventId: Guid.NewGuid().ToString(),
+                EventType: AuditEventTypes.PiiPolicyUpdated,
+                TenantId: tenantId,
+                ActorId: actorId,
+                CorrelationId: Guid.NewGuid().ToString(),
+                Timestamp: now,
+                Detail: $"PII policy updated: mode={request.EnforcementMode}, types={entity.EnabledPiiTypes}, auditRedactions={request.AuditRedactions}"), ct);
+
+            return ToResponse(entity);
         }
-
-        entity.EnforcementMode = request.EnforcementMode;
-        entity.EnabledPiiTypes = string.Join(",", request.EnabledPiiTypes);
-        entity.CustomPatternsJson = JsonSerializer.Serialize(request.CustomPatterns ?? [], SharedJsonOptions.CamelCaseWrite);
-        entity.AuditRedactions = request.AuditRedactions;
-        entity.UpdatedAt = now;
-
-        await _db.SaveChangesAsync(ct);
-
-        _logger.LogInformation(
-            "PII policy updated. TenantId={TenantId} Mode={Mode} Types={Types}",
-            tenantId, request.EnforcementMode, entity.EnabledPiiTypes);
-
-        await _auditWriter.WriteAsync(new AuditEvent(
-            EventId: Guid.NewGuid().ToString(),
-            EventType: AuditEventTypes.PiiPolicyUpdated,
-            TenantId: tenantId,
-            ActorId: actorId,
-            CorrelationId: Guid.NewGuid().ToString(),
-            Timestamp: now,
-            Detail: $"PII policy updated: mode={request.EnforcementMode}, types={entity.EnabledPiiTypes}, auditRedactions={request.AuditRedactions}"), ct);
-
-        return ToResponse(entity);
     }
 
     public async Task<bool> DeletePolicyAsync(string tenantId, string actorId, CancellationToken ct = default)
@@ -120,6 +133,12 @@ public sealed class PiiPolicyService : IPiiPolicyService
             Detail: "PII policy deleted (reset to defaults)."), ct);
 
         return true;
+    }
+
+    private void ReloadTrackedEntities()
+    {
+        foreach (var entry in _db.ChangeTracker.Entries())
+            entry.Reload();
     }
 
     private PiiPolicyResponse ToResponse(PiiPolicyEntity entity)

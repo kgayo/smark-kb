@@ -4,6 +4,7 @@ using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
 using SmartKb.Data.Entities;
+using SmartKb.Data.Exceptions;
 
 namespace SmartKb.Data.Repositories;
 
@@ -37,42 +38,54 @@ public sealed class TenantCostSettingsService : ITenantCostSettingsService
     public async Task<CostSettingsResponse> UpdateSettingsAsync(
         string tenantId, UpdateCostSettingsRequest request, CancellationToken ct = default)
     {
-        var entity = await _db.TenantCostSettings
-            .FirstOrDefaultAsync(s => s.TenantId == tenantId, ct);
-
-        var now = DateTimeOffset.UtcNow;
-
-        if (entity is null)
+        const int maxRetries = 1;
+        for (var attempt = 0; ; attempt++)
         {
-            entity = new TenantCostSettingsEntity
+            var entity = await _db.TenantCostSettings
+                .FirstOrDefaultAsync(s => s.TenantId == tenantId, ct);
+
+            var now = DateTimeOffset.UtcNow;
+
+            if (entity is null)
             {
-                Id = Guid.NewGuid(),
-                TenantId = tenantId,
-                CreatedAt = now,
-                UpdatedAt = now,
-            };
-            _db.TenantCostSettings.Add(entity);
+                entity = new TenantCostSettingsEntity
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = tenantId,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                };
+                _db.TenantCostSettings.Add(entity);
+            }
+            else
+            {
+                entity.UpdatedAt = now;
+            }
+
+            if (request.DailyTokenBudget.HasValue) entity.DailyTokenBudget = request.DailyTokenBudget;
+            if (request.MonthlyTokenBudget.HasValue) entity.MonthlyTokenBudget = request.MonthlyTokenBudget;
+            if (request.MaxPromptTokensPerQuery.HasValue) entity.MaxPromptTokensPerQuery = request.MaxPromptTokensPerQuery;
+            if (request.MaxEvidenceChunksInPrompt.HasValue) entity.MaxEvidenceChunksInPrompt = request.MaxEvidenceChunksInPrompt;
+            if (request.EnableEmbeddingCache.HasValue) entity.EnableEmbeddingCache = request.EnableEmbeddingCache;
+            if (request.EmbeddingCacheTtlHours.HasValue) entity.EmbeddingCacheTtlHours = request.EmbeddingCacheTtlHours;
+            if (request.EnableRetrievalCompression.HasValue) entity.EnableRetrievalCompression = request.EnableRetrievalCompression;
+            if (request.MaxChunkCharsCompressed.HasValue) entity.MaxChunkCharsCompressed = request.MaxChunkCharsCompressed;
+            if (request.BudgetAlertThresholdPercent.HasValue) entity.BudgetAlertThresholdPercent = request.BudgetAlertThresholdPercent;
+
+            try
+            {
+                await _db.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateConcurrencyException) when (attempt < maxRetries)
+            {
+                _logger.LogWarning("Concurrency conflict updating cost settings for tenant {TenantId}, retrying.", tenantId);
+                ReloadTrackedEntities();
+                continue;
+            }
+
+            _logger.LogInformation("Tenant cost settings updated. TenantId={TenantId}", tenantId);
+            return BuildResponse(tenantId, entity);
         }
-        else
-        {
-            entity.UpdatedAt = now;
-        }
-
-        if (request.DailyTokenBudget.HasValue) entity.DailyTokenBudget = request.DailyTokenBudget;
-        if (request.MonthlyTokenBudget.HasValue) entity.MonthlyTokenBudget = request.MonthlyTokenBudget;
-        if (request.MaxPromptTokensPerQuery.HasValue) entity.MaxPromptTokensPerQuery = request.MaxPromptTokensPerQuery;
-        if (request.MaxEvidenceChunksInPrompt.HasValue) entity.MaxEvidenceChunksInPrompt = request.MaxEvidenceChunksInPrompt;
-        if (request.EnableEmbeddingCache.HasValue) entity.EnableEmbeddingCache = request.EnableEmbeddingCache;
-        if (request.EmbeddingCacheTtlHours.HasValue) entity.EmbeddingCacheTtlHours = request.EmbeddingCacheTtlHours;
-        if (request.EnableRetrievalCompression.HasValue) entity.EnableRetrievalCompression = request.EnableRetrievalCompression;
-        if (request.MaxChunkCharsCompressed.HasValue) entity.MaxChunkCharsCompressed = request.MaxChunkCharsCompressed;
-        if (request.BudgetAlertThresholdPercent.HasValue) entity.BudgetAlertThresholdPercent = request.BudgetAlertThresholdPercent;
-
-        await _db.SaveChangesAsync(ct);
-
-        _logger.LogInformation("Tenant cost settings updated. TenantId={TenantId}", tenantId);
-
-        return BuildResponse(tenantId, entity);
     }
 
     public async Task<bool> ResetSettingsAsync(string tenantId, CancellationToken ct = default)
@@ -106,5 +119,11 @@ public sealed class TenantCostSettingsService : ITenantCostSettingsService
             BudgetAlertThresholdPercent = entity?.BudgetAlertThresholdPercent ?? _defaults.BudgetAlertThresholdPercent,
             HasOverrides = entity is not null,
         };
+    }
+
+    private void ReloadTrackedEntities()
+    {
+        foreach (var entry in _db.ChangeTracker.Entries())
+            entry.Reload();
     }
 }

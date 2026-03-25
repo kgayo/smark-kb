@@ -2,6 +2,7 @@ using SmartKb.Api.Auth;
 using SmartKb.Api.Tenant;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
+using SmartKb.Data.Exceptions;
 using SmartKb.Data.Repositories;
 
 namespace SmartKb.Api.Endpoints;
@@ -66,16 +67,24 @@ public static class SearchTokenEndpoints
         {
             var tenant = tenantAccessor.Current!;
             var ct = httpContext.RequestAborted;
-            var (response, validation, notFound) = await service.UpdateAsync(
-                tenant.TenantId, tenant.UserId, tenant.CorrelationId, ruleId, request, ct);
 
-            if (notFound)
-                return Results.NotFound(ApiResponse<object>.Failure("Synonym rule not found.", tenant.CorrelationId));
-            if (validation is not null)
-                return Results.UnprocessableEntity(ApiResponse<SynonymRuleValidationResult>.Failure(
-                    string.Join("; ", validation.Errors), tenant.CorrelationId));
+            try
+            {
+                var (response, validation, notFound) = await service.UpdateAsync(
+                    tenant.TenantId, tenant.UserId, tenant.CorrelationId, ruleId, request, ct);
 
-            return Results.Ok(ApiResponse<SynonymRuleResponse>.Success(response!, tenant.CorrelationId));
+                if (notFound)
+                    return Results.NotFound(ApiResponse<object>.Failure("Synonym rule not found.", tenant.CorrelationId));
+                if (validation is not null)
+                    return Results.UnprocessableEntity(ApiResponse<SynonymRuleValidationResult>.Failure(
+                        string.Join("; ", validation.Errors), tenant.CorrelationId));
+
+                return Results.Ok(ApiResponse<SynonymRuleResponse>.Success(response!, tenant.CorrelationId));
+            }
+            catch (ConcurrencyConflictException ex)
+            {
+                return Results.Conflict(ApiResponse<object>.Failure(ex.Message, tenant.CorrelationId));
+            }
         }).RequirePermission("connector:manage");
 
         app.MapDelete("/api/admin/synonym-rules/{ruleId:guid}", async (
@@ -174,13 +183,21 @@ public static class SearchTokenEndpoints
         {
             var tenant = tenantAccessor.Current!;
             var ct = httpContext.RequestAborted;
-            var (response, validation, notFound) = await service.UpdateStopWordAsync(
-                tenant.TenantId, tenant.UserId, tenant.CorrelationId, id, request, ct);
-            if (notFound) return Results.NotFound();
-            if (validation is not null)
-                return Results.UnprocessableEntity(ApiResponse<object>.Fail(
-                    string.Join("; ", validation.Errors), tenant.CorrelationId));
-            return Results.Ok(ApiResponse<StopWordResponse>.Success(response!, tenant.CorrelationId));
+
+            try
+            {
+                var (response, validation, notFound) = await service.UpdateStopWordAsync(
+                    tenant.TenantId, tenant.UserId, tenant.CorrelationId, id, request, ct);
+                if (notFound) return Results.NotFound();
+                if (validation is not null)
+                    return Results.UnprocessableEntity(ApiResponse<object>.Fail(
+                        string.Join("; ", validation.Errors), tenant.CorrelationId));
+                return Results.Ok(ApiResponse<StopWordResponse>.Success(response!, tenant.CorrelationId));
+            }
+            catch (ConcurrencyConflictException ex)
+            {
+                return Results.Conflict(ApiResponse<object>.Failure(ex.Message, tenant.CorrelationId));
+            }
         }).RequirePermission("connector:manage");
 
         app.MapDelete("/api/admin/stop-words/{id:guid}", async (
@@ -263,13 +280,21 @@ public static class SearchTokenEndpoints
         {
             var tenant = tenantAccessor.Current!;
             var ct = httpContext.RequestAborted;
-            var (response, validation, notFound) = await service.UpdateSpecialTokenAsync(
-                tenant.TenantId, tenant.UserId, tenant.CorrelationId, id, request, ct);
-            if (notFound) return Results.NotFound();
-            if (validation is not null)
-                return Results.UnprocessableEntity(ApiResponse<object>.Fail(
-                    string.Join("; ", validation.Errors), tenant.CorrelationId));
-            return Results.Ok(ApiResponse<SpecialTokenResponse>.Success(response!, tenant.CorrelationId));
+
+            try
+            {
+                var (response, validation, notFound) = await service.UpdateSpecialTokenAsync(
+                    tenant.TenantId, tenant.UserId, tenant.CorrelationId, id, request, ct);
+                if (notFound) return Results.NotFound();
+                if (validation is not null)
+                    return Results.UnprocessableEntity(ApiResponse<object>.Fail(
+                        string.Join("; ", validation.Errors), tenant.CorrelationId));
+                return Results.Ok(ApiResponse<SpecialTokenResponse>.Success(response!, tenant.CorrelationId));
+            }
+            catch (ConcurrencyConflictException ex)
+            {
+                return Results.Conflict(ApiResponse<object>.Failure(ex.Message, tenant.CorrelationId));
+            }
         }).RequirePermission("connector:manage");
 
         app.MapDelete("/api/admin/special-tokens/{id:guid}", async (

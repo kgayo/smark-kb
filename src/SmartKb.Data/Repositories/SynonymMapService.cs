@@ -7,6 +7,7 @@ using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
 using SmartKb.Data.Entities;
+using SmartKb.Data.Exceptions;
 
 namespace SmartKb.Data.Repositories;
 
@@ -133,7 +134,14 @@ public sealed class SynonymMapService : ISynonymMapService
         entity.UpdatedAt = DateTimeOffset.UtcNow;
         entity.UpdatedBy = actorId;
 
-        await _db.SaveChangesAsync(ct);
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            throw new ConcurrencyConflictException("synonym rule", ex);
+        }
 
         await _audit.WriteAsync(new AuditEvent(
             EventId: Guid.NewGuid().ToString(),

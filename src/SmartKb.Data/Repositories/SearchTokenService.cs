@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
 using SmartKb.Data.Entities;
+using SmartKb.Data.Exceptions;
 
 namespace SmartKb.Data.Repositories;
 
@@ -111,7 +112,15 @@ public sealed partial class SearchTokenService : ISearchTokenService
             entity.IsActive = request.IsActive.Value;
 
         entity.UpdatedAt = DateTimeOffset.UtcNow;
-        await _db.SaveChangesAsync(ct);
+
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            throw new ConcurrencyConflictException("stop word", ex);
+        }
 
         await WriteAuditAsync("search.stop_word.updated", tenantId, actorId, correlationId,
             $"Stop word '{entity.Word}' updated.", ct);
@@ -284,7 +293,15 @@ public sealed partial class SearchTokenService : ISearchTokenService
             entity.Description = request.Description.Trim();
 
         entity.UpdatedAt = DateTimeOffset.UtcNow;
-        await _db.SaveChangesAsync(ct);
+
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            throw new ConcurrencyConflictException("special token", ex);
+        }
 
         await WriteAuditAsync("search.special_token.updated", tenantId, actorId, correlationId,
             $"Special token '{entity.Token}' updated.", ct);

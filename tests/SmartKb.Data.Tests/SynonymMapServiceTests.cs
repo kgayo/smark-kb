@@ -1,8 +1,10 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
 using SmartKb.Data.Entities;
+using SmartKb.Data.Exceptions;
 using SmartKb.Data.Repositories;
 
 namespace SmartKb.Data.Tests;
@@ -386,6 +388,29 @@ public class SynonymMapServiceTests : IDisposable
         Assert.Contains("general", groups);
         Assert.Contains("error-codes", groups);
         Assert.Contains("product-names", groups);
+    }
+
+    [Fact]
+    public async Task Update_ConcurrentModification_ThrowsConcurrencyConflictException()
+    {
+        // Create a synonym rule.
+        var (created, _, _) = await _service.CreateAsync(
+            "t1", "actor", "corr", new CreateSynonymRuleRequest
+            {
+                GroupName = "test",
+                Rule = "crash, BSOD",
+            });
+
+        // Load entity and simulate concurrent modification.
+        var entity = await _db.SynonymMaps.FirstAsync(s => s.Id == created!.Id);
+        await _db.Database.ExecuteSqlRawAsync(
+            "UPDATE SynonymMaps SET UpdatedAt = {0} WHERE Id = {1}",
+            entity.UpdatedAt.AddMinutes(5), entity.Id);
+
+        // The service update should detect the conflict and throw.
+        await Assert.ThrowsAsync<ConcurrencyConflictException>(() =>
+            _service.UpdateAsync("t1", "actor", "corr", created!.Id,
+                new UpdateSynonymRuleRequest { Description = "updated" }));
     }
 
     private sealed class StubAuditWriter : IAuditEventWriter
