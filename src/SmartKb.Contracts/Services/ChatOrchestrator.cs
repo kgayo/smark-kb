@@ -116,7 +116,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
                 _logger.LogWarning("Query classification timed out after {TimeoutMs}ms. Proceeding without classification. TraceId={TraceId}",
                     _settings.ClassificationTimeoutMs, traceId);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogWarning(ex, "Query classification failed. Proceeding without classification. TraceId={TraceId}", traceId);
             }
@@ -298,7 +298,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
                     "Session summarization timed out after {TimeoutMs}ms. Dropping messages without summary. TraceId={TraceId}",
                     _settings.SummarizationTimeoutMs, traceId);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogWarning(ex,
                     "Session summarization failed. Dropping messages without summary. TraceId={TraceId}", traceId);

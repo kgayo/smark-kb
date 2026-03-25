@@ -129,6 +129,17 @@ public sealed class EmbeddingCacheEvictionServiceTests : IDisposable
         Assert.Empty(_db.EmbeddingCache);
     }
 
+    [Fact]
+    public async Task EvictAsync_PropagatesCancellation()
+    {
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var service = CreateService();
+        await Assert.ThrowsAsync<OperationCanceledException>(
+            () => service.EvictAsync(cts.Token));
+    }
+
     private EmbeddingCacheEvictionService CreateService()
     {
         return new EmbeddingCacheEvictionService(

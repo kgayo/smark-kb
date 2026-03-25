@@ -357,6 +357,22 @@ public class ScheduledSyncServiceTests : IDisposable
         Assert.Equal(60, settings.EvaluationIntervalSeconds);
     }
 
+    [Fact]
+    public async Task EvaluateSchedules_PropagatesCancellation()
+    {
+        AddConnector("0 * * * *", ConnectorStatus.Enabled,
+            lastScheduledSyncAt: new DateTimeOffset(2026, 3, 18, 9, 0, 0, TimeSpan.Zero));
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var now = new DateTimeOffset(2026, 3, 18, 10, 1, 0, TimeSpan.Zero);
+        var service = CreateService(now);
+
+        await Assert.ThrowsAsync<OperationCanceledException>(
+            () => service.EvaluateSchedulesAsync(cts.Token));
+    }
+
     // --- Helpers ---
 
     private ScheduledSyncService CreateService(DateTimeOffset fixedNow)
