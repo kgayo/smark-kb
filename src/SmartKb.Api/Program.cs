@@ -360,22 +360,26 @@ app.MapGet("/api/me", (ITenantContextAccessor tenantAccessor, HttpContext ctx) =
 // --- Connector Admin Endpoints ---
 
 app.MapGet("/api/admin/connectors", async (
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     ConnectorAdminService service) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await service.ListAsync(tenant.TenantId);
+    var ct = httpContext.RequestAborted;
+    var result = await service.ListAsync(tenant.TenantId, ct);
     return Results.Ok(ApiResponse<ConnectorListResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapPost("/api/admin/connectors", async (
+    HttpContext httpContext,
     CreateConnectorRequest request,
     ITenantContextAccessor tenantAccessor,
     ConnectorAdminService service) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var (response, validation) = await service.CreateAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, request);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, request, ct);
 
     if (validation is not null)
         return Results.UnprocessableEntity(ApiResponse<ConnectorValidationResult>.Failure(
@@ -386,26 +390,30 @@ app.MapPost("/api/admin/connectors", async (
 }).RequirePermission("connector:manage");
 
 app.MapGet("/api/admin/connectors/{connectorId:guid}", async (
+    HttpContext httpContext,
     Guid connectorId,
     ITenantContextAccessor tenantAccessor,
     ConnectorAdminService service) =>
 {
     var tenant = tenantAccessor.Current!;
-    var response = await service.GetAsync(tenant.TenantId, connectorId);
+    var ct = httpContext.RequestAborted;
+    var response = await service.GetAsync(tenant.TenantId, connectorId, ct);
     return response is null
         ? Results.NotFound(ApiResponse<object>.Failure("Connector not found.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<ConnectorResponse>.Success(response, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapPut("/api/admin/connectors/{connectorId:guid}", async (
+    HttpContext httpContext,
     Guid connectorId,
     UpdateConnectorRequest request,
     ITenantContextAccessor tenantAccessor,
     ConnectorAdminService service) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var (response, validation, notFound) = await service.UpdateAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, request);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, request, ct);
 
     if (notFound)
         return Results.NotFound(ApiResponse<object>.Failure("Connector not found.", tenant.CorrelationId));
@@ -417,26 +425,30 @@ app.MapPut("/api/admin/connectors/{connectorId:guid}", async (
 }).RequirePermission("connector:manage");
 
 app.MapDelete("/api/admin/connectors/{connectorId:guid}", async (
+    HttpContext httpContext,
     Guid connectorId,
     ITenantContextAccessor tenantAccessor,
     ConnectorAdminService service) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var deleted = await service.DeleteAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, ct);
     return deleted
         ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
         : Results.NotFound(ApiResponse<object>.Failure("Connector not found.", tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapPost("/api/admin/connectors/{connectorId:guid}/enable", async (
+    HttpContext httpContext,
     Guid connectorId,
     ITenantContextAccessor tenantAccessor,
     ConnectorAdminService service) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var (found, validation, response) = await service.EnableAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, ct);
 
     if (!found)
         return Results.NotFound(ApiResponse<object>.Failure("Connector not found.", tenant.CorrelationId));
@@ -448,13 +460,15 @@ app.MapPost("/api/admin/connectors/{connectorId:guid}/enable", async (
 }).RequirePermission("connector:manage");
 
 app.MapPost("/api/admin/connectors/{connectorId:guid}/disable", async (
+    HttpContext httpContext,
     Guid connectorId,
     ITenantContextAccessor tenantAccessor,
     ConnectorAdminService service) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var (found, response) = await service.DisableAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, ct);
 
     if (!found)
         return Results.NotFound(ApiResponse<object>.Failure("Connector not found.", tenant.CorrelationId));
@@ -463,27 +477,31 @@ app.MapPost("/api/admin/connectors/{connectorId:guid}/disable", async (
 }).RequirePermission("connector:manage");
 
 app.MapPost("/api/admin/connectors/{connectorId:guid}/test", async (
+    HttpContext httpContext,
     Guid connectorId,
     ITenantContextAccessor tenantAccessor,
     ConnectorAdminService service) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var result = await service.TestConnectionAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, ct);
     return result is null
         ? Results.NotFound(ApiResponse<object>.Failure("Connector not found.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<TestConnectionResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapPost("/api/admin/connectors/{connectorId:guid}/sync-now", async (
+    HttpContext httpContext,
     Guid connectorId,
     SyncNowRequest request,
     ITenantContextAccessor tenantAccessor,
     ConnectorAdminService service) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var (syncRunId, notFound) = await service.SyncNowAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, request);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, request, ct);
 
     if (notFound)
         return Results.NotFound(ApiResponse<object>.Failure("Connector not found.", tenant.CorrelationId));
@@ -493,14 +511,16 @@ app.MapPost("/api/admin/connectors/{connectorId:guid}/sync-now", async (
 }).RequirePermission("connector:sync");
 
 app.MapPost("/api/admin/connectors/{connectorId:guid}/preview", async (
+    HttpContext httpContext,
     Guid connectorId,
     PreviewRequest request,
     ITenantContextAccessor tenantAccessor,
     ConnectorAdminService service) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var result = await service.PreviewAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, request);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, request, ct);
     return result is null
         ? Results.NotFound(ApiResponse<object>.Failure("Connector not found.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<PreviewResponse>.Success(result, tenant.CorrelationId));
@@ -518,39 +538,45 @@ app.MapPost("/api/admin/connectors/{connectorId:guid}/validate-mapping", (
 }).RequirePermission("connector:manage");
 
 app.MapPost("/api/admin/connectors/{connectorId:guid}/preview-retrieval", async (
+    HttpContext httpContext,
     Guid connectorId,
     PreviewRetrievalRequest request,
     ITenantContextAccessor tenantAccessor,
     ConnectorAdminService service) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var result = await service.PreviewRetrievalAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, request);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, request, ct);
     return result is null
         ? Results.NotFound(ApiResponse<object>.Failure("Connector not found.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<PreviewRetrievalResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapGet("/api/admin/connectors/{connectorId:guid}/sync-runs", async (
+    HttpContext httpContext,
     Guid connectorId,
     ITenantContextAccessor tenantAccessor,
     ConnectorAdminService service) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await service.ListSyncRunsAsync(tenant.TenantId, connectorId);
+    var ct = httpContext.RequestAborted;
+    var result = await service.ListSyncRunsAsync(tenant.TenantId, connectorId, ct);
     return result is null
         ? Results.NotFound(ApiResponse<object>.Failure("Connector not found.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<SyncRunListResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapGet("/api/admin/connectors/{connectorId:guid}/sync-runs/{syncRunId:guid}", async (
+    HttpContext httpContext,
     Guid connectorId,
     Guid syncRunId,
     ITenantContextAccessor tenantAccessor,
     ConnectorAdminService service) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await service.GetSyncRunAsync(tenant.TenantId, connectorId, syncRunId);
+    var ct = httpContext.RequestAborted;
+    var result = await service.GetSyncRunAsync(tenant.TenantId, connectorId, syncRunId, ct);
     return result is null
         ? Results.NotFound(ApiResponse<object>.Failure("Sync run not found.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<SyncRunSummary>.Success(result, tenant.CorrelationId));
@@ -559,12 +585,14 @@ app.MapGet("/api/admin/connectors/{connectorId:guid}/sync-runs/{syncRunId:guid}"
 // --- OAuth Endpoints (P3-019) ---
 
 app.MapGet("/api/admin/connectors/{connectorId:guid}/oauth/authorize", async (
+    HttpContext httpContext,
     Guid connectorId,
     ITenantContextAccessor tenantAccessor,
     ConnectorAdminService service) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await service.GetOAuthAuthorizeUrlAsync(tenant.TenantId, connectorId);
+    var ct = httpContext.RequestAborted;
+    var result = await service.GetOAuthAuthorizeUrlAsync(tenant.TenantId, connectorId, ct);
     if (result is null)
         return Results.NotFound(ApiResponse<object>.Failure(
             "Connector not found, not configured for OAuth, or OAuth is not enabled.", tenant.CorrelationId));
@@ -573,6 +601,7 @@ app.MapGet("/api/admin/connectors/{connectorId:guid}/oauth/authorize", async (
 }).RequirePermission("connector:manage");
 
 app.MapGet("/api/admin/connectors/{connectorId:guid}/oauth/callback", async (
+    HttpContext httpContext,
     Guid connectorId,
     string code,
     string state,
@@ -580,8 +609,9 @@ app.MapGet("/api/admin/connectors/{connectorId:guid}/oauth/callback", async (
     ConnectorAdminService service) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var (response, notFound, invalidState) = await service.HandleOAuthCallbackAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, code, state);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, code, state, ct);
 
     if (notFound)
         return Results.NotFound(ApiResponse<object>.Failure("Connector not found.", tenant.CorrelationId));
@@ -594,35 +624,41 @@ app.MapGet("/api/admin/connectors/{connectorId:guid}/oauth/callback", async (
 // --- Synonym Map Admin Endpoints (P3-004) ---
 
 app.MapGet("/api/admin/synonym-rules", async (
+    HttpContext httpContext,
     string? groupName,
     ITenantContextAccessor tenantAccessor,
     ISynonymMapService service) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await service.ListAsync(tenant.TenantId, groupName);
+    var ct = httpContext.RequestAborted;
+    var result = await service.ListAsync(tenant.TenantId, groupName, ct);
     return Results.Ok(ApiResponse<SynonymRuleListResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapGet("/api/admin/synonym-rules/{ruleId:guid}", async (
+    HttpContext httpContext,
     Guid ruleId,
     ITenantContextAccessor tenantAccessor,
     ISynonymMapService service) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await service.GetAsync(tenant.TenantId, ruleId);
+    var ct = httpContext.RequestAborted;
+    var result = await service.GetAsync(tenant.TenantId, ruleId, ct);
     return result is null
         ? Results.NotFound(ApiResponse<object>.Failure("Synonym rule not found.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<SynonymRuleResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapPost("/api/admin/synonym-rules", async (
+    HttpContext httpContext,
     CreateSynonymRuleRequest request,
     ITenantContextAccessor tenantAccessor,
     ISynonymMapService service) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var (response, validation) = await service.CreateAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, request);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, request, ct);
 
     if (validation is not null)
         return Results.UnprocessableEntity(ApiResponse<SynonymRuleValidationResult>.Failure(
@@ -633,14 +669,16 @@ app.MapPost("/api/admin/synonym-rules", async (
 }).RequirePermission("connector:manage");
 
 app.MapPut("/api/admin/synonym-rules/{ruleId:guid}", async (
+    HttpContext httpContext,
     Guid ruleId,
     UpdateSynonymRuleRequest request,
     ITenantContextAccessor tenantAccessor,
     ISynonymMapService service) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var (response, validation, notFound) = await service.UpdateAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, ruleId, request);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, ruleId, request, ct);
 
     if (notFound)
         return Results.NotFound(ApiResponse<object>.Failure("Synonym rule not found.", tenant.CorrelationId));
@@ -652,24 +690,28 @@ app.MapPut("/api/admin/synonym-rules/{ruleId:guid}", async (
 }).RequirePermission("connector:manage");
 
 app.MapDelete("/api/admin/synonym-rules/{ruleId:guid}", async (
+    HttpContext httpContext,
     Guid ruleId,
     ITenantContextAccessor tenantAccessor,
     ISynonymMapService service) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var deleted = await service.DeleteAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, ruleId);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, ruleId, ct);
     return deleted
         ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
         : Results.NotFound(ApiResponse<object>.Failure("Synonym rule not found.", tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapPost("/api/admin/synonym-rules/sync", async (
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     ISynonymMapService service) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await service.SyncToSearchAsync(tenant.TenantId, tenant.CorrelationId);
+    var ct = httpContext.RequestAborted;
+    var result = await service.SyncToSearchAsync(tenant.TenantId, tenant.CorrelationId, ct);
     return result.Success
         ? Results.Ok(ApiResponse<SynonymMapSyncResult>.Success(result, tenant.CorrelationId))
         : Results.UnprocessableEntity(ApiResponse<SynonymMapSyncResult>.Failure(
@@ -677,48 +719,56 @@ app.MapPost("/api/admin/synonym-rules/sync", async (
 }).RequirePermission("connector:manage");
 
 app.MapPost("/api/admin/synonym-rules/seed", async (
+    HttpContext httpContext,
     SeedSynonymRulesRequest request,
     ITenantContextAccessor tenantAccessor,
     ISynonymMapService service) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var count = await service.SeedDefaultsAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, request.OverwriteExisting);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, request.OverwriteExisting, ct);
     return Results.Ok(ApiResponse<object>.Success(new { seeded = count }, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 // --- Stop-Word Management Endpoints (P3-028) ---
 
 app.MapGet("/api/admin/stop-words", async (
+    HttpContext httpContext,
     string? groupName,
     ITenantContextAccessor tenantAccessor,
     ISearchTokenService service) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await service.ListStopWordsAsync(tenant.TenantId, groupName);
+    var ct = httpContext.RequestAborted;
+    var result = await service.ListStopWordsAsync(tenant.TenantId, groupName, ct);
     return Results.Ok(ApiResponse<StopWordListResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapGet("/api/admin/stop-words/{id:guid}", async (
+    HttpContext httpContext,
     Guid id,
     ITenantContextAccessor tenantAccessor,
     ISearchTokenService service) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await service.GetStopWordAsync(tenant.TenantId, id);
+    var ct = httpContext.RequestAborted;
+    var result = await service.GetStopWordAsync(tenant.TenantId, id, ct);
     return result is null
         ? Results.NotFound()
         : Results.Ok(ApiResponse<StopWordResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapPost("/api/admin/stop-words", async (
+    HttpContext httpContext,
     CreateStopWordRequest request,
     ITenantContextAccessor tenantAccessor,
     ISearchTokenService service) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var (response, validation) = await service.CreateStopWordAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, request);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, request, ct);
     if (validation is not null)
         return Results.UnprocessableEntity(ApiResponse<object>.Fail(
             string.Join("; ", validation.Errors), tenant.CorrelationId));
@@ -727,14 +777,16 @@ app.MapPost("/api/admin/stop-words", async (
 }).RequirePermission("connector:manage");
 
 app.MapPut("/api/admin/stop-words/{id:guid}", async (
+    HttpContext httpContext,
     Guid id,
     UpdateStopWordRequest request,
     ITenantContextAccessor tenantAccessor,
     ISearchTokenService service) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var (response, validation, notFound) = await service.UpdateStopWordAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, id, request);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, id, request, ct);
     if (notFound) return Results.NotFound();
     if (validation is not null)
         return Results.UnprocessableEntity(ApiResponse<object>.Fail(
@@ -743,59 +795,69 @@ app.MapPut("/api/admin/stop-words/{id:guid}", async (
 }).RequirePermission("connector:manage");
 
 app.MapDelete("/api/admin/stop-words/{id:guid}", async (
+    HttpContext httpContext,
     Guid id,
     ITenantContextAccessor tenantAccessor,
     ISearchTokenService service) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var deleted = await service.DeleteStopWordAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, id);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, id, ct);
     return deleted ? Results.NoContent() : Results.NotFound();
 }).RequirePermission("connector:manage");
 
 app.MapPost("/api/admin/stop-words/seed", async (
+    HttpContext httpContext,
     SeedStopWordsRequest request,
     ITenantContextAccessor tenantAccessor,
     ISearchTokenService service) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var count = await service.SeedDefaultStopWordsAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, request.OverwriteExisting);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, request.OverwriteExisting, ct);
     return Results.Ok(ApiResponse<object>.Success(new { seeded = count }, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 // --- Special Token Management Endpoints (P3-028) ---
 
 app.MapGet("/api/admin/special-tokens", async (
+    HttpContext httpContext,
     string? category,
     ITenantContextAccessor tenantAccessor,
     ISearchTokenService service) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await service.ListSpecialTokensAsync(tenant.TenantId, category);
+    var ct = httpContext.RequestAborted;
+    var result = await service.ListSpecialTokensAsync(tenant.TenantId, category, ct);
     return Results.Ok(ApiResponse<SpecialTokenListResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapGet("/api/admin/special-tokens/{id:guid}", async (
+    HttpContext httpContext,
     Guid id,
     ITenantContextAccessor tenantAccessor,
     ISearchTokenService service) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await service.GetSpecialTokenAsync(tenant.TenantId, id);
+    var ct = httpContext.RequestAborted;
+    var result = await service.GetSpecialTokenAsync(tenant.TenantId, id, ct);
     return result is null
         ? Results.NotFound()
         : Results.Ok(ApiResponse<SpecialTokenResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapPost("/api/admin/special-tokens", async (
+    HttpContext httpContext,
     CreateSpecialTokenRequest request,
     ITenantContextAccessor tenantAccessor,
     ISearchTokenService service) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var (response, validation) = await service.CreateSpecialTokenAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, request);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, request, ct);
     if (validation is not null)
         return Results.UnprocessableEntity(ApiResponse<object>.Fail(
             string.Join("; ", validation.Errors), tenant.CorrelationId));
@@ -804,14 +866,16 @@ app.MapPost("/api/admin/special-tokens", async (
 }).RequirePermission("connector:manage");
 
 app.MapPut("/api/admin/special-tokens/{id:guid}", async (
+    HttpContext httpContext,
     Guid id,
     UpdateSpecialTokenRequest request,
     ITenantContextAccessor tenantAccessor,
     ISearchTokenService service) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var (response, validation, notFound) = await service.UpdateSpecialTokenAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, id, request);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, id, request, ct);
     if (notFound) return Results.NotFound();
     if (validation is not null)
         return Results.UnprocessableEntity(ApiResponse<object>.Fail(
@@ -820,24 +884,28 @@ app.MapPut("/api/admin/special-tokens/{id:guid}", async (
 }).RequirePermission("connector:manage");
 
 app.MapDelete("/api/admin/special-tokens/{id:guid}", async (
+    HttpContext httpContext,
     Guid id,
     ITenantContextAccessor tenantAccessor,
     ISearchTokenService service) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var deleted = await service.DeleteSpecialTokenAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, id);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, id, ct);
     return deleted ? Results.NoContent() : Results.NotFound();
 }).RequirePermission("connector:manage");
 
 app.MapPost("/api/admin/special-tokens/seed", async (
+    HttpContext httpContext,
     SeedSpecialTokensRequest request,
     ITenantContextAccessor tenantAccessor,
     ISearchTokenService service) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var count = await service.SeedDefaultSpecialTokensAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, request.OverwriteExisting);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, request.OverwriteExisting, ct);
     return Results.Ok(ApiResponse<object>.Success(new { seeded = count }, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
@@ -917,75 +985,87 @@ app.MapPost("/api/webhooks/clickup/{connectorId:guid}", async (
 // --- Session Endpoints ---
 
 app.MapPost("/api/sessions", async (
+    HttpContext httpContext,
     CreateSessionRequest request,
     ITenantContextAccessor tenantAccessor,
     ISessionService sessionService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var response = await sessionService.CreateSessionAsync(tenant.TenantId, tenant.UserId, request);
+    var ct = httpContext.RequestAborted;
+    var response = await sessionService.CreateSessionAsync(tenant.TenantId, tenant.UserId, request, ct);
     return Results.Created($"/api/sessions/{response.SessionId}",
         ApiResponse<SessionResponse>.Success(response, tenant.CorrelationId));
 }).RequirePermission("chat:query");
 
 app.MapGet("/api/sessions", async (
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     ISessionService sessionService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var response = await sessionService.ListSessionsAsync(tenant.TenantId, tenant.UserId);
+    var ct = httpContext.RequestAborted;
+    var response = await sessionService.ListSessionsAsync(tenant.TenantId, tenant.UserId, ct);
     return Results.Ok(ApiResponse<SessionListResponse>.Success(response, tenant.CorrelationId));
 }).RequirePermission("chat:query");
 
 app.MapGet("/api/sessions/{sessionId:guid}", async (
+    HttpContext httpContext,
     Guid sessionId,
     ITenantContextAccessor tenantAccessor,
     ISessionService sessionService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var response = await sessionService.GetSessionAsync(tenant.TenantId, tenant.UserId, sessionId);
+    var ct = httpContext.RequestAborted;
+    var response = await sessionService.GetSessionAsync(tenant.TenantId, tenant.UserId, sessionId, ct);
     return response is null
         ? Results.NotFound(ApiResponse<object>.Failure("Session not found.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<SessionResponse>.Success(response, tenant.CorrelationId));
 }).RequirePermission("chat:query");
 
 app.MapDelete("/api/sessions/{sessionId:guid}", async (
+    HttpContext httpContext,
     Guid sessionId,
     ITenantContextAccessor tenantAccessor,
     ISessionService sessionService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var deleted = await sessionService.DeleteSessionAsync(tenant.TenantId, tenant.UserId, sessionId);
+    var ct = httpContext.RequestAborted;
+    var deleted = await sessionService.DeleteSessionAsync(tenant.TenantId, tenant.UserId, sessionId, ct);
     return deleted
         ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
         : Results.NotFound(ApiResponse<object>.Failure("Session not found.", tenant.CorrelationId));
 }).RequirePermission("chat:query");
 
 app.MapGet("/api/sessions/{sessionId:guid}/messages", async (
+    HttpContext httpContext,
     Guid sessionId,
     ITenantContextAccessor tenantAccessor,
     ISessionService sessionService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var response = await sessionService.GetMessagesAsync(tenant.TenantId, tenant.UserId, sessionId);
+    var ct = httpContext.RequestAborted;
+    var response = await sessionService.GetMessagesAsync(tenant.TenantId, tenant.UserId, sessionId, ct);
     return response is null
         ? Results.NotFound(ApiResponse<object>.Failure("Session not found.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<MessageListResponse>.Success(response, tenant.CorrelationId));
 }).RequirePermission("chat:query");
 
 app.MapPost("/api/sessions/{sessionId:guid}/messages", async (
+    HttpContext httpContext,
     Guid sessionId,
     SendMessageRequest request,
     ITenantContextAccessor tenantAccessor,
     ISessionService sessionService) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     // P0-014: Inject JWT-extracted user groups for ACL enforcement.
     var effectiveRequest = request with
     {
         UserGroups = tenant.UserGroups.Count > 0 ? tenant.UserGroups : request.UserGroups,
     };
     var response = await sessionService.SendMessageAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, sessionId, effectiveRequest);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, sessionId, effectiveRequest, ct);
     return response is null
         ? Results.NotFound(ApiResponse<object>.Failure("Session not found or expired.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<SessionChatResponse>.Success(response, tenant.CorrelationId));
@@ -994,6 +1074,7 @@ app.MapPost("/api/sessions/{sessionId:guid}/messages", async (
 // --- Feedback Endpoints ---
 
 app.MapPost("/api/sessions/{sessionId:guid}/messages/{messageId:guid}/feedback", async (
+    HttpContext httpContext,
     Guid sessionId,
     Guid messageId,
     SubmitFeedbackRequest request,
@@ -1002,11 +1083,12 @@ app.MapPost("/api/sessions/{sessionId:guid}/messages/{messageId:guid}/feedback",
     ILogger<Program> logger) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     try
     {
         var response = await feedbackService.SubmitFeedbackAsync(
             tenant.TenantId, tenant.UserId, tenant.CorrelationId,
-            sessionId, messageId, request);
+            sessionId, messageId, request, ct);
         return Results.Ok(ApiResponse<FeedbackResponse>.Success(response, tenant.CorrelationId));
     }
     catch (InvalidOperationException ex)
@@ -1018,27 +1100,31 @@ app.MapPost("/api/sessions/{sessionId:guid}/messages/{messageId:guid}/feedback",
 }).RequirePermission("chat:feedback");
 
 app.MapGet("/api/sessions/{sessionId:guid}/messages/{messageId:guid}/feedback", async (
+    HttpContext httpContext,
     Guid sessionId,
     Guid messageId,
     ITenantContextAccessor tenantAccessor,
     IFeedbackService feedbackService) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var response = await feedbackService.GetFeedbackAsync(
-        tenant.TenantId, tenant.UserId, sessionId, messageId);
+        tenant.TenantId, tenant.UserId, sessionId, messageId, ct);
     return response is null
         ? Results.NotFound(ApiResponse<object>.Failure("Feedback not found.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<FeedbackResponse>.Success(response, tenant.CorrelationId));
 }).RequirePermission("chat:feedback");
 
 app.MapGet("/api/sessions/{sessionId:guid}/feedbacks", async (
+    HttpContext httpContext,
     Guid sessionId,
     ITenantContextAccessor tenantAccessor,
     IFeedbackService feedbackService) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var response = await feedbackService.ListFeedbacksAsync(
-        tenant.TenantId, tenant.UserId, sessionId);
+        tenant.TenantId, tenant.UserId, sessionId, ct);
     return response is null
         ? Results.NotFound(ApiResponse<object>.Failure("Session not found.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<FeedbackListResponse>.Success(response, tenant.CorrelationId));
@@ -1047,6 +1133,7 @@ app.MapGet("/api/sessions/{sessionId:guid}/feedbacks", async (
 // --- Outcome Endpoints ---
 
 app.MapPost("/api/sessions/{sessionId:guid}/outcome", async (
+    HttpContext httpContext,
     Guid sessionId,
     RecordOutcomeRequest request,
     ITenantContextAccessor tenantAccessor,
@@ -1054,11 +1141,12 @@ app.MapPost("/api/sessions/{sessionId:guid}/outcome", async (
     ILogger<Program> logger) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     try
     {
         var response = await outcomeService.RecordOutcomeAsync(
             tenant.TenantId, tenant.UserId, tenant.CorrelationId,
-            sessionId, request);
+            sessionId, request, ct);
         return Results.Created($"/api/sessions/{sessionId}/outcome",
             ApiResponse<OutcomeResponse>.Success(response, tenant.CorrelationId));
     }
@@ -1071,13 +1159,15 @@ app.MapPost("/api/sessions/{sessionId:guid}/outcome", async (
 }).RequirePermission("chat:outcome");
 
 app.MapGet("/api/sessions/{sessionId:guid}/outcome", async (
+    HttpContext httpContext,
     Guid sessionId,
     ITenantContextAccessor tenantAccessor,
     IOutcomeService outcomeService) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var response = await outcomeService.GetOutcomesAsync(
-        tenant.TenantId, tenant.UserId, sessionId);
+        tenant.TenantId, tenant.UserId, sessionId, ct);
     return response is null
         ? Results.NotFound(ApiResponse<object>.Failure("Session not found.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<OutcomeListResponse>.Success(response, tenant.CorrelationId));
@@ -1086,16 +1176,18 @@ app.MapGet("/api/sessions/{sessionId:guid}/outcome", async (
 // --- Escalation Draft Endpoints ---
 
 app.MapPost("/api/escalations/draft", async (
+    HttpContext httpContext,
     CreateEscalationDraftRequest request,
     ITenantContextAccessor tenantAccessor,
     IEscalationDraftService escalationService,
     ILogger<Program> logger) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     try
     {
         var response = await escalationService.CreateDraftAsync(
-            tenant.TenantId, tenant.UserId, tenant.CorrelationId, request);
+            tenant.TenantId, tenant.UserId, tenant.CorrelationId, request, ct);
         return Results.Created($"/api/escalations/draft/{response.DraftId}",
             ApiResponse<EscalationDraftResponse>.Success(response, tenant.CorrelationId));
     }
@@ -1108,57 +1200,66 @@ app.MapPost("/api/escalations/draft", async (
 }).RequirePermission("chat:query");
 
 app.MapGet("/api/escalations/draft/{draftId:guid}", async (
+    HttpContext httpContext,
     Guid draftId,
     ITenantContextAccessor tenantAccessor,
     IEscalationDraftService escalationService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var response = await escalationService.GetDraftAsync(tenant.TenantId, tenant.UserId, draftId);
+    var ct = httpContext.RequestAborted;
+    var response = await escalationService.GetDraftAsync(tenant.TenantId, tenant.UserId, draftId, ct);
     return response is null
         ? Results.NotFound(ApiResponse<object>.Failure("Escalation draft not found.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<EscalationDraftResponse>.Success(response, tenant.CorrelationId));
 }).RequirePermission("chat:query");
 
 app.MapGet("/api/sessions/{sessionId:guid}/escalations/drafts", async (
+    HttpContext httpContext,
     Guid sessionId,
     ITenantContextAccessor tenantAccessor,
     IEscalationDraftService escalationService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var response = await escalationService.ListDraftsAsync(tenant.TenantId, tenant.UserId, sessionId);
+    var ct = httpContext.RequestAborted;
+    var response = await escalationService.ListDraftsAsync(tenant.TenantId, tenant.UserId, sessionId, ct);
     return response is null
         ? Results.NotFound(ApiResponse<object>.Failure("Session not found.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<EscalationDraftListResponse>.Success(response, tenant.CorrelationId));
 }).RequirePermission("chat:query");
 
 app.MapPut("/api/escalations/draft/{draftId:guid}", async (
+    HttpContext httpContext,
     Guid draftId,
     UpdateEscalationDraftRequest request,
     ITenantContextAccessor tenantAccessor,
     IEscalationDraftService escalationService) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var (response, notFound) = await escalationService.UpdateDraftAsync(
-        tenant.TenantId, tenant.UserId, draftId, request);
+        tenant.TenantId, tenant.UserId, draftId, request, ct);
     return notFound
         ? Results.NotFound(ApiResponse<object>.Failure("Escalation draft not found.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<EscalationDraftResponse>.Success(response!, tenant.CorrelationId));
 }).RequirePermission("chat:query");
 
 app.MapGet("/api/escalations/draft/{draftId:guid}/export", async (
+    HttpContext httpContext,
     Guid draftId,
     ITenantContextAccessor tenantAccessor,
     IEscalationDraftService escalationService) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var response = await escalationService.ExportDraftAsMarkdownAsync(
-        tenant.TenantId, tenant.UserId, draftId);
+        tenant.TenantId, tenant.UserId, draftId, ct);
     return response is null
         ? Results.NotFound(ApiResponse<object>.Failure("Escalation draft not found.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<EscalationDraftExportResponse>.Success(response, tenant.CorrelationId));
 }).RequirePermission("chat:query");
 
 app.MapPost("/api/escalations/draft/{draftId:guid}/approve", async (
+    HttpContext httpContext,
     Guid draftId,
     ApproveEscalationDraftRequest request,
     ITenantContextAccessor tenantAccessor,
@@ -1166,10 +1267,11 @@ app.MapPost("/api/escalations/draft/{draftId:guid}/approve", async (
     ILogger<Program> logger) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     try
     {
         var result = await escalationService.ApproveAndCreateExternalAsync(
-            tenant.TenantId, tenant.UserId, tenant.CorrelationId, draftId, request);
+            tenant.TenantId, tenant.UserId, tenant.CorrelationId, draftId, request, ct);
         if (result is null)
             return Results.NotFound(ApiResponse<object>.Failure("Escalation draft not found.", tenant.CorrelationId));
 
@@ -1186,12 +1288,14 @@ app.MapPost("/api/escalations/draft/{draftId:guid}/approve", async (
 }).RequirePermission("chat:query");
 
 app.MapDelete("/api/escalations/draft/{draftId:guid}", async (
+    HttpContext httpContext,
     Guid draftId,
     ITenantContextAccessor tenantAccessor,
     IEscalationDraftService escalationService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var deleted = await escalationService.DeleteDraftAsync(tenant.TenantId, tenant.UserId, draftId);
+    var ct = httpContext.RequestAborted;
+    var deleted = await escalationService.DeleteDraftAsync(tenant.TenantId, tenant.UserId, draftId, ct);
     return deleted
         ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
         : Results.NotFound(ApiResponse<object>.Failure("Escalation draft not found.", tenant.CorrelationId));
@@ -1287,6 +1391,7 @@ app.MapPost("/api/chat", async (
     HttpContext httpContext) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var orchestrator = httpContext.RequestServices.GetService<IChatOrchestrator>();
     if (orchestrator is null)
         return Results.Json(
@@ -1301,13 +1406,14 @@ app.MapPost("/api/chat", async (
     };
 
     var response = await orchestrator.OrchestrateAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, effectiveRequest);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, effectiveRequest, ct);
     return Results.Ok(ApiResponse<ChatResponse>.Success(response, tenant.CorrelationId));
 }).RequirePermission("chat:query");
 
 // --- Audit Endpoints ---
 
 app.MapGet("/api/audit/events", async (
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     IAuditEventQueryService auditQuery,
     string? eventType,
@@ -1320,6 +1426,7 @@ app.MapGet("/api/audit/events", async (
     CancellationToken ct) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var request = new AuditEventQueryRequest
     {
         EventType = eventType,
@@ -1391,30 +1498,36 @@ app.MapGet("/api/audit/events/export", async (
 // --- Retrieval Tuning Endpoints (P1-007) ---
 
 app.MapGet("/api/admin/retrieval-settings", async (
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     ITenantRetrievalSettingsService settingsService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await settingsService.GetSettingsAsync(tenant.TenantId);
+    var ct = httpContext.RequestAborted;
+    var result = await settingsService.GetSettingsAsync(tenant.TenantId, ct);
     return Results.Ok(ApiResponse<RetrievalSettingsResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapPut("/api/admin/retrieval-settings", async (
+    HttpContext httpContext,
     UpdateRetrievalSettingsRequest request,
     ITenantContextAccessor tenantAccessor,
     ITenantRetrievalSettingsService settingsService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await settingsService.UpdateSettingsAsync(tenant.TenantId, request);
+    var ct = httpContext.RequestAborted;
+    var result = await settingsService.UpdateSettingsAsync(tenant.TenantId, request, ct);
     return Results.Ok(ApiResponse<RetrievalSettingsResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapDelete("/api/admin/retrieval-settings", async (
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     ITenantRetrievalSettingsService settingsService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var deleted = await settingsService.ResetSettingsAsync(tenant.TenantId);
+    var ct = httpContext.RequestAborted;
+    var deleted = await settingsService.ResetSettingsAsync(tenant.TenantId, ct);
     return deleted
         ? Results.Ok(ApiResponse<object>.Success(new { reset = true }, tenant.CorrelationId))
         : Results.NotFound(ApiResponse<object>.Failure("No tenant overrides found.", tenant.CorrelationId));
@@ -1460,27 +1573,32 @@ app.MapGet("/api/admin/slo/status", (
 // --- Pattern Distillation Endpoints (P1-005) ---
 
 app.MapGet("/api/admin/patterns/candidates", async (
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     IPatternDistillationService distillationService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await distillationService.FindCandidatesAsync(tenant.TenantId);
+    var ct = httpContext.RequestAborted;
+    var result = await distillationService.FindCandidatesAsync(tenant.TenantId, ct);
     return Results.Ok(ApiResponse<DistillationCandidateListResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapPost("/api/admin/patterns/distill", async (
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     IPatternDistillationService distillationService) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var result = await distillationService.DistillAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, ct);
     return Results.Ok(ApiResponse<DistillationResult>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 // --- Pattern Governance Endpoints (P1-006) ---
 
 app.MapGet("/api/patterns/governance-queue", async (
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     IPatternGovernanceService governanceService,
     string? trustLevel,
@@ -1489,60 +1607,69 @@ app.MapGet("/api/patterns/governance-queue", async (
     int? pageSize) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var result = await governanceService.GetGovernanceQueueAsync(
-        tenant.TenantId, trustLevel, productArea, page ?? 1, pageSize ?? 20);
+        tenant.TenantId, trustLevel, productArea, page ?? 1, pageSize ?? 20, ct);
     return Results.Ok(ApiResponse<PatternGovernanceQueueResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("pattern:approve");
 
 app.MapGet("/api/patterns/{patternId}", async (
+    HttpContext httpContext,
     string patternId,
     ITenantContextAccessor tenantAccessor,
     IPatternGovernanceService governanceService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await governanceService.GetPatternDetailAsync(tenant.TenantId, patternId);
+    var ct = httpContext.RequestAborted;
+    var result = await governanceService.GetPatternDetailAsync(tenant.TenantId, patternId, ct);
     return result is null
         ? Results.NotFound()
         : Results.Ok(ApiResponse<PatternDetail>.Success(result, tenant.CorrelationId));
 }).RequirePermission("pattern:approve");
 
 app.MapPost("/api/patterns/{patternId}/review", async (
+    HttpContext httpContext,
     string patternId,
     ReviewPatternRequest request,
     ITenantContextAccessor tenantAccessor,
     IPatternGovernanceService governanceService) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var result = await governanceService.ReviewPatternAsync(
-        tenant.TenantId, patternId, tenant.UserId, tenant.CorrelationId, request);
+        tenant.TenantId, patternId, tenant.UserId, tenant.CorrelationId, request, ct);
     return result is null
         ? Results.NotFound()
         : Results.Ok(ApiResponse<PatternGovernanceResult>.Success(result, tenant.CorrelationId));
 }).RequirePermission("pattern:approve");
 
 app.MapPost("/api/patterns/{patternId}/approve", async (
+    HttpContext httpContext,
     string patternId,
     ApprovePatternRequest request,
     ITenantContextAccessor tenantAccessor,
     IPatternGovernanceService governanceService) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var result = await governanceService.ApprovePatternAsync(
-        tenant.TenantId, patternId, tenant.UserId, tenant.CorrelationId, request);
+        tenant.TenantId, patternId, tenant.UserId, tenant.CorrelationId, request, ct);
     return result is null
         ? Results.NotFound()
         : Results.Ok(ApiResponse<PatternGovernanceResult>.Success(result, tenant.CorrelationId));
 }).RequirePermission("pattern:approve");
 
 app.MapPost("/api/patterns/{patternId}/deprecate", async (
+    HttpContext httpContext,
     string patternId,
     DeprecatePatternRequest request,
     ITenantContextAccessor tenantAccessor,
     IPatternGovernanceService governanceService) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var result = await governanceService.DeprecatePatternAsync(
-        tenant.TenantId, patternId, tenant.UserId, tenant.CorrelationId, request);
+        tenant.TenantId, patternId, tenant.UserId, tenant.CorrelationId, request, ct);
     return result is null
         ? Results.NotFound()
         : Results.Ok(ApiResponse<PatternGovernanceResult>.Success(result, tenant.CorrelationId));
@@ -1551,13 +1678,15 @@ app.MapPost("/api/patterns/{patternId}/deprecate", async (
 // --- Pattern Version History Endpoint (P3-013) ---
 
 app.MapGet("/api/patterns/{patternId}/history", async (
+    HttpContext httpContext,
     string patternId,
     ITenantContextAccessor tenantAccessor,
     IPatternGovernanceService governanceService) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var result = await governanceService.GetPatternHistoryAsync(
-        tenant.TenantId, patternId);
+        tenant.TenantId, patternId, ct);
     return result is null
         ? Results.NotFound()
         : Results.Ok(ApiResponse<PatternVersionHistoryResponse>.Success(result, tenant.CorrelationId));
@@ -1571,8 +1700,9 @@ app.MapGet("/api/admin/patterns/{patternId}/usage", async (
     HttpContext httpContext) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var usageService = httpContext.RequestServices.GetRequiredService<IPatternUsageMetricsService>();
-    var metrics = await usageService.GetUsageAsync(tenant.TenantId, patternId);
+    var metrics = await usageService.GetUsageAsync(tenant.TenantId, patternId, ct);
     return Results.Ok(ApiResponse<PatternUsageMetrics>.Success(metrics, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
@@ -1713,6 +1843,7 @@ app.MapGet("/api/admin/ingestion/dead-letters", async (
     HttpContext httpContext) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var dlService = httpContext.RequestServices.GetService<DeadLetterService>();
     if (dlService is null)
         return Results.Ok(ApiResponse<object>.Success(
@@ -1721,41 +1852,47 @@ app.MapGet("/api/admin/ingestion/dead-letters", async (
 
     var maxParam = httpContext.Request.Query["maxMessages"].FirstOrDefault();
     var maxMessages = int.TryParse(maxParam, out var m) ? m : 20;
-    var result = await dlService.PeekAsync(maxMessages);
+    var result = await dlService.PeekAsync(maxMessages, ct);
     return Results.Ok(ApiResponse<DeadLetterListResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 // --- Webhook Status Endpoint (P1-008) ---
 
 app.MapGet("/api/admin/connectors/{connectorId}/webhooks", async (
+    HttpContext httpContext,
     Guid connectorId,
     ITenantContextAccessor tenantAccessor,
     IWebhookStatusService webhookStatusService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await webhookStatusService.GetByConnectorAsync(tenant.TenantId, connectorId);
+    var ct = httpContext.RequestAborted;
+    var result = await webhookStatusService.GetByConnectorAsync(tenant.TenantId, connectorId, ct);
     return Results.Ok(ApiResponse<WebhookStatusListResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapGet("/api/admin/webhooks", async (
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     IWebhookStatusService webhookStatusService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await webhookStatusService.GetAllAsync(tenant.TenantId);
+    var ct = httpContext.RequestAborted;
+    var result = await webhookStatusService.GetAllAsync(tenant.TenantId, ct);
     return Results.Ok(ApiResponse<WebhookStatusListResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 // --- Diagnostics Summary Endpoint (P1-008) ---
 
 app.MapGet("/api/admin/diagnostics/summary", async (
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     IWebhookStatusService webhookStatusService,
     OpenAiKeyProvider openAiKeyProvider,
     IServiceProvider sp) =>
 {
     var tenant = tenantAccessor.Current!;
-    var summary = await webhookStatusService.GetDiagnosticsSummaryAsync(tenant.TenantId);
+    var ct = httpContext.RequestAborted;
+    var summary = await webhookStatusService.GetDiagnosticsSummaryAsync(tenant.TenantId, ct);
 
     var keyVaultConfigured = sp.GetService<ISecretProvider>() is not null;
     var logger = sp.GetRequiredService<ILogger<Program>>();
@@ -1772,7 +1909,7 @@ app.MapGet("/api/admin/diagnostics/summary", async (
     {
         try
         {
-            var credStatus = await rotationService.GetAllCredentialStatusesAsync(tenant.TenantId);
+            var credStatus = await rotationService.GetAllCredentialStatusesAsync(tenant.TenantId, ct);
             credWarn = credStatus.WarningCount;
             credCrit = credStatus.CriticalCount;
             credExp = credStatus.ExpiredCount;
@@ -1793,7 +1930,7 @@ app.MapGet("/api/admin/diagnostics/summary", async (
     {
         try
         {
-            rlAlerts = await rateLimitService.GetRateLimitAlertsAsync(tenant.TenantId);
+            rlAlerts = await rateLimitService.GetRateLimitAlertsAsync(tenant.TenantId, ct);
             rateLimitAlerting = rlAlerts.TotalAlertingConnectors;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -1841,8 +1978,9 @@ app.MapGet("/api/admin/diagnostics/rate-limit-alerts", async (
     ITenantContextAccessor tenantAccessor) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var rateLimitService = httpContext.RequestServices.GetRequiredService<IRateLimitAlertService>();
-    var result = await rateLimitService.GetRateLimitAlertsAsync(tenant.TenantId);
+    var result = await rateLimitService.GetRateLimitAlertsAsync(tenant.TenantId, ct);
     return Results.Ok(ApiResponse<RateLimitAlertSummary>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
@@ -1853,8 +1991,9 @@ app.MapGet("/api/admin/credentials/status", async (
     ITenantContextAccessor tenantAccessor) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var rotationService = httpContext.RequestServices.GetRequiredService<ISecretRotationService>();
-    var result = await rotationService.GetAllCredentialStatusesAsync(tenant.TenantId);
+    var result = await rotationService.GetAllCredentialStatusesAsync(tenant.TenantId, ct);
     return Results.Ok(ApiResponse<CredentialStatusSummary>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
@@ -1864,8 +2003,9 @@ app.MapGet("/api/admin/connectors/{connectorId:guid}/credential-status", async (
     ITenantContextAccessor tenantAccessor) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var rotationService = httpContext.RequestServices.GetRequiredService<ISecretRotationService>();
-    var result = await rotationService.GetCredentialStatusAsync(connectorId, tenant.TenantId);
+    var result = await rotationService.GetCredentialStatusAsync(connectorId, tenant.TenantId, ct);
     return Results.Ok(ApiResponse<ConnectorCredentialStatus>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
@@ -1876,9 +2016,10 @@ app.MapPost("/api/admin/connectors/{connectorId:guid}/rotate-secret", async (
     ITenantContextAccessor tenantAccessor) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var rotationService = httpContext.RequestServices.GetRequiredService<ISecretRotationService>();
     var result = await rotationService.RotateSecretAsync(
-        connectorId, tenant.TenantId, request.NewSecretValue, tenant.UserId ?? "system");
+        connectorId, tenant.TenantId, request.NewSecretValue, tenant.UserId ?? "system", ct);
     return result.Success
         ? Results.Ok(ApiResponse<CredentialRotationResult>.Success(result, tenant.CorrelationId))
         : Results.UnprocessableEntity(ApiResponse<CredentialRotationResult>.Failure(result.Message, tenant.CorrelationId));
@@ -1887,60 +2028,70 @@ app.MapPost("/api/admin/connectors/{connectorId:guid}/rotate-secret", async (
 // --- Routing Rules CRUD (P1-009) ---
 
 app.MapGet("/api/admin/routing-rules", async (
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     IRoutingRuleService ruleService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await ruleService.GetRulesAsync(tenant.TenantId);
+    var ct = httpContext.RequestAborted;
+    var result = await ruleService.GetRulesAsync(tenant.TenantId, ct);
     return Results.Ok(ApiResponse<RoutingRuleListResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapGet("/api/admin/routing-rules/{ruleId:guid}", async (
+    HttpContext httpContext,
     Guid ruleId,
     ITenantContextAccessor tenantAccessor,
     IRoutingRuleService ruleService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await ruleService.GetRuleAsync(tenant.TenantId, ruleId);
+    var ct = httpContext.RequestAborted;
+    var result = await ruleService.GetRuleAsync(tenant.TenantId, ruleId, ct);
     return result is null
         ? Results.NotFound(ApiResponse<RoutingRuleDto>.Failure("Routing rule not found.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<RoutingRuleDto>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapPost("/api/admin/routing-rules", async (
+    HttpContext httpContext,
     CreateRoutingRuleRequest request,
     ITenantContextAccessor tenantAccessor,
     IRoutingRuleService ruleService) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var result = await ruleService.CreateRuleAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, request);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, request, ct);
     return Results.Created($"/api/admin/routing-rules/{result.RuleId}",
         ApiResponse<RoutingRuleDto>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapPut("/api/admin/routing-rules/{ruleId:guid}", async (
+    HttpContext httpContext,
     Guid ruleId,
     UpdateRoutingRuleRequest request,
     ITenantContextAccessor tenantAccessor,
     IRoutingRuleService ruleService) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var result = await ruleService.UpdateRuleAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, ruleId, request);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, ruleId, request, ct);
     return result is null
         ? Results.NotFound(ApiResponse<RoutingRuleDto>.Failure("Routing rule not found.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<RoutingRuleDto>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapDelete("/api/admin/routing-rules/{ruleId:guid}", async (
+    HttpContext httpContext,
     Guid ruleId,
     ITenantContextAccessor tenantAccessor,
     IRoutingRuleService ruleService) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var deleted = await ruleService.DeleteRuleAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, ruleId);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, ruleId, ct);
     return deleted
         ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
         : Results.NotFound(ApiResponse<object>.Failure("Routing rule not found.", tenant.CorrelationId));
@@ -1949,184 +2100,214 @@ app.MapDelete("/api/admin/routing-rules/{ruleId:guid}", async (
 // --- Routing Analytics + Improvement (P1-009) ---
 
 app.MapGet("/api/admin/routing/analytics", async (
+    HttpContext httpContext,
     int? windowDays,
     ITenantContextAccessor tenantAccessor,
     IRoutingAnalyticsService analyticsService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await analyticsService.GetAnalyticsAsync(tenant.TenantId, windowDays);
+    var ct = httpContext.RequestAborted;
+    var result = await analyticsService.GetAnalyticsAsync(tenant.TenantId, windowDays, ct);
     return Results.Ok(ApiResponse<RoutingAnalyticsSummary>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapPost("/api/admin/routing/recommendations/generate", async (
+    HttpContext httpContext,
     GenerateRecommendationsRequest? request,
     ITenantContextAccessor tenantAccessor,
     IRoutingImprovementService improvementService) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var result = await improvementService.GenerateRecommendationsAsync(
         tenant.TenantId, tenant.UserId, tenant.CorrelationId,
-        request?.SourceEvalReportId);
+        request?.SourceEvalReportId, ct);
     return Results.Ok(ApiResponse<RoutingRecommendationListResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapGet("/api/admin/routing/recommendations", async (
+    HttpContext httpContext,
     string? status,
     ITenantContextAccessor tenantAccessor,
     IRoutingImprovementService improvementService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await improvementService.GetRecommendationsAsync(tenant.TenantId, status);
+    var ct = httpContext.RequestAborted;
+    var result = await improvementService.GetRecommendationsAsync(tenant.TenantId, status, ct);
     return Results.Ok(ApiResponse<RoutingRecommendationListResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapPost("/api/admin/routing/recommendations/{recommendationId:guid}/apply", async (
+    HttpContext httpContext,
     Guid recommendationId,
     ApplyRecommendationRequest? request,
     ITenantContextAccessor tenantAccessor,
     IRoutingImprovementService improvementService) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var result = await improvementService.ApplyRecommendationAsync(
         tenant.TenantId, tenant.UserId, tenant.CorrelationId,
-        recommendationId, request);
+        recommendationId, request, ct);
     return result is null
         ? Results.NotFound(ApiResponse<RoutingRecommendationDto>.Failure("Recommendation not found or not pending.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<RoutingRecommendationDto>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapPost("/api/admin/routing/recommendations/{recommendationId:guid}/dismiss", async (
+    HttpContext httpContext,
     Guid recommendationId,
     ITenantContextAccessor tenantAccessor,
     IRoutingImprovementService improvementService) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var dismissed = await improvementService.DismissRecommendationAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, recommendationId);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, recommendationId, ct);
     return dismissed
         ? Results.Ok(ApiResponse<object>.Success(new { dismissed = true }, tenant.CorrelationId))
         : Results.NotFound(ApiResponse<object>.Failure("Recommendation not found or not pending.", tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapGet("/api/admin/eval/reports/{reportId:guid}/recommendations", async (
+    HttpContext httpContext,
     Guid reportId,
     ITenantContextAccessor tenantAccessor,
     IRoutingImprovementService improvementService) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var result = await improvementService.GetRecommendationsByEvalReportAsync(
-        tenant.TenantId, reportId);
+        tenant.TenantId, reportId, ct);
     return Results.Ok(ApiResponse<RoutingRecommendationListResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 // ──── Team Playbooks (P2-002) ────
 
 app.MapGet("/api/admin/playbooks", async (
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     ITeamPlaybookService playbookService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await playbookService.GetPlaybooksAsync(tenant.TenantId);
+    var ct = httpContext.RequestAborted;
+    var result = await playbookService.GetPlaybooksAsync(tenant.TenantId, ct);
     return Results.Ok(ApiResponse<TeamPlaybookListResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapGet("/api/admin/playbooks/{playbookId:guid}", async (
+    HttpContext httpContext,
     Guid playbookId,
     ITenantContextAccessor tenantAccessor,
     ITeamPlaybookService playbookService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await playbookService.GetPlaybookAsync(tenant.TenantId, playbookId);
+    var ct = httpContext.RequestAborted;
+    var result = await playbookService.GetPlaybookAsync(tenant.TenantId, playbookId, ct);
     return result is null
         ? Results.NotFound(ApiResponse<TeamPlaybookDto>.Failure("Playbook not found.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<TeamPlaybookDto>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapGet("/api/admin/playbooks/team/{teamName}", async (
+    HttpContext httpContext,
     string teamName,
     ITenantContextAccessor tenantAccessor,
     ITeamPlaybookService playbookService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await playbookService.GetPlaybookByTeamAsync(tenant.TenantId, teamName);
+    var ct = httpContext.RequestAborted;
+    var result = await playbookService.GetPlaybookByTeamAsync(tenant.TenantId, teamName, ct);
     return result is null
         ? Results.NotFound(ApiResponse<TeamPlaybookDto>.Failure("Playbook not found for team.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<TeamPlaybookDto>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapPost("/api/admin/playbooks", async (
+    HttpContext httpContext,
     CreateTeamPlaybookRequest request,
     ITenantContextAccessor tenantAccessor,
     ITeamPlaybookService playbookService) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var result = await playbookService.CreatePlaybookAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, request);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, request, ct);
     return Results.Created($"/api/admin/playbooks/{result.Id}",
         ApiResponse<TeamPlaybookDto>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapPut("/api/admin/playbooks/{playbookId:guid}", async (
+    HttpContext httpContext,
     Guid playbookId,
     UpdateTeamPlaybookRequest request,
     ITenantContextAccessor tenantAccessor,
     ITeamPlaybookService playbookService) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var result = await playbookService.UpdatePlaybookAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, playbookId, request);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, playbookId, request, ct);
     return result is null
         ? Results.NotFound(ApiResponse<TeamPlaybookDto>.Failure("Playbook not found.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<TeamPlaybookDto>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapDelete("/api/admin/playbooks/{playbookId:guid}", async (
+    HttpContext httpContext,
     Guid playbookId,
     ITenantContextAccessor tenantAccessor,
     ITeamPlaybookService playbookService) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var deleted = await playbookService.DeletePlaybookAsync(
-        tenant.TenantId, tenant.UserId, tenant.CorrelationId, playbookId);
+        tenant.TenantId, tenant.UserId, tenant.CorrelationId, playbookId, ct);
     return deleted
         ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
         : Results.NotFound(ApiResponse<object>.Failure("Playbook not found.", tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapPost("/api/admin/playbooks/validate", async (
+    HttpContext httpContext,
     PlaybookValidateRequest request,
     ITenantContextAccessor tenantAccessor,
     ITeamPlaybookService playbookService) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var result = await playbookService.ValidateDraftAsync(
-        tenant.TenantId, request.TargetTeam, request.Draft);
+        tenant.TenantId, request.TargetTeam, request.Draft, ct);
     return Results.Ok(ApiResponse<PlaybookValidationResult>.Success(result, tenant.CorrelationId));
 }).RequirePermission("chat:query");
 
 // ──── Privacy & Compliance Endpoints (P2-001) ────
 
 app.MapGet("/api/admin/privacy/pii-policy", async (
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     IPiiPolicyService piiPolicyService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var policy = await piiPolicyService.GetPolicyAsync(tenant.TenantId);
+    var ct = httpContext.RequestAborted;
+    var policy = await piiPolicyService.GetPolicyAsync(tenant.TenantId, ct);
     return policy is not null
         ? Results.Ok(ApiResponse<PiiPolicyResponse>.Success(policy, tenant.CorrelationId))
         : Results.Ok(ApiResponse<object>.Success(new { message = "No custom PII policy. Using defaults (all types, redact mode)." }, tenant.CorrelationId));
 }).RequirePermission("privacy:manage");
 
 app.MapPut("/api/admin/privacy/pii-policy", async (
+    HttpContext httpContext,
     PiiPolicyUpdateRequest request,
     ITenantContextAccessor tenantAccessor,
     IPiiPolicyService piiPolicyService,
     ILogger<Program> logger) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     try
     {
-        var result = await piiPolicyService.UpsertPolicyAsync(tenant.TenantId, request, tenant.UserId);
+        var result = await piiPolicyService.UpsertPolicyAsync(tenant.TenantId, request, tenant.UserId, ct);
         return Results.Ok(ApiResponse<PiiPolicyResponse>.Success(result, tenant.CorrelationId));
     }
     catch (ArgumentException ex)
@@ -2137,35 +2318,41 @@ app.MapPut("/api/admin/privacy/pii-policy", async (
 }).RequirePermission("privacy:manage");
 
 app.MapDelete("/api/admin/privacy/pii-policy", async (
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     IPiiPolicyService piiPolicyService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var deleted = await piiPolicyService.DeletePolicyAsync(tenant.TenantId, tenant.UserId);
+    var ct = httpContext.RequestAborted;
+    var deleted = await piiPolicyService.DeletePolicyAsync(tenant.TenantId, tenant.UserId, ct);
     return deleted
         ? Results.Ok(ApiResponse<object>.Success(new { reset = true }, tenant.CorrelationId))
         : Results.NotFound(ApiResponse<object>.Failure("No custom PII policy found.", tenant.CorrelationId));
 }).RequirePermission("privacy:manage");
 
 app.MapGet("/api/admin/privacy/retention", async (
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     IRetentionCleanupService retentionService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await retentionService.GetPoliciesAsync(tenant.TenantId);
+    var ct = httpContext.RequestAborted;
+    var result = await retentionService.GetPoliciesAsync(tenant.TenantId, ct);
     return Results.Ok(ApiResponse<RetentionPolicyResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("privacy:manage");
 
 app.MapPut("/api/admin/privacy/retention", async (
+    HttpContext httpContext,
     RetentionPolicyUpdateRequest request,
     ITenantContextAccessor tenantAccessor,
     IRetentionCleanupService retentionService,
     ILogger<Program> logger) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     try
     {
-        var result = await retentionService.UpsertPolicyAsync(tenant.TenantId, request, tenant.UserId);
+        var result = await retentionService.UpsertPolicyAsync(tenant.TenantId, request, tenant.UserId, ct);
         return Results.Ok(ApiResponse<RetentionPolicyEntry>.Success(result, tenant.CorrelationId));
     }
     catch (ArgumentException ex)
@@ -2176,36 +2363,42 @@ app.MapPut("/api/admin/privacy/retention", async (
 }).RequirePermission("privacy:manage");
 
 app.MapDelete("/api/admin/privacy/retention/{entityType}", async (
+    HttpContext httpContext,
     string entityType,
     ITenantContextAccessor tenantAccessor,
     IRetentionCleanupService retentionService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var deleted = await retentionService.DeletePolicyAsync(tenant.TenantId, entityType, tenant.UserId);
+    var ct = httpContext.RequestAborted;
+    var deleted = await retentionService.DeletePolicyAsync(tenant.TenantId, entityType, tenant.UserId, ct);
     return deleted
         ? Results.Ok(ApiResponse<object>.Success(new { deleted = true, entityType }, tenant.CorrelationId))
         : Results.NotFound(ApiResponse<object>.Failure($"No retention policy found for {entityType}.", tenant.CorrelationId));
 }).RequirePermission("privacy:manage");
 
 app.MapPost("/api/admin/privacy/retention/cleanup", async (
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     IRetentionCleanupService retentionService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var results = await retentionService.ExecuteCleanupAsync(tenant.TenantId);
+    var ct = httpContext.RequestAborted;
+    var results = await retentionService.ExecuteCleanupAsync(tenant.TenantId, ct);
     return Results.Ok(ApiResponse<IReadOnlyList<RetentionCleanupResult>>.Success(results, tenant.CorrelationId));
 }).RequirePermission("privacy:manage");
 
 app.MapPost("/api/admin/privacy/data-subject-deletion", async (
+    HttpContext httpContext,
     DataSubjectDeletionRequest request,
     ITenantContextAccessor tenantAccessor,
     IDataSubjectDeletionService deletionService,
     ILogger<Program> logger) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     try
     {
-        var result = await deletionService.RequestDeletionAsync(tenant.TenantId, request.SubjectId, tenant.UserId);
+        var result = await deletionService.RequestDeletionAsync(tenant.TenantId, request.SubjectId, tenant.UserId, ct);
         return Results.Ok(ApiResponse<DataSubjectDeletionResponse>.Success(result, tenant.CorrelationId));
     }
     catch (Exception ex) when (ex is not OperationCanceledException)
@@ -2216,21 +2409,25 @@ app.MapPost("/api/admin/privacy/data-subject-deletion", async (
 }).RequirePermission("privacy:manage");
 
 app.MapGet("/api/admin/privacy/data-subject-deletion", async (
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     IDataSubjectDeletionService deletionService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await deletionService.ListDeletionRequestsAsync(tenant.TenantId);
+    var ct = httpContext.RequestAborted;
+    var result = await deletionService.ListDeletionRequestsAsync(tenant.TenantId, ct);
     return Results.Ok(ApiResponse<DataSubjectDeletionListResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("privacy:manage");
 
 app.MapGet("/api/admin/privacy/data-subject-deletion/{requestId:guid}", async (
+    HttpContext httpContext,
     Guid requestId,
     ITenantContextAccessor tenantAccessor,
     IDataSubjectDeletionService deletionService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await deletionService.GetDeletionRequestAsync(tenant.TenantId, requestId);
+    var ct = httpContext.RequestAborted;
+    var result = await deletionService.GetDeletionRequestAsync(tenant.TenantId, requestId, ct);
     return result is not null
         ? Results.Ok(ApiResponse<DataSubjectDeletionResponse>.Success(result, tenant.CorrelationId))
         : Results.NotFound(ApiResponse<object>.Failure("Deletion request not found.", tenant.CorrelationId));
@@ -2239,6 +2436,7 @@ app.MapGet("/api/admin/privacy/data-subject-deletion/{requestId:guid}", async (
 // ──── Retention Measurable Execution Endpoints (P2-005) ────
 
 app.MapGet("/api/admin/privacy/retention/history", async (
+    HttpContext httpContext,
     string? entityType,
     int? skip,
     int? take,
@@ -2246,84 +2444,99 @@ app.MapGet("/api/admin/privacy/retention/history", async (
     IRetentionCleanupService retentionService) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var result = await retentionService.GetExecutionHistoryAsync(
-        tenant.TenantId, entityType, skip ?? 0, take ?? 50);
+        tenant.TenantId, entityType, skip ?? 0, take ?? 50, ct);
     return Results.Ok(ApiResponse<RetentionExecutionHistoryResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("privacy:manage");
 
 app.MapGet("/api/admin/privacy/retention/compliance", async (
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     IRetentionCleanupService retentionService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var report = await retentionService.GetComplianceReportAsync(tenant.TenantId);
+    var ct = httpContext.RequestAborted;
+    var report = await retentionService.GetComplianceReportAsync(tenant.TenantId, ct);
     return Results.Ok(ApiResponse<RetentionComplianceReport>.Success(report, tenant.CorrelationId));
 }).RequirePermission("privacy:manage");
 
 // --- Cost Optimization Endpoints (P2-003) ---
 
 app.MapGet("/api/admin/cost-settings", async (
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     ITenantCostSettingsService costSettingsService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await costSettingsService.GetSettingsAsync(tenant.TenantId);
+    var ct = httpContext.RequestAborted;
+    var result = await costSettingsService.GetSettingsAsync(tenant.TenantId, ct);
     return Results.Ok(ApiResponse<CostSettingsResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapPut("/api/admin/cost-settings", async (
+    HttpContext httpContext,
     UpdateCostSettingsRequest request,
     ITenantContextAccessor tenantAccessor,
     ITenantCostSettingsService costSettingsService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await costSettingsService.UpdateSettingsAsync(tenant.TenantId, request);
+    var ct = httpContext.RequestAborted;
+    var result = await costSettingsService.UpdateSettingsAsync(tenant.TenantId, request, ct);
     return Results.Ok(ApiResponse<CostSettingsResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapDelete("/api/admin/cost-settings", async (
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     ITenantCostSettingsService costSettingsService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var deleted = await costSettingsService.ResetSettingsAsync(tenant.TenantId);
+    var ct = httpContext.RequestAborted;
+    var deleted = await costSettingsService.ResetSettingsAsync(tenant.TenantId, ct);
     return deleted
         ? Results.Ok(ApiResponse<object>.Success(new { reset = true }, tenant.CorrelationId))
         : Results.NotFound(ApiResponse<object>.Failure("No tenant cost overrides found.", tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapGet("/api/admin/token-usage/summary", async (
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     ITokenUsageService tokenUsageService,
     int? days) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var periodDays = days ?? 30;
     var periodEnd = DateTimeOffset.UtcNow;
     var periodStart = periodEnd.AddDays(-periodDays);
-    var result = await tokenUsageService.GetSummaryAsync(tenant.TenantId, periodStart, periodEnd);
+    var result = await tokenUsageService.GetSummaryAsync(tenant.TenantId, periodStart, periodEnd, ct);
     return Results.Ok(ApiResponse<TokenUsageSummary>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapGet("/api/admin/token-usage/daily", async (
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     ITokenUsageService tokenUsageService,
     int? days) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var periodDays = days ?? 30;
     var periodEnd = DateTimeOffset.UtcNow;
     var periodStart = periodEnd.AddDays(-periodDays);
-    var result = await tokenUsageService.GetDailyBreakdownAsync(tenant.TenantId, periodStart, periodEnd);
+    var result = await tokenUsageService.GetDailyBreakdownAsync(tenant.TenantId, periodStart, periodEnd, ct);
     return Results.Ok(ApiResponse<IReadOnlyList<DailyUsageBreakdown>>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapGet("/api/admin/token-usage/budget-check", async (
+    HttpContext httpContext,
     ITenantContextAccessor tenantAccessor,
     ITokenUsageService tokenUsageService) =>
 {
     var tenant = tenantAccessor.Current!;
-    var result = await tokenUsageService.CheckBudgetAsync(tenant.TenantId);
+    var ct = httpContext.RequestAborted;
+    var result = await tokenUsageService.CheckBudgetAsync(tenant.TenantId, ct);
     return Results.Ok(ApiResponse<BudgetCheckResult>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
@@ -2336,10 +2549,11 @@ app.MapGet("/api/admin/index-migrations/{indexType}/current", async (
     HttpContext httpContext) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
     if (service is null)
         return Results.Json(ApiResponse<object>.Failure("Search service is not configured.", tenant.CorrelationId), statusCode: 503);
-    var result = await service.GetCurrentVersionAsync(indexType);
+    var result = await service.GetCurrentVersionAsync(indexType, ct);
     return result is null
         ? Results.NotFound(ApiResponse<object>.Failure($"No version tracked for index type '{indexType}'.", tenant.CorrelationId))
         : Results.Ok(ApiResponse<IndexSchemaVersionInfo>.Success(result, tenant.CorrelationId));
@@ -2351,10 +2565,11 @@ app.MapGet("/api/admin/index-migrations/{indexType}/versions", async (
     HttpContext httpContext) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
     if (service is null)
         return Results.Json(ApiResponse<object>.Failure("Search service is not configured.", tenant.CorrelationId), statusCode: 503);
-    var result = await service.ListVersionsAsync(indexType);
+    var result = await service.ListVersionsAsync(indexType, ct);
     return Results.Ok(ApiResponse<IReadOnlyList<IndexSchemaVersionInfo>>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
@@ -2364,10 +2579,11 @@ app.MapGet("/api/admin/index-migrations/{indexType}/plan", async (
     HttpContext httpContext) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
     if (service is null)
         return Results.Json(ApiResponse<object>.Failure("Search service is not configured.", tenant.CorrelationId), statusCode: 503);
-    var result = await service.PlanMigrationAsync(indexType);
+    var result = await service.PlanMigrationAsync(indexType, ct);
     return Results.Ok(ApiResponse<MigrationPlan>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
@@ -2377,10 +2593,11 @@ app.MapPost("/api/admin/index-migrations/{indexType}/execute", async (
     HttpContext httpContext) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
     if (service is null)
         return Results.Json(ApiResponse<object>.Failure("Search service is not configured.", tenant.CorrelationId), statusCode: 503);
-    var result = await service.ExecuteMigrationAsync(indexType, tenant.UserId);
+    var result = await service.ExecuteMigrationAsync(indexType, tenant.UserId, ct);
     return result.Success
         ? Results.Ok(ApiResponse<MigrationResult>.Success(result, tenant.CorrelationId))
         : Results.UnprocessableEntity(ApiResponse<MigrationResult>.Failure(
@@ -2393,10 +2610,11 @@ app.MapPost("/api/admin/index-migrations/{indexType}/rollback", async (
     HttpContext httpContext) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
     if (service is null)
         return Results.Json(ApiResponse<object>.Failure("Search service is not configured.", tenant.CorrelationId), statusCode: 503);
-    var result = await service.RollbackAsync(indexType, tenant.UserId);
+    var result = await service.RollbackAsync(indexType, tenant.UserId, ct);
     return result.Success
         ? Results.Ok(ApiResponse<MigrationResult>.Success(result, tenant.CorrelationId))
         : Results.UnprocessableEntity(ApiResponse<MigrationResult>.Failure(
@@ -2409,10 +2627,11 @@ app.MapPost("/api/admin/index-migrations/{indexType}/bootstrap", async (
     HttpContext httpContext) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
     if (service is null)
         return Results.Json(ApiResponse<object>.Failure("Search service is not configured.", tenant.CorrelationId), statusCode: 503);
-    var result = await service.EnsureVersionTrackingAsync(indexType, tenant.UserId);
+    var result = await service.EnsureVersionTrackingAsync(indexType, tenant.UserId, ct);
     return Results.Ok(ApiResponse<IndexSchemaVersionInfo>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
@@ -2422,10 +2641,11 @@ app.MapDelete("/api/admin/index-migrations/retired/{versionId:guid}", async (
     HttpContext httpContext) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
     if (service is null)
         return Results.Json(ApiResponse<object>.Failure("Search service is not configured.", tenant.CorrelationId), statusCode: 503);
-    var deleted = await service.DeleteRetiredVersionAsync(versionId, tenant.UserId);
+    var deleted = await service.DeleteRetiredVersionAsync(versionId, tenant.UserId, ct);
     return deleted
         ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
         : Results.NotFound(ApiResponse<object>.Failure("Retired version not found or not eligible for deletion.", tenant.CorrelationId));
@@ -2440,9 +2660,10 @@ app.MapGet("/api/admin/eval/reports", async (
     int? pageSize) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var evalReportService = httpContext.RequestServices.GetRequiredService<IEvalReportService>();
     var result = await evalReportService.ListReportsAsync(
-        tenant.TenantId, runType, page ?? 1, pageSize ?? 20);
+        tenant.TenantId, runType, page ?? 1, pageSize ?? 20, ct);
     return Results.Ok(ApiResponse<EvalReportListResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
@@ -2452,8 +2673,9 @@ app.MapGet("/api/admin/eval/reports/{reportId:guid}", async (
     HttpContext httpContext) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var evalReportService = httpContext.RequestServices.GetRequiredService<IEvalReportService>();
-    var report = await evalReportService.GetReportAsync(tenant.TenantId, reportId);
+    var report = await evalReportService.GetReportAsync(tenant.TenantId, reportId, ct);
     return report is not null
         ? Results.Ok(ApiResponse<EvalReportDetail>.Success(report, tenant.CorrelationId))
         : Results.NotFound(ApiResponse<object>.Failure("Eval report not found.", tenant.CorrelationId));
@@ -2465,8 +2687,9 @@ app.MapPost("/api/admin/eval/reports", async (
     HttpContext httpContext) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var evalReportService = httpContext.RequestServices.GetRequiredService<IEvalReportService>();
-    var report = await evalReportService.PersistReportAsync(tenant.TenantId, request, tenant.UserId);
+    var report = await evalReportService.PersistReportAsync(tenant.TenantId, request, tenant.UserId, ct);
     return Results.Created($"/api/admin/eval/reports/{report.Id}",
         ApiResponse<EvalReportDetail>.Success(report, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
@@ -2480,8 +2703,9 @@ app.MapGet("/api/admin/eval/gold-cases", async (
     int? pageSize) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var svc = httpContext.RequestServices.GetRequiredService<IGoldCaseService>();
-    var result = await svc.ListAsync(tenant.TenantId, tag, page ?? 1, pageSize ?? 20);
+    var result = await svc.ListAsync(tenant.TenantId, tag, page ?? 1, pageSize ?? 20, ct);
     return Results.Ok(ApiResponse<GoldCaseListResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
@@ -2491,8 +2715,9 @@ app.MapGet("/api/admin/eval/gold-cases/{id:guid}", async (
     HttpContext httpContext) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var svc = httpContext.RequestServices.GetRequiredService<IGoldCaseService>();
-    var detail = await svc.GetAsync(tenant.TenantId, id);
+    var detail = await svc.GetAsync(tenant.TenantId, id, ct);
     return detail is not null
         ? Results.Ok(ApiResponse<GoldCaseDetail>.Success(detail, tenant.CorrelationId))
         : Results.NotFound(ApiResponse<object>.Failure("Gold case not found.", tenant.CorrelationId));
@@ -2504,8 +2729,9 @@ app.MapPost("/api/admin/eval/gold-cases", async (
     HttpContext httpContext) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var svc = httpContext.RequestServices.GetRequiredService<IGoldCaseService>();
-    var detail = await svc.CreateAsync(tenant.TenantId, request, tenant.UserId);
+    var detail = await svc.CreateAsync(tenant.TenantId, request, tenant.UserId, ct);
     return Results.Created($"/api/admin/eval/gold-cases/{detail.Id}",
         ApiResponse<GoldCaseDetail>.Success(detail, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
@@ -2517,8 +2743,9 @@ app.MapPut("/api/admin/eval/gold-cases/{id:guid}", async (
     HttpContext httpContext) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var svc = httpContext.RequestServices.GetRequiredService<IGoldCaseService>();
-    var detail = await svc.UpdateAsync(tenant.TenantId, id, request, tenant.UserId);
+    var detail = await svc.UpdateAsync(tenant.TenantId, id, request, tenant.UserId, ct);
     return detail is not null
         ? Results.Ok(ApiResponse<GoldCaseDetail>.Success(detail, tenant.CorrelationId))
         : Results.NotFound(ApiResponse<object>.Failure("Gold case not found.", tenant.CorrelationId));
@@ -2530,8 +2757,9 @@ app.MapDelete("/api/admin/eval/gold-cases/{id:guid}", async (
     HttpContext httpContext) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var svc = httpContext.RequestServices.GetRequiredService<IGoldCaseService>();
-    var deleted = await svc.DeleteAsync(tenant.TenantId, id, tenant.UserId);
+    var deleted = await svc.DeleteAsync(tenant.TenantId, id, tenant.UserId, ct);
     return deleted
         ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
         : Results.NotFound(ApiResponse<object>.Failure("Gold case not found.", tenant.CorrelationId));
@@ -2542,8 +2770,9 @@ app.MapGet("/api/admin/eval/gold-cases/export", async (
     HttpContext httpContext) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var svc = httpContext.RequestServices.GetRequiredService<IGoldCaseService>();
-    var jsonl = await svc.ExportAsJsonlAsync(tenant.TenantId);
+    var jsonl = await svc.ExportAsJsonlAsync(tenant.TenantId, ct);
     return Results.Text(jsonl, "application/x-ndjson");
 }).RequirePermission("connector:manage");
 
@@ -2553,8 +2782,9 @@ app.MapPost("/api/admin/eval/gold-cases/promote", async (
     HttpContext httpContext) =>
 {
     var tenant = tenantAccessor.Current!;
+    var ct = httpContext.RequestAborted;
     var svc = httpContext.RequestServices.GetRequiredService<IGoldCaseService>();
-    var detail = await svc.PromoteFromFeedbackAsync(tenant.TenantId, request, tenant.UserId);
+    var detail = await svc.PromoteFromFeedbackAsync(tenant.TenantId, request, tenant.UserId, ct);
     return Results.Created($"/api/admin/eval/gold-cases/{detail.Id}",
         ApiResponse<GoldCaseDetail>.Success(detail, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
