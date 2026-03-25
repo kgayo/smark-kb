@@ -49,14 +49,11 @@ public sealed class RateLimitAlertService : IRateLimitAlertService
     {
         var windowStart = _timeProvider.GetUtcNow().AddMinutes(-_sloSettings.RateLimitAlertWindowMinutes);
 
-        // Fetch recent events within window, then aggregate in-memory.
-        // The result set is small (bounded by window size and connector count).
         var recentEvents = await _db.RateLimitEvents
-            .Where(e => e.TenantId == tenantId)
+            .Where(e => e.TenantId == tenantId && e.OccurredAt >= windowStart)
             .ToListAsync(ct);
 
         var grouped = recentEvents
-            .Where(e => e.OccurredAt >= windowStart)
             .GroupBy(e => new { e.ConnectorId, e.ConnectorType })
             .Select(g => new
             {

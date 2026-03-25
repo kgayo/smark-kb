@@ -218,6 +218,20 @@ public class RateLimitAlertServiceTests : IDisposable
         Assert.Equal("Unknown", result.Alerts[0].ConnectorName);
     }
 
+    [Fact]
+    public async Task GetAlerts_ExcludesOldEventsAtDatabaseLevel()
+    {
+        // 2 recent events (inside 15-min window) + 3 old events (outside window).
+        // Only the 2 recent events should count — below threshold of 3.
+        SeedEvents("t1", _connectorId, "AzureDevOps", 2, minutesAgo: 5);
+        SeedEvents("t1", _connectorId, "AzureDevOps", 3, minutesAgo: 30);
+
+        var result = await _service.GetRateLimitAlertsAsync("t1");
+
+        Assert.Equal(0, result.TotalAlertingConnectors);
+        Assert.Empty(result.Alerts);
+    }
+
     private void SeedEvents(string tenantId, Guid connectorId, string connectorType, int count, int minutesAgo)
     {
         var baseTime = _timeProvider.GetUtcNow().AddMinutes(-minutesAgo);
