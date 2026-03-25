@@ -15,6 +15,7 @@ export function SourceViewerPanel({ chunkId, onBack }: SourceViewerPanelProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState(false);
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -50,6 +51,7 @@ export function SourceViewerPanel({ chunkId, onBack }: SourceViewerPanelProps) {
   const handleCopyCitation = useCallback(() => {
     if (!content) return;
     const link = content.sourceUrl || `evidence://${content.chunkId}`;
+    setCopyError(false);
     navigator.clipboard
       .writeText(link)
       .then(() => {
@@ -59,6 +61,9 @@ export function SourceViewerPanel({ chunkId, onBack }: SourceViewerPanelProps) {
       })
       .catch((err) => {
         console.warn('[SourceViewerPanel] Clipboard write failed:', err);
+        setCopyError(true);
+        if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+        copyTimerRef.current = setTimeout(() => setCopyError(false), 3000);
       });
   }, [content]);
 
@@ -113,7 +118,7 @@ export function SourceViewerPanel({ chunkId, onBack }: SourceViewerPanelProps) {
             data-testid="copy-citation-link"
             aria-label="Copy citation link to clipboard"
           >
-            {copied ? 'Copied!' : 'Copy citation link'}
+            {copied ? 'Copied!' : copyError ? 'Copy failed' : 'Copy citation link'}
           </button>
           {content.sourceUrl && (
             <a

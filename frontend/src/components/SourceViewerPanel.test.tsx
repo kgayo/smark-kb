@@ -200,6 +200,25 @@ describe('SourceViewerPanel', () => {
     unmount();
   });
 
+  it('shows "Copy failed" when clipboard write fails', async () => {
+    vi.mocked(api.getEvidenceContent).mockResolvedValue(mockContent);
+    Object.assign(navigator, {
+      clipboard: { writeText: vi.fn().mockRejectedValue(new Error('Clipboard blocked')) },
+    });
+
+    render(<SourceViewerPanel chunkId="ev1_chunk_0" onBack={() => {}} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('copy-citation-link')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('copy-citation-link'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Copy failed')).toBeInTheDocument();
+    });
+  });
+
   it('does not render open external when no sourceUrl', async () => {
     const noUrl = { ...mockContent, sourceUrl: '' };
     vi.mocked(api.getEvidenceContent).mockResolvedValue(noUrl);
