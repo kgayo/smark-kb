@@ -564,8 +564,8 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
         };
     }
 
-    private static Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)
-        => ConnectorHttpHelper.DeserializeAsync<T>(response, SharedJsonOptions.CamelCaseIgnoreNull, ct);
+    private Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)
+        => ConnectorHttpHelper.DeserializeAsync<T>(response, SharedJsonOptions.CamelCaseIgnoreNull, ct, _logger);
 
     // --- ClickUp API response models ---
 

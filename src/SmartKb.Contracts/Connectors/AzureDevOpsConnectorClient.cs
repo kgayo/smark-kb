@@ -592,8 +592,8 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
         return result?.Value?.Select(p => p.Name).ToList() ?? [];
     }
 
-    private static Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)
-        => ConnectorHttpHelper.DeserializeAsync<T>(response, SharedJsonOptions.CamelCaseIgnoreNull, ct);
+    private Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)
+        => ConnectorHttpHelper.DeserializeAsync<T>(response, SharedJsonOptions.CamelCaseIgnoreNull, ct, _logger);
 
     private static List<WikiPageResponse> FlattenWikiPages(WikiPageResponse root)
     {

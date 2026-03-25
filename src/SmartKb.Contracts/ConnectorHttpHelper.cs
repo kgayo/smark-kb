@@ -55,7 +55,7 @@ public static class ConnectorHttpHelper
         CancellationToken ct,
         ILogger? logger = null)
     {
-        var stream = await response.Content.ReadAsStreamAsync(ct);
+        using var stream = await response.Content.ReadAsStreamAsync(ct);
         try
         {
             return await JsonSerializer.DeserializeAsync<T>(stream, options, ct);

@@ -228,6 +228,6 @@ public sealed class HubSpotWebhookManager : IWebhookManager
     private HubSpotSourceConfig? ParseSourceConfig(string? json)
         => ConnectorHttpHelper.ParseJson<HubSpotSourceConfig>(json, SharedJsonOptions.CamelCaseIgnoreNull, _logger);
 
-    private static Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)
-        => ConnectorHttpHelper.DeserializeAsync<T>(response, SharedJsonOptions.CamelCaseIgnoreNull, ct);
+    private Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)
+        => ConnectorHttpHelper.DeserializeAsync<T>(response, SharedJsonOptions.CamelCaseIgnoreNull, ct, _logger);
 }

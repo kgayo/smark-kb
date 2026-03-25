@@ -230,6 +230,6 @@ public sealed class ClickUpWebhookManager : IWebhookManager
     private ClickUpSourceConfig? ParseSourceConfig(string? json)
         => ConnectorHttpHelper.ParseJson<ClickUpSourceConfig>(json, SharedJsonOptions.CamelCaseIgnoreNull, _logger);
 
-    private static Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)
-        => ConnectorHttpHelper.DeserializeAsync<T>(response, SharedJsonOptions.CamelCaseIgnoreNull, ct);
+    private Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)
+        => ConnectorHttpHelper.DeserializeAsync<T>(response, SharedJsonOptions.CamelCaseIgnoreNull, ct, _logger);
 }

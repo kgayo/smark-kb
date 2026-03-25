@@ -620,8 +620,8 @@ public sealed class SharePointConnectorClient : IConnectorClient
         _ => SourceType.Document,
     };
 
-    private static Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)
-        => ConnectorHttpHelper.DeserializeAsync<T>(response, SharedJsonOptions.CamelCaseIgnoreNull, ct);
+    private Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)
+        => ConnectorHttpHelper.DeserializeAsync<T>(response, SharedJsonOptions.CamelCaseIgnoreNull, ct, _logger);
 
     // --- Graph API response models ---
 
