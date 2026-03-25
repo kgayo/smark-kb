@@ -354,7 +354,7 @@ public sealed class PatternDistillationService : IPatternDistillationService
             TagsJson = JsonSerializer.Serialize(candidate.Tags.ToList(), SharedJsonOptions.CamelCaseWrite),
             Visibility = visibility,
             AllowedGroupsJson = JsonSerializer.Serialize(allowedGroups, SharedJsonOptions.CamelCaseWrite),
-            AccessLabel = visibility == "Restricted" ? "Restricted" : "Internal",
+            AccessLabel = visibility == VisibilityLevel.Restricted ? VisibilityLevel.Restricted : VisibilityLevel.Internal,
             SourceUrl = $"session://{candidate.SessionId}",
             CreatedAt = now,
             UpdatedAt = now,
@@ -567,11 +567,11 @@ public sealed class PatternDistillationService : IPatternDistillationService
     internal static string DetermineVisibility(List<EvidenceChunkEntity> chunks)
     {
         // Use the most restrictive visibility across all cited chunks.
-        if (chunks.Any(c => c.Visibility == "Restricted"))
-            return "Restricted";
-        if (chunks.Any(c => c.Visibility == "Internal"))
-            return "Internal";
-        return "Public";
+        if (chunks.Any(c => c.Visibility == VisibilityLevel.Restricted))
+            return VisibilityLevel.Restricted;
+        if (chunks.Any(c => c.Visibility == VisibilityLevel.Internal))
+            return VisibilityLevel.Internal;
+        return VisibilityLevel.Public;
     }
 
     private static CasePattern MapEntityToModel(CasePatternEntity entity, float[]? embedding)

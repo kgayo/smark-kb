@@ -77,8 +77,8 @@ public sealed record PatternDetail
     public IReadOnlyList<string> Exclusions { get; init; } = [];
     public string? ProductArea { get; init; }
     public IReadOnlyList<string> Tags { get; init; } = [];
-    public string Visibility { get; init; } = "Internal";
-    public string AccessLabel { get; init; } = "Internal";
+    public string Visibility { get; init; } = VisibilityLevel.Internal;
+    public string AccessLabel { get; init; } = VisibilityLevel.Internal;
     public string SourceUrl { get; init; } = string.Empty;
     public float? QualityScore { get; init; }
     public DateTimeOffset CreatedAt { get; init; }

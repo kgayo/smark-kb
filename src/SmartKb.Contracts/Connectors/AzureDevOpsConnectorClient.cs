@@ -449,7 +449,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
                 string.IsNullOrEmpty(areaPath) ? AccessVisibility.Internal : AccessVisibility.Restricted,
                 allowedGroups),
             ContentHash = contentHash,
-            AccessLabel = string.IsNullOrEmpty(areaPath) ? "Internal" : $"Restricted ({areaPath})",
+            AccessLabel = string.IsNullOrEmpty(areaPath) ? VisibilityLevel.Internal : $"{VisibilityLevel.Restricted} ({areaPath})",
             Author = author,
             ProductArea = areaPath,
             Tags = tagList,
@@ -562,7 +562,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
             Status = EvidenceStatus.Open,
             Permissions = new RecordPermissions(AccessVisibility.Internal, []),
             ContentHash = contentHash,
-            AccessLabel = "Internal",
+            AccessLabel = VisibilityLevel.Internal,
         };
     }
 

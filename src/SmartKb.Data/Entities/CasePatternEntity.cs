@@ -1,3 +1,5 @@
+using SmartKb.Contracts.Models;
+
 namespace SmartKb.Data.Entities;
 
 /// <summary>
@@ -29,9 +31,9 @@ public sealed class CasePatternEntity
     public string ExclusionsJson { get; set; } = "[]";
     public string? ProductArea { get; set; }
     public string TagsJson { get; set; } = "[]";
-    public string Visibility { get; set; } = "Internal";
+    public string Visibility { get; set; } = VisibilityLevel.Internal;
     public string AllowedGroupsJson { get; set; } = "[]";
-    public string AccessLabel { get; set; } = "Internal";
+    public string AccessLabel { get; set; } = VisibilityLevel.Internal;
     public string SourceUrl { get; set; } = string.Empty;
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }

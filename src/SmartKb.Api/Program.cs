@@ -1321,7 +1321,7 @@ app.MapGet("/api/evidence/{chunkId}/content", async (
         return Results.NotFound(ApiResponse<object>.Failure("Evidence chunk not found.", tenant.CorrelationId));
 
     // ACL enforcement: restricted content requires user membership in allowed groups.
-    if (string.Equals(chunk.Visibility, "Restricted", StringComparison.OrdinalIgnoreCase))
+    if (string.Equals(chunk.Visibility, VisibilityLevel.Restricted, StringComparison.OrdinalIgnoreCase))
     {
         var allowedGroups = string.IsNullOrEmpty(chunk.AllowedGroups)
             ? Array.Empty<string>()

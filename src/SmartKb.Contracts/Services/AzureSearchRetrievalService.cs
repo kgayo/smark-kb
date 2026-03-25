@@ -278,7 +278,7 @@ public sealed class AzureSearchRetrievalService : IRetrievalService
         foreach (var result in results)
         {
             // Public and Internal visibility: accessible to all authenticated users.
-            if (!string.Equals(result.Visibility, "Restricted", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(result.Visibility, VisibilityLevel.Restricted, StringComparison.OrdinalIgnoreCase))
             {
                 filtered.Add(result);
                 continue;

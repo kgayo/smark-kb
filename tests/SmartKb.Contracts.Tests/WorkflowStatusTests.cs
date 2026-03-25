@@ -56,6 +56,63 @@ public sealed class WorkflowStatusTests
     }
 }
 
+public sealed class VisibilityLevelTests
+{
+    [Fact]
+    public void AllConstants_AreNotNullOrEmpty()
+    {
+        var fields = typeof(VisibilityLevel).GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly);
+        Assert.NotEmpty(fields);
+
+        foreach (var field in fields)
+        {
+            var value = (string)field.GetValue(null)!;
+            Assert.False(string.IsNullOrWhiteSpace(value), $"{field.Name} must not be null or whitespace.");
+        }
+    }
+
+    [Fact]
+    public void AllConstants_AreUnique()
+    {
+        var fields = typeof(VisibilityLevel).GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly);
+        var values = fields.Select(f => (string)f.GetValue(null)!).ToList();
+
+        Assert.Equal(values.Count, values.Distinct().Count());
+    }
+
+    [Fact]
+    public void AllConstants_ArePascalCase()
+    {
+        var fields = typeof(VisibilityLevel).GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly);
+
+        foreach (var field in fields)
+        {
+            var value = (string)field.GetValue(null)!;
+            Assert.Equal(field.Name, value);
+        }
+    }
+
+    [Theory]
+    [InlineData("Internal")]
+    [InlineData("Restricted")]
+    [InlineData("Public")]
+    public void ExpectedConstants_Exist(string expected)
+    {
+        var fields = typeof(VisibilityLevel).GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly);
+        var values = fields.Select(f => (string)f.GetValue(null)!).ToList();
+
+        Assert.Contains(expected, values);
+    }
+
+    [Fact]
+    public void Constants_MatchAccessVisibilityEnumNames()
+    {
+        Assert.Equal(nameof(SmartKb.Contracts.Enums.AccessVisibility.Internal), VisibilityLevel.Internal);
+        Assert.Equal(nameof(SmartKb.Contracts.Enums.AccessVisibility.Restricted), VisibilityLevel.Restricted);
+        Assert.Equal(nameof(SmartKb.Contracts.Enums.AccessVisibility.Public), VisibilityLevel.Public);
+    }
+}
+
 public sealed class EscalationExternalStatusTests
 {
     [Fact]

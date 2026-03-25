@@ -853,7 +853,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
 
         foreach (var chunk in chunks)
         {
-            if (string.Equals(chunk.Visibility, "Restricted", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(chunk.Visibility, VisibilityLevel.Restricted, StringComparison.OrdinalIgnoreCase))
             {
                 // Restricted: user must be in at least one allowed group.
                 if (groupSet is not null && chunk.AllowedGroups.Any(g => groupSet.Contains(g)))

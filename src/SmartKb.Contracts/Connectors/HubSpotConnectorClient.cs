@@ -397,7 +397,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
             Status = MapStageToStatus(stage),
             Permissions = new RecordPermissions(AccessVisibility.Internal, []),
             ContentHash = contentHash,
-            AccessLabel = "Internal",
+            AccessLabel = VisibilityLevel.Internal,
             Author = obj.Properties.GetValueOrDefault("hubspot_owner_id"),
             ProductArea = category,
             Severity = MapPriority(priority),

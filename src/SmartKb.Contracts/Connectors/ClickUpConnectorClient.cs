@@ -491,7 +491,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
 
         // ACL: ClickUp workspace-level access → Internal visibility.
         // Space name used as access label for grouping.
-        var accessLabel = "Internal";
+        var accessLabel = VisibilityLevel.Internal;
 
         return new CanonicalRecord
         {

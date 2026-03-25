@@ -76,7 +76,7 @@ public sealed record CasePattern
     // ACL fields
     public AccessVisibility Visibility { get; init; } = AccessVisibility.Internal;
     public IReadOnlyList<string> AllowedGroups { get; init; } = [];
-    public string AccessLabel { get; init; } = "Internal";
+    public string AccessLabel { get; init; } = VisibilityLevel.Internal;
 
     /// <summary>Deep link URL for viewing the pattern.</summary>
     public string SourceUrl { get; init; } = string.Empty;
