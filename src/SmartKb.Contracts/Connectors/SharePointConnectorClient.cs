@@ -275,69 +275,72 @@ public sealed class SharePointConnectorClient : IConnectorClient
                 break;
             }
 
-            // Handle 410 Gone — delta token expired, reset to full sync.
-            if (response.StatusCode == System.Net.HttpStatusCode.Gone)
+            using (response)
             {
-                _logger.LogWarning("Delta token expired for drive {DriveId}. Resetting to full sync.", drive.Id);
-                url = $"{GraphBaseUrl}/drives/{drive.Id}/root/delta?$top={top}&$select=id,name,file,folder,parentReference,webUrl,lastModifiedDateTime,createdDateTime,lastModifiedBy,size,deleted";
-                nextDeltaLink = null;
-                continue;
-            }
-
-            response.EnsureSuccessStatusCode();
-
-            var result = await DeserializeAsync<GraphDeltaResponse>(response, ct);
-            if (result is null) break;
-
-            foreach (var item in result.Value ?? [])
-            {
-                // Skip folders — we only ingest files.
-                if (item.Folder is not null) continue;
-
-                // Skip deleted items (they'll be handled via content hash dedup).
-                if (item.Deleted is not null) continue;
-
-                // Skip items without file metadata.
-                if (item.File is null) continue;
-
-                // Filter by extension.
-                var extension = Path.GetExtension(item.Name);
-                if (!IsExtensionSupported(extension, config))
-                    continue;
-
-                // Filter by excluded folders.
-                if (IsExcludedFolder(item, config))
-                    continue;
-
-                try
+                // Handle 410 Gone — delta token expired, reset to full sync.
+                if (response.StatusCode == System.Net.HttpStatusCode.Gone)
                 {
-                    var record = MapDriveItemToCanonical(item, drive, config, tenantId);
-                    if (record is not null)
+                    _logger.LogWarning("Delta token expired for drive {DriveId}. Resetting to full sync.", drive.Id);
+                    url = $"{GraphBaseUrl}/drives/{drive.Id}/root/delta?$top={top}&$select=id,name,file,folder,parentReference,webUrl,lastModifiedDateTime,createdDateTime,lastModifiedBy,size,deleted";
+                    nextDeltaLink = null;
+                    continue;
+                }
+
+                response.EnsureSuccessStatusCode();
+
+                var result = await DeserializeAsync<GraphDeltaResponse>(response, ct);
+                if (result is null) break;
+
+                foreach (var item in result.Value ?? [])
+                {
+                    // Skip folders — we only ingest files.
+                    if (item.Folder is not null) continue;
+
+                    // Skip deleted items (they'll be handled via content hash dedup).
+                    if (item.Deleted is not null) continue;
+
+                    // Skip items without file metadata.
+                    if (item.File is null) continue;
+
+                    // Filter by extension.
+                    var extension = Path.GetExtension(item.Name);
+                    if (!IsExtensionSupported(extension, config))
+                        continue;
+
+                    // Filter by excluded folders.
+                    if (IsExcludedFolder(item, config))
+                        continue;
+
+                    try
                     {
-                        // Download file content and extract text.
-                        record = await DownloadAndExtractTextAsync(
-                            client, drive.Id!, item, record, ct);
-                        records.Add(record);
-                        fetched++;
+                        var record = MapDriveItemToCanonical(item, drive, config, tenantId);
+                        if (record is not null)
+                        {
+                            // Download file content and extract text.
+                            record = await DownloadAndExtractTextAsync(
+                                client, drive.Id!, item, record, ct);
+                            records.Add(record);
+                            fetched++;
+                        }
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        _logger.LogWarning(ex, "Failed to map drive item {ItemId} in drive {DriveId}", item.Id, drive.Id);
+                        errors.Add($"Failed to map item '{item.Name}': {ex.Message}");
+                        failedCount++;
                     }
                 }
-                catch (Exception ex) when (ex is not OperationCanceledException)
-                {
-                    _logger.LogWarning(ex, "Failed to map drive item {ItemId} in drive {DriveId}", item.Id, drive.Id);
-                    errors.Add($"Failed to map item '{item.Name}': {ex.Message}");
-                    failedCount++;
-                }
-            }
 
-            // Follow @odata.nextLink for pagination, or capture @odata.deltaLink for checkpoint.
-            if (result.OdataNextLink is not null)
-            {
-                url = result.OdataNextLink;
-            }
-            else
-            {
-                nextDeltaLink = result.OdataDeltaLink ?? nextDeltaLink;
-                url = null; // No more pages.
+                // Follow @odata.nextLink for pagination, or capture @odata.deltaLink for checkpoint.
+                if (result.OdataNextLink is not null)
+                {
+                    url = result.OdataNextLink;
+                }
+                else
+                {
+                    nextDeltaLink = result.OdataDeltaLink ?? nextDeltaLink;
+                    url = null; // No more pages.
+                }
             }
         }
 
@@ -561,7 +564,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
 
         // Discover all document libraries for the site.
         var listUrl = $"{GraphBaseUrl}/sites/{siteId}/drives";
-        var listResponse = await client.GetAsync(listUrl, ct);
+        using var listResponse = await client.GetAsync(listUrl, ct);
         if (!listResponse.IsSuccessStatusCode) return [];
 
         var result = await DeserializeAsync<GraphDriveListResponse>(listResponse, ct);

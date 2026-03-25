@@ -366,7 +366,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
         using var wiqlContent = new StringContent(wiqlPayload, Encoding.UTF8, "application/json");
 
         var wiqlUrl = $"{project}/_apis/wit/wiql?api-version={ApiVersion}&$top={Math.Min(top, MaxWiqlResults)}";
-        var wiqlResponse = await client.PostAsync(wiqlUrl, wiqlContent, ct);
+        using var wiqlResponse = await client.PostAsync(wiqlUrl, wiqlContent, ct);
         wiqlResponse.EnsureSuccessStatusCode();
 
         var wiqlResult = await DeserializeAsync<WiqlResponse>(wiqlResponse, ct);
@@ -382,7 +382,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
             var idList = string.Join(",", batch);
             var fields = "System.Id,System.Title,System.Description,System.WorkItemType,System.State,System.AreaPath,System.AssignedTo,System.CreatedDate,System.ChangedDate,System.Tags";
             var detailUrl = $"_apis/wit/workitems?ids={idList}&fields={fields}&api-version={ApiVersion}";
-            var detailResponse = await client.GetAsync(detailUrl, ct);
+            using var detailResponse = await client.GetAsync(detailUrl, ct);
             detailResponse.EnsureSuccessStatusCode();
 
             var detailResult = await DeserializeAsync<WorkItemListResponse>(detailResponse, ct);
@@ -463,7 +463,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
     {
         // List wikis in project.
         var wikisUrl = $"{project}/_apis/wiki/wikis?api-version={ApiVersion}";
-        var wikisResponse = await client.GetAsync(wikisUrl, ct);
+        using var wikisResponse = await client.GetAsync(wikisUrl, ct);
 
         if (!wikisResponse.IsSuccessStatusCode)
         {
@@ -504,7 +504,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
         WikiResponse wiki, string tenantId, int remaining, CancellationToken ct)
     {
         var pagesUrl = $"{project}/_apis/wiki/wikis/{wiki.Id}/pages?api-version={ApiVersion}&recursionLevel=full&includeContent=false";
-        var pagesResponse = await client.GetAsync(pagesUrl, ct);
+        using var pagesResponse = await client.GetAsync(pagesUrl, ct);
         pagesResponse.EnsureSuccessStatusCode();
 
         var rootPage = await DeserializeAsync<WikiPageResponse>(pagesResponse, ct);
@@ -519,7 +519,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
             try
             {
                 var pageContentUrl = $"{project}/_apis/wiki/wikis/{wiki.Id}/pages?path={Uri.EscapeDataString(page.Path)}&includeContent=true&api-version={ApiVersion}";
-                var contentResponse = await client.GetAsync(pageContentUrl, ct);
+                using var contentResponse = await client.GetAsync(pageContentUrl, ct);
                 if (!contentResponse.IsSuccessStatusCode) continue;
 
                 var pageDetail = await DeserializeAsync<WikiPageResponse>(contentResponse, ct);
