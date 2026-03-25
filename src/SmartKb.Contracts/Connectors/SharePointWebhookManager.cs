@@ -232,9 +232,6 @@ public sealed class SharePointWebhookManager : IWebhookManager
         return client;
     }
 
-    private static async Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)
-    {
-        var stream = await response.Content.ReadAsStreamAsync(ct);
-        return await JsonSerializer.DeserializeAsync<T>(stream, SharedJsonOptions.CamelCase, ct);
-    }
+    private static Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)
+        => ConnectorHttpHelper.DeserializeAsync<T>(response, SharedJsonOptions.CamelCase, ct);
 }

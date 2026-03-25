@@ -585,11 +585,8 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
         };
     }
 
-    private static async Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)
-    {
-        var stream = await response.Content.ReadAsStreamAsync(ct);
-        return await JsonSerializer.DeserializeAsync<T>(stream, SharedJsonOptions.CamelCaseIgnoreNull, ct);
-    }
+    private static Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)
+        => ConnectorHttpHelper.DeserializeAsync<T>(response, SharedJsonOptions.CamelCaseIgnoreNull, ct);
 
     private static FetchResult ErrorResult(string error) => new()
     {

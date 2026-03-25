@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-24 (Asia/Manila) — iteration 164 (TECH-065/066/067 consolidate duplicate JsonSerializerOptions + fix sync-over-async test + stable React keys)
-Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2889 tests passing (2383 backend + 470 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 164: TECH-065 (consolidate 31 duplicate `JsonSerializerOptions` into shared `SharedJsonOptions` class), TECH-066 (fix `GetAwaiter().GetResult()` sync-over-async in test), TECH-067 (replace array index keys with stable keys in 3 React components).
+Last updated: 2026-03-24 (Asia/Manila) — iteration 165 (TECH-068 consolidate 8 duplicate DeserializeAsync helpers into shared ConnectorHttpHelper)
+Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2894 tests passing (2388 backend + 470 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 165: TECH-068 (consolidate 8 duplicate `DeserializeAsync<T>` HTTP helpers into shared `ConnectorHttpHelper` class).
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -333,6 +333,10 @@ Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-00
 - [x] TECH-067: Replace array index keys with stable keys in 3 React components with mutable lists.
   - Root cause: `FieldMappingEditor`, `PlaybooksPage`, and `PrivacyAdminPage` used `key={i}` on list items that can be added/removed, risking UI state corruption on list mutations.
   - Completed (iteration 164): `FieldMappingEditor` → composite key `${rule.sourceField}-${rule.targetField}-${i}`. `PlaybooksPage` checklist → `${item}-${i}`. `PrivacyAdminPage` custom patterns → `p.name` (unique per pattern). Removed now-unused `removeCustomPattern` function (inlined filter-by-name). Frontend build clean, 470 tests passing.
+
+- [x] TECH-068: Consolidate 8 duplicate `DeserializeAsync<T>` HTTP response helpers into shared `ConnectorHttpHelper`.
+  - Root cause: 8 identical `private static async Task<T?> DeserializeAsync<T>(HttpResponseMessage, CancellationToken)` methods across connector clients (4) and webhook managers (4). 6 used `SharedJsonOptions.CamelCaseIgnoreNull`, 2 used `SharedJsonOptions.CamelCase`. Same duplication pattern as TECH-062 (`JsonDeserializeHelper`) and TECH-065 (`SharedJsonOptions`).
+  - Completed (iteration 165): Created `SmartKb.Contracts.ConnectorHttpHelper` static class with `DeserializeAsync<T>(HttpResponseMessage, JsonSerializerOptions, CancellationToken)`. Replaced all 8 private methods with one-liner delegates to the shared helper. Files changed: HubSpotConnectorClient, SharePointConnectorClient, AzureDevOpsConnectorClient, ClickUpConnectorClient, AdoWebhookManager, SharePointWebhookManager, HubSpotWebhookManager, ClickUpWebhookManager. 5 new unit tests in `ConnectorHttpHelperTests.cs` (deserialize success, null body, malformed JSON throws, respects options, cancellation propagation). Zero duplicate `DeserializeAsync` implementations remaining in connector layer.
 
 - [x] TECH-023: Add structured logging to all silent `catch (JsonException)` blocks.
   - Root cause: 25 `catch (JsonException)` blocks across 24 files silently swallowed deserialization errors with no logging. When JSON stored in SQL columns or received from external APIs was malformed, the code returned fallback values (null, empty list, empty dict) with no diagnostic trace, making production debugging impossible.
