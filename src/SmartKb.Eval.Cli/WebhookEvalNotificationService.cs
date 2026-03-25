@@ -41,7 +41,7 @@ public sealed class WebhookEvalNotificationService : IEvalNotificationService, I
             using var response = await _httpClient.PostAsync(_settings.WebhookUrl, content, ct);
             return response.IsSuccessStatusCode;
         }
-        catch (Exception ex) when (!ct.IsCancellationRequested)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogWarning(ex, "Eval notification failed with exception. RunId={RunId}", payload.RunId);
             return false;

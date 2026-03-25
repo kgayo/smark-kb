@@ -107,6 +107,21 @@ public class WebhookEvalNotificationServiceTests
     }
 
     [Fact]
+    public async Task NotifyAsync_PropagatesCancellation()
+    {
+        var handler = new CancellationThrowingHandler();
+        var httpClient = new HttpClient(handler);
+        var settings = new EvalNotificationSettings { WebhookUrl = "https://hooks.example.com/test" };
+        using var svc = new WebhookEvalNotificationService(settings, httpClient);
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(
+            () => svc.NotifyAsync(CreatePayload(), cts.Token));
+    }
+
+    [Fact]
     public void ShouldNotify_BlockingRegression_ReturnsTrue()
     {
         var settings = new EvalNotificationSettings
@@ -328,6 +343,15 @@ public class WebhookEvalNotificationServiceTests
             HttpRequestMessage request, CancellationToken cancellationToken)
         {
             throw new HttpRequestException("Connection refused");
+        }
+    }
+
+    private sealed class CancellationThrowingHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            throw new OperationCanceledException(cancellationToken);
         }
     }
 }

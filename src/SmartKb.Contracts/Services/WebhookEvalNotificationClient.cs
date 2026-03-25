@@ -58,7 +58,7 @@ public sealed class WebhookEvalNotificationClient : IEvalNotificationService
                 payload.RunId, (int)response.StatusCode);
             return false;
         }
-        catch (Exception ex) when (!ct.IsCancellationRequested)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             Diagnostics.EvalNotificationFailuresTotal.Add(1);
             _logger.LogWarning(ex,
