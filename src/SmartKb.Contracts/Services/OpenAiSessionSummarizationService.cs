@@ -59,7 +59,7 @@ public sealed class OpenAiSessionSummarizationService : ISessionSummarizationSer
         };
 
         using var request = new HttpRequestMessage(HttpMethod.Post, $"{_openAiSettings.Endpoint}/chat/completions");
-        request.Headers.Add("Authorization", $"Bearer {_openAiSettings.ApiKey}");
+        OpenAiResponseHelper.AddAuthorizationHeader(request, _openAiSettings.ApiKey);
         request.Content = JsonContent.Create(requestBody);
 
         using var response = await httpClient.SendAsync(request, cancellationToken);
@@ -75,33 +75,14 @@ public sealed class OpenAiSessionSummarizationService : ISessionSummarizationSer
 
         var responseJson = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: cancellationToken);
 
-        if (responseJson.TryGetProperty("choices", out var choices) &&
-            choices.GetArrayLength() > 0 &&
-            choices[0].TryGetProperty("message", out var message) &&
-            message.TryGetProperty("content", out var content))
+        var parsed = OpenAiResponseHelper.ExtractContent<SessionSummaryResult>(responseJson, SharedJsonOptions.SnakeCase, _logger);
+        if (parsed is not null)
         {
-            var messageContent = content.GetString();
-
-            if (!string.IsNullOrEmpty(messageContent))
-            {
-                try
-                {
-                    var parsed = JsonSerializer.Deserialize<SessionSummaryResult>(messageContent, SharedJsonOptions.SnakeCase);
-                    if (parsed is not null)
-                    {
-                        var summary = FormatSummary(parsed);
-                        _logger.LogInformation(
-                            "Session summarization complete. SummarizedMessageCount={Count}, SummaryLength={Length}",
-                            messagesToSummarize.Count, summary.Length);
-                        return summary;
-                    }
-                }
-                catch (JsonException ex)
-                {
-                    _logger.LogWarning(ex,
-                        "Failed to deserialize summarization response. Dropping messages without summary.");
-                }
-            }
+            var summary = FormatSummary(parsed);
+            _logger.LogInformation(
+                "Session summarization complete. SummarizedMessageCount={Count}, SummaryLength={Length}",
+                messagesToSummarize.Count, summary.Length);
+            return summary;
         }
 
         _logger.LogWarning("Summarization returned empty/unparseable response. Dropping messages without summary.");

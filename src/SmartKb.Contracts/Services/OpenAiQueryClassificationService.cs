@@ -58,7 +58,7 @@ public sealed class OpenAiQueryClassificationService : IQueryClassificationServi
         };
 
         using var request = new HttpRequestMessage(HttpMethod.Post, $"{_openAiSettings.Endpoint}/chat/completions");
-        request.Headers.Add("Authorization", $"Bearer {_openAiSettings.ApiKey}");
+        OpenAiResponseHelper.AddAuthorizationHeader(request, _openAiSettings.ApiKey);
         request.Content = JsonContent.Create(requestBody);
 
         using var response = await httpClient.SendAsync(request, cancellationToken);
@@ -74,34 +74,15 @@ public sealed class OpenAiQueryClassificationService : IQueryClassificationServi
 
         var responseJson = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: cancellationToken);
 
-        if (responseJson.TryGetProperty("choices", out var choices) &&
-            choices.GetArrayLength() > 0 &&
-            choices[0].TryGetProperty("message", out var message) &&
-            message.TryGetProperty("content", out var content))
+        var parsed = OpenAiResponseHelper.ExtractContent<ClassificationResult>(responseJson, SharedJsonOptions.SnakeCase, _logger);
+        if (parsed is not null)
         {
-            var messageContent = content.GetString();
-
-            if (!string.IsNullOrEmpty(messageContent))
-            {
-                try
-                {
-                    var parsed = JsonSerializer.Deserialize<ClassificationResult>(messageContent, SharedJsonOptions.SnakeCase);
-                    if (parsed is not null)
-                    {
-                        _logger.LogInformation(
-                            "Query classified: Category={Category}, ProductArea={ProductArea}, " +
-                            "Severity={Severity}, Confidence={Confidence:F2}, EscalationLikelihood={EscalationLikelihood:F2}",
-                            parsed.IssueCategory, parsed.ProductArea, parsed.SeverityHint,
-                            parsed.ClassificationConfidence, parsed.EscalationLikelihood);
-                        return parsed;
-                    }
-                }
-                catch (JsonException ex)
-                {
-                    _logger.LogWarning(ex,
-                        "Failed to deserialize classification response. Falling back to unclassified.");
-                }
-            }
+            _logger.LogInformation(
+                "Query classified: Category={Category}, ProductArea={ProductArea}, " +
+                "Severity={Severity}, Confidence={Confidence:F2}, EscalationLikelihood={EscalationLikelihood:F2}",
+                parsed.IssueCategory, parsed.ProductArea, parsed.SeverityHint,
+                parsed.ClassificationConfidence, parsed.EscalationLikelihood);
+            return parsed;
         }
 
         _logger.LogWarning("Classification returned empty/unparseable response. Falling back to unclassified.");

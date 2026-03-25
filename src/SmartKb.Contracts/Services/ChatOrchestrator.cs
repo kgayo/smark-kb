@@ -695,7 +695,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         };
 
         using var request = new HttpRequestMessage(HttpMethod.Post, $"{_openAiSettings.Endpoint}/chat/completions");
-        request.Headers.Add("Authorization", $"Bearer {_openAiSettings.ApiKey}");
+        OpenAiResponseHelper.AddAuthorizationHeader(request, _openAiSettings.ApiKey);
         request.Content = JsonContent.Create(requestBody);
 
         using var response = await httpClient.SendAsync(request, cancellationToken);
@@ -710,30 +710,10 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         var responseJson = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: cancellationToken);
 
         // P2-003: Extract token usage from API response.
-        int promptTokens = 0, completionTokens = 0, totalTokens = 0;
-        if (responseJson.TryGetProperty("usage", out var usage))
-        {
-            if (usage.TryGetProperty("prompt_tokens", out var pt)) promptTokens = pt.GetInt32();
-            if (usage.TryGetProperty("completion_tokens", out var ct2)) completionTokens = ct2.GetInt32();
-            if (usage.TryGetProperty("total_tokens", out var tt)) totalTokens = tt.GetInt32();
-        }
+        var (promptTokens, completionTokens, totalTokens) = OpenAiResponseHelper.ExtractTokenUsage(responseJson);
 
-        // Extract the content from choices[0].message.content using TryGetProperty for robustness.
-        if (responseJson.TryGetProperty("choices", out var choices) &&
-            choices.GetArrayLength() > 0 &&
-            choices[0].TryGetProperty("message", out var message) &&
-            message.TryGetProperty("content", out var content))
-        {
-            var messageContent = content.GetString();
-
-            if (!string.IsNullOrEmpty(messageContent))
-            {
-                var parsed = JsonSerializer.Deserialize<OpenAiStructuredResponse>(messageContent, SharedJsonOptions.SnakeCase);
-                return new OpenAiCallResult(parsed, promptTokens, completionTokens, totalTokens);
-            }
-        }
-
-        return new OpenAiCallResult(null, promptTokens, completionTokens, totalTokens);
+        var parsed = OpenAiResponseHelper.ExtractContent<OpenAiStructuredResponse>(responseJson, SharedJsonOptions.SnakeCase, _logger);
+        return new OpenAiCallResult(parsed, promptTokens, completionTokens, totalTokens);
     }
 
     /// <summary>

@@ -42,7 +42,7 @@ public sealed class OpenAiEmbeddingService : IEmbeddingService
         };
 
         using var request = new HttpRequestMessage(HttpMethod.Post, $"{_openAiSettings.Endpoint}/embeddings");
-        request.Headers.Add("Authorization", $"Bearer {_openAiSettings.ApiKey}");
+        OpenAiResponseHelper.AddAuthorizationHeader(request, _openAiSettings.ApiKey);
         request.Content = JsonContent.Create(requestBody);
 
         using var response = await _httpClient.SendAsync(request, cancellationToken);
