@@ -447,7 +447,8 @@ function formatTime(iso: string): string {
     if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
     if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
     return d.toLocaleDateString();
-  } catch {
+  } catch (e) {
+    console.warn('[DiagnosticsPage] Failed to format time', e);
     return iso;
   }
 }

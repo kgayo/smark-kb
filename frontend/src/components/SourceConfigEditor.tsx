@@ -74,7 +74,8 @@ function parseJsonSafe<T extends object>(json: string, fallback: T): T {
     const parsed = JSON.parse(json);
     // Merge with defaults so missing fields get fallback values
     return { ...fallback, ...parsed } as T;
-  } catch {
+  } catch (e) {
+    console.warn('[SourceConfigEditor] Failed to parse source config JSON', e);
     return fallback;
   }
 }

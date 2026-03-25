@@ -426,7 +426,8 @@ function formatTimestamp(iso: string): string {
   try {
     const d = new Date(iso);
     return d.toLocaleString();
-  } catch {
+  } catch (e) {
+    console.warn('[AuditCompliancePage] Failed to format timestamp', e);
     return iso;
   }
 }

@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-25 (Asia/Manila) — iteration 167 (TECH-070 consolidate 7 duplicate ParseSourceConfig methods into shared ConnectorHttpHelper.ParseJson<T>)
-Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2914 tests passing (2408 backend + 470 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 167: TECH-070 (consolidate 7 duplicate `ParseSourceConfig` methods into shared `ConnectorHttpHelper.ParseJson<T>`).
+Last updated: 2026-03-25 (Asia/Manila) — iteration 168 (TECH-071 add console.warn to 3 silent frontend catch blocks)
+Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~2914 tests passing (2408 backend + 470 frontend + 6 parity); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 168: TECH-071 (add `console.warn` to 3 silent frontend catch blocks in SourceConfigEditor, DiagnosticsPage, AuditCompliancePage).
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -345,6 +345,10 @@ Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-00
 - [x] TECH-070: Consolidate 7 duplicate `ParseSourceConfig` methods into shared `ConnectorHttpHelper.ParseJson<T>`.
   - Root cause: 7 identical `ParseSourceConfig` methods across 4 connector clients (AzureDevOpsConnectorClient, SharePointConnectorClient, HubSpotConnectorClient, ClickUpConnectorClient) and 3 webhook managers (AdoWebhookManager, HubSpotWebhookManager, ClickUpWebhookManager) implemented the same null-guard → `JsonSerializer.Deserialize<T>` → `catch (JsonException)` with logging pattern. Same duplication as TECH-062 (`JsonDeserializeHelper`) and TECH-068 (`ConnectorHttpHelper.DeserializeAsync<T>`).
   - Completed (iteration 167): Added `ConnectorHttpHelper.ParseJson<T>(string? json, JsonSerializerOptions options, ILogger? logger = null)` generic method — null/whitespace guard, deserialize, catch `JsonException` with `LogWarning` including type name. Replaced all 7 `ParseSourceConfig` method bodies with one-liner delegates to the shared helper. 7 new unit tests in `ConnectorHttpHelperTests.cs` (null input, whitespace input, valid JSON, malformed JSON returns null, malformed JSON logs warning, respects options, no logger does not throw). Zero duplicate `ParseSourceConfig` implementations remaining in connector layer.
+
+- [x] TECH-071: Add `console.warn` to 3 silent frontend catch blocks.
+  - Root cause: Code quality scan found 3 catch blocks in frontend components that silently swallowed errors without any diagnostic logging: `SourceConfigEditor.parseJsonSafe` (JSON parse failure on source config input), `DiagnosticsPage.formatTime` (date formatting failure), `AuditCompliancePage.formatTimestamp` (date formatting failure). All returned fallback values but with no console trace, making UI data display issues impossible to diagnose.
+  - Completed (iteration 168): Added `console.warn('[Component] ...')` with error object to all 3 catch blocks. `AuditCompliancePage.EventDetail` JSON.parse catch intentionally left silent (non-JSON detail is an expected case, not an error). Zero silent catch blocks remaining in frontend utility/formatting functions.
 
 - [x] TECH-023: Add structured logging to all silent `catch (JsonException)` blocks.
   - Root cause: 25 `catch (JsonException)` blocks across 24 files silently swallowed deserialization errors with no logging. When JSON stored in SQL columns or received from external APIs was malformed, the code returned fallback values (null, empty list, empty dict) with no diagnostic trace, making production debugging impossible.
