@@ -1,5 +1,6 @@
 import type { SyncRunSummary } from '../api/types';
 import { formatDateTimeLocale } from '../utils/dateFormat';
+import { syncStatusClass } from '../utils/cssClassHelpers';
 
 const formatDate = formatDateTimeLocale;
 
@@ -13,18 +14,7 @@ function durationStr(start: string, end: string | null): string {
   return `${mins}m ${remSecs}s`;
 }
 
-function statusClass(status: string): string {
-  switch (status) {
-    case 'Completed':
-      return 'sync-status-completed';
-    case 'Failed':
-      return 'sync-status-failed';
-    case 'Running':
-      return 'sync-status-running';
-    default:
-      return 'sync-status-pending';
-  }
-}
+const statusClass = syncStatusClass;
 
 interface SyncRunHistoryProps {
   syncRuns: SyncRunSummary[];

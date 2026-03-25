@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { PatternDetail, PatternUsageMetrics, PatternVersionHistoryEntry } from '../api/types';
 import { getPatternUsage, getPatternHistory } from '../api/client';
 import { formatDateTimeOrDash } from '../utils/dateFormat';
+import { trustLevelBadgeClass } from '../utils/cssClassHelpers';
 
 interface PatternDetailViewProps {
   pattern: PatternDetail;
@@ -10,16 +11,6 @@ interface PatternDetailViewProps {
   onApprove: (notes: string) => Promise<void>;
   onDeprecate: (reason: string, supersedingPatternId?: string) => Promise<void>;
   actionLoading: boolean;
-}
-
-function trustLevelBadgeClass(level: string): string {
-  switch (level) {
-    case 'Draft': return 'trust-badge trust-draft';
-    case 'Reviewed': return 'trust-badge trust-reviewed';
-    case 'Approved': return 'trust-badge trust-approved';
-    case 'Deprecated': return 'trust-badge trust-deprecated';
-    default: return 'trust-badge';
-  }
 }
 
 const formatDate = formatDateTimeOrDash;

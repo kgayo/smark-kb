@@ -1,4 +1,6 @@
 import type { PatternSummary, TrustLevel } from '../api/types';
+import { trustLevelBadgeClass } from '../utils/cssClassHelpers';
+import { formatDateOnly } from '../utils/dateFormat';
 
 interface PatternListProps {
   patterns: PatternSummary[];
@@ -11,18 +13,6 @@ interface PatternListProps {
   hasMore: boolean;
   onPageChange: (page: number) => void;
 }
-
-function trustLevelBadgeClass(level: string): string {
-  switch (level) {
-    case 'Draft': return 'trust-badge trust-draft';
-    case 'Reviewed': return 'trust-badge trust-reviewed';
-    case 'Approved': return 'trust-badge trust-approved';
-    case 'Deprecated': return 'trust-badge trust-deprecated';
-    default: return 'trust-badge';
-  }
-}
-
-import { formatDateOnly } from '../utils/dateFormat';
 
 const formatDate = formatDateOnly;
 

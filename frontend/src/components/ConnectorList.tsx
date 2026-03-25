@@ -1,23 +1,11 @@
 import type { ConnectorResponse } from '../api/types';
 import { formatDateTimeLocale } from '../utils/dateFormat';
+import { syncStatusClass } from '../utils/cssClassHelpers';
 
 const formatDate = formatDateTimeLocale;
 
 function statusClass(status: string): string {
   return status === 'Enabled' ? 'status-enabled' : 'status-disabled';
-}
-
-function syncStatusClass(status: string): string {
-  switch (status) {
-    case 'Completed':
-      return 'sync-status-completed';
-    case 'Failed':
-      return 'sync-status-failed';
-    case 'Running':
-      return 'sync-status-running';
-    default:
-      return 'sync-status-pending';
-  }
 }
 
 interface ConnectorListProps {
