@@ -135,7 +135,14 @@ public sealed class ChatOrchestrator : IChatOrchestrator
             if (_embeddingCacheService is not null && _costSettings.EnableEmbeddingCache)
             {
                 var (cached, cacheHit) = await _embeddingCacheService.GetOrGenerateAsync(request.Query, cancellationToken);
-                queryEmbedding = cached!;
+                if (cached is null)
+                {
+                    _logger.LogError("Embedding cache service returned null embedding. TraceId={TraceId}", traceId);
+                    orchestrationActivity?.SetStatus(ActivityStatusCode.Error, "Embedding null");
+                    return BuildNoEvidenceResponse(traceId, "Unable to process your query at this time. Please try again.");
+                }
+
+                queryEmbedding = cached;
                 embeddingCacheHit = cacheHit;
                 embeddingActivity?.SetTag("smartkb.embedding_cache_hit", cacheHit);
 

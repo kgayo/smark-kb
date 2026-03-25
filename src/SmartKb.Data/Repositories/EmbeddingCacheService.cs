@@ -76,6 +76,12 @@ public sealed class EmbeddingCacheService : IEmbeddingCacheService
         // Cache miss: generate fresh embedding.
         var freshEmbedding = await _innerEmbeddingService.GenerateEmbeddingAsync(text, ct);
 
+        if (freshEmbedding is null || freshEmbedding.Length == 0)
+        {
+            _logger.LogWarning("Embedding service returned null or empty embedding. ContentHash={Hash}", contentHash);
+            return (null, false);
+        }
+
         // Store in cache.
         var ttlHours = _costSettings.EmbeddingCacheTtlHours;
         var cacheEntry = new EmbeddingCacheEntity
@@ -110,9 +116,9 @@ public sealed class EmbeddingCacheService : IEmbeddingCacheService
     public async Task<int> EvictExpiredAsync(CancellationToken ct = default)
     {
         var now = DateTimeOffset.UtcNow;
-        var expired = (await _db.EmbeddingCache.ToListAsync(ct))
+        var expired = await _db.EmbeddingCache
             .Where(c => c.ExpiresAt <= now)
-            .ToList();
+            .ToListAsync(ct);
 
         if (expired.Count == 0) return 0;
 

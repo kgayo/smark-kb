@@ -1739,6 +1739,51 @@ public class ChatOrchestratorIntegrationTests
         public HttpClient CreateClient(string name) => new(handler);
     }
 
+    [Fact]
+    public async Task OrchestrateAsync_NullEmbeddingFromCache_ReturnsNoEvidenceResponse()
+    {
+        var embeddingService = new StubEmbeddingService();
+        var retrievalService = new StubRetrievalService(new RetrievalResult
+        {
+            Chunks = [], AclFilteredOutCount = 0, HasEvidence = false, TraceId = "t",
+        });
+        var traceWriter = new StubTraceWriter();
+        var piiRedactionService = new StubPiiRedactionService();
+        var auditWriter = new StubAuditWriter();
+        var tokenUsageService = new StubTokenUsageService();
+        var handler = new StubHttpMessageHandler("{}", System.Net.HttpStatusCode.OK);
+        var httpClientFactory = new StubHttpClientFactory(handler);
+        var openAiSettings = new OpenAiSettings
+        {
+            ApiKey = "test-key", Model = "gpt-4o", Endpoint = "https://api.openai.com/v1",
+        };
+        var costSettings = new CostOptimizationSettings { EnableEmbeddingCache = true };
+
+        var orchestrator = new ChatOrchestrator(
+            embeddingService, retrievalService, traceWriter,
+            piiRedactionService, auditWriter, tokenUsageService,
+            httpClientFactory, openAiSettings, new ChatOrchestrationSettings(),
+            costSettings, NullLogger<ChatOrchestrator>.Instance,
+            embeddingCacheService: new NullReturningEmbeddingCacheService());
+
+        var response = await orchestrator.OrchestrateAsync(
+            "tenant-1", "user-1", "corr-001", new ChatRequest { Query = "test query" });
+
+        Assert.Equal(ChatResponseType.NextStepsOnly, response.ResponseType);
+        Assert.Contains("Unable to process your query", response.Answer);
+        Assert.False(response.HasEvidence);
+    }
+
+    private class NullReturningEmbeddingCacheService : IEmbeddingCacheService
+    {
+        public Task<(float[]? Embedding, bool CacheHit)> GetOrGenerateAsync(
+            string text, CancellationToken ct = default)
+            => Task.FromResult<(float[]?, bool)>((null, false));
+
+        public Task<int> EvictExpiredAsync(CancellationToken ct = default)
+            => Task.FromResult(0);
+    }
+
     private static RetrievedChunk MakeChunk(string chunkId, string text, double rrfScore) => new()
     {
         ChunkId = chunkId,

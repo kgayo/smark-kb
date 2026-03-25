@@ -191,6 +191,91 @@ public class EmbeddingCacheServiceTests : IDisposable
         Assert.Equal(1, _fakeEmbedding.CallCount);
     }
 
+    [Fact]
+    public async Task EvictExpired_ExcludesValidEntriesAtDatabaseLevel()
+    {
+        var now = DateTimeOffset.UtcNow;
+
+        // Add 3 expired and 2 valid entries.
+        for (var i = 0; i < 3; i++)
+        {
+            _db.EmbeddingCache.Add(new EmbeddingCacheEntity
+            {
+                Id = Guid.NewGuid(),
+                ContentHash = $"hash-expired-{i}",
+                InputText = $"expired-{i}",
+                EmbeddingJson = "[0.1]",
+                ModelId = "model",
+                Dimensions = 1,
+                CreatedAt = now.AddDays(-30),
+                LastAccessedAt = now.AddDays(-30),
+                ExpiresAt = now.AddHours(-1),
+            });
+        }
+
+        for (var i = 0; i < 2; i++)
+        {
+            _db.EmbeddingCache.Add(new EmbeddingCacheEntity
+            {
+                Id = Guid.NewGuid(),
+                ContentHash = $"hash-valid-{i}",
+                InputText = $"valid-{i}",
+                EmbeddingJson = "[0.2]",
+                ModelId = "model",
+                Dimensions = 1,
+                CreatedAt = now.AddHours(-1),
+                LastAccessedAt = now.AddHours(-1),
+                ExpiresAt = now.AddHours(23),
+            });
+        }
+
+        await _db.SaveChangesAsync();
+
+        var evicted = await _service.EvictExpiredAsync();
+
+        Assert.Equal(3, evicted);
+        Assert.Equal(2, _db.EmbeddingCache.Count());
+        Assert.All(_db.EmbeddingCache, e => Assert.StartsWith("hash-valid", e.ContentHash));
+    }
+
+    [Fact]
+    public async Task GetOrGenerateAsync_NullEmbeddingFromInnerService_ReturnsNull()
+    {
+        var nullEmbeddingService = new NullEmbeddingService();
+        var costSettings = new CostOptimizationSettings { EmbeddingCacheTtlHours = 24 };
+        var service = new EmbeddingCacheService(
+            _db,
+            nullEmbeddingService,
+            new EmbeddingSettings(),
+            costSettings,
+            NullLogger<EmbeddingCacheService>.Instance);
+
+        var (embedding, cacheHit) = await service.GetOrGenerateAsync("test query");
+
+        Assert.Null(embedding);
+        Assert.False(cacheHit);
+        Assert.Empty(_db.EmbeddingCache); // Nothing cached.
+    }
+
+    [Fact]
+    public async Task GetOrGenerateAsync_EmptyEmbeddingFromInnerService_ReturnsNull()
+    {
+        var emptyEmbeddingService = new EmptyEmbeddingService();
+        var costSettings = new CostOptimizationSettings { EmbeddingCacheTtlHours = 24 };
+        var service = new EmbeddingCacheService(
+            _db,
+            emptyEmbeddingService,
+            new EmbeddingSettings(),
+            costSettings,
+            NullLogger<EmbeddingCacheService>.Instance);
+
+        var (embedding, cacheHit) = await service.GetOrGenerateAsync("test query");
+
+        Assert.Null(embedding);
+        Assert.False(cacheHit);
+        Assert.Empty(_db.EmbeddingCache); // Nothing cached.
+    }
+
     private class FakeEmbeddingService : IEmbeddingService
     {
         public int CallCount { get; private set; }
@@ -199,6 +284,22 @@ public class EmbeddingCacheServiceTests : IDisposable
         {
             CallCount++;
             return Task.FromResult(new float[] { 0.1f, 0.2f, 0.3f });
+        }
+    }
+
+    private class NullEmbeddingService : IEmbeddingService
+    {
+        public Task<float[]> GenerateEmbeddingAsync(string text, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<float[]>(null!);
+        }
+    }
+
+    private class EmptyEmbeddingService : IEmbeddingService
+    {
+        public Task<float[]> GenerateEmbeddingAsync(string text, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(Array.Empty<float>());
         }
     }
 }
