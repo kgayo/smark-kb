@@ -582,18 +582,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
     }
 
     internal static AzureDevOpsSourceConfig? ParseSourceConfig(string? json, ILogger? logger = null)
-    {
-        if (string.IsNullOrWhiteSpace(json)) return null;
-        try
-        {
-            return JsonSerializer.Deserialize<AzureDevOpsSourceConfig>(json, SharedJsonOptions.CamelCaseIgnoreNull);
-        }
-        catch (JsonException ex)
-        {
-            logger?.LogWarning(ex, "Failed to deserialize AzureDevOpsSourceConfig from JSON");
-            return null;
-        }
-    }
+        => ConnectorHttpHelper.ParseJson<AzureDevOpsSourceConfig>(json, SharedJsonOptions.CamelCaseIgnoreNull, logger);
 
     private async Task<List<string>> ResolveProjectsAsync(
         HttpClient client, AzureDevOpsSourceConfig config, CancellationToken ct)

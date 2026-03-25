@@ -185,11 +185,7 @@ public sealed class AdoWebhookManager : IWebhookManager
     }
 
     private AzureDevOpsSourceConfig? ParseSourceConfig(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json)) return null;
-        try { return JsonSerializer.Deserialize<AzureDevOpsSourceConfig>(json, SharedJsonOptions.CamelCase); }
-        catch (JsonException ex) { _logger.LogWarning(ex, "Failed to deserialize AzureDevOpsSourceConfig from JSON"); return null; }
-    }
+        => ConnectorHttpHelper.ParseJson<AzureDevOpsSourceConfig>(json, SharedJsonOptions.CamelCase, _logger);
 
     private static Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)
         => ConnectorHttpHelper.DeserializeAsync<T>(response, SharedJsonOptions.CamelCase, ct);

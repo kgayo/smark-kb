@@ -418,18 +418,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
     }
 
     internal static HubSpotSourceConfig? ParseSourceConfig(string? json, ILogger? logger = null)
-    {
-        if (string.IsNullOrWhiteSpace(json)) return null;
-        try
-        {
-            return JsonSerializer.Deserialize<HubSpotSourceConfig>(json, SharedJsonOptions.CamelCaseIgnoreNull);
-        }
-        catch (JsonException ex)
-        {
-            logger?.LogWarning(ex, "Failed to deserialize HubSpotSourceConfig from JSON");
-            return null;
-        }
-    }
+        => ConnectorHttpHelper.ParseJson<HubSpotSourceConfig>(json, SharedJsonOptions.CamelCaseIgnoreNull, logger);
 
     internal static IReadOnlyList<string> ResolveObjectTypes(HubSpotSourceConfig config)
     {

@@ -230,11 +230,7 @@ public sealed class HubSpotWebhookManager : IWebhookManager
     }
 
     private HubSpotSourceConfig? ParseSourceConfig(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json)) return null;
-        try { return JsonSerializer.Deserialize<HubSpotSourceConfig>(json, SharedJsonOptions.CamelCaseIgnoreNull); }
-        catch (JsonException ex) { _logger.LogWarning(ex, "Failed to deserialize HubSpotSourceConfig from JSON"); return null; }
-    }
+        => ConnectorHttpHelper.ParseJson<HubSpotSourceConfig>(json, SharedJsonOptions.CamelCaseIgnoreNull, _logger);
 
     private static Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken ct)
         => ConnectorHttpHelper.DeserializeAsync<T>(response, SharedJsonOptions.CamelCaseIgnoreNull, ct);

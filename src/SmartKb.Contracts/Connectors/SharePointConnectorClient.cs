@@ -581,18 +581,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
     }
 
     internal static SharePointSourceConfig? ParseSourceConfig(string? json, ILogger? logger = null)
-    {
-        if (string.IsNullOrWhiteSpace(json)) return null;
-        try
-        {
-            return JsonSerializer.Deserialize<SharePointSourceConfig>(json, SharedJsonOptions.CamelCaseIgnoreNull);
-        }
-        catch (JsonException ex)
-        {
-            logger?.LogWarning(ex, "Failed to deserialize SharePointSourceConfig from JSON");
-            return null;
-        }
-    }
+        => ConnectorHttpHelper.ParseJson<SharePointSourceConfig>(json, SharedJsonOptions.CamelCaseIgnoreNull, logger);
 
     private static bool IsExtensionSupported(string? extension, SharePointSourceConfig config)
     {

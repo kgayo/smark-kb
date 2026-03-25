@@ -87,9 +87,92 @@ public class ConnectorHttpHelperTests
             () => ConnectorHttpHelper.DeserializeAsync<TestDto>(response, CamelCase, cts.Token));
     }
 
+    // --- ParseJson<T> tests ---
+
+    [Fact]
+    public void ParseJson_ReturnsNull_ForNullInput()
+    {
+        var result = ConnectorHttpHelper.ParseJson<TestDto>(null, CamelCase);
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void ParseJson_ReturnsNull_ForWhitespaceInput()
+    {
+        var result = ConnectorHttpHelper.ParseJson<TestDto>("   ", CamelCase);
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void ParseJson_ReturnsDeserializedObject()
+    {
+        var json = """{"name":"test","value":42}""";
+        var result = ConnectorHttpHelper.ParseJson<TestDto>(json, CamelCase);
+
+        Assert.NotNull(result);
+        Assert.Equal("test", result!.Name);
+        Assert.Equal(42, result.Value);
+    }
+
+    [Fact]
+    public void ParseJson_ReturnsNull_ForMalformedJson()
+    {
+        var result = ConnectorHttpHelper.ParseJson<TestDto>("{invalid", CamelCase);
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void ParseJson_LogsWarning_ForMalformedJson()
+    {
+        var logger = new CapturingLogger();
+        ConnectorHttpHelper.ParseJson<TestDto>("{invalid", CamelCase, logger);
+
+        Assert.Single(logger.Entries);
+        Assert.Equal(Microsoft.Extensions.Logging.LogLevel.Warning, logger.Entries[0].Level);
+        Assert.Contains("TestDto", logger.Entries[0].Message);
+    }
+
+    [Fact]
+    public void ParseJson_RespectsOptions()
+    {
+        var json = """{"Name":"PascalCase","Value":99}""";
+        // CamelCase policy won't match PascalCase property names
+        var result = ConnectorHttpHelper.ParseJson<TestDto>(json, CamelCase);
+
+        Assert.NotNull(result);
+        Assert.Null(result!.Name);
+        Assert.Equal(0, result.Value);
+    }
+
+    [Fact]
+    public void ParseJson_NoLogger_DoesNotThrow_ForMalformedJson()
+    {
+        var result = ConnectorHttpHelper.ParseJson<TestDto>("{invalid", CamelCase, logger: null);
+        Assert.Null(result);
+    }
+
     private sealed class TestDto
     {
         public string? Name { get; set; }
         public int Value { get; set; }
+    }
+
+    private sealed class CapturingLogger : Microsoft.Extensions.Logging.ILogger
+    {
+        public List<(Microsoft.Extensions.Logging.LogLevel Level, string Message)> Entries { get; } = new();
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            Microsoft.Extensions.Logging.LogLevel logLevel,
+            Microsoft.Extensions.Logging.EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            Entries.Add((logLevel, formatter(state, exception)));
+        }
     }
 }

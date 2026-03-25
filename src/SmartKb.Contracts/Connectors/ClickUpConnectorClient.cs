@@ -528,18 +528,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
     }
 
     internal static ClickUpSourceConfig? ParseSourceConfig(string? json, ILogger? logger = null)
-    {
-        if (string.IsNullOrWhiteSpace(json)) return null;
-        try
-        {
-            return JsonSerializer.Deserialize<ClickUpSourceConfig>(json, SharedJsonOptions.CamelCaseIgnoreNull);
-        }
-        catch (JsonException ex)
-        {
-            logger?.LogWarning(ex, "Failed to deserialize ClickUpSourceConfig from JSON");
-            return null;
-        }
-    }
+        => ConnectorHttpHelper.ParseJson<ClickUpSourceConfig>(json, SharedJsonOptions.CamelCaseIgnoreNull, logger);
 
     internal static DateTimeOffset ParseClickUpTimestamp(string? value)
     {
