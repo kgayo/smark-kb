@@ -30,4 +30,18 @@ public sealed class EscalationSettings
         if (severityIdx < 0 || minIdx < 0) return false;
         return severityIdx <= minIdx;
     }
+
+    /// <summary>Normalizes severity to uppercase and falls back to "P3" if unrecognized.</summary>
+    public static string NormalizeSeverity(string severity)
+    {
+        var normalized = severity.ToUpperInvariant();
+        return SeverityOrder.Contains(normalized) ? normalized : "P3";
+    }
+
+    /// <summary>Validates severity and throws <see cref="ArgumentException"/> if unrecognized.</summary>
+    public static void ValidateSeverity(string severity)
+    {
+        if (!SeverityOrder.Contains(severity.ToUpperInvariant()))
+            throw new ArgumentException($"Invalid severity: {severity}. Must be one of: {string.Join(", ", SeverityOrder)}");
+    }
 }

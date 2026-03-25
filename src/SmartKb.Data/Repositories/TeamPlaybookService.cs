@@ -311,11 +311,7 @@ public sealed class TeamPlaybookService : ITeamPlaybookService
         return false;
     }
 
-    private static void ValidateSeverity(string severity)
-    {
-        if (!EscalationSettings.SeverityOrder.Contains(severity.ToUpperInvariant()))
-            throw new ArgumentException($"Invalid severity: {severity}. Must be one of: {string.Join(", ", EscalationSettings.SeverityOrder)}");
-    }
+    private static void ValidateSeverity(string severity) => EscalationSettings.ValidateSeverity(severity);
 
     private static void ValidateRequiredFields(IReadOnlyList<string> fields)
     {

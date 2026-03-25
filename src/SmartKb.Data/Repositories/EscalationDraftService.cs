@@ -415,11 +415,7 @@ public sealed class EscalationDraftService : IEscalationDraftService
         return rule?.TargetTeam ?? _escalationSettings.FallbackTargetTeam;
     }
 
-    private static string ValidateSeverity(string severity)
-    {
-        var normalized = severity.ToUpperInvariant();
-        return EscalationSettings.SeverityOrder.Contains(normalized) ? normalized : "P3";
-    }
+    private static string ValidateSeverity(string severity) => EscalationSettings.NormalizeSeverity(severity);
 
     internal static string BuildMarkdown(EscalationDraftEntity entity)
     {

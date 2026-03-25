@@ -156,9 +156,5 @@ public sealed class RoutingRuleService : IRoutingRuleService
         UpdatedAt = entity.UpdatedAt,
     };
 
-    private static string NormalizeSeverity(string severity)
-    {
-        var normalized = severity.ToUpperInvariant();
-        return EscalationSettings.SeverityOrder.Contains(normalized) ? normalized : "P3";
-    }
+    private static string NormalizeSeverity(string severity) => EscalationSettings.NormalizeSeverity(severity);
 }

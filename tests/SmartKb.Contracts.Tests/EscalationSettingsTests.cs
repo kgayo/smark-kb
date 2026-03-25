@@ -41,4 +41,47 @@ public class EscalationSettingsTests
         Assert.Equal("P1", EscalationSettings.SeverityOrder[0]);
         Assert.Equal("P4", EscalationSettings.SeverityOrder[3]);
     }
+
+    [Theory]
+    [InlineData("P1", "P1")]
+    [InlineData("p2", "P2")]
+    [InlineData("p3", "P3")]
+    [InlineData("P4", "P4")]
+    [InlineData("p1", "P1")]
+    public void NormalizeSeverity_ValidInput_ReturnsUppercase(string input, string expected)
+    {
+        Assert.Equal(expected, EscalationSettings.NormalizeSeverity(input));
+    }
+
+    [Theory]
+    [InlineData("Critical")]
+    [InlineData("High")]
+    [InlineData("")]
+    [InlineData("P5")]
+    public void NormalizeSeverity_InvalidInput_FallsBackToP3(string input)
+    {
+        Assert.Equal("P3", EscalationSettings.NormalizeSeverity(input));
+    }
+
+    [Theory]
+    [InlineData("P1")]
+    [InlineData("p2")]
+    [InlineData("P3")]
+    [InlineData("p4")]
+    public void ValidateSeverity_ValidInput_DoesNotThrow(string input)
+    {
+        EscalationSettings.ValidateSeverity(input);
+    }
+
+    [Theory]
+    [InlineData("Critical")]
+    [InlineData("High")]
+    [InlineData("")]
+    [InlineData("P5")]
+    public void ValidateSeverity_InvalidInput_ThrowsArgumentException(string input)
+    {
+        var ex = Assert.Throws<ArgumentException>(() => EscalationSettings.ValidateSeverity(input));
+        Assert.Contains("Invalid severity", ex.Message);
+        Assert.Contains(input, ex.Message);
+    }
 }

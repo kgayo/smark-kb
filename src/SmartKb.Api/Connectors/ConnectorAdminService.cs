@@ -416,8 +416,8 @@ public sealed class ConnectorAdminService
 
         var matchingChunks = await _db.EvidenceChunks
             .Where(c => c.ConnectorId == connectorId && c.TenantId == tenantId)
-            .Where(c => c.ChunkText.ToLower().Contains(queryLower)
-                     || c.Title.ToLower().Contains(queryLower))
+            .Where(c => c.ChunkText.ToLowerInvariant().Contains(queryLower)
+                     || c.Title.ToLowerInvariant().Contains(queryLower))
             .OrderByDescending(c => c.UpdatedAt)
             .Take(maxResults)
             .ToListAsync(ct);
