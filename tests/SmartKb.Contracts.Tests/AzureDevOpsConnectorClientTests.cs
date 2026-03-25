@@ -116,6 +116,46 @@ public class AzureDevOpsConnectorClientTests
         Assert.DoesNotContain("  ", result);
     }
 
+    // --- MapWorkItemType tests ---
+
+    [Theory]
+    [InlineData("Bug", SourceType.WorkItem)]
+    [InlineData("bug", SourceType.WorkItem)]
+    [InlineData("BUG", SourceType.WorkItem)]
+    [InlineData("Task", SourceType.Task)]
+    [InlineData("task", SourceType.Task)]
+    [InlineData("User Story", SourceType.WorkItem)]
+    [InlineData("user story", SourceType.WorkItem)]
+    [InlineData("Product Backlog Item", SourceType.WorkItem)]
+    [InlineData("Feature", SourceType.WorkItem)]
+    [InlineData("Epic", SourceType.WorkItem)]
+    [InlineData("Unknown", SourceType.WorkItem)]
+    public void MapWorkItemType_CaseInsensitive(string input, SourceType expected)
+    {
+        Assert.Equal(expected, AzureDevOpsConnectorClient.MapWorkItemType(input));
+    }
+
+    // --- MapState tests ---
+
+    [Theory]
+    [InlineData("Closed", EvidenceStatus.Closed)]
+    [InlineData("closed", EvidenceStatus.Closed)]
+    [InlineData("DONE", EvidenceStatus.Closed)]
+    [InlineData("Resolved", EvidenceStatus.Closed)]
+    [InlineData("Completed", EvidenceStatus.Closed)]
+    [InlineData("Removed", EvidenceStatus.Deleted)]
+    [InlineData("removed", EvidenceStatus.Deleted)]
+    [InlineData("New", EvidenceStatus.Open)]
+    [InlineData("Active", EvidenceStatus.Open)]
+    [InlineData("active", EvidenceStatus.Open)]
+    [InlineData("Committed", EvidenceStatus.Open)]
+    [InlineData("Approved", EvidenceStatus.Open)]
+    [InlineData("SomethingElse", EvidenceStatus.Open)]
+    public void MapState_CaseInsensitive(string input, EvidenceStatus expected)
+    {
+        Assert.Equal(expected, AzureDevOpsConnectorClient.MapState(input));
+    }
+
     // --- Checkpoint tests ---
 
     [Fact]

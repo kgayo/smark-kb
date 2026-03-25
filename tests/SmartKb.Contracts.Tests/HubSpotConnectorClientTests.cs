@@ -697,6 +697,35 @@ public class HubSpotConnectorClientTests
         }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
     }
 
+    // --- MapPriority tests ---
+
+    [Theory]
+    [InlineData("HIGH", "P1")]
+    [InlineData("high", "P1")]
+    [InlineData("High", "P1")]
+    [InlineData("MEDIUM", "P2")]
+    [InlineData("medium", "P2")]
+    [InlineData("LOW", "P3")]
+    [InlineData("low", "P3")]
+    [InlineData("Critical", "Critical")]
+    [InlineData("other", "other")]
+    public void MapPriority_CaseInsensitive(string input, string expected)
+    {
+        Assert.Equal(expected, HubSpotConnectorClient.MapPriority(input));
+    }
+
+    [Fact]
+    public void MapPriority_Null_ReturnsNull()
+    {
+        Assert.Null(HubSpotConnectorClient.MapPriority(null));
+    }
+
+    [Fact]
+    public void MapPriority_Empty_ReturnsNull()
+    {
+        Assert.Null(HubSpotConnectorClient.MapPriority(""));
+    }
+
     private static HubSpotObject CreateTicketObject(
         string id, string? priority = null, string? stage = null)
     {

@@ -387,14 +387,15 @@ public sealed class FusedRetrievalService : IRetrievalService
     {
         if (trustLevel is null) return 1.0f;
 
-        return trustLevel.ToLowerInvariant() switch
-        {
-            "approved" => _retrievalSettings.TrustBoostApproved,
-            "reviewed" => _retrievalSettings.TrustBoostReviewed,
-            "draft" => _retrievalSettings.TrustBoostDraft,
-            "deprecated" => _retrievalSettings.TrustBoostDeprecated,
-            _ => 1.0f,
-        };
+        if (string.Equals(trustLevel, "approved", StringComparison.OrdinalIgnoreCase))
+            return _retrievalSettings.TrustBoostApproved;
+        if (string.Equals(trustLevel, "reviewed", StringComparison.OrdinalIgnoreCase))
+            return _retrievalSettings.TrustBoostReviewed;
+        if (string.Equals(trustLevel, "draft", StringComparison.OrdinalIgnoreCase))
+            return _retrievalSettings.TrustBoostDraft;
+        if (string.Equals(trustLevel, "deprecated", StringComparison.OrdinalIgnoreCase))
+            return _retrievalSettings.TrustBoostDeprecated;
+        return 1.0f;
     }
 
     /// <summary>

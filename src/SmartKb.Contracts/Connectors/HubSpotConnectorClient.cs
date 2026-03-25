@@ -498,16 +498,13 @@ public sealed class HubSpotConnectorClient : IConnectorClient
         };
     }
 
-    private static string? MapPriority(string? priority)
+    internal static string? MapPriority(string? priority)
     {
         if (string.IsNullOrEmpty(priority)) return null;
-        return priority.ToUpperInvariant() switch
-        {
-            "HIGH" => "P1",
-            "MEDIUM" => "P2",
-            "LOW" => "P3",
-            _ => priority,
-        };
+        if (string.Equals(priority, "HIGH", StringComparison.OrdinalIgnoreCase)) return "P1";
+        if (string.Equals(priority, "MEDIUM", StringComparison.OrdinalIgnoreCase)) return "P2";
+        if (string.Equals(priority, "LOW", StringComparison.OrdinalIgnoreCase)) return "P3";
+        return priority;
     }
 
     internal static DateTimeOffset ParseHubSpotDate(string? value)

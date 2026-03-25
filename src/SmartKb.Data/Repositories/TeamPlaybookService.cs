@@ -292,18 +292,23 @@ public sealed class TeamPlaybookService : ITeamPlaybookService
 
     internal static bool IsFieldPopulated(CreateEscalationDraftRequest draft, string fieldName)
     {
-        return fieldName.ToUpperInvariant() switch
-        {
-            "TITLE" => !string.IsNullOrWhiteSpace(draft.Title),
-            "CUSTOMERSUMMARY" => !string.IsNullOrWhiteSpace(draft.CustomerSummary),
-            "STEPSTOREPRODUCE" => !string.IsNullOrWhiteSpace(draft.StepsToReproduce),
-            "LOGSIDSREQUESTED" => !string.IsNullOrWhiteSpace(draft.LogsIdsRequested),
-            "SUSPECTEDCOMPONENT" => !string.IsNullOrWhiteSpace(draft.SuspectedComponent),
-            "SEVERITY" => !string.IsNullOrWhiteSpace(draft.Severity),
-            "REASON" => !string.IsNullOrWhiteSpace(draft.Reason),
-            "EVIDENCELINKS" => draft.EvidenceLinks.Count > 0,
-            _ => false,
-        };
+        if (string.Equals(fieldName, "Title", StringComparison.OrdinalIgnoreCase))
+            return !string.IsNullOrWhiteSpace(draft.Title);
+        if (string.Equals(fieldName, "CustomerSummary", StringComparison.OrdinalIgnoreCase))
+            return !string.IsNullOrWhiteSpace(draft.CustomerSummary);
+        if (string.Equals(fieldName, "StepsToReproduce", StringComparison.OrdinalIgnoreCase))
+            return !string.IsNullOrWhiteSpace(draft.StepsToReproduce);
+        if (string.Equals(fieldName, "LogsIdsRequested", StringComparison.OrdinalIgnoreCase))
+            return !string.IsNullOrWhiteSpace(draft.LogsIdsRequested);
+        if (string.Equals(fieldName, "SuspectedComponent", StringComparison.OrdinalIgnoreCase))
+            return !string.IsNullOrWhiteSpace(draft.SuspectedComponent);
+        if (string.Equals(fieldName, "Severity", StringComparison.OrdinalIgnoreCase))
+            return !string.IsNullOrWhiteSpace(draft.Severity);
+        if (string.Equals(fieldName, "Reason", StringComparison.OrdinalIgnoreCase))
+            return !string.IsNullOrWhiteSpace(draft.Reason);
+        if (string.Equals(fieldName, "EvidenceLinks", StringComparison.OrdinalIgnoreCase))
+            return draft.EvidenceLinks.Count > 0;
+        return false;
     }
 
     private static void ValidateSeverity(string severity)

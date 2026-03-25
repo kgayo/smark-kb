@@ -626,21 +626,34 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
         return lastSegment.Replace('-', ' ');
     }
 
-    private static SourceType MapWorkItemType(string workItemType) => workItemType.ToLowerInvariant() switch
+    internal static readonly Dictionary<string, SourceType> WorkItemTypeMap = new(StringComparer.OrdinalIgnoreCase)
     {
-        "bug" => SourceType.WorkItem,
-        "task" => SourceType.Task,
-        "user story" or "product backlog item" or "feature" or "epic" => SourceType.WorkItem,
-        _ => SourceType.WorkItem,
+        ["bug"] = SourceType.WorkItem,
+        ["task"] = SourceType.Task,
+        ["user story"] = SourceType.WorkItem,
+        ["product backlog item"] = SourceType.WorkItem,
+        ["feature"] = SourceType.WorkItem,
+        ["epic"] = SourceType.WorkItem,
     };
 
-    private static EvidenceStatus MapState(string state) => state.ToLowerInvariant() switch
+    internal static SourceType MapWorkItemType(string workItemType) =>
+        WorkItemTypeMap.GetValueOrDefault(workItemType, SourceType.WorkItem);
+
+    internal static readonly Dictionary<string, EvidenceStatus> StateMap = new(StringComparer.OrdinalIgnoreCase)
     {
-        "closed" or "done" or "resolved" or "completed" => EvidenceStatus.Closed,
-        "removed" => EvidenceStatus.Deleted,
-        "new" or "active" or "committed" or "approved" => EvidenceStatus.Open,
-        _ => EvidenceStatus.Open,
+        ["closed"] = EvidenceStatus.Closed,
+        ["done"] = EvidenceStatus.Closed,
+        ["resolved"] = EvidenceStatus.Closed,
+        ["completed"] = EvidenceStatus.Closed,
+        ["removed"] = EvidenceStatus.Deleted,
+        ["new"] = EvidenceStatus.Open,
+        ["active"] = EvidenceStatus.Open,
+        ["committed"] = EvidenceStatus.Open,
+        ["approved"] = EvidenceStatus.Open,
     };
+
+    internal static EvidenceStatus MapState(string state) =>
+        StateMap.GetValueOrDefault(state, EvidenceStatus.Open);
 
     private static DateTimeOffset ParseDateField(object? value)
     {

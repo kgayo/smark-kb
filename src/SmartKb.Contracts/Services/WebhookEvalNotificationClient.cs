@@ -80,12 +80,9 @@ public sealed class WebhookEvalNotificationClient : IEvalNotificationService
     }
 
     private string BuildPayload(EvalNotificationPayload payload) =>
-        _settings.Format.ToLowerInvariant() switch
-        {
-            "slack" => BuildSlackPayload(payload),
-            "teams" => BuildTeamsPayload(payload),
-            _ => BuildGenericPayload(payload),
-        };
+        string.Equals(_settings.Format, "slack", StringComparison.OrdinalIgnoreCase) ? BuildSlackPayload(payload) :
+        string.Equals(_settings.Format, "teams", StringComparison.OrdinalIgnoreCase) ? BuildTeamsPayload(payload) :
+        BuildGenericPayload(payload);
 
     private static string BuildGenericPayload(EvalNotificationPayload payload)
     {
