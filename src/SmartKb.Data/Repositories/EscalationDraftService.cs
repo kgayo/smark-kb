@@ -236,12 +236,12 @@ public sealed class EscalationDraftService : IEscalationDraftService
         if (entity is null) return null;
 
         // Idempotency: if already approved and succeeded, return cached result.
-        if (entity.ExternalStatus == "Created" && entity.ApprovedAt.HasValue)
+        if (entity.ExternalStatus == EscalationExternalStatus.Created && entity.ApprovedAt.HasValue)
         {
             return new ExternalEscalationResult
             {
                 DraftId = draftId,
-                ExternalStatus = "Created",
+                ExternalStatus = EscalationExternalStatus.Created,
                 ExternalId = entity.ExternalId,
                 ExternalUrl = entity.ExternalUrl,
                 ApprovedAt = entity.ApprovedAt,
@@ -295,7 +295,7 @@ public sealed class EscalationDraftService : IEscalationDraftService
         entity.ApprovedBy = userId;
         entity.TargetConnectorId = connector.Id;
         entity.TargetConnectorType = connector.ConnectorType;
-        entity.ExternalStatus = "Pending";
+        entity.ExternalStatus = EscalationExternalStatus.Pending;
         await _db.SaveChangesAsync(ct);
 
         await _auditWriter.WriteAsync(new AuditEvent(
@@ -325,7 +325,7 @@ public sealed class EscalationDraftService : IEscalationDraftService
         // Update entity with result.
         entity.ExternalId = result.ExternalId;
         entity.ExternalUrl = result.ExternalUrl;
-        entity.ExternalStatus = result.Success ? "Created" : "Failed";
+        entity.ExternalStatus = result.Success ? EscalationExternalStatus.Created : "Failed";
         entity.ExternalErrorDetail = result.ErrorDetail;
         await _db.SaveChangesAsync(ct);
 

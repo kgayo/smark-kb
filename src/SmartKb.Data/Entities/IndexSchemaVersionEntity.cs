@@ -1,3 +1,5 @@
+using SmartKb.Contracts.Models;
+
 namespace SmartKb.Data.Entities;
 
 /// <summary>
@@ -22,7 +24,7 @@ public sealed class IndexSchemaVersionEntity
     public string SchemaHash { get; set; } = string.Empty;
 
     /// <summary>Current status: Active, Migrating, Retired.</summary>
-    public string Status { get; set; } = "Active";
+    public string Status { get; set; } = IndexVersionStatus.Active;
 
     /// <summary>Total documents indexed during migration (null for initial).</summary>
     public int? DocumentCount { get; set; }

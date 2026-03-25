@@ -1,3 +1,5 @@
+using SmartKb.Contracts.Models;
+
 namespace SmartKb.Data.Entities;
 
 /// <summary>
@@ -30,7 +32,7 @@ public sealed class PatternMaintenanceTaskEntity
     public string MetricsJson { get; set; } = "{}";
 
     /// <summary>Status: Pending, Resolved, Dismissed.</summary>
-    public string Status { get; set; } = "Pending";
+    public string Status { get; set; } = WorkflowStatus.Pending;
 
     public string? ResolvedBy { get; set; }
     public DateTimeOffset? ResolvedAt { get; set; }

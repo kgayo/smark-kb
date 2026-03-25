@@ -34,7 +34,7 @@ public sealed class DataSubjectDeletionService : IDataSubjectDeletionService
             TenantId = tenantId,
             SubjectId = subjectId,
             RequestedBy = requestedBy,
-            Status = "Processing",
+            Status = WorkflowStatus.Processing,
             RequestedAt = now,
         };
         _db.DataSubjectDeletionRequests.Add(requestEntity);
@@ -53,7 +53,7 @@ public sealed class DataSubjectDeletionService : IDataSubjectDeletionService
         {
             var summary = await ExecuteDeletion(tenantId, subjectId, ct);
 
-            requestEntity.Status = "Completed";
+            requestEntity.Status = WorkflowStatus.Completed;
             requestEntity.CompletedAt = DateTimeOffset.UtcNow;
             requestEntity.DeletionSummaryJson = JsonSerializer.Serialize(summary);
             await _db.SaveChangesAsync(ct);
@@ -77,7 +77,7 @@ public sealed class DataSubjectDeletionService : IDataSubjectDeletionService
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            requestEntity.Status = "Failed";
+            requestEntity.Status = WorkflowStatus.Failed;
             requestEntity.ErrorDetail = ex.Message;
             requestEntity.CompletedAt = DateTimeOffset.UtcNow;
             await _db.SaveChangesAsync(ct);

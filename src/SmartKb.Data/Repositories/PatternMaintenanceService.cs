@@ -44,7 +44,7 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
 
         // Load existing pending tasks to avoid duplicates.
         var existingTasks = (await _db.PatternMaintenanceTasks
-            .Where(t => t.TenantId == tenantId && t.Status == "Pending")
+            .Where(t => t.TenantId == tenantId && t.Status == WorkflowStatus.Pending)
             .ToListAsync(ct))
             .Select(t => $"{t.PatternId}|{t.TaskType}")
             .ToHashSet();
@@ -89,7 +89,7 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
                             ["lastUpdated"] = pattern.UpdatedAt.ToString("O"),
                             ["trustLevel"] = pattern.TrustLevel,
                         }, SharedJsonOptions.CamelCaseWrite),
-                        Status = "Pending",
+                        Status = WorkflowStatus.Pending,
                         CreatedAt = now,
                     });
                     existingTasks.Add(key);
@@ -118,7 +118,7 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
                             ["threshold"] = _settings.LowQualityThreshold,
                             ["trustLevel"] = pattern.TrustLevel,
                         }, SharedJsonOptions.CamelCaseWrite),
-                        Status = "Pending",
+                        Status = WorkflowStatus.Pending,
                         CreatedAt = now,
                     });
                     existingTasks.Add(key);
@@ -147,7 +147,7 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
                             ["trustLevel"] = pattern.TrustLevel,
                             ["createdAt"] = pattern.CreatedAt.ToString("O"),
                         }, SharedJsonOptions.CamelCaseWrite),
-                        Status = "Pending",
+                        Status = WorkflowStatus.Pending,
                         CreatedAt = now,
                     });
                     existingTasks.Add(key);
@@ -266,7 +266,7 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
             .Where(t => t.Id == taskId && t.TenantId == tenantId)
             .FirstOrDefaultAsync(ct);
 
-        if (entity is null || entity.Status != "Pending")
+        if (entity is null || entity.Status != WorkflowStatus.Pending)
             return null;
 
         var now = DateTimeOffset.UtcNow;

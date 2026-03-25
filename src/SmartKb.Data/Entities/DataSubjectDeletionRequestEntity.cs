@@ -1,3 +1,5 @@
+using SmartKb.Contracts.Models;
+
 namespace SmartKb.Data.Entities;
 
 /// <summary>
@@ -16,7 +18,7 @@ public sealed class DataSubjectDeletionRequestEntity
     public string RequestedBy { get; set; } = string.Empty;
 
     /// <summary>Status: Pending, Processing, Completed, Failed.</summary>
-    public string Status { get; set; } = "Pending";
+    public string Status { get; set; } = WorkflowStatus.Pending;
 
     /// <summary>JSON summary of what was deleted: {"sessions":3,"messages":12,"feedbacks":5,...}.</summary>
     public string DeletionSummaryJson { get; set; } = "{}";

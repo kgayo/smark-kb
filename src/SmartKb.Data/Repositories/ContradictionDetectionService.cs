@@ -47,7 +47,7 @@ public sealed class ContradictionDetectionService : IContradictionDetectionServi
 
         // Load existing pending contradictions to avoid duplicates.
         var existingPairs = (await _db.PatternContradictions
-            .Where(c => c.TenantId == tenantId && c.Status == "Pending")
+            .Where(c => c.TenantId == tenantId && c.Status == WorkflowStatus.Pending)
             .ToListAsync(ct))
             .Select(c => NormalizePair(c.PatternIdA, c.PatternIdB))
             .ToHashSet();
@@ -89,7 +89,7 @@ public sealed class ContradictionDetectionService : IContradictionDetectionServi
                     SimilarityScore = analysis.Value.SimilarityScore,
                     Description = analysis.Value.Description,
                     ConflictingFieldsJson = JsonSerializer.Serialize(analysis.Value.ConflictingFields, SharedJsonOptions.CamelCaseWrite),
-                    Status = "Pending",
+                    Status = WorkflowStatus.Pending,
                     CreatedAt = now,
                 };
 
@@ -197,11 +197,11 @@ public sealed class ContradictionDetectionService : IContradictionDetectionServi
             .Where(c => c.Id == contradictionId && c.TenantId == tenantId)
             .FirstOrDefaultAsync(ct);
 
-        if (entity is null || entity.Status != "Pending")
+        if (entity is null || entity.Status != WorkflowStatus.Pending)
             return null;
 
         var now = DateTimeOffset.UtcNow;
-        entity.Status = "Resolved";
+        entity.Status = WorkflowStatus.Resolved;
         entity.Resolution = request.Resolution;
         entity.ResolvedBy = actorId;
         entity.ResolvedAt = now;

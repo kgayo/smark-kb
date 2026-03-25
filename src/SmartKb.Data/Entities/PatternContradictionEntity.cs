@@ -1,3 +1,5 @@
+using SmartKb.Contracts.Models;
+
 namespace SmartKb.Data.Entities;
 
 /// <summary>
@@ -29,7 +31,7 @@ public sealed class PatternContradictionEntity
     public string ConflictingFieldsJson { get; set; } = "[]";
 
     /// <summary>Status: Pending, Resolved, Dismissed.</summary>
-    public string Status { get; set; } = "Pending";
+    public string Status { get; set; } = WorkflowStatus.Pending;
 
     /// <summary>How the contradiction was resolved: Merged, Deprecated, Kept, Dismissed.</summary>
     public string? Resolution { get; set; }

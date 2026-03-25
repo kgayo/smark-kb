@@ -265,7 +265,7 @@ public sealed class TeamPlaybookService : ITeamPlaybookService
                 .CountAsync(d =>
                     d.TenantId == tenantId &&
                     d.TargetTeam == targetTeam &&
-                    d.ExternalStatus != "Completed" &&
+                    d.ExternalStatus != EscalationExternalStatus.Completed &&
                     d.DeletedAt == null, ct);
 
             if (openCount >= playbook.MaxConcurrentEscalations.Value)

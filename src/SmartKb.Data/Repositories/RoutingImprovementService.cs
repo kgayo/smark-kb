@@ -49,7 +49,7 @@ public sealed class RoutingImprovementService : IRoutingImprovementService
             var existingPending = await _db.RoutingRecommendations
                 .AnyAsync(r => r.TenantId == tenantId
                                && r.ProductArea == area.ProductArea
-                               && r.Status == "Pending", ct);
+                               && r.Status == WorkflowStatus.Pending, ct);
             if (existingPending) continue;
 
             // High reroute rate → suggest team change.
@@ -73,7 +73,7 @@ public sealed class RoutingImprovementService : IRoutingImprovementService
                              $"({area.ReroutedCount}/{area.TotalEscalations} escalations rerouted).",
                     Confidence = confidence,
                     SupportingOutcomeCount = area.TotalEscalations,
-                    Status = "Pending",
+                    Status = WorkflowStatus.Pending,
                     CreatedAt = now,
                     SourceEvalReportId = sourceEvalReportId,
                 };
@@ -109,7 +109,7 @@ public sealed class RoutingImprovementService : IRoutingImprovementService
                              $"Consider lowering escalation threshold from {currentThreshold:F2} to {suggestedThreshold:F2}.",
                     Confidence = confidence,
                     SupportingOutcomeCount = area.TotalEscalations,
-                    Status = "Pending",
+                    Status = WorkflowStatus.Pending,
                     CreatedAt = now,
                     SourceEvalReportId = sourceEvalReportId,
                 };
@@ -173,7 +173,7 @@ public sealed class RoutingImprovementService : IRoutingImprovementService
         var rec = await _db.RoutingRecommendations
             .FirstOrDefaultAsync(r => r.Id == recommendationId && r.TenantId == tenantId, ct);
 
-        if (rec is null || rec.Status != "Pending") return null;
+        if (rec is null || rec.Status != WorkflowStatus.Pending) return null;
 
         var now = DateTimeOffset.UtcNow;
 
@@ -229,7 +229,7 @@ public sealed class RoutingImprovementService : IRoutingImprovementService
             }
         }
 
-        rec.Status = "Applied";
+        rec.Status = WorkflowStatus.Applied;
         rec.AppliedAt = now;
         rec.AppliedBy = userId;
 
@@ -258,9 +258,9 @@ public sealed class RoutingImprovementService : IRoutingImprovementService
         var rec = await _db.RoutingRecommendations
             .FirstOrDefaultAsync(r => r.Id == recommendationId && r.TenantId == tenantId, ct);
 
-        if (rec is null || rec.Status != "Pending") return false;
+        if (rec is null || rec.Status != WorkflowStatus.Pending) return false;
 
-        rec.Status = "Dismissed";
+        rec.Status = WorkflowStatus.Dismissed;
         rec.DismissedAt = DateTimeOffset.UtcNow;
         rec.DismissedBy = userId;
 

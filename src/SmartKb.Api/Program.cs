@@ -489,7 +489,7 @@ app.MapPost("/api/admin/connectors/{connectorId:guid}/sync-now", async (
         return Results.NotFound(ApiResponse<object>.Failure("Connector not found.", tenant.CorrelationId));
 
     return Results.Accepted($"/api/admin/connectors/{connectorId}/sync-runs/{syncRunId}",
-        ApiResponse<object>.Success(new { syncRunId, status = "Pending" }, tenant.CorrelationId));
+        ApiResponse<object>.Success(new { syncRunId, status = WorkflowStatus.Pending }, tenant.CorrelationId));
 }).RequirePermission("connector:sync");
 
 app.MapPost("/api/admin/connectors/{connectorId:guid}/preview", async (
@@ -1173,7 +1173,7 @@ app.MapPost("/api/escalations/draft/{draftId:guid}/approve", async (
         if (result is null)
             return Results.NotFound(ApiResponse<object>.Failure("Escalation draft not found.", tenant.CorrelationId));
 
-        return result.ExternalStatus == "Created"
+        return result.ExternalStatus == EscalationExternalStatus.Created
             ? Results.Ok(ApiResponse<ExternalEscalationResult>.Success(result, tenant.CorrelationId))
             : Results.UnprocessableEntity(ApiResponse<ExternalEscalationResult>.Success(result, tenant.CorrelationId));
     }

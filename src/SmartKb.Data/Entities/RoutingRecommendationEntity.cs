@@ -1,3 +1,5 @@
+using SmartKb.Contracts.Models;
+
 namespace SmartKb.Data.Entities;
 
 /// <summary>
@@ -28,7 +30,7 @@ public sealed class RoutingRecommendationEntity
     public int SupportingOutcomeCount { get; set; }
 
     /// <summary>Status: Pending, Applied, Dismissed.</summary>
-    public string Status { get; set; } = "Pending";
+    public string Status { get; set; } = WorkflowStatus.Pending;
 
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? AppliedAt { get; set; }
