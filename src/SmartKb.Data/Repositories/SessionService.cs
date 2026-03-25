@@ -221,11 +221,11 @@ public sealed class SessionService : ISessionService
         {
             chatResponse = new ChatResponse
             {
-                ResponseType = "next_steps_only",
+                ResponseType = ChatResponseType.NextStepsOnly,
                 Answer = "Chat orchestration is not configured.",
                 Citations = [],
                 Confidence = 0f,
-                ConfidenceLabel = "Low",
+                ConfidenceLabel = ConfidenceLabel.Low,
                 ConfidenceRationale = "Chat orchestration is not configured.",
                 NextSteps = ["Ensure OpenAI and Search Service are configured."],
                 TraceId = correlationId,

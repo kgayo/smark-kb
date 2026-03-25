@@ -253,7 +253,7 @@ public sealed class GoldCaseService : IGoldCaseService
 
     // ── Validation ──
 
-    private static readonly HashSet<string> ValidResponseTypes = ["final_answer", "next_steps_only", "escalate"];
+    private static readonly HashSet<string> ValidResponseTypes = [ChatResponseType.FinalAnswer, ChatResponseType.NextStepsOnly, ChatResponseType.Escalate];
 
     private static List<string> Validate(string caseId, string query, GoldCaseExpected expected)
     {

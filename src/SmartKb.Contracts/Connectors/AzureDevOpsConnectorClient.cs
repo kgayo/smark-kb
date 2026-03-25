@@ -569,7 +569,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
 
     internal HttpClient CreateHttpClient(string organizationUrl, string pat)
     {
-        var client = _httpClientFactory.CreateClient("AzureDevOps");
+        var client = _httpClientFactory.CreateClient(HttpClientNames.AzureDevOps);
         ConnectorHttpHelper.ConfigureBasicClient(client, organizationUrl, pat);
         return client;
     }

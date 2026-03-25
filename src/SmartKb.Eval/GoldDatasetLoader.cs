@@ -1,5 +1,6 @@
 using System.Text.Json;
 using SmartKb.Contracts;
+using SmartKb.Contracts.Models;
 using SmartKb.Eval.Models;
 
 namespace SmartKb.Eval;
@@ -89,9 +90,8 @@ public static class GoldDatasetLoader
         else if (evalCase.Query.Length < 5)
             errors.Add($"{prefix}Query must be at least 5 characters");
 
-        var validResponseTypes = new[] { "final_answer", "next_steps_only", "escalate" };
-        if (!validResponseTypes.Contains(evalCase.Expected.ResponseType))
-            errors.Add($"{prefix}Expected.ResponseType must be one of: {string.Join(", ", validResponseTypes)}");
+        if (!ChatResponseType.AllValues.Contains(evalCase.Expected.ResponseType))
+            errors.Add($"{prefix}Expected.ResponseType must be one of: {string.Join(", ", ChatResponseType.AllValues)}");
 
         if (evalCase.Expected.MinConfidence is < 0f or > 1f)
             errors.Add($"{prefix}Expected.MinConfidence must be between 0 and 1");

@@ -206,7 +206,7 @@ public sealed class SharePointWebhookManager : IWebhookManager
     private async Task<string> AcquireTokenAsync(
         SharePointSourceConfig config, string clientSecret, CancellationToken ct)
     {
-        using var client = _httpClientFactory.CreateClient("SharePoint");
+        using var client = _httpClientFactory.CreateClient(HttpClientNames.SharePoint);
         var tokenUrl = string.Format(GraphTokenUrl, config.EntraIdTenantId);
         using var requestBody = new FormUrlEncodedContent(new Dictionary<string, string>
         {
@@ -226,7 +226,7 @@ public sealed class SharePointWebhookManager : IWebhookManager
 
     private HttpClient CreateGraphClient(string accessToken)
     {
-        var client = _httpClientFactory.CreateClient("SharePoint");
+        var client = _httpClientFactory.CreateClient(HttpClientNames.SharePoint);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         return client;

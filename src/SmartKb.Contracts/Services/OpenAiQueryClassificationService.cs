@@ -37,7 +37,7 @@ public sealed class OpenAiQueryClassificationService : IQueryClassificationServi
     {
         var messages = BuildClassificationMessages(query, sessionHistory);
 
-        var httpClient = _httpClientFactory.CreateClient("OpenAi");
+        var httpClient = _httpClientFactory.CreateClient(HttpClientNames.OpenAi);
 
         var requestBody = new
         {

@@ -23,7 +23,7 @@ public sealed class OpenAiEmbeddingService : IEmbeddingService
         EmbeddingSettings embeddingSettings,
         ILogger<OpenAiEmbeddingService> logger)
     {
-        _httpClient = httpClientFactory.CreateClient("OpenAi");
+        _httpClient = httpClientFactory.CreateClient(HttpClientNames.OpenAi);
         _openAiSettings = openAiSettings;
         _embeddingSettings = embeddingSettings;
         _logger = logger;

@@ -160,7 +160,7 @@ public sealed class EvalRunner
         Answer = string.Empty,
         Citations = [],
         Confidence = 0f,
-        ConfidenceLabel = "Low",
+        ConfidenceLabel = ConfidenceLabel.Low,
         TraceId = string.Empty,
         HasEvidence = false,
         SystemPromptVersion = string.Empty,

@@ -74,8 +74,8 @@ public sealed class ChatOrchestrationSettings
 
     public string GetConfidenceLabel(float confidence)
     {
-        if (confidence >= HighConfidenceThreshold) return "High";
-        if (confidence >= MediumConfidenceThreshold) return "Medium";
-        return "Low";
+        if (confidence >= HighConfidenceThreshold) return Models.ConfidenceLabel.High;
+        if (confidence >= MediumConfidenceThreshold) return Models.ConfidenceLabel.Medium;
+        return Models.ConfidenceLabel.Low;
     }
 }

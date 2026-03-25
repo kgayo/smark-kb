@@ -190,12 +190,12 @@ public sealed class ChatOrchestrator : IChatOrchestrator
             _logger.LogInformation("No evidence path triggered. TraceId={TraceId}", traceId);
             DiagnosticsHelper.ChatRequestsTotal.Add(1,
                 new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId),
-                new KeyValuePair<string, object?>("smartkb.response_type", "next_steps_only"));
+                new KeyValuePair<string, object?>("smartkb.response_type", ChatResponseType.NextStepsOnly));
             DiagnosticsHelper.ChatNoEvidenceTotal.Add(1,
                 new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId));
             DiagnosticsHelper.ChatLatencyMs.Record(sw.ElapsedMilliseconds,
                 new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId),
-                new KeyValuePair<string, object?>("smartkb.response_type", "next_steps_only"));
+                new KeyValuePair<string, object?>("smartkb.response_type", ChatResponseType.NextStepsOnly));
             return BuildNoEvidenceResponse(traceId);
         }
 
@@ -346,13 +346,13 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         var answer = modelResponse.Answer;
         var nextSteps = modelResponse.NextSteps.AsReadOnly();
 
-        if (blendedConfidence < _settings.DegradationThreshold && responseType == "final_answer")
+        if (blendedConfidence < _settings.DegradationThreshold && responseType == ChatResponseType.FinalAnswer)
         {
             _logger.LogInformation(
                 "Degradation triggered: blended confidence {Confidence} < {Threshold}. TraceId={TraceId}",
                 blendedConfidence, _settings.DegradationThreshold, traceId);
 
-            responseType = "next_steps_only";
+            responseType = ChatResponseType.NextStepsOnly;
             answer = "I don't have enough information to answer this question confidently. " +
                      "Here are some diagnostic steps that may help:";
 
@@ -674,7 +674,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         List<object> messages,
         CancellationToken cancellationToken)
     {
-        var httpClient = _httpClientFactory.CreateClient("OpenAi");
+        var httpClient = _httpClientFactory.CreateClient(HttpClientNames.OpenAi);
 
         var requestBody = new
         {
@@ -1025,11 +1025,11 @@ public sealed class ChatOrchestrator : IChatOrchestrator
     {
         return new ChatResponse
         {
-            ResponseType = "next_steps_only",
+            ResponseType = ChatResponseType.NextStepsOnly,
             Answer = customMessage ?? "I don't have enough information in the knowledge base to answer this question confidently.",
             Citations = [],
             Confidence = 0f,
-            ConfidenceLabel = "Low",
+            ConfidenceLabel = Models.ConfidenceLabel.Low,
             ConfidenceRationale = "No matching evidence found in the knowledge base.",
             NextSteps =
             [
@@ -1063,7 +1063,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
             ["response_type"] = new
             {
                 type = "string",
-                @enum = new[] { "final_answer", "next_steps_only", "escalate" },
+                @enum = new[] { ChatResponseType.FinalAnswer, ChatResponseType.NextStepsOnly, ChatResponseType.Escalate },
             },
             ["answer"] = new { type = "string" },
             ["citations"] = new

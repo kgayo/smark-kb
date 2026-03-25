@@ -38,7 +38,7 @@ public sealed class OpenAiSessionSummarizationService : ISessionSummarizationSer
 
         var messages = BuildSummarizationMessages(messagesToSummarize);
 
-        var httpClient = _httpClientFactory.CreateClient("OpenAi");
+        var httpClient = _httpClientFactory.CreateClient(HttpClientNames.OpenAi);
 
         var requestBody = new
         {

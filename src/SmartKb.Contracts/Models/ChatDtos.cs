@@ -149,7 +149,7 @@ public sealed record ChatMessage
 internal sealed record OpenAiStructuredResponse
 {
     [JsonPropertyName("response_type")]
-    public string ResponseType { get; init; } = "final_answer";
+    public string ResponseType { get; init; } = ChatResponseType.FinalAnswer;
 
     [JsonPropertyName("answer")]
     public string Answer { get; init; } = string.Empty;

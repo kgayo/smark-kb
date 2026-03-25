@@ -479,7 +479,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
         string entraIdTenantId, string clientId, string clientSecret,
         CancellationToken ct)
     {
-        using var client = _httpClientFactory.CreateClient("SharePoint");
+        using var client = _httpClientFactory.CreateClient(HttpClientNames.SharePoint);
 
         var tokenUrl = string.Format(GraphTokenUrl, entraIdTenantId);
         using var requestBody = new FormUrlEncodedContent(new Dictionary<string, string>
@@ -572,7 +572,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
 
     internal HttpClient CreateGraphClient(string accessToken)
     {
-        var client = _httpClientFactory.CreateClient("SharePoint");
+        var client = _httpClientFactory.CreateClient(HttpClientNames.SharePoint);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         return client;

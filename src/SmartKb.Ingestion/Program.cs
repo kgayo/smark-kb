@@ -98,10 +98,10 @@ if (!string.IsNullOrEmpty(connectionString))
 builder.Services.AddSingleton<ITextExtractionService, SmartKb.Contracts.Services.TextExtractionService>();
 
 // Connector clients — register all IConnectorClient implementations.
-builder.Services.AddHttpClient("AzureDevOps");
-builder.Services.AddHttpClient("SharePoint");
-builder.Services.AddHttpClient("HubSpot");
-builder.Services.AddHttpClient("ClickUp");
+builder.Services.AddHttpClient(HttpClientNames.AzureDevOps);
+builder.Services.AddHttpClient(HttpClientNames.SharePoint);
+builder.Services.AddHttpClient(HttpClientNames.HubSpot);
+builder.Services.AddHttpClient(HttpClientNames.ClickUp);
 builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.AzureDevOpsConnectorClient>();
 builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.SharePointConnectorClient>();
 builder.Services.AddSingleton<IConnectorClient, SmartKb.Contracts.Connectors.HubSpotConnectorClient>();
@@ -132,7 +132,7 @@ var oauthSettings = new OAuthSettings();
 builder.Configuration.GetSection("OAuth").Bind(oauthSettings);
 builder.Services.AddSingleton(oauthSettings);
 
-builder.Services.AddHttpClient("oauth");
+builder.Services.AddHttpClient(HttpClientNames.OAuth);
 
 if (oauthSettings.IsConfigured)
 {

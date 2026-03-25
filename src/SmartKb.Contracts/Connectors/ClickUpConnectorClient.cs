@@ -518,7 +518,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
 
     internal HttpClient CreateHttpClient(string baseUrl, string token)
     {
-        var client = _httpClientFactory.CreateClient("ClickUp");
+        var client = _httpClientFactory.CreateClient(HttpClientNames.ClickUp);
         ConnectorHttpHelper.ConfigureBearerClient(client, baseUrl, token);
         return client;
     }

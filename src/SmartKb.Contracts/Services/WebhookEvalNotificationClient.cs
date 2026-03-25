@@ -38,7 +38,7 @@ public sealed class WebhookEvalNotificationClient : IEvalNotificationService
 
         try
         {
-            var client = _httpClientFactory.CreateClient("EvalNotification");
+            var client = _httpClientFactory.CreateClient(HttpClientNames.EvalNotification);
             client.Timeout = TimeSpan.FromSeconds(_settings.TimeoutSeconds);
 
             using var response = await client.PostAsync(_settings.WebhookUrl, content, ct);

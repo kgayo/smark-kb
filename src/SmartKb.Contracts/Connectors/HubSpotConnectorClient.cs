@@ -408,7 +408,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
 
     internal HttpClient CreateHttpClient(string baseUrl, string token)
     {
-        var client = _httpClientFactory.CreateClient("HubSpot");
+        var client = _httpClientFactory.CreateClient(HttpClientNames.HubSpot);
         ConnectorHttpHelper.ConfigureBearerClient(client, baseUrl, token);
         return client;
     }

@@ -314,7 +314,7 @@ public sealed class OAuthTokenService : IOAuthTokenService
     {
         try
         {
-            using var client = _httpClientFactory.CreateClient("oauth");
+            using var client = _httpClientFactory.CreateClient(HttpClientNames.OAuth);
             using var content = new FormUrlEncodedContent(formData);
             using var response = await client.PostAsync(tokenUrl, content, ct);
 
