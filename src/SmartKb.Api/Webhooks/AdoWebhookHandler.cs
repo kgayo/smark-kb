@@ -57,13 +57,13 @@ public sealed class AdoWebhookHandler
         if (connector is null)
         {
             _logger.LogWarning("Webhook received for unknown connector {ConnectorId}", connectorId);
-            return (404, "Connector not found.");
+            return (404, ResponseMessages.ConnectorNotFound);
         }
 
         if (connector.Status != ConnectorStatus.Enabled)
         {
             _logger.LogInformation("Webhook received for disabled connector {ConnectorId}", connectorId);
-            return (200, "Connector is disabled; event ignored.");
+            return (200, ResponseMessages.ConnectorDisabledEventIgnored);
         }
 
         // 2. Find active webhook subscriptions for this connector.
@@ -74,7 +74,7 @@ public sealed class AdoWebhookHandler
         if (subscriptions.Count == 0)
         {
             _logger.LogWarning("Webhook received but no active subscriptions for connector {ConnectorId}", connectorId);
-            return (200, "No active webhook subscriptions.");
+            return (200, ResponseMessages.NoActiveWebhookSubscriptions);
         }
 
         // 3. Validate HMAC signature using the webhook secret from Key Vault.
@@ -93,18 +93,18 @@ public sealed class AdoWebhookHandler
                         EventId: Guid.NewGuid().ToString(),
                         EventType: AuditEventTypes.WebhookSignatureFailed,
                         TenantId: connector.TenantId,
-                        ActorId: "system",
+                        ActorId: ResponseMessages.SystemActorId,
                         CorrelationId: Guid.NewGuid().ToString(),
                         Timestamp: DateTimeOffset.UtcNow,
                         Detail: $"Webhook signature verification failed for connector '{connector.Name}' (id={connectorId})."));
 
-                    return (401, "Invalid webhook signature.");
+                    return (401, ResponseMessages.InvalidWebhookSignature);
                 }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogWarning(ex, "Failed to retrieve webhook secret for connector {ConnectorId}", connectorId);
-                return (500, "Failed to verify webhook signature.");
+                return (500, ResponseMessages.FailedToVerifyWebhookSignature);
             }
         }
 
@@ -117,7 +117,7 @@ public sealed class AdoWebhookHandler
         catch (JsonException ex)
         {
             _logger.LogWarning(ex, "Invalid webhook payload for connector {ConnectorId}", connectorId);
-            return (400, "Invalid webhook payload.");
+            return (400, ResponseMessages.InvalidWebhookPayload);
         }
 
         if (payload?.EventType is null)
@@ -183,7 +183,7 @@ public sealed class AdoWebhookHandler
             EventId: Guid.NewGuid().ToString(),
             EventType: AuditEventTypes.WebhookReceived,
             TenantId: connector.TenantId,
-            ActorId: "system",
+            ActorId: ResponseMessages.SystemActorId,
             CorrelationId: correlationId,
             Timestamp: DateTimeOffset.UtcNow,
             Detail: $"Webhook event '{payload.EventType}' received for connector '{connector.Name}' (id={connectorId}). Incremental sync triggered (runId={syncRun.Id})."));

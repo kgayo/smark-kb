@@ -47,7 +47,7 @@ public sealed class SecretRotationService : ISecretRotationService
             return new ConnectorCredentialStatus(
                 connectorId, "Unknown", "Unknown", "Unknown",
                 CredentialHealth.Unknown, null, null, null, null, null,
-                "Connector not found.");
+                ResponseMessages.ConnectorNotFound);
 
         return await EvaluateCredentialAsync(connector, cancellationToken);
     }
@@ -103,7 +103,7 @@ public sealed class SecretRotationService : ISecretRotationService
             .FirstOrDefaultAsync(c => c.Id == connectorId && c.TenantId == tenantId, cancellationToken);
 
         if (connector is null)
-            return new CredentialRotationResult(false, "Connector not found.", null);
+            return new CredentialRotationResult(false, ResponseMessages.ConnectorNotFound, null);
 
         if (string.IsNullOrEmpty(connector.KeyVaultSecretName))
             return new CredentialRotationResult(false, "Connector has no Key Vault secret configured.", null);

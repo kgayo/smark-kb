@@ -58,13 +58,13 @@ public sealed class ClickUpWebhookHandler
         if (connector is null)
         {
             _logger.LogWarning("ClickUp webhook received for unknown connector {ConnectorId}", connectorId);
-            return (404, "Connector not found.");
+            return (404, ResponseMessages.ConnectorNotFound);
         }
 
         if (connector.Status != ConnectorStatus.Enabled)
         {
             _logger.LogInformation("ClickUp webhook received for disabled connector {ConnectorId}", connectorId);
-            return (200, "Connector is disabled; event ignored.");
+            return (200, ResponseMessages.ConnectorDisabledEventIgnored);
         }
 
         // 2. Find active webhook subscriptions.
@@ -75,7 +75,7 @@ public sealed class ClickUpWebhookHandler
         if (subscriptions.Count == 0)
         {
             _logger.LogWarning("ClickUp webhook received but no active subscriptions for connector {ConnectorId}", connectorId);
-            return (200, "No active webhook subscriptions.");
+            return (200, ResponseMessages.NoActiveWebhookSubscriptions);
         }
 
         // 3. Validate HMAC-SHA256 signature.
@@ -94,18 +94,18 @@ public sealed class ClickUpWebhookHandler
                         EventId: Guid.NewGuid().ToString(),
                         EventType: AuditEventTypes.WebhookSignatureFailed,
                         TenantId: connector.TenantId,
-                        ActorId: "system",
+                        ActorId: ResponseMessages.SystemActorId,
                         CorrelationId: Guid.NewGuid().ToString(),
                         Timestamp: DateTimeOffset.UtcNow,
                         Detail: $"ClickUp webhook signature verification failed for connector '{connector.Name}' (id={connectorId})."));
 
-                    return (401, "Invalid webhook signature.");
+                    return (401, ResponseMessages.InvalidWebhookSignature);
                 }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogWarning(ex, "Failed to retrieve webhook secret for connector {ConnectorId}", connectorId);
-                return (500, "Failed to verify webhook signature.");
+                return (500, ResponseMessages.FailedToVerifyWebhookSignature);
             }
         }
 
@@ -118,7 +118,7 @@ public sealed class ClickUpWebhookHandler
         catch (JsonException ex)
         {
             _logger.LogWarning(ex, "Invalid ClickUp webhook payload for connector {ConnectorId}", connectorId);
-            return (400, "Invalid webhook payload.");
+            return (400, ResponseMessages.InvalidWebhookPayload);
         }
 
         if (webhookEvent is null || string.IsNullOrEmpty(webhookEvent.Event))
@@ -183,7 +183,7 @@ public sealed class ClickUpWebhookHandler
             EventId: Guid.NewGuid().ToString(),
             EventType: AuditEventTypes.WebhookReceived,
             TenantId: connector.TenantId,
-            ActorId: "system",
+            ActorId: ResponseMessages.SystemActorId,
             CorrelationId: correlationId,
             Timestamp: DateTimeOffset.UtcNow,
             Detail: $"ClickUp webhook event [{webhookEvent.Event}] received for connector '{connector.Name}' (id={connectorId}). " +

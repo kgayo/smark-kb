@@ -68,13 +68,13 @@ public sealed class SharePointWebhookHandler
         if (connector is null)
         {
             _logger.LogWarning("Graph notification received for unknown connector {ConnectorId}", connectorId);
-            return (404, "Connector not found.");
+            return (404, ResponseMessages.ConnectorNotFound);
         }
 
         if (connector.Status != ConnectorStatus.Enabled)
         {
             _logger.LogInformation("Graph notification received for disabled connector {ConnectorId}", connectorId);
-            return (200, "Connector is disabled; event ignored.");
+            return (200, ResponseMessages.ConnectorDisabledEventIgnored);
         }
 
         // 2. Parse notification payload.
@@ -102,7 +102,7 @@ public sealed class SharePointWebhookHandler
         if (subscriptions.Count == 0)
         {
             _logger.LogWarning("Graph notification received but no active subscriptions for connector {ConnectorId}", connectorId);
-            return (200, "No active webhook subscriptions.");
+            return (200, ResponseMessages.NoActiveWebhookSubscriptions);
         }
 
         // 4. Validate clientState for each notification.
@@ -118,7 +118,7 @@ public sealed class SharePointWebhookHandler
                     EventId: Guid.NewGuid().ToString(),
                     EventType: AuditEventTypes.WebhookClientStateMismatch,
                     TenantId: connector.TenantId,
-                    ActorId: "system",
+                    ActorId: ResponseMessages.SystemActorId,
                     CorrelationId: Guid.NewGuid().ToString(),
                     Timestamp: DateTimeOffset.UtcNow,
                     Detail: $"Graph notification clientState verification failed for connector '{connector.Name}' (id={connectorId})."));
@@ -185,7 +185,7 @@ public sealed class SharePointWebhookHandler
             EventId: Guid.NewGuid().ToString(),
             EventType: AuditEventTypes.WebhookReceived,
             TenantId: connector.TenantId,
-            ActorId: "system",
+            ActorId: ResponseMessages.SystemActorId,
             CorrelationId: correlationId,
             Timestamp: DateTimeOffset.UtcNow,
             Detail: $"Graph change notification received for connector '{connector.Name}' (id={connectorId}). Changes: {changeTypes}. Incremental sync triggered (runId={syncRun.Id})."));

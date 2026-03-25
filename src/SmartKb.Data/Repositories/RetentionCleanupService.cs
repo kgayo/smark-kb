@@ -214,7 +214,7 @@ public sealed class RetentionCleanupService : IRetentionCleanupService
                 EventId: Guid.NewGuid().ToString(),
                 EventType: AuditEventTypes.RetentionCleanupExecuted,
                 TenantId: tenantId,
-                ActorId: "system",
+                ActorId: ResponseMessages.SystemActorId,
                 CorrelationId: Guid.NewGuid().ToString(),
                 Timestamp: now,
                 Detail: $"Retention cleanup: {summary}"), ct);
@@ -319,7 +319,7 @@ public sealed class RetentionCleanupService : IRetentionCleanupService
             EventId: Guid.NewGuid().ToString(),
             EventType: AuditEventTypes.RetentionComplianceChecked,
             TenantId: tenantId,
-            ActorId: "system",
+            ActorId: ResponseMessages.SystemActorId,
             CorrelationId: Guid.NewGuid().ToString(),
             Timestamp: now,
             Detail: $"Compliance check: {configs.Count} policies, {overdueCount} overdue, compliant={isCompliant}"), ct);

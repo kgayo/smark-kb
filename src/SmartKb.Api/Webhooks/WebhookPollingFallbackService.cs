@@ -147,7 +147,7 @@ public sealed class WebhookPollingFallbackService : BackgroundService
                     EventId: Guid.NewGuid().ToString(),
                     EventType: AuditEventTypes.WebhookPollFallback,
                     TenantId: connector.TenantId,
-                    ActorId: "system",
+                    ActorId: ResponseMessages.SystemActorId,
                     CorrelationId: correlationId,
                     Timestamp: now,
                     Detail: $"Polling fallback triggered for connector '{connector.Name}' (id={connector.Id}). SyncRunId={syncRun.Id}."));

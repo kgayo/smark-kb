@@ -399,7 +399,7 @@ app.MapGet("/api/admin/connectors/{connectorId:guid}", async (
     var ct = httpContext.RequestAborted;
     var response = await service.GetAsync(tenant.TenantId, connectorId, ct);
     return response is null
-        ? Results.NotFound(ApiResponse<object>.Failure("Connector not found.", tenant.CorrelationId))
+        ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.ConnectorNotFound, tenant.CorrelationId))
         : Results.Ok(ApiResponse<ConnectorResponse>.Success(response, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
@@ -416,7 +416,7 @@ app.MapPut("/api/admin/connectors/{connectorId:guid}", async (
         tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, request, ct);
 
     if (notFound)
-        return Results.NotFound(ApiResponse<object>.Failure("Connector not found.", tenant.CorrelationId));
+        return Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.ConnectorNotFound, tenant.CorrelationId));
     if (validation is not null)
         return Results.UnprocessableEntity(ApiResponse<ConnectorValidationResult>.Failure(
             string.Join("; ", validation.Errors), tenant.CorrelationId));
@@ -436,7 +436,7 @@ app.MapDelete("/api/admin/connectors/{connectorId:guid}", async (
         tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, ct);
     return deleted
         ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
-        : Results.NotFound(ApiResponse<object>.Failure("Connector not found.", tenant.CorrelationId));
+        : Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.ConnectorNotFound, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
 app.MapPost("/api/admin/connectors/{connectorId:guid}/enable", async (
@@ -451,7 +451,7 @@ app.MapPost("/api/admin/connectors/{connectorId:guid}/enable", async (
         tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, ct);
 
     if (!found)
-        return Results.NotFound(ApiResponse<object>.Failure("Connector not found.", tenant.CorrelationId));
+        return Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.ConnectorNotFound, tenant.CorrelationId));
     if (validation is not null)
         return Results.UnprocessableEntity(ApiResponse<ConnectorValidationResult>.Failure(
             string.Join("; ", validation.Errors), tenant.CorrelationId));
@@ -471,7 +471,7 @@ app.MapPost("/api/admin/connectors/{connectorId:guid}/disable", async (
         tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, ct);
 
     if (!found)
-        return Results.NotFound(ApiResponse<object>.Failure("Connector not found.", tenant.CorrelationId));
+        return Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.ConnectorNotFound, tenant.CorrelationId));
 
     return Results.Ok(ApiResponse<ConnectorResponse>.Success(response!, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
@@ -487,7 +487,7 @@ app.MapPost("/api/admin/connectors/{connectorId:guid}/test", async (
     var result = await service.TestConnectionAsync(
         tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, ct);
     return result is null
-        ? Results.NotFound(ApiResponse<object>.Failure("Connector not found.", tenant.CorrelationId))
+        ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.ConnectorNotFound, tenant.CorrelationId))
         : Results.Ok(ApiResponse<TestConnectionResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
@@ -504,7 +504,7 @@ app.MapPost("/api/admin/connectors/{connectorId:guid}/sync-now", async (
         tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, request, ct);
 
     if (notFound)
-        return Results.NotFound(ApiResponse<object>.Failure("Connector not found.", tenant.CorrelationId));
+        return Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.ConnectorNotFound, tenant.CorrelationId));
 
     return Results.Accepted($"/api/admin/connectors/{connectorId}/sync-runs/{syncRunId}",
         ApiResponse<object>.Success(new { syncRunId, status = WorkflowStatus.Pending }, tenant.CorrelationId));
@@ -522,7 +522,7 @@ app.MapPost("/api/admin/connectors/{connectorId:guid}/preview", async (
     var result = await service.PreviewAsync(
         tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, request, ct);
     return result is null
-        ? Results.NotFound(ApiResponse<object>.Failure("Connector not found.", tenant.CorrelationId))
+        ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.ConnectorNotFound, tenant.CorrelationId))
         : Results.Ok(ApiResponse<PreviewResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
@@ -549,7 +549,7 @@ app.MapPost("/api/admin/connectors/{connectorId:guid}/preview-retrieval", async 
     var result = await service.PreviewRetrievalAsync(
         tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, request, ct);
     return result is null
-        ? Results.NotFound(ApiResponse<object>.Failure("Connector not found.", tenant.CorrelationId))
+        ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.ConnectorNotFound, tenant.CorrelationId))
         : Results.Ok(ApiResponse<PreviewRetrievalResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
@@ -563,7 +563,7 @@ app.MapGet("/api/admin/connectors/{connectorId:guid}/sync-runs", async (
     var ct = httpContext.RequestAborted;
     var result = await service.ListSyncRunsAsync(tenant.TenantId, connectorId, ct);
     return result is null
-        ? Results.NotFound(ApiResponse<object>.Failure("Connector not found.", tenant.CorrelationId))
+        ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.ConnectorNotFound, tenant.CorrelationId))
         : Results.Ok(ApiResponse<SyncRunListResponse>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
 
@@ -614,7 +614,7 @@ app.MapGet("/api/admin/connectors/{connectorId:guid}/oauth/callback", async (
         tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, code, state, ct);
 
     if (notFound)
-        return Results.NotFound(ApiResponse<object>.Failure("Connector not found.", tenant.CorrelationId));
+        return Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.ConnectorNotFound, tenant.CorrelationId));
     if (invalidState)
         return Results.BadRequest(ApiResponse<object>.Failure("Invalid or expired state parameter.", tenant.CorrelationId));
 
@@ -1018,7 +1018,7 @@ app.MapGet("/api/sessions/{sessionId:guid}", async (
     var ct = httpContext.RequestAborted;
     var response = await sessionService.GetSessionAsync(tenant.TenantId, tenant.UserId, sessionId, ct);
     return response is null
-        ? Results.NotFound(ApiResponse<object>.Failure("Session not found.", tenant.CorrelationId))
+        ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.SessionNotFound, tenant.CorrelationId))
         : Results.Ok(ApiResponse<SessionResponse>.Success(response, tenant.CorrelationId));
 }).RequirePermission("chat:query");
 
@@ -1033,7 +1033,7 @@ app.MapDelete("/api/sessions/{sessionId:guid}", async (
     var deleted = await sessionService.DeleteSessionAsync(tenant.TenantId, tenant.UserId, sessionId, ct);
     return deleted
         ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
-        : Results.NotFound(ApiResponse<object>.Failure("Session not found.", tenant.CorrelationId));
+        : Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.SessionNotFound, tenant.CorrelationId));
 }).RequirePermission("chat:query");
 
 app.MapGet("/api/sessions/{sessionId:guid}/messages", async (
@@ -1046,7 +1046,7 @@ app.MapGet("/api/sessions/{sessionId:guid}/messages", async (
     var ct = httpContext.RequestAborted;
     var response = await sessionService.GetMessagesAsync(tenant.TenantId, tenant.UserId, sessionId, ct);
     return response is null
-        ? Results.NotFound(ApiResponse<object>.Failure("Session not found.", tenant.CorrelationId))
+        ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.SessionNotFound, tenant.CorrelationId))
         : Results.Ok(ApiResponse<MessageListResponse>.Success(response, tenant.CorrelationId));
 }).RequirePermission("chat:query");
 
@@ -1126,7 +1126,7 @@ app.MapGet("/api/sessions/{sessionId:guid}/feedbacks", async (
     var response = await feedbackService.ListFeedbacksAsync(
         tenant.TenantId, tenant.UserId, sessionId, ct);
     return response is null
-        ? Results.NotFound(ApiResponse<object>.Failure("Session not found.", tenant.CorrelationId))
+        ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.SessionNotFound, tenant.CorrelationId))
         : Results.Ok(ApiResponse<FeedbackListResponse>.Success(response, tenant.CorrelationId));
 }).RequirePermission("chat:feedback");
 
@@ -1169,7 +1169,7 @@ app.MapGet("/api/sessions/{sessionId:guid}/outcome", async (
     var response = await outcomeService.GetOutcomesAsync(
         tenant.TenantId, tenant.UserId, sessionId, ct);
     return response is null
-        ? Results.NotFound(ApiResponse<object>.Failure("Session not found.", tenant.CorrelationId))
+        ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.SessionNotFound, tenant.CorrelationId))
         : Results.Ok(ApiResponse<OutcomeListResponse>.Success(response, tenant.CorrelationId));
 }).RequirePermission("chat:outcome");
 
@@ -1223,7 +1223,7 @@ app.MapGet("/api/sessions/{sessionId:guid}/escalations/drafts", async (
     var ct = httpContext.RequestAborted;
     var response = await escalationService.ListDraftsAsync(tenant.TenantId, tenant.UserId, sessionId, ct);
     return response is null
-        ? Results.NotFound(ApiResponse<object>.Failure("Session not found.", tenant.CorrelationId))
+        ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.SessionNotFound, tenant.CorrelationId))
         : Results.Ok(ApiResponse<EscalationDraftListResponse>.Success(response, tenant.CorrelationId));
 }).RequirePermission("chat:query");
 
@@ -2552,7 +2552,7 @@ app.MapGet("/api/admin/index-migrations/{indexType}/current", async (
     var ct = httpContext.RequestAborted;
     var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
     if (service is null)
-        return Results.Json(ApiResponse<object>.Failure("Search service is not configured.", tenant.CorrelationId), statusCode: 503);
+        return Results.Json(ApiResponse<object>.Failure(ResponseMessages.SearchServiceNotConfigured, tenant.CorrelationId), statusCode: 503);
     var result = await service.GetCurrentVersionAsync(indexType, ct);
     return result is null
         ? Results.NotFound(ApiResponse<object>.Failure($"No version tracked for index type '{indexType}'.", tenant.CorrelationId))
@@ -2568,7 +2568,7 @@ app.MapGet("/api/admin/index-migrations/{indexType}/versions", async (
     var ct = httpContext.RequestAborted;
     var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
     if (service is null)
-        return Results.Json(ApiResponse<object>.Failure("Search service is not configured.", tenant.CorrelationId), statusCode: 503);
+        return Results.Json(ApiResponse<object>.Failure(ResponseMessages.SearchServiceNotConfigured, tenant.CorrelationId), statusCode: 503);
     var result = await service.ListVersionsAsync(indexType, ct);
     return Results.Ok(ApiResponse<IReadOnlyList<IndexSchemaVersionInfo>>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
@@ -2582,7 +2582,7 @@ app.MapGet("/api/admin/index-migrations/{indexType}/plan", async (
     var ct = httpContext.RequestAborted;
     var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
     if (service is null)
-        return Results.Json(ApiResponse<object>.Failure("Search service is not configured.", tenant.CorrelationId), statusCode: 503);
+        return Results.Json(ApiResponse<object>.Failure(ResponseMessages.SearchServiceNotConfigured, tenant.CorrelationId), statusCode: 503);
     var result = await service.PlanMigrationAsync(indexType, ct);
     return Results.Ok(ApiResponse<MigrationPlan>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
@@ -2596,7 +2596,7 @@ app.MapPost("/api/admin/index-migrations/{indexType}/execute", async (
     var ct = httpContext.RequestAborted;
     var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
     if (service is null)
-        return Results.Json(ApiResponse<object>.Failure("Search service is not configured.", tenant.CorrelationId), statusCode: 503);
+        return Results.Json(ApiResponse<object>.Failure(ResponseMessages.SearchServiceNotConfigured, tenant.CorrelationId), statusCode: 503);
     var result = await service.ExecuteMigrationAsync(indexType, tenant.UserId, ct);
     return result.Success
         ? Results.Ok(ApiResponse<MigrationResult>.Success(result, tenant.CorrelationId))
@@ -2613,7 +2613,7 @@ app.MapPost("/api/admin/index-migrations/{indexType}/rollback", async (
     var ct = httpContext.RequestAborted;
     var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
     if (service is null)
-        return Results.Json(ApiResponse<object>.Failure("Search service is not configured.", tenant.CorrelationId), statusCode: 503);
+        return Results.Json(ApiResponse<object>.Failure(ResponseMessages.SearchServiceNotConfigured, tenant.CorrelationId), statusCode: 503);
     var result = await service.RollbackAsync(indexType, tenant.UserId, ct);
     return result.Success
         ? Results.Ok(ApiResponse<MigrationResult>.Success(result, tenant.CorrelationId))
@@ -2630,7 +2630,7 @@ app.MapPost("/api/admin/index-migrations/{indexType}/bootstrap", async (
     var ct = httpContext.RequestAborted;
     var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
     if (service is null)
-        return Results.Json(ApiResponse<object>.Failure("Search service is not configured.", tenant.CorrelationId), statusCode: 503);
+        return Results.Json(ApiResponse<object>.Failure(ResponseMessages.SearchServiceNotConfigured, tenant.CorrelationId), statusCode: 503);
     var result = await service.EnsureVersionTrackingAsync(indexType, tenant.UserId, ct);
     return Results.Ok(ApiResponse<IndexSchemaVersionInfo>.Success(result, tenant.CorrelationId));
 }).RequirePermission("connector:manage");
@@ -2644,7 +2644,7 @@ app.MapDelete("/api/admin/index-migrations/retired/{versionId:guid}", async (
     var ct = httpContext.RequestAborted;
     var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
     if (service is null)
-        return Results.Json(ApiResponse<object>.Failure("Search service is not configured.", tenant.CorrelationId), statusCode: 503);
+        return Results.Json(ApiResponse<object>.Failure(ResponseMessages.SearchServiceNotConfigured, tenant.CorrelationId), statusCode: 503);
     var deleted = await service.DeleteRetiredVersionAsync(versionId, tenant.UserId, ct);
     return deleted
         ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
