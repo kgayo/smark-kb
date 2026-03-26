@@ -34,8 +34,8 @@ public sealed class HttpChatOrchestratorClient : IChatOrchestrator, IDisposable
         {
             Content = JsonContent.Create(request, options: SharedJsonOptions.CamelCase)
         };
-        httpRequest.Headers.Add("X-Tenant-Id", tenantId);
-        httpRequest.Headers.Add("X-Correlation-Id", correlationId);
+        httpRequest.Headers.Add(CustomHeaders.TenantId, tenantId);
+        httpRequest.Headers.Add(CustomHeaders.CorrelationId, correlationId);
         if (!string.IsNullOrEmpty(_apiToken))
             httpRequest.Headers.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _apiToken);

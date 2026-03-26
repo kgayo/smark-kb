@@ -351,7 +351,7 @@ public sealed class SyncJobProcessor
                     BlobPath = blobPath,
                     ContentHash = record.ContentHash,
                     ContentLength = contentLength,
-                    ContentType = "text/plain; charset=utf-8",
+                    ContentType = CustomMediaTypes.TextPlainUtf8,
                     CreatedAt = now,
                     UpdatedAt = now,
                 });

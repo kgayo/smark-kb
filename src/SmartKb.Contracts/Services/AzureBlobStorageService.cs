@@ -22,7 +22,7 @@ public sealed class AzureBlobStorageService : IBlobStorageService
         string connectorType,
         string evidenceId,
         string content,
-        string contentType = "text/plain; charset=utf-8",
+        string contentType = SmartKb.Contracts.CustomMediaTypes.TextPlainUtf8,
         CancellationToken cancellationToken = default)
     {
         var blobPath = IBlobStorageService.BuildBlobPath(tenantId, connectorType, evidenceId);

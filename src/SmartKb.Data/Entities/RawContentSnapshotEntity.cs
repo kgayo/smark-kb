@@ -23,7 +23,7 @@ public sealed class RawContentSnapshotEntity
     public long ContentLength { get; set; }
 
     /// <summary>MIME content type (e.g. "text/plain; charset=utf-8").</summary>
-    public string ContentType { get; set; } = "text/plain; charset=utf-8";
+    public string ContentType { get; set; } = SmartKb.Contracts.CustomMediaTypes.TextPlainUtf8;
 
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }

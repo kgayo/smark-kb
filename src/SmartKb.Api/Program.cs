@@ -350,9 +350,9 @@ app.MapGet("/api/me", (ITenantContextAccessor tenantAccessor, HttpContext ctx) =
     var tenant = tenantAccessor.Current;
     return Results.Ok(new
     {
-        userId = tenant?.UserId ?? ctx.User.FindFirst("oid")?.Value ?? ctx.User.FindFirst("sub")?.Value,
+        userId = tenant?.UserId ?? ctx.User.FindFirst(EntraClaimTypes.ObjectId)?.Value ?? ctx.User.FindFirst(EntraClaimTypes.Subject)?.Value,
         name = ctx.User.FindFirst("name")?.Value,
-        tenantId = tenant?.TenantId ?? ctx.User.FindFirst("tid")?.Value,
+        tenantId = tenant?.TenantId ?? ctx.User.FindFirst(EntraClaimTypes.TenantId)?.Value,
         correlationId = tenant?.CorrelationId,
         roles = roles.Select(r => r.ToString()),
     });

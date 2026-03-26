@@ -134,7 +134,7 @@ public static class EvalEndpoints
             var ct = httpContext.RequestAborted;
             var svc = httpContext.RequestServices.GetRequiredService<IGoldCaseService>();
             var jsonl = await svc.ExportAsJsonlAsync(tenant.TenantId, ct);
-            return Results.Text(jsonl, "application/x-ndjson");
+            return Results.Text(jsonl, CustomMediaTypes.Ndjson);
         }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPost("/api/admin/eval/gold-cases/promote", async (

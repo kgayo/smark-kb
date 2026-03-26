@@ -7,7 +7,7 @@ namespace SmartKb.Api.Auth;
 
 public sealed class PermissionAuthorizationHandler : AuthorizationHandler<PermissionRequirement>
 {
-    public const string RoleClaimType = "roles";
+    public const string RoleClaimType = EntraClaimTypes.Roles;
     public const string EntraRoleClaimType = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role";
 
     protected override Task HandleRequirementAsync(

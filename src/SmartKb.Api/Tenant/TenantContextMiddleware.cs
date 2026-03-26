@@ -24,12 +24,12 @@ public sealed class TenantContextMiddleware
             return;
         }
 
-        var tenantId = context.User.FindFirst("tid")?.Value;
-        var userId = context.User.FindFirst("oid")?.Value
-                     ?? context.User.FindFirst("sub")?.Value;
+        var tenantId = context.User.FindFirst(EntraClaimTypes.TenantId)?.Value;
+        var userId = context.User.FindFirst(EntraClaimTypes.ObjectId)?.Value
+                     ?? context.User.FindFirst(EntraClaimTypes.Subject)?.Value;
 
         // Prefer inbound X-Correlation-Id header, fall back to W3C trace context, then TraceIdentifier.
-        var inboundCorrelationId = context.Request.Headers["X-Correlation-Id"].FirstOrDefault();
+        var inboundCorrelationId = context.Request.Headers[CustomHeaders.CorrelationId].FirstOrDefault();
         var correlationId = !string.IsNullOrEmpty(inboundCorrelationId)
             ? inboundCorrelationId
             : Activity.Current?.Id ?? context.TraceIdentifier;
@@ -54,7 +54,7 @@ public sealed class TenantContextMiddleware
         // Extract user group memberships from JWT claims for ACL security trimming (P0-014).
         // Entra ID sends groups in "groups" claim; roles in "roles" claim.
         var userGroups = context.User.Claims
-            .Where(c => c.Type == "groups" || c.Type == "roles")
+            .Where(c => c.Type == EntraClaimTypes.Groups || c.Type == EntraClaimTypes.Roles)
             .Select(c => c.Value)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -70,7 +70,7 @@ public sealed class TenantContextMiddleware
         // Echo correlation ID in response headers for client-side tracing.
         context.Response.OnStarting(() =>
         {
-            context.Response.Headers["X-Correlation-Id"] = correlationId;
+            context.Response.Headers[CustomHeaders.CorrelationId] = correlationId;
             return Task.CompletedTask;
         });
 

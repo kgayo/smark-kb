@@ -65,8 +65,8 @@ public static class AuditEndpoints
                 Limit = limit ?? 1000,
             };
 
-            httpContext.Response.ContentType = "application/x-ndjson";
-            httpContext.Response.Headers["X-Correlation-Id"] = tenant.CorrelationId;
+            httpContext.Response.ContentType = CustomMediaTypes.Ndjson;
+            httpContext.Response.Headers[CustomHeaders.CorrelationId] = tenant.CorrelationId;
 
             AuditEventResponse? lastEvent = null;
             var count = 0;
