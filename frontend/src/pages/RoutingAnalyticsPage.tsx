@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { logger } from '../utils/logger';
 import type {
   RoutingAnalyticsSummary,
   RoutingRuleDto,
@@ -48,7 +49,7 @@ export function RoutingAnalyticsPage() {
       const data = await api.getRoutingAnalytics(windowDays);
       setAnalytics(data);
     } catch (e) {
-      console.warn('[RoutingAnalyticsPage]', e);
+      logger.warn('[RoutingAnalyticsPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to load analytics');
     } finally {
       setAnalyticsLoading(false);
@@ -62,7 +63,7 @@ export function RoutingAnalyticsPage() {
       const data = await api.listRoutingRules();
       setRules(data.rules);
     } catch (e) {
-      console.warn('[RoutingAnalyticsPage]', e);
+      logger.warn('[RoutingAnalyticsPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to load rules');
     } finally {
       setRulesLoading(false);
@@ -76,7 +77,7 @@ export function RoutingAnalyticsPage() {
       const data = await api.listRoutingRecommendations(recsFilter || undefined);
       setRecommendations(data.recommendations);
     } catch (e) {
-      console.warn('[RoutingAnalyticsPage]', e);
+      logger.warn('[RoutingAnalyticsPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to load recommendations');
     } finally {
       setRecsLoading(false);
@@ -113,7 +114,7 @@ export function RoutingAnalyticsPage() {
       setNewRule({ productArea: '', targetTeam: '', escalationThreshold: 0.4, minSeverity: 'P2' });
       setSuccess('Rule created');
     } catch (e) {
-      console.warn('[RoutingAnalyticsPage]', e);
+      logger.warn('[RoutingAnalyticsPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to create rule');
     }
   }
@@ -126,7 +127,7 @@ export function RoutingAnalyticsPage() {
       setEditingRuleId(null);
       setSuccess('Rule updated');
     } catch (e) {
-      console.warn('[RoutingAnalyticsPage]', e);
+      logger.warn('[RoutingAnalyticsPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to update rule');
     }
   }
@@ -139,7 +140,7 @@ export function RoutingAnalyticsPage() {
       setRules((prev) => prev.filter((r) => r.ruleId !== ruleId));
       setSuccess('Rule deleted');
     } catch (e) {
-      console.warn('[RoutingAnalyticsPage]', e);
+      logger.warn('[RoutingAnalyticsPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to delete rule');
     }
   }
@@ -151,7 +152,7 @@ export function RoutingAnalyticsPage() {
       setRecommendations(data.recommendations);
       setSuccess(`Generated ${data.totalCount} recommendations`);
     } catch (e) {
-      console.warn('[RoutingAnalyticsPage]', e);
+      logger.warn('[RoutingAnalyticsPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to generate recommendations');
     }
   }
@@ -165,7 +166,7 @@ export function RoutingAnalyticsPage() {
       );
       setSuccess('Recommendation applied');
     } catch (e) {
-      console.warn('[RoutingAnalyticsPage]', e);
+      logger.warn('[RoutingAnalyticsPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to apply recommendation');
     }
   }
@@ -181,7 +182,7 @@ export function RoutingAnalyticsPage() {
       );
       setSuccess('Recommendation dismissed');
     } catch (e) {
-      console.warn('[RoutingAnalyticsPage]', e);
+      logger.warn('[RoutingAnalyticsPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to dismiss recommendation');
     }
   }

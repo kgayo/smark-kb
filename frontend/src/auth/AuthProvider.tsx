@@ -1,4 +1,5 @@
 import { type ReactNode, useCallback, useEffect, useMemo } from 'react';
+import { logger } from '../utils/logger';
 import {
   MsalProvider,
   useMsal,
@@ -34,7 +35,7 @@ function TokenProviderSetup(): null {
       if (error instanceof InteractionRequiredAuthError) {
         await instance.acquireTokenRedirect(loginRequest);
       } else {
-        console.warn('[AuthProvider] Token acquisition failed:', error);
+        logger.warn('[AuthProvider] Token acquisition failed:', error);
       }
       return null;
     }

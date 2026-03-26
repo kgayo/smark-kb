@@ -3,6 +3,7 @@
  * Consolidates duplicate formatDate/formatTime/formatTimestamp helpers
  * from 8 component and page files.
  */
+import { logger } from './logger';
 
 /** Full date+time: "Mar 25, 2026, 02:30 PM" */
 export function formatDateTime(iso: string): string {
@@ -26,7 +27,7 @@ export function formatDateTimeLocale(iso: string): string {
   try {
     return new Date(iso).toLocaleString();
   } catch (e) {
-    console.warn('[dateFormat] Failed to format date', e);
+    logger.warn('[dateFormat] Failed to format date', e);
     return iso;
   }
 }
@@ -51,7 +52,7 @@ export function formatRelativeTime(iso: string): string {
     if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
     return d.toLocaleDateString();
   } catch (e) {
-    console.warn('[dateFormat] Failed to format relative time', e);
+    logger.warn('[dateFormat] Failed to format relative time', e);
     return iso;
   }
 }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { EvidenceContentResponse } from '../api/types';
 import * as api from '../api/client';
 import { formatDateTime } from '../utils/dateFormat';
+import { logger } from '../utils/logger';
 
 interface SourceViewerPanelProps {
   chunkId: string;
@@ -35,7 +36,7 @@ export function SourceViewerPanel({ chunkId, onBack }: SourceViewerPanelProps) {
         if (!cancelled) setContent(data);
       })
       .catch((err) => {
-        console.warn('[SourceViewerPanel] Failed to load evidence content:', err);
+        logger.warn('[SourceViewerPanel] Failed to load evidence content:', err);
         if (!cancelled)
           setError(err instanceof Error ? err.message : 'Failed to load evidence content');
       })
@@ -60,7 +61,7 @@ export function SourceViewerPanel({ chunkId, onBack }: SourceViewerPanelProps) {
         copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
       })
       .catch((err) => {
-        console.warn('[SourceViewerPanel] Clipboard write failed:', err);
+        logger.warn('[SourceViewerPanel] Clipboard write failed:', err);
         setCopyError(true);
         if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
         copyTimerRef.current = setTimeout(() => setCopyError(false), 3000);

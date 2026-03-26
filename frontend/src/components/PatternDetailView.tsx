@@ -3,6 +3,7 @@ import type { PatternDetail, PatternUsageMetrics, PatternVersionHistoryEntry } f
 import { getPatternUsage, getPatternHistory } from '../api/client';
 import { formatDateTimeOrDash } from '../utils/dateFormat';
 import { trustLevelBadgeClass } from '../utils/cssClassHelpers';
+import { logger } from '../utils/logger';
 
 interface PatternDetailViewProps {
   pattern: PatternDetail;
@@ -38,12 +39,12 @@ export function PatternDetailView({
     setUsageLoading(true);
     getPatternUsage(pattern.patternId)
       .then((m) => { if (!cancelled) setUsage(m); })
-      .catch((err) => { console.warn('[PatternDetailView] Failed to load usage metrics:', err); if (!cancelled) setUsage(null); })
+      .catch((err) => { logger.warn('[PatternDetailView] Failed to load usage metrics:', err); if (!cancelled) setUsage(null); })
       .finally(() => { if (!cancelled) setUsageLoading(false); });
     setHistoryLoading(true);
     getPatternHistory(pattern.patternId)
       .then((h) => { if (!cancelled) setVersionHistory(h.entries); })
-      .catch((err) => { console.warn('[PatternDetailView] Failed to load version history:', err); if (!cancelled) setVersionHistory([]); })
+      .catch((err) => { logger.warn('[PatternDetailView] Failed to load version history:', err); if (!cancelled) setVersionHistory([]); })
       .finally(() => { if (!cancelled) setHistoryLoading(false); });
     return () => { cancelled = true; };
   }, [pattern.patternId]);

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getMe } from '../api/client';
+import { logger } from '../utils/logger';
 
 export function useRoles(): { roles: string[]; loading: boolean } {
   const [roles, setRoles] = useState<string[]>([]);
@@ -12,7 +13,7 @@ export function useRoles(): { roles: string[]; loading: boolean } {
         if (!cancelled) setRoles(info.roles);
       })
       .catch((err) => {
-        console.warn('[useRoles] Failed to fetch user roles:', err);
+        logger.warn('[useRoles] Failed to fetch user roles:', err);
         if (!cancelled) setRoles([]);
       })
       .finally(() => {

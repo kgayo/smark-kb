@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { logger } from '../utils/logger';
 import type {
   GoldCaseListResponse,
   GoldCaseDetail,
@@ -67,7 +68,7 @@ export function GoldDatasetPage() {
       const detail = await api.getGoldCase(id);
       setSelectedCase(detail);
     } catch (err) {
-      console.warn('[GoldDatasetPage] Failed to load gold case detail:', err);
+      logger.warn('[GoldDatasetPage] Failed to load gold case detail:', err);
       setSelectedCase(null);
     } finally {
       setDetailLoading(false);

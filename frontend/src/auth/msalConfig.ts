@@ -1,4 +1,5 @@
 import { type Configuration, LogLevel } from '@azure/msal-browser';
+import { logger } from '../utils/logger';
 
 // MSAL configuration for Entra ID authentication.
 // Values are loaded from environment variables set at build time.
@@ -18,8 +19,8 @@ export const msalConfig: Configuration = {
     loggerOptions: {
       logLevel: LogLevel.Warning,
       loggerCallback: (level, message) => {
-        if (level === LogLevel.Error) console.error('[MSAL]', message);
-        else if (level === LogLevel.Warning) console.warn('[MSAL]', message);
+        if (level === LogLevel.Error) logger.error('[MSAL]', message);
+        else if (level === LogLevel.Warning) logger.warn('[MSAL]', message);
       },
     },
   },

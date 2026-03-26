@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '../utils/logger';
 import type {
   ConnectorType,
   AzureDevOpsSourceConfig,
@@ -75,7 +76,7 @@ function parseJsonSafe<T extends object>(json: string, fallback: T): T {
     // Merge with defaults so missing fields get fallback values
     return { ...fallback, ...parsed } as T;
   } catch (e) {
-    console.warn('[SourceConfigEditor] Failed to parse source config JSON', e);
+    logger.warn('[SourceConfigEditor] Failed to parse source config JSON', e);
     return fallback;
   }
 }

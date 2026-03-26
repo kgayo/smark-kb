@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { logger } from '../utils/logger';
 import type { CitationDto, EscalationSignal, MessageResponse, RecordOutcomeRequest, RetrievalFilter, SessionResponse, SubmitFeedbackRequest } from '../api/types';
 import type { AssistantMeta, FeedbackState } from '../components/ChatThread';
 import * as api from '../api/client';
@@ -42,7 +43,7 @@ export function ChatPage() {
       const result = await api.listSessions();
       setSessions(result.sessions);
     } catch (err) {
-      console.warn('[ChatPage] Failed to load sessions:', err);
+      logger.warn('[ChatPage] Failed to load sessions:', err);
     }
   }
 
@@ -51,7 +52,7 @@ export function ChatPage() {
       const result = await api.getMessages(sessionId);
       setMessages(result.messages);
     } catch (err) {
-      console.warn('[ChatPage] Failed to load messages:', err);
+      logger.warn('[ChatPage] Failed to load messages:', err);
       setMessages([]);
     }
   }

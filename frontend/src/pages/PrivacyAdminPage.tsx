@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { logger } from '../utils/logger';
 import type {
   PiiPolicyResponse,
   PiiPolicyUpdateRequest,
@@ -61,7 +62,7 @@ export function PrivacyAdminPage() {
       const data = await api.getPiiPolicy();
       setPiiPolicy(data);
     } catch (e) {
-      console.warn('[PrivacyAdminPage]', e);
+      logger.warn('[PrivacyAdminPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to load PII policy');
     } finally {
       setPiiLoading(false);
@@ -75,7 +76,7 @@ export function PrivacyAdminPage() {
       const data = await api.getRetentionPolicies();
       setRetentionPolicies(data.policies);
     } catch (e) {
-      console.warn('[PrivacyAdminPage]', e);
+      logger.warn('[PrivacyAdminPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to load retention policies');
     } finally {
       setRetentionLoading(false);
@@ -89,7 +90,7 @@ export function PrivacyAdminPage() {
       const data = await api.listDeletionRequests();
       setDeletionRequests(data.requests);
     } catch (e) {
-      console.warn('[PrivacyAdminPage]', e);
+      logger.warn('[PrivacyAdminPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to load deletion requests');
     } finally {
       setDeletionLoading(false);
@@ -103,7 +104,7 @@ export function PrivacyAdminPage() {
       const data = await api.getRetentionCompliance();
       setCompliance(data);
     } catch (e) {
-      console.warn('[PrivacyAdminPage]', e);
+      logger.warn('[PrivacyAdminPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to load compliance report');
     } finally {
       setComplianceLoading(false);
@@ -154,7 +155,7 @@ export function PrivacyAdminPage() {
       setPiiEditing(false);
       setSuccess('PII policy updated');
     } catch (e) {
-      console.warn('[PrivacyAdminPage]', e);
+      logger.warn('[PrivacyAdminPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to save PII policy');
     }
   }
@@ -167,7 +168,7 @@ export function PrivacyAdminPage() {
       setPiiPolicy(null);
       setSuccess('PII policy reset');
     } catch (e) {
-      console.warn('[PrivacyAdminPage]', e);
+      logger.warn('[PrivacyAdminPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to reset PII policy');
     }
   }
@@ -203,7 +204,7 @@ export function PrivacyAdminPage() {
       setShowRetentionForm(false);
       setSuccess('Retention policy saved');
     } catch (e) {
-      console.warn('[PrivacyAdminPage]', e);
+      logger.warn('[PrivacyAdminPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to save retention policy');
     }
   }
@@ -216,7 +217,7 @@ export function PrivacyAdminPage() {
       setRetentionPolicies((prev) => prev.filter((p) => p.entityType !== entityType));
       setSuccess('Retention policy deleted');
     } catch (e) {
-      console.warn('[PrivacyAdminPage]', e);
+      logger.warn('[PrivacyAdminPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to delete retention policy');
     }
   }
@@ -229,7 +230,7 @@ export function PrivacyAdminPage() {
       setCleanupResults(results);
       setSuccess(`Cleanup completed: ${results.reduce((sum, r) => sum + r.deletedCount, 0)} records deleted`);
     } catch (e) {
-      console.warn('[PrivacyAdminPage]', e);
+      logger.warn('[PrivacyAdminPage]', e);
       setError(e instanceof Error ? e.message : 'Cleanup failed');
     }
   }
@@ -243,7 +244,7 @@ export function PrivacyAdminPage() {
       setSubjectId('');
       setSuccess('Deletion request created');
     } catch (e) {
-      console.warn('[PrivacyAdminPage]', e);
+      logger.warn('[PrivacyAdminPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to create deletion request');
     }
   }

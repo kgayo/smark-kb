@@ -1,4 +1,5 @@
 import { Component } from 'react';
+import { logger } from '../utils/logger';
 import type { ErrorInfo, ReactNode } from 'react';
 
 interface ErrorBoundaryProps {
@@ -22,7 +23,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    console.error('[ErrorBoundary] Uncaught rendering error:', error, errorInfo.componentStack);
+    logger.error('[ErrorBoundary] Uncaught rendering error:', error, errorInfo.componentStack);
   }
 
   handleReload = (): void => {

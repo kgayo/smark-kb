@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { logger } from '../utils/logger';
 import type {
   ConnectorResponse,
   ConnectorValidationResult,
@@ -66,7 +67,7 @@ export function ConnectorDetail({
       const result = await api.listSyncRuns(connector.id);
       setSyncRuns(result.syncRuns);
     } catch (err) {
-      console.warn('[ConnectorDetail] Failed to load sync runs:', err);
+      logger.warn('[ConnectorDetail] Failed to load sync runs:', err);
       setSyncRuns([]);
     } finally {
       setSyncLoading(false);

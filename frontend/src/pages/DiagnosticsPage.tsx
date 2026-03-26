@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { formatRelativeTime } from '../utils/dateFormat';
+import { logger } from '../utils/logger';
 import type {
   DeadLetterListResponse,
   DeadLetterMessage,
@@ -39,7 +40,7 @@ export function DiagnosticsPage() {
       setSloStatus(slo);
       setSecretsStatus(secrets);
     } catch (e) {
-      console.warn('[DiagnosticsPage]', e);
+      logger.warn('[DiagnosticsPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to load diagnostics');
     } finally {
       setLoading(false);
@@ -53,7 +54,7 @@ export function DiagnosticsPage() {
       const result = await api.getAllWebhooks();
       setWebhooks(result);
     } catch (e) {
-      console.warn('[DiagnosticsPage]', e);
+      logger.warn('[DiagnosticsPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to load webhooks');
     } finally {
       setLoading(false);
@@ -67,7 +68,7 @@ export function DiagnosticsPage() {
       const result = await api.getDeadLetters(50);
       setDeadLetters(result);
     } catch (e) {
-      console.warn('[DiagnosticsPage]', e);
+      logger.warn('[DiagnosticsPage]', e);
       setError(e instanceof Error ? e.message : 'Failed to load dead letters');
     } finally {
       setLoading(false);

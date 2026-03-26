@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import type { RecordOutcomeRequest, ResolutionType } from '../api/types';
+import { logger } from '../utils/logger';
 
 const RESOLUTION_LABELS: Record<ResolutionType, string> = {
   ResolvedWithoutEscalation: 'Resolved without escalation',
@@ -38,7 +39,7 @@ export function OutcomeWidget({ sessionId, existingOutcome, onSubmit }: OutcomeW
       await onSubmit(sessionId, request);
       setSubmitted(true);
     } catch (err) {
-      console.warn('[OutcomeWidget] Failed to record outcome:', err);
+      logger.warn('[OutcomeWidget] Failed to record outcome:', err);
       setError('Failed to record outcome. Please try again.');
     } finally {
       setSubmitting(false);

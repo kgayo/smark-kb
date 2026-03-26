@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { logger } from '../utils/logger';
 import type { PatternDetail, PatternSummary, TrustLevel } from '../api/types';
 import * as api from '../api/client';
 import { useRoles } from '../auth/useRoles';
@@ -32,7 +33,7 @@ export function PatternGovernancePage() {
       setPage(result.page);
       setHasMore(result.hasMore);
     } catch (e) {
-      console.warn('[PatternGovernancePage]', e);
+      logger.warn('[PatternGovernancePage]', e);
       setError(e instanceof Error ? e.message : 'Failed to load patterns');
     } finally {
       setLoading(false);
@@ -69,7 +70,7 @@ export function PatternGovernancePage() {
       const detail = await api.getPatternDetail(patternId);
       setSelectedPattern(detail);
     } catch (e) {
-      console.warn('[PatternGovernancePage]', e);
+      logger.warn('[PatternGovernancePage]', e);
       setError(e instanceof Error ? e.message : 'Failed to load pattern');
     }
   }
@@ -84,7 +85,7 @@ export function PatternGovernancePage() {
       setSelectedPattern(updated);
       await loadPatterns(page, trustFilter);
     } catch (e) {
-      console.warn('[PatternGovernancePage]', e);
+      logger.warn('[PatternGovernancePage]', e);
       setError(e instanceof Error ? e.message : 'Failed to review pattern');
     } finally {
       setActionLoading(false);
@@ -101,7 +102,7 @@ export function PatternGovernancePage() {
       setSelectedPattern(updated);
       await loadPatterns(page, trustFilter);
     } catch (e) {
-      console.warn('[PatternGovernancePage]', e);
+      logger.warn('[PatternGovernancePage]', e);
       setError(e instanceof Error ? e.message : 'Failed to approve pattern');
     } finally {
       setActionLoading(false);
@@ -121,7 +122,7 @@ export function PatternGovernancePage() {
       setSelectedPattern(updated);
       await loadPatterns(page, trustFilter);
     } catch (e) {
-      console.warn('[PatternGovernancePage]', e);
+      logger.warn('[PatternGovernancePage]', e);
       setError(e instanceof Error ? e.message : 'Failed to deprecate pattern');
     } finally {
       setActionLoading(false);

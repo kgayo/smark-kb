@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { logger } from '../utils/logger';
 import type {
   CitationDto,
   ConnectorResponse,
@@ -141,7 +142,7 @@ export function EscalationDraftModal({
         );
         setConnectors(escalationConnectors);
       } catch (err) {
-        console.warn('[EscalationDraftModal] Failed to load escalation connectors:', err);
+        logger.warn('[EscalationDraftModal] Failed to load escalation connectors:', err);
         if (!cancelled) setConnectors([]);
       }
     })();
