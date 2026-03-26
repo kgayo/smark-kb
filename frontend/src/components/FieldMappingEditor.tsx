@@ -82,7 +82,7 @@ export function FieldMappingEditor({
           </thead>
           <tbody>
             {rules.map((rule, i) => (
-              <tr key={`${rule.sourceField}-${rule.targetField}-${i}`} data-testid={`mapping-row-${i}`}>
+              <tr key={`${rule.sourceField}-${rule.targetField}-${rule.transform}`} data-testid={`mapping-row-${i}`}>
                 <td>
                   {editIndex === i && !readOnly ? (
                     <input

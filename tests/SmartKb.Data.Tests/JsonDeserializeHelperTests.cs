@@ -117,6 +117,94 @@ public sealed class JsonDeserializeHelperTests
         Assert.Equal(LogLevel.Warning, capturingLogger.Entries[0].Level);
     }
 
+    // --- Nullable logger tests ---
+
+    [Fact]
+    public void Deserialize_NullLogger_ReturnsFallbackOnMalformedJson()
+    {
+        var result = JsonDeserializeHelper.Deserialize<List<string>>("bad json", CamelCase, null, []);
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void DeserializeOrNull_NullLogger_ReturnsNullOnMalformedJson()
+    {
+        var result = JsonDeserializeHelper.DeserializeOrNull<List<string>>("bad json", CamelCase, null);
+        Assert.Null(result);
+    }
+
+    // --- DeserializeStringList tests ---
+
+    [Fact]
+    public void DeserializeStringList_ValidJson_ReturnsList()
+    {
+        var result = JsonDeserializeHelper.DeserializeStringList("[\"alpha\",\"beta\"]");
+        Assert.Equal(["alpha", "beta"], result);
+    }
+
+    [Fact]
+    public void DeserializeStringList_NullInput_ReturnsEmptyList()
+    {
+        var result = JsonDeserializeHelper.DeserializeStringList(null);
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void DeserializeStringList_MalformedJson_ReturnsEmptyAndLogs()
+    {
+        var capturingLogger = new CapturingLogger();
+        var result = JsonDeserializeHelper.DeserializeStringList("not json", capturingLogger);
+
+        Assert.Empty(result);
+        Assert.Single(capturingLogger.Entries);
+        Assert.Equal(LogLevel.Warning, capturingLogger.Entries[0].Level);
+    }
+
+    // --- DeserializeStringListCaseInsensitive tests ---
+
+    [Fact]
+    public void DeserializeStringListCaseInsensitive_ValidJson_ReturnsList()
+    {
+        var result = JsonDeserializeHelper.DeserializeStringListCaseInsensitive("[\"x\",\"y\"]");
+        Assert.Equal(["x", "y"], result);
+    }
+
+    [Fact]
+    public void DeserializeStringListCaseInsensitive_NullInput_ReturnsEmptyList()
+    {
+        var result = JsonDeserializeHelper.DeserializeStringListCaseInsensitive(null);
+        Assert.Empty(result);
+    }
+
+    // --- DeserializeStringDictionary tests ---
+
+    [Fact]
+    public void DeserializeStringDictionary_ValidJson_ReturnsDictionary()
+    {
+        var result = JsonDeserializeHelper.DeserializeStringDictionary("{\"key1\":\"val1\",\"key2\":null}");
+        Assert.Equal(2, result.Count);
+        Assert.Equal("val1", result["key1"]);
+        Assert.Null(result["key2"]);
+    }
+
+    [Fact]
+    public void DeserializeStringDictionary_NullInput_ReturnsEmptyDictionary()
+    {
+        var result = JsonDeserializeHelper.DeserializeStringDictionary(null);
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void DeserializeStringDictionary_MalformedJson_ReturnsEmptyAndLogs()
+    {
+        var capturingLogger = new CapturingLogger();
+        var result = JsonDeserializeHelper.DeserializeStringDictionary("{bad}", capturingLogger);
+
+        Assert.Empty(result);
+        Assert.Single(capturingLogger.Entries);
+        Assert.Equal(LogLevel.Warning, capturingLogger.Entries[0].Level);
+    }
+
     // --- Test helpers ---
 
     private sealed record TestItem(string Name, int Value);

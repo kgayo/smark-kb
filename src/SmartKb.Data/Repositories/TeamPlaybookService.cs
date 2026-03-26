@@ -238,7 +238,7 @@ public sealed class TeamPlaybookService : ITeamPlaybookService
         }
 
         var missingFields = new List<string>();
-        var requiredFields = DeserializeStringList(playbook.RequiredFieldsJson);
+        var requiredFields = JsonDeserializeHelper.DeserializeStringList(playbook.RequiredFieldsJson);
 
         foreach (var field in requiredFields)
         {
@@ -276,7 +276,7 @@ public sealed class TeamPlaybookService : ITeamPlaybookService
             }
         }
 
-        var checklist = DeserializeStringList(playbook.ChecklistJson);
+        var checklist = JsonDeserializeHelper.DeserializeStringList(playbook.ChecklistJson);
 
         return new PlaybookValidationResult
         {
@@ -320,16 +320,13 @@ public sealed class TeamPlaybookService : ITeamPlaybookService
         }
     }
 
-    private static List<string> DeserializeStringList(string json, ILogger? logger = null) =>
-        JsonDeserializeHelper.Deserialize<List<string>>(json, SharedJsonOptions.CamelCaseWrite, logger!, []);
-
     private static TeamPlaybookDto MapPlaybook(TeamPlaybookEntity entity) => new()
     {
         Id = entity.Id,
         TeamName = entity.TeamName,
         Description = entity.Description,
-        RequiredFields = DeserializeStringList(entity.RequiredFieldsJson),
-        Checklist = DeserializeStringList(entity.ChecklistJson),
+        RequiredFields = JsonDeserializeHelper.DeserializeStringList(entity.RequiredFieldsJson),
+        Checklist = JsonDeserializeHelper.DeserializeStringList(entity.ChecklistJson),
         ContactChannel = entity.ContactChannel,
         RequiresApproval = entity.RequiresApproval,
         MinSeverity = entity.MinSeverity,

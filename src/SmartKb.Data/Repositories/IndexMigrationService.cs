@@ -510,9 +510,9 @@ public sealed class IndexMigrationService : IIndexMigrationService
             [SearchFieldNames.Status] = e.Status,
             [SearchFieldNames.UpdatedAt] = e.UpdatedAt,
             [SearchFieldNames.ProductArea] = e.ProductArea ?? string.Empty,
-            [SearchFieldNames.Tags] = DeserializeJsonList(e.Tags),
+            [SearchFieldNames.Tags] = JsonDeserializeHelper.DeserializeStringListCaseInsensitive(e.Tags),
             [SearchFieldNames.Visibility] = e.Visibility,
-            [SearchFieldNames.AllowedGroups] = DeserializeJsonList(e.AllowedGroups),
+            [SearchFieldNames.AllowedGroups] = JsonDeserializeHelper.DeserializeStringListCaseInsensitive(e.AllowedGroups),
             [SearchFieldNames.AccessLabel] = e.AccessLabel,
             [SearchFieldNames.SourceUrl] = e.SourceUrl,
         };
@@ -525,25 +525,22 @@ public sealed class IndexMigrationService : IIndexMigrationService
             [PatternFieldNames.PatternId] = p.PatternId,
             [PatternFieldNames.Title] = p.Title,
             [PatternFieldNames.ProblemStatement] = p.ProblemStatement,
-            [PatternFieldNames.Symptoms] = string.Join("\n", DeserializeJsonList(p.SymptomsJson)),
-            [PatternFieldNames.ResolutionSteps] = string.Join("\n", DeserializeJsonList(p.ResolutionStepsJson)),
+            [PatternFieldNames.Symptoms] = string.Join("\n", JsonDeserializeHelper.DeserializeStringListCaseInsensitive(p.SymptomsJson)),
+            [PatternFieldNames.ResolutionSteps] = string.Join("\n", JsonDeserializeHelper.DeserializeStringListCaseInsensitive(p.ResolutionStepsJson)),
             // Embedding vector is not stored in SQL — will be null during reindex.
             [PatternFieldNames.TenantId] = p.TenantId,
             [PatternFieldNames.TrustLevel] = p.TrustLevel,
             [PatternFieldNames.ProductArea] = p.ProductArea ?? string.Empty,
             [PatternFieldNames.UpdatedAt] = p.UpdatedAt,
             [PatternFieldNames.Confidence] = (double)p.Confidence,
-            [PatternFieldNames.Tags] = DeserializeJsonList(p.TagsJson),
+            [PatternFieldNames.Tags] = JsonDeserializeHelper.DeserializeStringListCaseInsensitive(p.TagsJson),
             [PatternFieldNames.Version] = p.Version,
             [PatternFieldNames.Visibility] = p.Visibility,
-            [PatternFieldNames.AllowedGroups] = DeserializeJsonList(p.AllowedGroupsJson),
+            [PatternFieldNames.AllowedGroups] = JsonDeserializeHelper.DeserializeStringListCaseInsensitive(p.AllowedGroupsJson),
             [PatternFieldNames.AccessLabel] = p.AccessLabel,
             [PatternFieldNames.SourceUrl] = p.SourceUrl,
         };
     }
-
-    private static List<string> DeserializeJsonList(string? json, ILogger? logger = null) =>
-        JsonDeserializeHelper.Deserialize<List<string>>(json, SharedJsonOptions.CaseInsensitive, logger!, []);
 
     private static IndexSchemaVersionInfo MapToInfo(IndexSchemaVersionEntity e)
     {

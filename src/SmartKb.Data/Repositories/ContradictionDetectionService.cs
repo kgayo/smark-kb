@@ -165,7 +165,7 @@ public sealed class ContradictionDetectionService : IContradictionDetectionServi
             ContradictionType = c.ContradictionType,
             SimilarityScore = c.SimilarityScore,
             Description = c.Description,
-            ConflictingFields = DeserializeStringList(c.ConflictingFieldsJson),
+            ConflictingFields = JsonDeserializeHelper.DeserializeStringList(c.ConflictingFieldsJson, _logger),
             Status = c.Status,
             Resolution = c.Resolution,
             ResolvedBy = c.ResolvedBy,
@@ -236,7 +236,7 @@ public sealed class ContradictionDetectionService : IContradictionDetectionServi
             ContradictionType = entity.ContradictionType,
             SimilarityScore = entity.SimilarityScore,
             Description = entity.Description,
-            ConflictingFields = DeserializeStringList(entity.ConflictingFieldsJson),
+            ConflictingFields = JsonDeserializeHelper.DeserializeStringList(entity.ConflictingFieldsJson),
             Status = entity.Status,
             Resolution = entity.Resolution,
             ResolvedBy = entity.ResolvedBy,
@@ -331,6 +331,4 @@ public sealed class ContradictionDetectionService : IContradictionDetectionServi
     private static string NormalizePair(string a, string b)
         => string.CompareOrdinal(a, b) <= 0 ? $"{a}|{b}" : $"{b}|{a}";
 
-    private IReadOnlyList<string> DeserializeStringList(string? json) =>
-        JsonDeserializeHelper.Deserialize<List<string>>(json, SharedJsonOptions.CamelCaseWrite, _logger, []);
 }

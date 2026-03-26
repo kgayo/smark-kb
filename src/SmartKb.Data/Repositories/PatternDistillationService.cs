@@ -123,7 +123,7 @@ public sealed class PatternDistillationService : IPatternDistillationService
                 sessionCitedChunks[sessionId] = chunkSet;
             }
 
-            var chunkIds = DeserializeStringList(trace.CitedChunkIds);
+            var chunkIds = JsonDeserializeHelper.DeserializeStringList(trace.CitedChunkIds);
             foreach (var cid in chunkIds) chunkSet.Add(cid);
         }
 
@@ -173,7 +173,7 @@ public sealed class PatternDistillationService : IPatternDistillationService
 
             var tags = chunkMetadata
                 .Where(c => citedChunks.Contains(c.ChunkId) && c.Tags != null)
-                .SelectMany(c => DeserializeStringList(c.Tags!))
+                .SelectMany(c => JsonDeserializeHelper.DeserializeStringList(c.Tags!))
                 .Distinct()
                 .ToList();
 
@@ -328,7 +328,7 @@ public sealed class PatternDistillationService : IPatternDistillationService
         var visibility = DetermineVisibility(chunks);
         var allowedGroups = chunks
             .Where(c => c.AllowedGroups != null)
-            .SelectMany(c => DeserializeStringList(c.AllowedGroups!))
+            .SelectMany(c => JsonDeserializeHelper.DeserializeStringList(c.AllowedGroups!))
             .Distinct()
             .ToList();
 
@@ -437,7 +437,7 @@ public sealed class PatternDistillationService : IPatternDistillationService
         foreach (var chunk in chunks)
         {
             if (string.IsNullOrEmpty(chunk.ErrorTokens)) continue;
-            var tokens = DeserializeStringList(chunk.ErrorTokens);
+            var tokens = JsonDeserializeHelper.DeserializeStringList(chunk.ErrorTokens);
             foreach (var token in tokens)
             {
                 if (!symptoms.Contains(token, StringComparer.OrdinalIgnoreCase))
@@ -539,7 +539,7 @@ public sealed class PatternDistillationService : IPatternDistillationService
         foreach (var chunk in chunks)
         {
             if (string.IsNullOrEmpty(chunk.ErrorTokens)) continue;
-            foreach (var token in DeserializeStringList(chunk.ErrorTokens))
+            foreach (var token in JsonDeserializeHelper.DeserializeStringList(chunk.ErrorTokens))
                 tokens.Add(token);
         }
         return tokens.ToList();
@@ -583,20 +583,20 @@ public sealed class PatternDistillationService : IPatternDistillationService
             Title = entity.Title,
             ProblemStatement = entity.ProblemStatement,
             RootCause = entity.RootCause,
-            Symptoms = DeserializeStringList(entity.SymptomsJson),
-            DiagnosisSteps = DeserializeStringList(entity.DiagnosisStepsJson),
-            ResolutionSteps = DeserializeStringList(entity.ResolutionStepsJson),
-            VerificationSteps = DeserializeStringList(entity.VerificationStepsJson),
-            EscalationCriteria = DeserializeStringList(entity.EscalationCriteriaJson),
-            RelatedEvidenceIds = DeserializeStringList(entity.RelatedEvidenceIdsJson),
+            Symptoms = JsonDeserializeHelper.DeserializeStringList(entity.SymptomsJson),
+            DiagnosisSteps = JsonDeserializeHelper.DeserializeStringList(entity.DiagnosisStepsJson),
+            ResolutionSteps = JsonDeserializeHelper.DeserializeStringList(entity.ResolutionStepsJson),
+            VerificationSteps = JsonDeserializeHelper.DeserializeStringList(entity.VerificationStepsJson),
+            EscalationCriteria = JsonDeserializeHelper.DeserializeStringList(entity.EscalationCriteriaJson),
+            RelatedEvidenceIds = JsonDeserializeHelper.DeserializeStringList(entity.RelatedEvidenceIdsJson),
             Confidence = entity.Confidence,
             TrustLevel = Enum.TryParse<TrustLevel>(entity.TrustLevel, out var tl) ? tl : TrustLevel.Draft,
             Version = entity.Version,
             ProductArea = entity.ProductArea,
-            Tags = DeserializeStringList(entity.TagsJson),
+            Tags = JsonDeserializeHelper.DeserializeStringList(entity.TagsJson),
             EmbeddingVector = embedding,
             Visibility = Enum.TryParse<AccessVisibility>(entity.Visibility, out var v) ? v : AccessVisibility.Internal,
-            AllowedGroups = DeserializeStringList(entity.AllowedGroupsJson),
+            AllowedGroups = JsonDeserializeHelper.DeserializeStringList(entity.AllowedGroupsJson),
             AccessLabel = entity.AccessLabel,
             SourceUrl = entity.SourceUrl,
             CreatedAt = entity.CreatedAt,
@@ -604,6 +604,4 @@ public sealed class PatternDistillationService : IPatternDistillationService
         };
     }
 
-    private static IReadOnlyList<string> DeserializeStringList(string? json, ILogger? logger = null) =>
-        JsonDeserializeHelper.Deserialize<List<string>>(json, SharedJsonOptions.CamelCaseWrite, logger!, []);
 }
