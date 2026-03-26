@@ -407,6 +407,7 @@ export function EscalationDraftModal({
                       value={targetProject}
                       onChange={(e) => setTargetProject(e.target.value)}
                       data-testid="target-project"
+                      aria-label="Target project for Azure DevOps work item (optional)"
                       placeholder="Falls back to first configured project"
                     />
                   </label>
@@ -420,6 +421,7 @@ export function EscalationDraftModal({
                       value={targetListId}
                       onChange={(e) => setTargetListId(e.target.value)}
                       data-testid="target-list-id"
+                      aria-label="Target list ID for ClickUp task (optional)"
                       placeholder="Falls back to first configured list"
                     />
                   </label>

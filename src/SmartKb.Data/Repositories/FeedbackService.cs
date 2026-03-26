@@ -163,5 +163,5 @@ public sealed class FeedbackService : IFeedbackService
     };
 
     private static IReadOnlyList<string> DeserializeReasonCodes(string? json, ILogger? logger = null) =>
-        JsonDeserializeHelper.Deserialize<List<string>>(json, SharedJsonOptions.CamelCaseWrite, logger!, []);
+        JsonDeserializeHelper.Deserialize<List<string>>(json, SharedJsonOptions.CamelCaseWrite, logger, []);
 }

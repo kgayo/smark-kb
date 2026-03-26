@@ -290,7 +290,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
             patchOps.Add(new { op = "add", path = "/fields/Microsoft.VSTS.Common.Priority", value = (object)priority });
 
             var payload = JsonSerializer.Serialize(patchOps, SharedJsonOptions.CamelCaseIgnoreNull);
-            using var content = new StringContent(payload, Encoding.UTF8, "application/json-patch+json");
+            using var content = new StringContent(payload, Encoding.UTF8, ConnectorConstants.JsonPatchMediaType);
 
             var url = $"{Uri.EscapeDataString(project)}/_apis/wit/workitems/${Uri.EscapeDataString(workItemType)}?api-version={ApiVersion}";
             using var response = await client.PatchAsync(url, content, ct);

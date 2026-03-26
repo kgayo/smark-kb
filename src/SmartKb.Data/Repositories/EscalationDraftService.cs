@@ -491,5 +491,5 @@ public sealed class EscalationDraftService : IEscalationDraftService
     };
 
     private static IReadOnlyList<CitationDto> DeserializeCitations(string json, ILogger? logger = null) =>
-        JsonDeserializeHelper.Deserialize<List<CitationDto>>(json, SharedJsonOptions.CamelCaseWrite, logger!, []);
+        JsonDeserializeHelper.Deserialize<List<CitationDto>>(json, SharedJsonOptions.CamelCaseWrite, logger, []);
 }

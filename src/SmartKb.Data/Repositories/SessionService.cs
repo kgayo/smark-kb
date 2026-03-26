@@ -315,5 +315,5 @@ public sealed class SessionService : ISessionService
     };
 
     private static IReadOnlyList<CitationDto>? DeserializeCitations(string? json, ILogger? logger = null) =>
-        JsonDeserializeHelper.DeserializeOrNull<List<CitationDto>>(json, SharedJsonOptions.CamelCaseWrite, logger!);
+        JsonDeserializeHelper.DeserializeOrNull<List<CitationDto>>(json, SharedJsonOptions.CamelCaseWrite, logger);
 }

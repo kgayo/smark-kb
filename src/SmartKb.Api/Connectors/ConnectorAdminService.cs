@@ -704,7 +704,7 @@ public sealed class ConnectorAdminService
     }
 
     private static FieldMappingConfig? DeserializeFieldMapping(string? json, ILogger? logger = null) =>
-        string.IsNullOrWhiteSpace(json) ? null : JsonDeserializeHelper.DeserializeOrNull<FieldMappingConfig>(json, SharedJsonOptions.CamelCaseCompact, logger!);
+        string.IsNullOrWhiteSpace(json) ? null : JsonDeserializeHelper.DeserializeOrNull<FieldMappingConfig>(json, SharedJsonOptions.CamelCaseCompact, logger);
 
     private async Task RegisterWebhooksAsync(ConnectorEntity entity, string correlationId, CancellationToken ct)
     {

@@ -367,7 +367,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
             objectType == "contacts" ? "lastmodifieddate" : "hs_lastmodifieddate")
             ?? obj.UpdatedAt?.ToString("O"));
 
-        var deepLink = $"https://app.hubspot.com/contacts/{portalId}/{MapObjectTypeToUrlPath(objectType)}/{id}";
+        var deepLink = string.Format(ConnectorConstants.HubSpotObjectDeepLinkTemplate, portalId, MapObjectTypeToUrlPath(objectType), id);
         var contentHash = ConnectorHttpHelper.ComputeHash($"{title}|{textContent}|{updatedAt:O}");
 
         var pipeline = obj.Properties.GetValueOrDefault("hs_pipeline")

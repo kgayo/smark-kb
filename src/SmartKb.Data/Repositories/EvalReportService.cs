@@ -196,11 +196,11 @@ public sealed class EvalReportService : IEvalReportService
     }
 
     internal static EvalMetricsDto DeserializeMetrics(string json, ILogger? logger = null) =>
-        JsonDeserializeHelper.Deserialize(json, SharedJsonOptions.CamelCaseWrite, logger!, new EvalMetricsDto());
+        JsonDeserializeHelper.Deserialize(json, SharedJsonOptions.CamelCaseWrite, logger, new EvalMetricsDto());
 
     internal static IReadOnlyList<EvalViolationDto> DeserializeViolations(string? json, ILogger? logger = null) =>
-        JsonDeserializeHelper.Deserialize<List<EvalViolationDto>>(json, SharedJsonOptions.CamelCaseWrite, logger!, []);
+        JsonDeserializeHelper.Deserialize<List<EvalViolationDto>>(json, SharedJsonOptions.CamelCaseWrite, logger, []);
 
     internal static EvalBaselineComparisonDto? DeserializeBaseline(string? json, ILogger? logger = null) =>
-        JsonDeserializeHelper.DeserializeOrNull<EvalBaselineComparisonDto>(json, SharedJsonOptions.CamelCaseWrite, logger!);
+        JsonDeserializeHelper.DeserializeOrNull<EvalBaselineComparisonDto>(json, SharedJsonOptions.CamelCaseWrite, logger);
 }

@@ -49,7 +49,7 @@ public sealed class SharePointWebhookHandler
     public (int StatusCode, string? ContentType, string Body) HandleValidation(string validationToken)
     {
         _logger.LogInformation("Graph subscription validation handshake received.");
-        return (200, "text/plain", validationToken);
+        return (200, System.Net.Mime.MediaTypeNames.Text.Plain, validationToken);
     }
 
     /// <summary>

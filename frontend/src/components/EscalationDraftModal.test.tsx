@@ -468,4 +468,65 @@ describe('EscalationDraftModal', () => {
     expect(screen.getByTestId('draft-steps-to-reproduce')).toHaveAttribute('aria-label', 'Steps to reproduce');
     expect(screen.getByTestId('draft-logs-ids')).toHaveAttribute('aria-label', 'Logs and IDs requested');
   });
+
+  it('renders aria-label on ADO target project input when ADO connector selected', async () => {
+    vi.mocked(api.listConnectors).mockResolvedValue({
+      connectors: [{ id: 'c1', name: 'My ADO', connectorType: 'AzureDevOps', status: 'Enabled', authType: 'Pat', hasSecret: true, sourceConfig: '{}', fieldMapping: null, scheduleCron: null, createdAt: '', updatedAt: '', lastSyncRun: null }],
+      totalCount: 1,
+    });
+
+    render(
+      <EscalationDraftModal
+        open={true}
+        sessionId="sess-1"
+        messageId="msg-1"
+        escalation={mockEscalation}
+        citations={[mockCitation]}
+        onClose={() => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('draft-title')).toBeInTheDocument();
+    });
+
+    // Select the ADO connector
+    const connectorSelect = screen.getByTestId('connector-selector');
+    fireEvent.change(connectorSelect, { target: { value: 'c1' } });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('target-project')).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('target-project')).toHaveAttribute('aria-label', 'Target project for Azure DevOps work item (optional)');
+  });
+
+  it('renders aria-label on ClickUp target list ID input when ClickUp connector selected', async () => {
+    vi.mocked(api.listConnectors).mockResolvedValue({
+      connectors: [{ id: 'c2', name: 'My ClickUp', connectorType: 'ClickUp', status: 'Enabled', authType: 'Pat', hasSecret: true, sourceConfig: '{}', fieldMapping: null, scheduleCron: null, createdAt: '', updatedAt: '', lastSyncRun: null }],
+      totalCount: 1,
+    });
+
+    render(
+      <EscalationDraftModal
+        open={true}
+        sessionId="sess-1"
+        messageId="msg-1"
+        escalation={mockEscalation}
+        citations={[mockCitation]}
+        onClose={() => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('draft-title')).toBeInTheDocument();
+    });
+
+    const connectorSelect = screen.getByTestId('connector-selector');
+    fireEvent.change(connectorSelect, { target: { value: 'c2' } });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('target-list-id')).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('target-list-id')).toHaveAttribute('aria-label', 'Target list ID for ClickUp task (optional)');
+  });
 });

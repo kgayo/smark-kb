@@ -302,7 +302,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
             if (result is null || string.IsNullOrEmpty(result.Id))
                 return new ExternalWorkItemResult { Success = false, ErrorDetail = "Failed to parse ClickUp response." };
 
-            var externalUrl = result.Url ?? $"https://app.clickup.com/t/{result.Id}";
+            var externalUrl = result.Url ?? string.Format(ConnectorConstants.ClickUpTaskDeepLinkTemplate, result.Id);
 
             _logger.LogInformation("ClickUp task created. Id={TaskId}, ListId={ListId}",
                 result.Id, listId);
@@ -464,7 +464,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
         var createdAt = ParseClickUpTimestamp(task.DateCreated);
         var updatedAt = ParseClickUpTimestamp(task.DateUpdated);
 
-        var deepLink = task.Url ?? $"https://app.clickup.com/t/{task.Id}";
+        var deepLink = task.Url ?? string.Format(ConnectorConstants.ClickUpTaskDeepLinkTemplate, task.Id);
         var contentHash = ConnectorHttpHelper.ComputeHash($"{title}|{textContent}|{updatedAt:O}");
 
         var tags = new List<string>();
