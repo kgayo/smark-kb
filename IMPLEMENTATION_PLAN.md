@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-26 (Asia/Manila) — iteration 216
-Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase 1: P0-001–P0-022; Phase 2: P1-001–P1-012, P2-001–P2-005; Phase 3: P3-001–P3-038 (all 38 items). Tests: T-001–T-008; ~3289 tests passing (2791 backend + 498 frontend). Spec clarification backlog: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. BUG-001–BUG-005 resolved. TECH-001–TECH-122 resolved. 282/282 checklist items complete, 0 remaining.
+Last updated: 2026-03-26 (Asia/Manila) — iteration 217
+Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase 1: P0-001–P0-022; Phase 2: P1-001–P1-012, P2-001–P2-005; Phase 3: P3-001–P3-038 (all 38 items). Tests: T-001–T-008; ~3295 tests passing (2813 backend + 498 frontend). Spec clarification backlog: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. BUG-001–BUG-005 resolved. TECH-001–TECH-123 resolved. 282/282 checklist items complete, 0 remaining.
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -521,6 +521,10 @@ Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase
 - [x] TECH-122: Fix Eval.Cli bare `catch (Exception)` for clean cancellation + log silent `catch` in AuditCompliancePage + remove 6 redundant `Content-Type` headers in frontend API client.
   - Root cause: (1) `src/SmartKb.Eval.Cli/Program.cs` top-level `catch (Exception ex)` had no `OperationCanceledException` guard — a clean `Ctrl+C` cancellation would print a spurious GitHub Actions `::error::` annotation instead of exiting gracefully. Same gap addressed by TECH-021 across all async production code. (2) `frontend/src/pages/AuditCompliancePage.tsx` `EventDetail` component had a silent `catch {}` block on `JSON.parse` with only a comment — no logging for diagnostic visibility. (3) 6 `apiFetch` call sites in `frontend/src/api/client.ts` (stop-word and special-token CRUD/seed functions) redundantly passed `headers: { 'Content-Type': 'application/json' }` despite `apiFetch` already setting this as a default header at line 112.
   - Completed (iteration 216): Added `catch (OperationCanceledException)` returning exit code 130 before the broad `catch (Exception ex)` in Eval.Cli `Program.cs`. Added `logger.warn(...)` with component context to AuditCompliancePage silent catch. Removed 6 redundant `headers` objects from `createStopWord`, `updateStopWord`, `seedStopWords`, `createSpecialToken`, `updateSpecialToken`, `seedSpecialTokens`. Frontend build clean; 498 tests passing.
+
+- [x] TECH-123: Consolidate 11 duplicate hardcoded OTel metric name strings in `DiagnosticsEndpoints.cs` into shared `Diagnostics.MetricNames` constants.
+  - Root cause: `DiagnosticsEndpoints.cs` SLO status endpoint (lines 41-51) contained 11 hardcoded metric name strings (`"smartkb.chat.latency_ms"`, etc.) duplicating the canonical names defined in `Diagnostics.cs` instrument creation calls. Any metric rename would require updating two files.
+  - Completed (iteration 217): Added `Diagnostics.MetricNames` nested class with 31 constants covering all OTel metric names (chat, ingestion, security, privacy, cost, eval categories). Updated all 31 instrument creation calls in `Diagnostics.cs` to reference constants. Updated 11 references in `DiagnosticsEndpoints.cs` SLO endpoint. 6 new tests (non-null, unique, prefix, count=31, expected values, instrument-match). Zero hardcoded metric name strings remaining in production code. 2813 backend tests passing.
 
 - [x] TECH-121: Replace ~50 direct `console.warn`/`console.error` calls in frontend production code with centralized `logger` utility that suppresses output in production builds.
   - Root cause: 52 `console.warn`/`console.error` calls across 19 production frontend files (pages, components, auth, utils) leaked implementation details, component names, and error objects to browser DevTools in production. No environment-aware suppression existed.

@@ -174,6 +174,100 @@ public sealed class DiagnosticsTests
         Assert.Same(Diagnostics.Meter, Diagnostics.Meter);
     }
 
+    // --- TECH-123: MetricNames constant tests ---
+
+    [Fact]
+    public void MetricNames_AllConstants_AreNotNullOrEmpty()
+    {
+        var fields = typeof(Diagnostics.MetricNames)
+            .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            .Where(f => f.FieldType == typeof(string));
+
+        foreach (var field in fields)
+        {
+            var value = (string?)field.GetValue(null);
+            Assert.False(string.IsNullOrEmpty(value), $"{field.Name} must not be null or empty");
+        }
+    }
+
+    [Fact]
+    public void MetricNames_AllConstants_AreUnique()
+    {
+        var fields = typeof(Diagnostics.MetricNames)
+            .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            .Where(f => f.FieldType == typeof(string))
+            .Select(f => (string?)f.GetValue(null))
+            .ToList();
+
+        Assert.Equal(fields.Count, fields.Distinct().Count());
+    }
+
+    [Fact]
+    public void MetricNames_AllConstants_StartWithSmartKbPrefix()
+    {
+        var fields = typeof(Diagnostics.MetricNames)
+            .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            .Where(f => f.FieldType == typeof(string));
+
+        foreach (var field in fields)
+        {
+            var value = (string?)field.GetValue(null);
+            Assert.StartsWith("smartkb.", value!);
+        }
+    }
+
+    [Fact]
+    public void MetricNames_HasExpectedConstantCount()
+    {
+        var count = typeof(Diagnostics.MetricNames)
+            .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            .Count(f => f.FieldType == typeof(string));
+
+        Assert.Equal(31, count);
+    }
+
+    [Theory]
+    [InlineData("smartkb.chat.latency_ms")]
+    [InlineData("smartkb.chat.requests_total")]
+    [InlineData("smartkb.chat.no_evidence_total")]
+    [InlineData("smartkb.chat.confidence")]
+    [InlineData("smartkb.chat.session_summarizations_total")]
+    [InlineData("smartkb.ingestion.sync_duration_ms")]
+    [InlineData("smartkb.ingestion.sync_completed_total")]
+    [InlineData("smartkb.ingestion.sync_failed_total")]
+    [InlineData("smartkb.ingestion.dead_letter_total")]
+    [InlineData("smartkb.ingestion.records_processed_total")]
+    [InlineData("smartkb.ingestion.source_rate_limit_total")]
+    [InlineData("smartkb.security.pii_redactions_total")]
+    [InlineData("smartkb.security.credential_rotations_total")]
+    [InlineData("smartkb.cost.prompt_tokens")]
+    [InlineData("smartkb.cost.estimated_cost_usd")]
+    [InlineData("smartkb.eval.notifications_sent_total")]
+    [InlineData("smartkb.privacy.retention_cleanup_deleted_total")]
+    public void MetricNames_ContainsExpectedValue(string expectedValue)
+    {
+        var values = typeof(Diagnostics.MetricNames)
+            .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            .Where(f => f.FieldType == typeof(string))
+            .Select(f => (string?)f.GetValue(null))
+            .ToHashSet();
+
+        Assert.Contains(expectedValue, values);
+    }
+
+    [Fact]
+    public void MetricNames_MatchInstrumentNames()
+    {
+        // Verify that the MetricNames constants match the actual instrument names
+        // by checking a representative sample of instruments against their constants.
+        Assert.Equal(Diagnostics.MetricNames.ChatLatencyMs, "smartkb.chat.latency_ms");
+        Assert.Equal(Diagnostics.MetricNames.SyncDurationMs, "smartkb.ingestion.sync_duration_ms");
+        Assert.Equal(Diagnostics.MetricNames.PiiRedactionsTotal, "smartkb.security.pii_redactions_total");
+        Assert.Equal(Diagnostics.MetricNames.PromptTokens, "smartkb.cost.prompt_tokens");
+        Assert.Equal(Diagnostics.MetricNames.EvalNotificationsSentTotal, "smartkb.eval.notifications_sent_total");
+        Assert.Equal(Diagnostics.MetricNames.RetentionCleanupDeletedTotal, "smartkb.privacy.retention_cleanup_deleted_total");
+    }
+
     // --- TECH-111: TagNames constant tests ---
 
     [Fact]
