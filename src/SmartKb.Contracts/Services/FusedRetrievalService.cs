@@ -399,17 +399,17 @@ public sealed class FusedRetrievalService : IRetrievalService
     }
 
     /// <summary>
-    /// Applies recency boost: recent (<=30d) gets boost, mid-range (30-90d) is neutral,
-    /// old (>90d) gets penalty.
+    /// Applies recency boost: recent (&lt;= RecencyRecentDays) gets boost,
+    /// mid-range is neutral, old (&gt; RecencyOldDays) gets penalty.
     /// </summary>
     internal double ApplyRecencyBoost(double score, DateTimeOffset updatedAt, DateTimeOffset now)
     {
         var age = now - updatedAt;
-        if (age.TotalDays <= 30)
+        if (age.TotalDays <= _retrievalSettings.RecencyRecentDays)
             return score * _retrievalSettings.RecencyBoostRecent;
-        if (age.TotalDays > 90)
+        if (age.TotalDays > _retrievalSettings.RecencyOldDays)
             return score * _retrievalSettings.RecencyBoostOld;
-        return score; // 30-90 days: neutral (1.0x)
+        return score; // mid-range: neutral (1.0x)
     }
 
     internal static (List<RankedResult> Filtered, int FilteredOutCount) ApplyAclFilter(

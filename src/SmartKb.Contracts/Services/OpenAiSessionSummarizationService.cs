@@ -58,7 +58,7 @@ public sealed class OpenAiSessionSummarizationService : ISessionSummarizationSer
             },
         };
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, $"{_openAiSettings.Endpoint}/chat/completions");
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"{_openAiSettings.Endpoint}{OpenAiSettings.ChatCompletionsPath}");
         OpenAiResponseHelper.AddAuthorizationHeader(request, _openAiSettings.ApiKey);
         request.Content = JsonContent.Create(requestBody);
 

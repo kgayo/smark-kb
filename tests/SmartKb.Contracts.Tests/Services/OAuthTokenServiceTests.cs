@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using SmartKb.Contracts.Configuration;
+using SmartKb.Contracts.Connectors;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
@@ -338,6 +339,57 @@ public sealed class OAuthTokenServiceTests
         var url = OAuthTokenService.GetTokenUrl(ConnectorType.SharePoint, sourceConfig);
         Assert.Contains("abc-tenant", url);
     }
+
+    #region OAuthEndpoints Constants
+
+    [Fact]
+    public void OAuthEndpoints_HubSpotUrls_MatchExpected()
+    {
+        Assert.Equal("https://app.hubspot.com/oauth/authorize", OAuthEndpoints.HubSpotAuthorizeUrl);
+        Assert.Equal("https://api.hubapi.com/oauth/v1/token", OAuthEndpoints.HubSpotTokenUrl);
+    }
+
+    [Fact]
+    public void OAuthEndpoints_ClickUpUrls_MatchExpected()
+    {
+        Assert.Equal("https://app.clickup.com/api", OAuthEndpoints.ClickUpAuthorizeUrl);
+        Assert.Equal("https://api.clickup.com/api/v2/oauth/token", OAuthEndpoints.ClickUpTokenUrl);
+    }
+
+    [Fact]
+    public void OAuthEndpoints_AzureDevOpsUrls_MatchExpected()
+    {
+        Assert.Equal("https://app.vssps.visualstudio.com/oauth2/authorize", OAuthEndpoints.AzureDevOpsAuthorizeUrl);
+        Assert.Equal("https://app.vssps.visualstudio.com/oauth2/token", OAuthEndpoints.AzureDevOpsTokenUrl);
+    }
+
+    [Fact]
+    public void OAuthEndpoints_EntraIdTemplates_ContainPlaceholder()
+    {
+        Assert.Contains("{0}", OAuthEndpoints.EntraIdAuthorizeUrlTemplate);
+        Assert.Contains("{0}", OAuthEndpoints.EntraIdTokenUrlTemplate);
+    }
+
+    [Fact]
+    public void OAuthEndpoints_DefaultTokenExpiry_Is3600Seconds()
+    {
+        Assert.Equal(3600, OAuthEndpoints.DefaultTokenExpirySeconds);
+    }
+
+    [Fact]
+    public async Task ResolveAccessTokenAsync_NullDeserializationResult_ReturnsNull()
+    {
+        var service = CreateService();
+
+        // Store empty JSON object — deserializes to OAuthCredentials with null AccessToken.
+        _secretProvider.Secrets["kv-secret"] = "{}";
+
+        var token = await service.ResolveAccessTokenAsync("kv-secret", null, ConnectorType.HubSpot);
+
+        Assert.Null(token);
+    }
+
+    #endregion
 
     // --- Test helpers ---
 

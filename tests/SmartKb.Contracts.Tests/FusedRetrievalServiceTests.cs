@@ -209,6 +209,29 @@ public class FusedRetrievalServiceTests
         Assert.Equal(1.0, boosted, 0.01);
     }
 
+    [Fact]
+    public void ApplyRecencyBoost_CustomThresholds_UsesSettings()
+    {
+        var settings = new RetrievalSettings
+        {
+            RecencyRecentDays = 7,
+            RecencyOldDays = 30,
+            RecencyBoostRecent = 1.5f,
+            RecencyBoostOld = 0.5f,
+        };
+        var service = CreateService(settings);
+        var now = DateTimeOffset.UtcNow;
+
+        // 5 days ago → within custom "recent" threshold of 7 days
+        Assert.Equal(1.5, service.ApplyRecencyBoost(1.0, now.AddDays(-5), now), 0.01);
+
+        // 15 days ago → between 7 and 30 → neutral
+        Assert.Equal(1.0, service.ApplyRecencyBoost(1.0, now.AddDays(-15), now), 0.01);
+
+        // 45 days ago → beyond custom "old" threshold of 30 days
+        Assert.Equal(0.5, service.ApplyRecencyBoost(1.0, now.AddDays(-45), now), 0.01);
+    }
+
     #endregion
 
     #region Diversity Constraint
@@ -299,6 +322,18 @@ public class FusedRetrievalServiceTests
     public void EscapeODataValue_NoChange_WhenNoQuotes()
     {
         Assert.Equal("tenant-123", FusedRetrievalService.EscapeODataValue("tenant-123"));
+    }
+
+    #endregion
+
+    #region RetrievalSettings Defaults
+
+    [Fact]
+    public void RetrievalSettings_RecencyThresholdDefaults_MatchOriginalValues()
+    {
+        var settings = new RetrievalSettings();
+        Assert.Equal(30, settings.RecencyRecentDays);
+        Assert.Equal(90, settings.RecencyOldDays);
     }
 
     #endregion

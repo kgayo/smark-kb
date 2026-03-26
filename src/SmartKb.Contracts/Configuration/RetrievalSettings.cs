@@ -77,14 +77,24 @@ public sealed class RetrievalSettings
     public float TrustBoostDeprecated { get; set; } = 0.3f;
 
     /// <summary>
-    /// Recency boost: multiplier for results updated within the last 30 days.
+    /// Recency boost: multiplier for results updated within <see cref="RecencyRecentDays"/>.
     /// </summary>
     public float RecencyBoostRecent { get; set; } = 1.2f;
 
     /// <summary>
-    /// Recency boost: multiplier for results older than 90 days.
+    /// Recency boost: multiplier for results older than <see cref="RecencyOldDays"/>.
     /// </summary>
     public float RecencyBoostOld { get; set; } = 0.8f;
+
+    /// <summary>
+    /// Age threshold in days: results updated within this window get the recent boost.
+    /// </summary>
+    public int RecencyRecentDays { get; set; } = 30;
+
+    /// <summary>
+    /// Age threshold in days: results older than this get the old penalty.
+    /// </summary>
+    public int RecencyOldDays { get; set; } = 90;
 
     /// <summary>
     /// Base authority boost for pattern results (curated knowledge premium).

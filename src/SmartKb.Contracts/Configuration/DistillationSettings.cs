@@ -56,4 +56,19 @@ public sealed class DistillationSettings
     /// Maximum confidence score a distilled pattern can receive.
     /// </summary>
     public float MaxConfidence { get; set; } = 0.9f;
+
+    /// <summary>
+    /// Maximum character length for the distilled problem statement text.
+    /// </summary>
+    public int ProblemStatementMaxLength { get; set; } = 500;
+
+    /// <summary>
+    /// Maximum character length for individual resolution/diagnosis step text.
+    /// </summary>
+    public int StepTextMaxLength { get; set; } = 200;
+
+    /// <summary>
+    /// Maximum character length for root cause text.
+    /// </summary>
+    public int RootCauseMaxLength { get; set; } = 2000;
 }

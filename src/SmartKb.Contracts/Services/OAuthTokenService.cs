@@ -158,7 +158,7 @@ public sealed class OAuthTokenService : IOAuthTokenService
         {
             AccessToken = tokenResponse.AccessToken,
             RefreshToken = tokenResponse.RefreshToken ?? existingCreds.RefreshToken,
-            ExpiresAt = now.AddSeconds(tokenResponse.ExpiresIn > 0 ? tokenResponse.ExpiresIn : 3600),
+            ExpiresAt = now.AddSeconds(tokenResponse.ExpiresIn > 0 ? tokenResponse.ExpiresIn : OAuthEndpoints.DefaultTokenExpirySeconds),
         };
 
         var credJson = JsonSerializer.Serialize(updatedCreds, SharedJsonOptions.CamelCaseWrite);
@@ -178,7 +178,8 @@ public sealed class OAuthTokenService : IOAuthTokenService
         try
         {
             var json = await _secretProvider.GetSecretAsync(kvSecretName, ct);
-            creds = JsonSerializer.Deserialize<OAuthCredentials>(json, SharedJsonOptions.CamelCaseWrite)!;
+            creds = JsonSerializer.Deserialize<OAuthCredentials>(json, SharedJsonOptions.CamelCaseWrite)
+                ?? new OAuthCredentials();
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -229,7 +230,7 @@ public sealed class OAuthTokenService : IOAuthTokenService
         {
             AccessToken = tokenResponse.AccessToken,
             RefreshToken = tokenResponse.RefreshToken ?? creds.RefreshToken,
-            ExpiresAt = now.AddSeconds(tokenResponse.ExpiresIn > 0 ? tokenResponse.ExpiresIn : 3600),
+            ExpiresAt = now.AddSeconds(tokenResponse.ExpiresIn > 0 ? tokenResponse.ExpiresIn : OAuthEndpoints.DefaultTokenExpirySeconds),
         };
 
         var credJson = JsonSerializer.Serialize(updatedCreds, SharedJsonOptions.CamelCaseWrite);
@@ -249,22 +250,23 @@ public sealed class OAuthTokenService : IOAuthTokenService
         return connectorType switch
         {
             ConnectorType.HubSpot => (
-                "https://app.hubspot.com/oauth/authorize",
+                OAuthEndpoints.HubSpotAuthorizeUrl,
                 GetJsonField(sourceConfig, "oAuthClientId") ?? "",
                 GetJsonField(sourceConfig, "oAuthScopes") ?? "crm.objects.contacts.read crm.objects.deals.read tickets"),
 
             ConnectorType.ClickUp => (
-                "https://app.clickup.com/api",
+                OAuthEndpoints.ClickUpAuthorizeUrl,
                 GetJsonField(sourceConfig, "oAuthClientId") ?? "",
                 ""),
 
             ConnectorType.AzureDevOps => (
-                "https://app.vssps.visualstudio.com/oauth2/authorize",
+                OAuthEndpoints.AzureDevOpsAuthorizeUrl,
                 GetJsonField(sourceConfig, "oAuthClientId") ?? "",
                 GetJsonField(sourceConfig, "oAuthScopes") ?? "vso.work_full"),
 
             ConnectorType.SharePoint => (
-                $"https://login.microsoftonline.com/{GetJsonField(sourceConfig, "entraIdTenantId") ?? "common"}/oauth2/v2.0/authorize",
+                string.Format(OAuthEndpoints.EntraIdAuthorizeUrlTemplate,
+                    GetJsonField(sourceConfig, "entraIdTenantId") ?? OAuthEndpoints.EntraIdDefaultTenant),
                 GetJsonField(sourceConfig, "oAuthClientId") ?? GetJsonField(sourceConfig, "clientId") ?? "",
                 GetJsonField(sourceConfig, "oAuthScopes") ?? $"{GraphApiConstants.DefaultScope} offline_access"),
 
@@ -276,11 +278,12 @@ public sealed class OAuthTokenService : IOAuthTokenService
     {
         return connectorType switch
         {
-            ConnectorType.HubSpot => "https://api.hubapi.com/oauth/v1/token",
-            ConnectorType.ClickUp => "https://api.clickup.com/api/v2/oauth/token",
-            ConnectorType.AzureDevOps => "https://app.vssps.visualstudio.com/oauth2/token",
+            ConnectorType.HubSpot => OAuthEndpoints.HubSpotTokenUrl,
+            ConnectorType.ClickUp => OAuthEndpoints.ClickUpTokenUrl,
+            ConnectorType.AzureDevOps => OAuthEndpoints.AzureDevOpsTokenUrl,
             ConnectorType.SharePoint =>
-                $"https://login.microsoftonline.com/{GetJsonField(sourceConfig, "entraIdTenantId") ?? "common"}/oauth2/v2.0/token",
+                string.Format(OAuthEndpoints.EntraIdTokenUrlTemplate,
+                    GetJsonField(sourceConfig, "entraIdTenantId") ?? OAuthEndpoints.EntraIdDefaultTenant),
             _ => throw new NotSupportedException($"OAuth is not supported for connector type '{connectorType}'."),
         };
     }

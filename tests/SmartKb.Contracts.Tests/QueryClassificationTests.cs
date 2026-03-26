@@ -118,6 +118,11 @@ public class ClassificationResultTests
         Assert.Equal("P1", result.SeverityHint);
         Assert.Null(result.TimeHorizonDays);
     }
+    [Fact]
+    public void OpenAiSettings_ChatCompletionsPath_IsCorrect()
+    {
+        Assert.Equal("/chat/completions", OpenAiSettings.ChatCompletionsPath);
+    }
 }
 
 #endregion

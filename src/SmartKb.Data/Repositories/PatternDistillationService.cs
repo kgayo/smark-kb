@@ -293,11 +293,11 @@ public sealed class PatternDistillationService : IPatternDistillationService
         // Extract pattern fields from evidence content.
         var patternId = $"pattern-{Guid.NewGuid():N}";
         var title = BuildTitle(candidate, chunks);
-        var problemStatement = BuildProblemStatement(candidate, chunks);
+        var problemStatement = BuildProblemStatement(candidate, chunks, _settings.ProblemStatementMaxLength);
         var symptoms = ExtractSymptoms(chunks);
-        var rootCause = ExtractRootCause(chunks);
-        var resolutionSteps = ExtractResolutionSteps(candidate, chunks);
-        var diagnosisSteps = ExtractDiagnosisSteps(chunks);
+        var rootCause = ExtractRootCause(chunks, _settings.RootCauseMaxLength);
+        var resolutionSteps = ExtractResolutionSteps(candidate, chunks, _settings.StepTextMaxLength);
+        var diagnosisSteps = ExtractDiagnosisSteps(chunks, _settings.StepTextMaxLength);
         var verificationSteps = ExtractVerificationSteps(chunks);
         var errorTokens = ExtractErrorTokens(chunks);
 
@@ -418,7 +418,7 @@ public sealed class PatternDistillationService : IPatternDistillationService
         return $"Pattern from session {candidate.SessionId:N}";
     }
 
-    internal static string BuildProblemStatement(DistillationCandidate candidate, List<EvidenceChunkEntity> chunks)
+    internal static string BuildProblemStatement(DistillationCandidate candidate, List<EvidenceChunkEntity> chunks, int maxLength = 500)
     {
         // Use the first chunk's text as problem description, truncated.
         var firstChunk = chunks.FirstOrDefault();
@@ -426,7 +426,7 @@ public sealed class PatternDistillationService : IPatternDistillationService
             return "Problem identified from solved ticket evidence.";
 
         var text = firstChunk.ChunkText;
-        return text.Length > 500 ? text[..500] + "..." : text;
+        return text.Length > maxLength ? text[..maxLength] + "..." : text;
     }
 
     internal static List<string> ExtractSymptoms(List<EvidenceChunkEntity> chunks)
@@ -456,7 +456,7 @@ public sealed class PatternDistillationService : IPatternDistillationService
         return symptoms.Take(10).ToList();
     }
 
-    internal static List<string> ExtractResolutionSteps(DistillationCandidate candidate, List<EvidenceChunkEntity> chunks)
+    internal static List<string> ExtractResolutionSteps(DistillationCandidate candidate, List<EvidenceChunkEntity> chunks, int stepMaxLength = 200)
     {
         var steps = new List<string>();
 
@@ -465,8 +465,8 @@ public sealed class PatternDistillationService : IPatternDistillationService
         foreach (var chunk in chunks)
         {
             var text = chunk.ChunkText.Trim();
-            if (text.Length > 200)
-                text = text[..200] + "...";
+            if (text.Length > stepMaxLength)
+                text = text[..stepMaxLength] + "...";
 
             if (!string.IsNullOrWhiteSpace(text))
                 steps.Add(text);
@@ -475,7 +475,7 @@ public sealed class PatternDistillationService : IPatternDistillationService
         return steps.Take(10).ToList();
     }
 
-    internal static List<string> ExtractDiagnosisSteps(List<EvidenceChunkEntity> chunks)
+    internal static List<string> ExtractDiagnosisSteps(List<EvidenceChunkEntity> chunks, int stepMaxLength = 200)
     {
         var steps = new List<string>();
 
@@ -484,8 +484,8 @@ public sealed class PatternDistillationService : IPatternDistillationService
         {
             if (string.IsNullOrWhiteSpace(chunk.ChunkContext)) continue;
             var context = chunk.ChunkContext.Trim();
-            if (context.Length > 200)
-                context = context[..200] + "...";
+            if (context.Length > stepMaxLength)
+                context = context[..stepMaxLength] + "...";
             steps.Add(context);
         }
 
@@ -502,7 +502,7 @@ public sealed class PatternDistillationService : IPatternDistillationService
         return ["Verify the fix by confirming the symptoms no longer occur."];
     }
 
-    internal static string? ExtractRootCause(List<EvidenceChunkEntity> chunks)
+    internal static string? ExtractRootCause(List<EvidenceChunkEntity> chunks, int maxLength = 2000)
     {
         // Look for chunks whose context indicates a "Root Cause" section (from ticket-structure chunking).
         foreach (var chunk in chunks)
@@ -512,7 +512,7 @@ public sealed class PatternDistillationService : IPatternDistillationService
             {
                 var text = chunk.ChunkText.Trim();
                 if (text.Length > 0)
-                    return text.Length > 2000 ? text[..2000] : text;
+                    return text.Length > maxLength ? text[..maxLength] : text;
             }
         }
 
@@ -526,7 +526,7 @@ public sealed class PatternDistillationService : IPatternDistillationService
             {
                 var trimmed = text.Trim();
                 if (trimmed.Length > 0)
-                    return trimmed.Length > 2000 ? trimmed[..2000] : trimmed;
+                    return trimmed.Length > maxLength ? trimmed[..maxLength] : trimmed;
             }
         }
 

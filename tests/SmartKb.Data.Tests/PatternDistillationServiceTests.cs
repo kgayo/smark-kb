@@ -676,6 +676,55 @@ public class PatternDistillationServiceTests : IDisposable
     }
 
     [Fact]
+    public void BuildProblemStatement_CustomMaxLength_Truncates()
+    {
+        var chunk = CreateMinimalChunk();
+        chunk.ChunkText = new string('z', 100);
+
+        var result = PatternDistillationService.BuildProblemStatement(
+            CreateMinimalCandidate(), [chunk], maxLength: 50);
+
+        Assert.Equal(53, result.Length); // 50 + "..."
+        Assert.EndsWith("...", result);
+    }
+
+    [Fact]
+    public void ExtractResolutionSteps_CustomMaxLength_Truncates()
+    {
+        var chunk = CreateMinimalChunk();
+        chunk.ChunkText = new string('y', 200);
+
+        var steps = PatternDistillationService.ExtractResolutionSteps(
+            CreateMinimalCandidate(), [chunk], stepMaxLength: 80);
+
+        Assert.Single(steps);
+        Assert.Equal(83, steps[0].Length); // 80 + "..."
+        Assert.EndsWith("...", steps[0]);
+    }
+
+    [Fact]
+    public void ExtractRootCause_CustomMaxLength_Truncates()
+    {
+        var chunk = CreateMinimalChunk();
+        chunk.ChunkContext = "Root Cause";
+        chunk.ChunkText = new string('w', 500);
+
+        var result = PatternDistillationService.ExtractRootCause([chunk], maxLength: 100);
+
+        Assert.NotNull(result);
+        Assert.Equal(100, result.Length);
+    }
+
+    [Fact]
+    public void DistillationSettings_TruncationDefaults_MatchOriginalValues()
+    {
+        var settings = new DistillationSettings();
+        Assert.Equal(500, settings.ProblemStatementMaxLength);
+        Assert.Equal(200, settings.StepTextMaxLength);
+        Assert.Equal(2000, settings.RootCauseMaxLength);
+    }
+
+    [Fact]
     public async Task Distill_SetsRootCauseWhenAvailable()
     {
         var (sessionId, _) = SeedQualifiedSession();
