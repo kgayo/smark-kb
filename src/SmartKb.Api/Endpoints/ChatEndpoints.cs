@@ -142,7 +142,7 @@ public static class ChatEndpoints
             var response = await feedbackService.GetFeedbackAsync(
                 tenant.TenantId, tenant.UserId, sessionId, messageId, ct);
             return response is null
-                ? Results.NotFound(ApiResponse<object>.Failure("Feedback not found.", tenant.CorrelationId))
+                ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.FeedbackNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<FeedbackResponse>.Success(response, tenant.CorrelationId));
         }).RequirePermission(Permissions.ChatFeedback);
 
@@ -240,7 +240,7 @@ public static class ChatEndpoints
             var ct = httpContext.RequestAborted;
             var response = await escalationService.GetDraftAsync(tenant.TenantId, tenant.UserId, draftId, ct);
             return response is null
-                ? Results.NotFound(ApiResponse<object>.Failure("Escalation draft not found.", tenant.CorrelationId))
+                ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.EscalationDraftNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<EscalationDraftResponse>.Success(response, tenant.CorrelationId));
         }).RequirePermission(Permissions.ChatQuery);
 
@@ -270,7 +270,7 @@ public static class ChatEndpoints
             var (response, notFound) = await escalationService.UpdateDraftAsync(
                 tenant.TenantId, tenant.UserId, draftId, request, ct);
             return notFound
-                ? Results.NotFound(ApiResponse<object>.Failure("Escalation draft not found.", tenant.CorrelationId))
+                ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.EscalationDraftNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<EscalationDraftResponse>.Success(response!, tenant.CorrelationId));
         }).RequirePermission(Permissions.ChatQuery);
 
@@ -285,7 +285,7 @@ public static class ChatEndpoints
             var response = await escalationService.ExportDraftAsMarkdownAsync(
                 tenant.TenantId, tenant.UserId, draftId, ct);
             return response is null
-                ? Results.NotFound(ApiResponse<object>.Failure("Escalation draft not found.", tenant.CorrelationId))
+                ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.EscalationDraftNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<EscalationDraftExportResponse>.Success(response, tenant.CorrelationId));
         }).RequirePermission(Permissions.ChatQuery);
 
@@ -304,7 +304,7 @@ public static class ChatEndpoints
                 var result = await escalationService.ApproveAndCreateExternalAsync(
                     tenant.TenantId, tenant.UserId, tenant.CorrelationId, draftId, request, ct);
                 if (result is null)
-                    return Results.NotFound(ApiResponse<object>.Failure("Escalation draft not found.", tenant.CorrelationId));
+                    return Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.EscalationDraftNotFound, tenant.CorrelationId));
 
                 return result.ExternalStatus == EscalationExternalStatus.Created
                     ? Results.Ok(ApiResponse<ExternalEscalationResult>.Success(result, tenant.CorrelationId))
@@ -329,7 +329,7 @@ public static class ChatEndpoints
             var deleted = await escalationService.DeleteDraftAsync(tenant.TenantId, tenant.UserId, draftId, ct);
             return deleted
                 ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
-                : Results.NotFound(ApiResponse<object>.Failure("Escalation draft not found.", tenant.CorrelationId));
+                : Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.EscalationDraftNotFound, tenant.CorrelationId));
         }).RequirePermission(Permissions.ChatQuery);
 
         // --- Evidence Content Endpoint (P3-025: Source Viewer drill-down) ---
@@ -349,7 +349,7 @@ public static class ChatEndpoints
                     c => c.ChunkId == chunkId && c.TenantId == tenant.TenantId, ct);
 
             if (chunk is null)
-                return Results.NotFound(ApiResponse<object>.Failure("Evidence chunk not found.", tenant.CorrelationId));
+                return Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.EvidenceChunkNotFound, tenant.CorrelationId));
 
             // ACL enforcement: restricted content requires user membership in allowed groups.
             if (string.Equals(chunk.Visibility, VisibilityLevel.Restricted, StringComparison.OrdinalIgnoreCase))
@@ -370,7 +370,7 @@ public static class ChatEndpoints
                 var hasAccess = allowedGroups.Any(ag => userGroups.Any(ug =>
                     string.Equals(ag, ug, StringComparison.OrdinalIgnoreCase)));
                 if (!hasAccess)
-                    return Results.NotFound(ApiResponse<object>.Failure("Evidence chunk not found.", tenant.CorrelationId));
+                    return Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.EvidenceChunkNotFound, tenant.CorrelationId));
             }
 
             // Attempt to load raw content from blob storage if available.

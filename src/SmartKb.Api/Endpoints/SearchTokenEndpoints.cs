@@ -37,7 +37,7 @@ public static class SearchTokenEndpoints
             var ct = httpContext.RequestAborted;
             var result = await service.GetAsync(tenant.TenantId, ruleId, ct);
             return result is null
-                ? Results.NotFound(ApiResponse<object>.Failure("Synonym rule not found.", tenant.CorrelationId))
+                ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.SynonymRuleNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<SynonymRuleResponse>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
@@ -76,7 +76,7 @@ public static class SearchTokenEndpoints
                     tenant.TenantId, tenant.UserId, tenant.CorrelationId, ruleId, request, ct);
 
                 if (notFound)
-                    return Results.NotFound(ApiResponse<object>.Failure("Synonym rule not found.", tenant.CorrelationId));
+                    return Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.SynonymRuleNotFound, tenant.CorrelationId));
                 if (validation is not null)
                     return Results.UnprocessableEntity(ApiResponse<SynonymRuleValidationResult>.Failure(
                         string.Join("; ", validation.Errors), tenant.CorrelationId));
@@ -101,7 +101,7 @@ public static class SearchTokenEndpoints
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, ruleId, ct);
             return deleted
                 ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
-                : Results.NotFound(ApiResponse<object>.Failure("Synonym rule not found.", tenant.CorrelationId));
+                : Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.SynonymRuleNotFound, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPost("/api/admin/synonym-rules/sync", async (

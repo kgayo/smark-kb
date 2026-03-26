@@ -39,7 +39,7 @@ public static class EvalEndpoints
             var report = await evalReportService.GetReportAsync(tenant.TenantId, reportId, ct);
             return report is not null
                 ? Results.Ok(ApiResponse<EvalReportDetail>.Success(report, tenant.CorrelationId))
-                : Results.NotFound(ApiResponse<object>.Failure("Eval report not found.", tenant.CorrelationId));
+                : Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.EvalReportNotFound, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPost("/api/admin/eval/reports", async (
@@ -81,7 +81,7 @@ public static class EvalEndpoints
             var detail = await svc.GetAsync(tenant.TenantId, id, ct);
             return detail is not null
                 ? Results.Ok(ApiResponse<GoldCaseDetail>.Success(detail, tenant.CorrelationId))
-                : Results.NotFound(ApiResponse<object>.Failure("Gold case not found.", tenant.CorrelationId));
+                : Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.GoldCaseNotFound, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPost("/api/admin/eval/gold-cases", async (
@@ -109,7 +109,7 @@ public static class EvalEndpoints
             var detail = await svc.UpdateAsync(tenant.TenantId, id, request, tenant.UserId, ct);
             return detail is not null
                 ? Results.Ok(ApiResponse<GoldCaseDetail>.Success(detail, tenant.CorrelationId))
-                : Results.NotFound(ApiResponse<object>.Failure("Gold case not found.", tenant.CorrelationId));
+                : Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.GoldCaseNotFound, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapDelete("/api/admin/eval/gold-cases/{id:guid}", async (
@@ -123,7 +123,7 @@ public static class EvalEndpoints
             var deleted = await svc.DeleteAsync(tenant.TenantId, id, tenant.UserId, ct);
             return deleted
                 ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
-                : Results.NotFound(ApiResponse<object>.Failure("Gold case not found.", tenant.CorrelationId));
+                : Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.GoldCaseNotFound, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapGet("/api/admin/eval/gold-cases/export", async (

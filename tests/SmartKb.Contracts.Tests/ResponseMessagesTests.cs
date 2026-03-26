@@ -37,6 +37,18 @@ public sealed class ResponseMessagesTests
     [InlineData(nameof(ResponseMessages.InvalidWebhookSignature), "Invalid webhook signature.")]
     [InlineData(nameof(ResponseMessages.FailedToVerifyWebhookSignature), "Failed to verify webhook signature.")]
     [InlineData(nameof(ResponseMessages.SystemActorId), "system")]
+    [InlineData(nameof(ResponseMessages.InvalidOrMissingSourceConfiguration), "Invalid or missing source configuration.")]
+    [InlineData(nameof(ResponseMessages.NoCredentialsProvided), "No credentials provided.")]
+    [InlineData(nameof(ResponseMessages.EscalationDraftNotFound), "Escalation draft not found.")]
+    [InlineData(nameof(ResponseMessages.EvidenceChunkNotFound), "Evidence chunk not found.")]
+    [InlineData(nameof(ResponseMessages.SynonymRuleNotFound), "Synonym rule not found.")]
+    [InlineData(nameof(ResponseMessages.PlaybookNotFound), "Playbook not found.")]
+    [InlineData(nameof(ResponseMessages.RoutingRuleNotFound), "Routing rule not found.")]
+    [InlineData(nameof(ResponseMessages.GoldCaseNotFound), "Gold case not found.")]
+    [InlineData(nameof(ResponseMessages.EvalReportNotFound), "Eval report not found.")]
+    [InlineData(nameof(ResponseMessages.DeletionRequestNotFound), "Deletion request not found.")]
+    [InlineData(nameof(ResponseMessages.SyncRunNotFound), "Sync run not found.")]
+    [InlineData(nameof(ResponseMessages.FeedbackNotFound), "Feedback not found.")]
     public void ExpectedConstants_HaveCorrectValues(string fieldName, string expectedValue)
     {
         var field = typeof(ResponseMessages).GetField(fieldName, BindingFlags.Public | BindingFlags.Static);

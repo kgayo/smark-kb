@@ -35,7 +35,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
     {
         var config = ParseSourceConfig(sourceConfig, _logger);
         if (config is null)
-            return new TestConnectionResponse { Success = false, Message = "Invalid or missing source configuration." };
+            return new TestConnectionResponse { Success = false, Message = ResponseMessages.InvalidOrMissingSourceConfiguration };
 
         if (string.IsNullOrEmpty(secretValue))
             return new TestConnectionResponse { Success = false, Message = "No credentials provided. A ClickUp API token is required." };
@@ -119,10 +119,10 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
     {
         var config = ParseSourceConfig(sourceConfig, _logger);
         if (config is null)
-            return FetchResult.Error("Invalid or missing source configuration.");
+            return FetchResult.Error(ResponseMessages.InvalidOrMissingSourceConfiguration);
 
         if (string.IsNullOrEmpty(secretValue))
-            return FetchResult.Error("No credentials provided.");
+            return FetchResult.Error(ResponseMessages.NoCredentialsProvided);
 
         using var client = CreateHttpClient(config.BaseUrl, secretValue);
 
@@ -229,7 +229,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
             return new ExternalWorkItemResult { Success = false, ErrorDetail = "Invalid source configuration." };
 
         if (string.IsNullOrEmpty(secretValue))
-            return new ExternalWorkItemResult { Success = false, ErrorDetail = "No credentials provided." };
+            return new ExternalWorkItemResult { Success = false, ErrorDetail = ResponseMessages.NoCredentialsProvided };
 
         var listId = request.TargetListId;
         if (string.IsNullOrEmpty(listId))

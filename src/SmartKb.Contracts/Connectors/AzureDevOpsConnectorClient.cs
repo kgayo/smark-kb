@@ -37,7 +37,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
     {
         var config = ParseSourceConfig(sourceConfig, _logger);
         if (config is null)
-            return new TestConnectionResponse { Success = false, Message = "Invalid or missing source configuration." };
+            return new TestConnectionResponse { Success = false, Message = ResponseMessages.InvalidOrMissingSourceConfiguration };
 
         if (string.IsNullOrEmpty(secretValue))
             return new TestConnectionResponse { Success = false, Message = "No credentials provided. A Personal Access Token is required." };
@@ -131,10 +131,10 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
     {
         var config = ParseSourceConfig(sourceConfig, _logger);
         if (config is null)
-            return FetchResult.Error("Invalid or missing source configuration.");
+            return FetchResult.Error(ResponseMessages.InvalidOrMissingSourceConfiguration);
 
         if (string.IsNullOrEmpty(secretValue))
-            return FetchResult.Error("No credentials provided.");
+            return FetchResult.Error(ResponseMessages.NoCredentialsProvided);
 
         using var client = CreateHttpClient(config.OrganizationUrl, secretValue);
 
@@ -252,7 +252,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
             return new ExternalWorkItemResult { Success = false, ErrorDetail = "Invalid source configuration." };
 
         if (string.IsNullOrEmpty(secretValue))
-            return new ExternalWorkItemResult { Success = false, ErrorDetail = "No credentials provided." };
+            return new ExternalWorkItemResult { Success = false, ErrorDetail = ResponseMessages.NoCredentialsProvided };
 
         var project = request.TargetProject;
         if (string.IsNullOrEmpty(project))

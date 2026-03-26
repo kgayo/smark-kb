@@ -35,7 +35,7 @@ public static class RoutingEndpoints
             var ct = httpContext.RequestAborted;
             var result = await ruleService.GetRuleAsync(tenant.TenantId, ruleId, ct);
             return result is null
-                ? Results.NotFound(ApiResponse<RoutingRuleDto>.Failure("Routing rule not found.", tenant.CorrelationId))
+                ? Results.NotFound(ApiResponse<RoutingRuleDto>.Failure(ResponseMessages.RoutingRuleNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<RoutingRuleDto>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
@@ -65,7 +65,7 @@ public static class RoutingEndpoints
             var result = await ruleService.UpdateRuleAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, ruleId, request, ct);
             return result is null
-                ? Results.NotFound(ApiResponse<RoutingRuleDto>.Failure("Routing rule not found.", tenant.CorrelationId))
+                ? Results.NotFound(ApiResponse<RoutingRuleDto>.Failure(ResponseMessages.RoutingRuleNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<RoutingRuleDto>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
@@ -81,7 +81,7 @@ public static class RoutingEndpoints
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, ruleId, ct);
             return deleted
                 ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
-                : Results.NotFound(ApiResponse<object>.Failure("Routing rule not found.", tenant.CorrelationId));
+                : Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.RoutingRuleNotFound, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
         // --- Routing Analytics + Improvement (P1-009) ---

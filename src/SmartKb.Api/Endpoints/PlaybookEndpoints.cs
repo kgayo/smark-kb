@@ -33,7 +33,7 @@ public static class PlaybookEndpoints
             var ct = httpContext.RequestAborted;
             var result = await playbookService.GetPlaybookAsync(tenant.TenantId, playbookId, ct);
             return result is null
-                ? Results.NotFound(ApiResponse<TeamPlaybookDto>.Failure("Playbook not found.", tenant.CorrelationId))
+                ? Results.NotFound(ApiResponse<TeamPlaybookDto>.Failure(ResponseMessages.PlaybookNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<TeamPlaybookDto>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
@@ -77,7 +77,7 @@ public static class PlaybookEndpoints
             var result = await playbookService.UpdatePlaybookAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, playbookId, request, ct);
             return result is null
-                ? Results.NotFound(ApiResponse<TeamPlaybookDto>.Failure("Playbook not found.", tenant.CorrelationId))
+                ? Results.NotFound(ApiResponse<TeamPlaybookDto>.Failure(ResponseMessages.PlaybookNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<TeamPlaybookDto>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
@@ -93,7 +93,7 @@ public static class PlaybookEndpoints
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, playbookId, ct);
             return deleted
                 ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
-                : Results.NotFound(ApiResponse<object>.Failure("Playbook not found.", tenant.CorrelationId));
+                : Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.PlaybookNotFound, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPost("/api/admin/playbooks/validate", async (

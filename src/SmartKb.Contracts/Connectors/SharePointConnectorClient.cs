@@ -59,7 +59,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
     {
         var config = ParseSourceConfig(sourceConfig, _logger);
         if (config is null)
-            return new TestConnectionResponse { Success = false, Message = "Invalid or missing source configuration." };
+            return new TestConnectionResponse { Success = false, Message = ResponseMessages.InvalidOrMissingSourceConfiguration };
 
         if (string.IsNullOrEmpty(secretValue))
             return new TestConnectionResponse { Success = false, Message = "No credentials provided. A client secret is required." };
@@ -143,10 +143,10 @@ public sealed class SharePointConnectorClient : IConnectorClient
     {
         var config = ParseSourceConfig(sourceConfig, _logger);
         if (config is null)
-            return FetchResult.Error("Invalid or missing source configuration.");
+            return FetchResult.Error(ResponseMessages.InvalidOrMissingSourceConfiguration);
 
         if (string.IsNullOrEmpty(secretValue))
-            return FetchResult.Error("No credentials provided.");
+            return FetchResult.Error(ResponseMessages.NoCredentialsProvided);
 
         string accessToken;
         try

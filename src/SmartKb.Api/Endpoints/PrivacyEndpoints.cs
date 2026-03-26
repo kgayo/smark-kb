@@ -161,7 +161,7 @@ public static class PrivacyEndpoints
             var result = await deletionService.GetDeletionRequestAsync(tenant.TenantId, requestId, ct);
             return result is not null
                 ? Results.Ok(ApiResponse<DataSubjectDeletionResponse>.Success(result, tenant.CorrelationId))
-                : Results.NotFound(ApiResponse<object>.Failure("Deletion request not found.", tenant.CorrelationId));
+                : Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.DeletionRequestNotFound, tenant.CorrelationId));
         }).RequirePermission(Permissions.PrivacyManage);
 
         // ──── Retention Measurable Execution Endpoints (P2-005) ────

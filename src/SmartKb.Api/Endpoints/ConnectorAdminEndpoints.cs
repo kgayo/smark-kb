@@ -231,7 +231,7 @@ public static class ConnectorAdminEndpoints
             var ct = httpContext.RequestAborted;
             var result = await service.GetSyncRunAsync(tenant.TenantId, connectorId, syncRunId, ct);
             return result is null
-                ? Results.NotFound(ApiResponse<object>.Failure("Sync run not found.", tenant.CorrelationId))
+                ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.SyncRunNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<SyncRunSummary>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
