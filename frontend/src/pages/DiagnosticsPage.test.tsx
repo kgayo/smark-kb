@@ -1,6 +1,7 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { DiagnosticsPage } from './DiagnosticsPage';
+import { AppRoles } from '../auth/roles';
 import * as client from '../api/client';
 import type {
   DiagnosticsSummaryResponse,
@@ -144,7 +145,7 @@ function setupAdminUser() {
     name: 'Admin',
     tenantId: 't1',
     correlationId: null,
-    roles: ['Admin'],
+    roles: [AppRoles.Admin],
   });
 }
 
@@ -165,7 +166,7 @@ describe('DiagnosticsPage', () => {
       name: 'Agent',
       tenantId: 't1',
       correlationId: null,
-      roles: ['SupportAgent'],
+      roles: [AppRoles.SupportAgent],
     });
     renderPage();
     await waitFor(() => {

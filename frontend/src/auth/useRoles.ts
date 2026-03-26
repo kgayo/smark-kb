@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getMe } from '../api/client';
 import { logger } from '../utils/logger';
+import { AppRoles } from './roles';
 
 export function useRoles(): { roles: string[]; loading: boolean } {
   const [roles, setRoles] = useState<string[]>([]);
@@ -28,5 +29,5 @@ export function useRoles(): { roles: string[]; loading: boolean } {
 }
 
 export function hasAdminRole(roles: string[]): boolean {
-  return roles.includes('Admin');
+  return roles.includes(AppRoles.Admin);
 }

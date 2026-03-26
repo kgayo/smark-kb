@@ -23,6 +23,7 @@ vi.mock('../auth/useRoles', () => {
 });
 
 import { useRoles } from '../auth/useRoles';
+import { AppRoles } from '../auth/roles';
 const mockedUseRoles = vi.mocked(useRoles);
 const mockedApi = vi.mocked(api);
 
@@ -54,7 +55,7 @@ describe('PatternGovernancePage', () => {
   });
 
   it('shows access denied for non-admin/non-lead roles', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['SupportAgent'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.SupportAgent], loading: false });
     renderPage();
     expect(screen.getByTestId('governance-denied')).toBeInTheDocument();
     expect(screen.getByText('Access Denied')).toBeInTheDocument();
@@ -67,7 +68,7 @@ describe('PatternGovernancePage', () => {
   });
 
   it('allows Admin role to access governance page', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getGovernanceQueue.mockResolvedValue({
       patterns: [],
       totalCount: 0,
@@ -82,7 +83,7 @@ describe('PatternGovernancePage', () => {
   });
 
   it('allows SupportLead role to access governance page', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['SupportLead'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.SupportLead], loading: false });
     mockedApi.getGovernanceQueue.mockResolvedValue({
       patterns: [],
       totalCount: 0,
@@ -97,7 +98,7 @@ describe('PatternGovernancePage', () => {
   });
 
   it('loads and displays patterns', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getGovernanceQueue.mockResolvedValue({
       patterns: [
         {
@@ -121,7 +122,7 @@ describe('PatternGovernancePage', () => {
   });
 
   it('shows error banner when pattern load fails', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getGovernanceQueue.mockRejectedValue(new Error('Server down'));
 
     renderPage();
@@ -132,7 +133,7 @@ describe('PatternGovernancePage', () => {
   });
 
   it('selects a pattern and shows detail view', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getGovernanceQueue.mockResolvedValue({
       patterns: [
         {
@@ -178,7 +179,7 @@ describe('PatternGovernancePage', () => {
   });
 
   it('shows error when pattern detail load fails', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getGovernanceQueue.mockResolvedValue({
       patterns: [
         {
@@ -206,7 +207,7 @@ describe('PatternGovernancePage', () => {
   });
 
   it('shows error when review action fails', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getGovernanceQueue.mockResolvedValue({
       patterns: [
         {
@@ -255,7 +256,7 @@ describe('PatternGovernancePage', () => {
   });
 
   it('renders navigation links', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getGovernanceQueue.mockResolvedValue({
       patterns: [],
       totalCount: 0,

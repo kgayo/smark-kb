@@ -1,6 +1,7 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { AuditCompliancePage } from './AuditCompliancePage';
+import { AppRoles } from '../auth/roles';
 import * as client from '../api/client';
 import type { AuditEventListResponse } from '../api/types';
 
@@ -53,7 +54,7 @@ function setupAdminUser() {
     name: 'Admin',
     tenantId: 't1',
     correlationId: null,
-    roles: ['Admin'],
+    roles: [AppRoles.Admin],
   });
 }
 
@@ -74,7 +75,7 @@ describe('AuditCompliancePage', () => {
       name: 'Agent',
       tenantId: 't1',
       correlationId: null,
-      roles: ['SupportAgent'],
+      roles: [AppRoles.SupportAgent],
     });
     renderPage();
     await waitFor(() => {

@@ -1,5 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useRoles, hasAdminRole } from './useRoles';
+import { AppRoles } from './roles';
 import * as client from '../api/client';
 
 vi.mock('../api/client', () => ({
@@ -26,7 +27,7 @@ describe('useRoles', () => {
       name: 'User',
       tenantId: 't1',
       correlationId: null,
-      roles: ['Admin', 'SupportAgent'],
+      roles: [AppRoles.Admin, AppRoles.SupportAgent],
     });
 
     const { result } = renderHook(() => useRoles());
@@ -34,7 +35,7 @@ describe('useRoles', () => {
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
     });
-    expect(result.current.roles).toEqual(['Admin', 'SupportAgent']);
+    expect(result.current.roles).toEqual([AppRoles.Admin, AppRoles.SupportAgent]);
   });
 
   it('sets empty roles on fetch failure', async () => {
@@ -67,18 +68,18 @@ describe('useRoles', () => {
       name: 'User',
       tenantId: 't1',
       correlationId: null,
-      roles: ['Admin'],
+      roles: [AppRoles.Admin],
     });
   });
 });
 
 describe('hasAdminRole', () => {
   it('returns true when roles include Admin', () => {
-    expect(hasAdminRole(['SupportAgent', 'Admin'])).toBe(true);
+    expect(hasAdminRole([AppRoles.SupportAgent, AppRoles.Admin])).toBe(true);
   });
 
   it('returns false when roles do not include Admin', () => {
-    expect(hasAdminRole(['SupportAgent', 'SupportLead'])).toBe(false);
+    expect(hasAdminRole([AppRoles.SupportAgent, AppRoles.SupportLead])).toBe(false);
   });
 
   it('returns false for empty roles', () => {

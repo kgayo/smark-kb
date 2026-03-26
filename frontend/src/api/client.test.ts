@@ -1,5 +1,6 @@
 import { ApiError, setTokenProvider } from './client';
 import * as client from './client';
+import { AppRoles } from '../auth/roles';
 
 // ── Helpers ──
 
@@ -451,7 +452,7 @@ describe('Diagnostics endpoints', () => {
 
 describe('getMe', () => {
   it('GETs /api/me (unwrapped response)', async () => {
-    const data = { userId: 'u1', name: 'Test', tenantId: 't1', correlationId: null, roles: ['Admin'] };
+    const data = { userId: 'u1', name: 'Test', tenantId: 't1', correlationId: null, roles: [AppRoles.Admin] };
     const fetchMock = mockFetchSuccess(data, false);
     vi.spyOn(globalThis, 'fetch').mockImplementation(fetchMock);
 

@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { AdminPage } from './AdminPage';
+import { AppRoles } from '../auth/roles';
 import * as client from '../api/client';
 
 vi.mock('../api/client', () => ({
@@ -37,7 +38,7 @@ describe('AdminPage', () => {
       name: 'Agent',
       tenantId: 't1',
       correlationId: null,
-      roles: ['SupportAgent'],
+      roles: [AppRoles.SupportAgent],
     });
     renderWithRouter();
     await waitFor(() => {
@@ -52,7 +53,7 @@ describe('AdminPage', () => {
       name: 'Admin User',
       tenantId: 't1',
       correlationId: null,
-      roles: ['Admin'],
+      roles: [AppRoles.Admin],
     });
     mockedClient.listConnectors.mockResolvedValue({
       connectors: [
@@ -85,7 +86,7 @@ describe('AdminPage', () => {
       name: 'Admin',
       tenantId: 't1',
       correlationId: null,
-      roles: ['Admin'],
+      roles: [AppRoles.Admin],
     });
     mockedClient.listConnectors.mockResolvedValue({
       connectors: [],
@@ -103,7 +104,7 @@ describe('AdminPage', () => {
       name: 'Admin',
       tenantId: 't1',
       correlationId: null,
-      roles: ['Admin'],
+      roles: [AppRoles.Admin],
     });
     mockedClient.listConnectors.mockResolvedValue({
       connectors: [],

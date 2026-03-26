@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-26 (Asia/Manila) — iteration 218
-Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase 1: P0-001–P0-022; Phase 2: P1-001–P1-012, P2-001–P2-005; Phase 3: P3-001–P3-038 (all 38 items). Tests: T-001–T-008; ~3295 tests passing (2813 backend + 498 frontend). Spec clarification backlog: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. BUG-001–BUG-005 resolved. TECH-001–TECH-124 resolved. 283/283 checklist items complete, 0 remaining.
+Last updated: 2026-03-26 (Asia/Manila) — iteration 219
+Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase 1: P0-001–P0-022; Phase 2: P1-001–P1-012, P2-001–P2-005; Phase 3: P3-001–P3-038 (all 38 items). Tests: T-001–T-008; ~3311 tests passing (2813 backend + 498 frontend). Spec clarification backlog: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. BUG-001–BUG-005 resolved. TECH-001–TECH-125 resolved. 284/284 checklist items complete, 0 remaining.
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -529,6 +529,10 @@ Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase
 - [x] TECH-124: Consolidate ~30 hardcoded eval severity, threshold direction, and quality severity string literals into shared `EvalSeverity`, `ThresholdDirection`, and `QualitySeverity` constants.
   - Root cause: Eval regression severity strings (`"ok"`, `"warning"`, `"blocking"`) were hardcoded in 12 places across `BaselineComparator`, `GitHubActionsFormatter`, and `EvalPayloadBuilder`. Threshold direction strings (`">="`, `"<="`) were hardcoded in 4 places in `ThresholdChecker`. Case-card quality severity strings (`"error"`, `"warning"`) were hardcoded in 14 places in `CaseCardQualityValidator`. Any string rename or addition would require updating multiple files.
   - Completed (iteration 218): Created `EvalSeverity` (`Ok`, `Warning`, `Blocking`), `ThresholdDirection` (`GreaterThanOrEqual`, `LessThanOrEqual`), and `QualitySeverity` (`Warning`, `Error`) constant classes in `SmartKb.Contracts/EvalSeverity.cs`. Extracted duplicated severity determination logic in `BaselineComparator` into shared `DetermineSeverity` helper. Updated all ~30 hardcoded string references across 5 production files and 8 test files. 2813 backend tests passing.
+
+- [x] TECH-125: Consolidate ~70 hardcoded frontend role name string literals into shared `AppRoles` constants + extract duplicate export fetch helper.
+  - Root cause: Role name strings (`'Admin'`, `'SupportLead'`, `'SupportAgent'`) were hardcoded in 2 production files (`useRoles.ts`, `PatternGovernancePage.tsx`) and 11 test files (~70 occurrences total). Must match backend `AppRole` enum values but had no compile-time enforcement. Additionally, `exportAuditEvents` and `exportGoldCases` in `client.ts` both manually constructed Authorization headers and error handling, duplicating logic already in the API client.
+  - Completed (iteration 219): Created `frontend/src/auth/roles.ts` with `AppRoles` constant object and `AppRoleName` type (mirroring backend `AppRole` enum). Updated `useRoles.ts` (`hasAdminRole`) and `PatternGovernancePage.tsx` (`hasGovernanceRole`) to use `AppRoles.*` constants. Updated all 11 test files to import and use `AppRoles.*`. Extracted `authHeaders()` and `rawFetch()` helpers in `client.ts`; simplified `exportAuditEvents` and `exportGoldCases` from ~10 lines each to ~3 lines each. Zero hardcoded role strings remaining in production code. 498 frontend tests passing; build clean.
 
 - [x] TECH-121: Replace ~50 direct `console.warn`/`console.error` calls in frontend production code with centralized `logger` utility that suppresses output in production builds.
   - Root cause: 52 `console.warn`/`console.error` calls across 19 production frontend files (pages, components, auth, utils) leaked implementation details, component names, and error objects to browser DevTools in production. No environment-aware suppression existed.

@@ -1,6 +1,7 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { SynonymManagementPage } from './SynonymManagementPage';
+import { AppRoles } from '../auth/roles';
 import * as client from '../api/client';
 
 vi.mock('../api/client', () => ({
@@ -30,7 +31,7 @@ const adminUser = {
   name: 'Admin',
   tenantId: 't1',
   correlationId: null,
-  roles: ['Admin'],
+  roles: [AppRoles.Admin],
 };
 
 function renderWithRouter() {
@@ -61,7 +62,7 @@ describe('SynonymManagementPage', () => {
       name: 'Agent',
       tenantId: 't1',
       correlationId: null,
-      roles: ['SupportAgent'],
+      roles: [AppRoles.SupportAgent],
     });
     renderWithRouter();
     await waitFor(() => {

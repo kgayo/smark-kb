@@ -24,6 +24,7 @@ vi.mock('../auth/useRoles', async (importOriginal) => {
 });
 
 import { useRoles } from '../auth/useRoles';
+import { AppRoles } from '../auth/roles';
 const mockedUseRoles = vi.mocked(useRoles);
 const mockedApi = vi.mocked(api);
 
@@ -43,13 +44,13 @@ describe('PrivacyAdminPage', () => {
   });
 
   it('shows access denied for non-admin', () => {
-    mockedUseRoles.mockReturnValue({ roles: ['SupportAgent'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.SupportAgent], loading: false });
     renderPage();
     expect(screen.getByTestId('privacy-denied')).toBeInTheDocument();
   });
 
   it('loads and displays PII policy', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getPiiPolicy.mockResolvedValue({
       tenantId: 't1',
       enforcementMode: 'redact',
@@ -66,7 +67,7 @@ describe('PrivacyAdminPage', () => {
   });
 
   it('shows no policy message when none configured', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getPiiPolicy.mockResolvedValue(null);
     renderPage();
     await waitFor(() => {
@@ -75,7 +76,7 @@ describe('PrivacyAdminPage', () => {
   });
 
   it('switches to retention tab', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getPiiPolicy.mockResolvedValue(null);
     mockedApi.getRetentionPolicies.mockResolvedValue({
       tenantId: 't1',
@@ -97,7 +98,7 @@ describe('PrivacyAdminPage', () => {
   });
 
   it('switches to deletion tab', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getPiiPolicy.mockResolvedValue(null);
     mockedApi.listDeletionRequests.mockResolvedValue({
       requests: [{
@@ -123,7 +124,7 @@ describe('PrivacyAdminPage', () => {
   });
 
   it('switches to compliance tab', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getPiiPolicy.mockResolvedValue(null);
     mockedApi.getRetentionCompliance.mockResolvedValue({
       tenantId: 't1',
@@ -152,7 +153,7 @@ describe('PrivacyAdminPage', () => {
   });
 
   it('shows non-compliant status', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getPiiPolicy.mockResolvedValue(null);
     mockedApi.getRetentionCompliance.mockResolvedValue({
       tenantId: 't1',
@@ -180,7 +181,7 @@ describe('PrivacyAdminPage', () => {
   });
 
   it('shows error on load failure', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getPiiPolicy.mockRejectedValue(new Error('Network error'));
     renderPage();
     await waitFor(() => {
@@ -189,7 +190,7 @@ describe('PrivacyAdminPage', () => {
   });
 
   it('renders all tabs', () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getPiiPolicy.mockResolvedValue(null);
     renderPage();
     expect(screen.getByText('PII Policy')).toBeInTheDocument();
@@ -199,7 +200,7 @@ describe('PrivacyAdminPage', () => {
   });
 
   it('tab buttons have aria-labels', () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getPiiPolicy.mockResolvedValue(null);
     renderPage();
     expect(screen.getByLabelText('PII Policy tab')).toBeInTheDocument();
@@ -209,7 +210,7 @@ describe('PrivacyAdminPage', () => {
   });
 
   it('custom pattern remove button has descriptive aria-label', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getPiiPolicy.mockResolvedValue({
       tenantId: 't1',
       enforcementMode: 'redact',
@@ -231,7 +232,7 @@ describe('PrivacyAdminPage', () => {
   });
 
   it('Submit Deletion Request button has aria-label', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getPiiPolicy.mockResolvedValue(null);
     renderPage();
     fireEvent.click(screen.getByLabelText('Data Deletion tab'));
@@ -239,7 +240,7 @@ describe('PrivacyAdminPage', () => {
   });
 
   it('PII type chip buttons have aria-label and aria-pressed', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getPiiPolicy.mockResolvedValue(null);
     renderPage();
     await waitFor(() => expect(screen.getByText(/No PII policy configured/)).toBeInTheDocument());
@@ -260,7 +261,7 @@ describe('PrivacyAdminPage', () => {
   });
 
   it('Refresh compliance button has aria-label', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getPiiPolicy.mockResolvedValue(null);
     mockedApi.getRetentionCompliance.mockResolvedValue({
       tenantId: 't1',

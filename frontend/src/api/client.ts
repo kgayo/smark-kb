@@ -107,6 +107,25 @@ export function setTokenProvider(provider: () => Promise<string | null>): void {
   getAccessToken = provider;
 }
 
+async function authHeaders(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {};
+  if (getAccessToken) {
+    const token = await getAccessToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
+async function rawFetch(path: string, init?: RequestInit): Promise<Response> {
+  const headers = { ...(await authHeaders()), ...(init?.headers as Record<string, string>) };
+  const res = await fetch(path, { ...init, headers });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new ApiError(res.status, body || res.statusText);
+  }
+  return res;
+}
+
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -1037,18 +1056,7 @@ export async function exportAuditEvents(params?: AuditExportParams): Promise<Blo
   if (params?.from) qs.set('from', params.from);
   if (params?.to) qs.set('to', params.to);
   const q = qs.toString();
-
-  const headers: Record<string, string> = {};
-  if (getAccessToken) {
-    const token = await getAccessToken();
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  const res = await fetch(`/api/audit/events/export${q ? `?${q}` : ''}`, { headers });
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new ApiError(res.status, body || res.statusText);
-  }
+  const res = await rawFetch(`/api/audit/events/export${q ? `?${q}` : ''}`);
   return res.blob();
 }
 
@@ -1086,16 +1094,7 @@ export async function deleteGoldCase(id: string): Promise<void> {
 }
 
 export async function exportGoldCases(): Promise<string> {
-  const headers: Record<string, string> = {};
-  if (getAccessToken) {
-    const token = await getAccessToken();
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-  }
-  const res = await fetch('/api/admin/eval/gold-cases/export', { headers });
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new ApiError(res.status, body || res.statusText);
-  }
+  const res = await rawFetch('/api/admin/eval/gold-cases/export');
   return res.text();
 }
 

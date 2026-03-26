@@ -21,6 +21,7 @@ vi.mock('../auth/useRoles', async (importOriginal) => {
 });
 
 import { useRoles } from '../auth/useRoles';
+import { AppRoles } from '../auth/roles';
 const mockedUseRoles = vi.mocked(useRoles);
 const mockedApi = vi.mocked(api);
 
@@ -40,13 +41,13 @@ describe('RoutingAnalyticsPage', () => {
   });
 
   it('shows access denied for non-admin', () => {
-    mockedUseRoles.mockReturnValue({ roles: ['SupportAgent'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.SupportAgent], loading: false });
     renderPage();
     expect(screen.getByTestId('routing-denied')).toBeInTheDocument();
   });
 
   it('loads analytics on mount for admin', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getRoutingAnalytics.mockResolvedValue({
       tenantId: 't1',
       totalOutcomes: 50,
@@ -81,7 +82,7 @@ describe('RoutingAnalyticsPage', () => {
   });
 
   it('shows error on analytics load failure', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getRoutingAnalytics.mockRejectedValue(new Error('Network error'));
     renderPage();
     await waitFor(() => {
@@ -90,7 +91,7 @@ describe('RoutingAnalyticsPage', () => {
   });
 
   it('switches to rules tab and loads rules', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getRoutingAnalytics.mockResolvedValue({
       tenantId: 't1', totalOutcomes: 0, totalEscalations: 0, totalReroutes: 0,
       totalResolvedWithoutEscalation: 0, overallAcceptanceRate: 0, overallRerouteRate: 0,
@@ -116,7 +117,7 @@ describe('RoutingAnalyticsPage', () => {
   });
 
   it('switches to recommendations tab', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getRoutingAnalytics.mockResolvedValue({
       tenantId: 't1', totalOutcomes: 0, totalEscalations: 0, totalReroutes: 0,
       totalResolvedWithoutEscalation: 0, overallAcceptanceRate: 0, overallRerouteRate: 0,
@@ -145,7 +146,7 @@ describe('RoutingAnalyticsPage', () => {
   });
 
   it('shows "Eval Report" source when recommendation has sourceEvalReportId', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getRoutingAnalytics.mockResolvedValue({
       tenantId: 't1', totalOutcomes: 0, totalEscalations: 0, totalReroutes: 0,
       totalResolvedWithoutEscalation: 0, overallAcceptanceRate: 0, overallRerouteRate: 0,
@@ -172,7 +173,7 @@ describe('RoutingAnalyticsPage', () => {
   });
 
   it('shows "Manual" source when recommendation has no sourceEvalReportId', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getRoutingAnalytics.mockResolvedValue({
       tenantId: 't1', totalOutcomes: 0, totalEscalations: 0, totalReroutes: 0,
       totalResolvedWithoutEscalation: 0, overallAcceptanceRate: 0, overallRerouteRate: 0,
@@ -199,7 +200,7 @@ describe('RoutingAnalyticsPage', () => {
   });
 
   it('create rule form has aria-label on min severity select', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getRoutingAnalytics.mockResolvedValue({
       tenantId: 't1', totalOutcomes: 0, totalEscalations: 0, totalReroutes: 0,
       totalResolvedWithoutEscalation: 0, overallAcceptanceRate: 0, overallRerouteRate: 0,
@@ -217,7 +218,7 @@ describe('RoutingAnalyticsPage', () => {
   });
 
   it('renders navigation links', () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getRoutingAnalytics.mockResolvedValue({
       tenantId: 't1', totalOutcomes: 0, totalEscalations: 0, totalReroutes: 0,
       totalResolvedWithoutEscalation: 0, overallAcceptanceRate: 0, overallRerouteRate: 0,
@@ -231,7 +232,7 @@ describe('RoutingAnalyticsPage', () => {
   });
 
   it('has aria-label on analytics window period select', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getRoutingAnalytics.mockResolvedValue({
       tenantId: 't1', totalOutcomes: 0, totalEscalations: 0, totalReroutes: 0,
       totalResolvedWithoutEscalation: 0, overallAcceptanceRate: 0, overallRerouteRate: 0,
@@ -244,7 +245,7 @@ describe('RoutingAnalyticsPage', () => {
   });
 
   it('tab buttons have aria-labels', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.listRoutingRules.mockResolvedValue({ rules: [], totalCount: 0 });
     mockedApi.listRoutingRecommendations.mockResolvedValue({ recommendations: [], totalCount: 0 });
     mockedApi.getRoutingAnalytics.mockResolvedValue({
@@ -261,7 +262,7 @@ describe('RoutingAnalyticsPage', () => {
   });
 
   it('Generate Recommendations button has aria-label', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.listRoutingRules.mockResolvedValue({ rules: [], totalCount: 0 });
     mockedApi.listRoutingRecommendations.mockResolvedValue({ recommendations: [], totalCount: 0 });
     mockedApi.getRoutingAnalytics.mockResolvedValue({

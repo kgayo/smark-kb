@@ -17,6 +17,7 @@ vi.mock('../auth/useRoles', async (importOriginal) => {
 });
 
 import { useRoles } from '../auth/useRoles';
+import { AppRoles } from '../auth/roles';
 const mockedUseRoles = vi.mocked(useRoles);
 const mockedApi = vi.mocked(api);
 
@@ -53,13 +54,13 @@ describe('PlaybooksPage', () => {
   });
 
   it('shows access denied for non-admin', () => {
-    mockedUseRoles.mockReturnValue({ roles: ['SupportAgent'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.SupportAgent], loading: false });
     renderPage();
     expect(screen.getByTestId('playbooks-denied')).toBeInTheDocument();
   });
 
   it('loads and displays playbook list', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.listPlaybooks.mockResolvedValue({
       playbooks: [samplePlaybook],
       totalCount: 1,
@@ -73,7 +74,7 @@ describe('PlaybooksPage', () => {
   });
 
   it('shows empty state', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.listPlaybooks.mockResolvedValue({ playbooks: [], totalCount: 0 });
     renderPage();
     await waitFor(() => {
@@ -82,7 +83,7 @@ describe('PlaybooksPage', () => {
   });
 
   it('navigates to playbook detail on click', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.listPlaybooks.mockResolvedValue({ playbooks: [samplePlaybook], totalCount: 1 });
     mockedApi.getPlaybook.mockResolvedValue(samplePlaybook);
     renderPage();
@@ -100,7 +101,7 @@ describe('PlaybooksPage', () => {
   });
 
   it('shows create form', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.listPlaybooks.mockResolvedValue({ playbooks: [], totalCount: 0 });
     renderPage();
     await waitFor(() => expect(screen.getByTestId('new-playbook-btn')).toBeInTheDocument());
@@ -117,7 +118,7 @@ describe('PlaybooksPage', () => {
   });
 
   it('shows error on load failure', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.listPlaybooks.mockRejectedValue(new Error('Failed'));
     renderPage();
     await waitFor(() => {
@@ -126,7 +127,7 @@ describe('PlaybooksPage', () => {
   });
 
   it('renders navigation links', () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.listPlaybooks.mockResolvedValue({ playbooks: [], totalCount: 0 });
     renderPage();
     expect(screen.getByText('Connectors')).toBeInTheDocument();
@@ -134,7 +135,7 @@ describe('PlaybooksPage', () => {
   });
 
   it('checklist form has aria-labels on input and remove buttons', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.listPlaybooks.mockResolvedValue({ playbooks: [], totalCount: 0 });
     renderPage();
     await waitFor(() => expect(screen.getByTestId('new-playbook-btn')).toBeInTheDocument());

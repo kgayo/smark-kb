@@ -4,11 +4,12 @@ import { logger } from '../utils/logger';
 import type { PatternDetail, PatternSummary, TrustLevel } from '../api/types';
 import * as api from '../api/client';
 import { useRoles } from '../auth/useRoles';
+import { AppRoles } from '../auth/roles';
 import { PatternList } from '../components/PatternList';
 import { PatternDetailView } from '../components/PatternDetailView';
 
 function hasGovernanceRole(roles: string[]): boolean {
-  return roles.some(r => r === 'Admin' || r === 'SupportLead');
+  return roles.some(r => r === AppRoles.Admin || r === AppRoles.SupportLead);
 }
 
 export function PatternGovernancePage() {

@@ -18,6 +18,7 @@ vi.mock('../auth/useRoles', async (importOriginal) => {
 });
 
 import { useRoles } from '../auth/useRoles';
+import { AppRoles } from '../auth/roles';
 const mockedUseRoles = vi.mocked(useRoles);
 const mockedApi = vi.mocked(api);
 
@@ -55,13 +56,13 @@ describe('CostControlsPage', () => {
   });
 
   it('shows access denied for non-admin', () => {
-    mockedUseRoles.mockReturnValue({ roles: ['SupportAgent'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.SupportAgent], loading: false });
     renderPage();
     expect(screen.getByTestId('cost-denied')).toBeInTheDocument();
   });
 
   it('loads and displays usage summary', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getTokenUsageSummary.mockResolvedValue(sampleSummary);
     mockedApi.getDailyUsage.mockResolvedValue([]);
     renderPage();
@@ -73,7 +74,7 @@ describe('CostControlsPage', () => {
   });
 
   it('shows cache hit rate', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getTokenUsageSummary.mockResolvedValue(sampleSummary);
     mockedApi.getDailyUsage.mockResolvedValue([]);
     renderPage();
@@ -84,7 +85,7 @@ describe('CostControlsPage', () => {
   });
 
   it('tab buttons have aria-labels', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getTokenUsageSummary.mockResolvedValue(sampleSummary);
     mockedApi.getDailyUsage.mockResolvedValue([]);
     renderPage();
@@ -95,7 +96,7 @@ describe('CostControlsPage', () => {
   });
 
   it('switches to settings tab', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getTokenUsageSummary.mockResolvedValue(sampleSummary);
     mockedApi.getDailyUsage.mockResolvedValue([]);
     mockedApi.getCostSettings.mockResolvedValue({
@@ -122,7 +123,7 @@ describe('CostControlsPage', () => {
   });
 
   it('switches to budget tab', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getTokenUsageSummary.mockResolvedValue(sampleSummary);
     mockedApi.getDailyUsage.mockResolvedValue([]);
     mockedApi.getBudgetCheck.mockResolvedValue({
@@ -143,7 +144,7 @@ describe('CostControlsPage', () => {
   });
 
   it('shows budget warning', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getTokenUsageSummary.mockResolvedValue(sampleSummary);
     mockedApi.getDailyUsage.mockResolvedValue([]);
     mockedApi.getBudgetCheck.mockResolvedValue({
@@ -163,7 +164,7 @@ describe('CostControlsPage', () => {
   });
 
   it('shows error on usage load failure', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getTokenUsageSummary.mockRejectedValue(new Error('Network error'));
     mockedApi.getDailyUsage.mockRejectedValue(new Error('Network error'));
     renderPage();
@@ -173,7 +174,7 @@ describe('CostControlsPage', () => {
   });
 
   it('has aria-label on usage period select', async () => {
-    mockedUseRoles.mockReturnValue({ roles: ['Admin'], loading: false });
+    mockedUseRoles.mockReturnValue({ roles: [AppRoles.Admin], loading: false });
     mockedApi.getTokenUsageSummary.mockResolvedValue(sampleSummary);
     mockedApi.getDailyUsage.mockResolvedValue([]);
     renderPage();
