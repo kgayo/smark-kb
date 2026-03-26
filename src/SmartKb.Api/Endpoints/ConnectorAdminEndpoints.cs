@@ -38,7 +38,10 @@ public static class ConnectorAdminEndpoints
                 return Results.UnprocessableEntity(ApiResponse<ConnectorValidationResult>.Failure(
                     string.Join("; ", validation.Errors), tenant.CorrelationId));
 
-            return Results.Created($"/api/admin/connectors/{response!.Id}",
+            if (response is null)
+                return Results.Problem("Unexpected null response from service.", statusCode: 500);
+
+            return Results.Created($"/api/admin/connectors/{response.Id}",
                 ApiResponse<ConnectorResponse>.Success(response, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 

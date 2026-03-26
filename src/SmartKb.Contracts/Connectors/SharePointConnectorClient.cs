@@ -15,7 +15,7 @@ namespace SmartKb.Contracts.Connectors;
 public sealed class SharePointConnectorClient : IConnectorClient
 {
     private const string GraphBaseUrl = GraphApiConstants.BaseUrl;
-    private const string GraphTokenUrl = GraphApiConstants.TokenUrl;
+
 
     // File extensions we can extract text from. Others are skipped.
     private static readonly HashSet<string> SupportedExtensions = new(StringComparer.OrdinalIgnoreCase)
@@ -482,24 +482,8 @@ public sealed class SharePointConnectorClient : IConnectorClient
         CancellationToken ct)
     {
         using var client = _httpClientFactory.CreateClient(HttpClientNames.SharePoint);
-
-        var tokenUrl = string.Format(GraphTokenUrl, entraIdTenantId);
-        using var requestBody = new FormUrlEncodedContent(new Dictionary<string, string>
-        {
-            ["grant_type"] = GraphApiConstants.ClientCredentialsGrantType,
-            ["client_id"] = clientId,
-            ["client_secret"] = clientSecret,
-            ["scope"] = GraphApiConstants.DefaultScope,
-        });
-
-        using var response = await client.PostAsync(tokenUrl, requestBody, ct);
-        response.EnsureSuccessStatusCode();
-
-        var tokenResponse = await DeserializeAsync<OAuthTokenResponse>(response, ct);
-        if (tokenResponse?.AccessToken is null)
-            throw new InvalidOperationException("Failed to acquire access token: empty response.");
-
-        return tokenResponse.AccessToken;
+        return await ConnectorHttpHelper.AcquireGraphTokenAsync(
+            client, entraIdTenantId, clientId, clientSecret, ct, _logger);
     }
 
     // --- Site and Drive Resolution ---
@@ -622,18 +606,6 @@ public sealed class SharePointConnectorClient : IConnectorClient
         => ConnectorHttpHelper.DeserializeAsync<T>(response, SharedJsonOptions.CamelCaseIgnoreNull, ct, _logger);
 
     // --- Graph API response models ---
-
-    internal sealed class OAuthTokenResponse
-    {
-        [JsonPropertyName("access_token")]
-        public string? AccessToken { get; set; }
-
-        [JsonPropertyName("token_type")]
-        public string? TokenType { get; set; }
-
-        [JsonPropertyName("expires_in")]
-        public int ExpiresIn { get; set; }
-    }
 
     internal sealed class GraphSite
     {

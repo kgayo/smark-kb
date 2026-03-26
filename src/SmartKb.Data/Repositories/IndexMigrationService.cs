@@ -239,6 +239,7 @@ public sealed class IndexMigrationService : IIndexMigrationService
         }
         catch (RequestFailedException ex) when (ex.Status == 404)
         {
+            _logger.LogWarning(ex, "Retired index '{IndexName}' not found in Azure AI Search during rollback attempt.", previous.IndexName);
             return new MigrationResult(false,
                 $"Retired index '{previous.IndexName}' no longer exists in Azure AI Search. Cannot rollback.",
                 indexType, current.IndexName, previous.IndexName, previous.Version, 0);

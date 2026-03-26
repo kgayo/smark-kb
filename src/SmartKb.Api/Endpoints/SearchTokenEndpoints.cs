@@ -56,7 +56,10 @@ public static class SearchTokenEndpoints
                 return Results.UnprocessableEntity(ApiResponse<SynonymRuleValidationResult>.Failure(
                     string.Join("; ", validation.Errors), tenant.CorrelationId));
 
-            return Results.Created($"/api/admin/synonym-rules/{response!.Id}",
+            if (response is null)
+                return Results.Problem("Unexpected null response from service.", statusCode: 500);
+
+            return Results.Created($"/api/admin/synonym-rules/{response.Id}",
                 ApiResponse<SynonymRuleResponse>.Success(response, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
@@ -172,7 +175,10 @@ public static class SearchTokenEndpoints
             if (validation is not null)
                 return Results.UnprocessableEntity(ApiResponse<object>.Failure(
                     string.Join("; ", validation.Errors), tenant.CorrelationId));
-            return Results.Created($"/api/admin/stop-words/{response!.Id}",
+            if (response is null)
+                return Results.Problem("Unexpected null response from service.", statusCode: 500);
+
+            return Results.Created($"/api/admin/stop-words/{response.Id}",
                 ApiResponse<StopWordResponse>.Success(response, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
@@ -269,7 +275,10 @@ public static class SearchTokenEndpoints
             if (validation is not null)
                 return Results.UnprocessableEntity(ApiResponse<object>.Failure(
                     string.Join("; ", validation.Errors), tenant.CorrelationId));
-            return Results.Created($"/api/admin/special-tokens/{response!.Id}",
+            if (response is null)
+                return Results.Problem("Unexpected null response from service.", statusCode: 500);
+
+            return Results.Created($"/api/admin/special-tokens/{response.Id}",
                 ApiResponse<SpecialTokenResponse>.Success(response, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 

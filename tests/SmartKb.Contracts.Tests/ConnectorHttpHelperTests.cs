@@ -335,6 +335,95 @@ public class ConnectorHttpHelperTests
         Assert.NotEqual(secret1, secret2);
     }
 
+    // --- AcquireGraphTokenAsync tests ---
+
+    [Fact]
+    public async Task AcquireGraphTokenAsync_ReturnsAccessToken()
+    {
+        var handler = new FakeHandler("""{"access_token":"graph-abc-123","token_type":"Bearer","expires_in":3600}""");
+        using var client = new HttpClient(handler);
+
+        var token = await ConnectorHttpHelper.AcquireGraphTokenAsync(
+            client, "tenant-123", "client-id", "client-secret", CancellationToken.None);
+
+        Assert.Equal("graph-abc-123", token);
+    }
+
+    [Fact]
+    public async Task AcquireGraphTokenAsync_PostsToCorrectTokenUrl()
+    {
+        var handler = new FakeHandler("""{"access_token":"tok","token_type":"Bearer","expires_in":3600}""");
+        using var client = new HttpClient(handler);
+
+        await ConnectorHttpHelper.AcquireGraphTokenAsync(
+            client, "my-tenant-id", "cid", "cs", CancellationToken.None);
+
+        Assert.NotNull(handler.CapturedUri);
+        Assert.Contains("my-tenant-id", handler.CapturedUri!.ToString());
+        Assert.Contains("oauth2/v2.0/token", handler.CapturedUri.ToString());
+    }
+
+    [Fact]
+    public async Task AcquireGraphTokenAsync_ThrowsOnNullAccessToken()
+    {
+        var handler = new FakeHandler("""{"access_token":null,"token_type":"Bearer","expires_in":3600}""");
+        using var client = new HttpClient(handler);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            ConnectorHttpHelper.AcquireGraphTokenAsync(
+                client, "t", "c", "s", CancellationToken.None));
+
+        Assert.Contains("access token", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task AcquireGraphTokenAsync_ThrowsOnNon2xxResponse()
+    {
+        var handler = new FakeHandler("", HttpStatusCode.Unauthorized);
+        using var client = new HttpClient(handler);
+
+        await Assert.ThrowsAsync<HttpRequestException>(() =>
+            ConnectorHttpHelper.AcquireGraphTokenAsync(
+                client, "t", "c", "s", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task AcquireGraphTokenAsync_PropagatesCancellation()
+    {
+        var handler = new FakeHandler("""{"access_token":"tok"}""");
+        using var client = new HttpClient(handler);
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            ConnectorHttpHelper.AcquireGraphTokenAsync(
+                client, "t", "c", "s", cts.Token));
+    }
+
+    private sealed class FakeHandler : HttpMessageHandler
+    {
+        private readonly string _responseBody;
+        private readonly HttpStatusCode _statusCode;
+        public Uri? CapturedUri { get; private set; }
+
+        public FakeHandler(string responseBody, HttpStatusCode statusCode = HttpStatusCode.OK)
+        {
+            _responseBody = responseBody;
+            _statusCode = statusCode;
+        }
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            CapturedUri = request.RequestUri;
+            return Task.FromResult(new HttpResponseMessage(_statusCode)
+            {
+                Content = new StringContent(_responseBody, Encoding.UTF8, "application/json"),
+            });
+        }
+    }
+
     private sealed class TestDto
     {
         public string? Name { get; set; }

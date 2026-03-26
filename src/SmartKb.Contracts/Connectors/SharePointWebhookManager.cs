@@ -17,7 +17,7 @@ namespace SmartKb.Contracts.Connectors;
 public sealed class SharePointWebhookManager : IWebhookManager
 {
     private const string GraphBaseUrl = GraphApiConstants.BaseUrl;
-    private const string GraphTokenUrl = GraphApiConstants.TokenUrl;
+
 
     // Graph allows max 4230 minutes (about 2.94 days) for driveItem subscriptions.
     private static readonly TimeSpan SubscriptionLifetime = TimeSpan.FromMinutes(4230);
@@ -202,21 +202,8 @@ public sealed class SharePointWebhookManager : IWebhookManager
         SharePointSourceConfig config, string clientSecret, CancellationToken ct)
     {
         using var client = _httpClientFactory.CreateClient(HttpClientNames.SharePoint);
-        var tokenUrl = string.Format(GraphTokenUrl, config.EntraIdTenantId);
-        using var requestBody = new FormUrlEncodedContent(new Dictionary<string, string>
-        {
-            ["grant_type"] = GraphApiConstants.ClientCredentialsGrantType,
-            ["client_id"] = config.ClientId,
-            ["client_secret"] = clientSecret,
-            ["scope"] = GraphApiConstants.DefaultScope,
-        });
-
-        using var response = await client.PostAsync(tokenUrl, requestBody, ct);
-        response.EnsureSuccessStatusCode();
-
-        var tokenResponse = await DeserializeAsync<SharePointConnectorClient.OAuthTokenResponse>(response, ct);
-        return tokenResponse?.AccessToken
-            ?? throw new InvalidOperationException("Failed to acquire access token.");
+        return await ConnectorHttpHelper.AcquireGraphTokenAsync(
+            client, config.EntraIdTenantId, config.ClientId, clientSecret, ct, _logger);
     }
 
     private HttpClient CreateGraphClient(string accessToken)

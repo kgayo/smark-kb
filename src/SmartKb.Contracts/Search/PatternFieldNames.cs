@@ -20,7 +20,7 @@ public static class PatternFieldNames
     public const string EmbeddingVector = "pattern_embedding_vector";
 
     // Filterable metadata
-    public const string TenantId = "tenant_id";
+    public const string TenantId = SearchFieldNames.TenantId;
     public const string TrustLevel = "trust_level";
     public const string ProductArea = "product_area";
     public const string UpdatedAt = "updated_at";

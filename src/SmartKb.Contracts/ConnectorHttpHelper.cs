@@ -3,7 +3,9 @@ using System.Net.Mime;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
+using SmartKb.Contracts.Connectors;
 
 namespace SmartKb.Contracts;
 
@@ -86,6 +88,52 @@ public static class ConnectorHttpHelper
             logger?.LogWarning(ex, "Failed to deserialize {TypeName} from HTTP response", typeof(T).Name);
             return default;
         }
+    }
+
+    /// <summary>
+    /// Acquires a Microsoft Graph API access token using the OAuth2 client_credentials grant.
+    /// Shared by SharePointConnectorClient and SharePointWebhookManager.
+    /// </summary>
+    public static async Task<string> AcquireGraphTokenAsync(
+        HttpClient httpClient,
+        string entraIdTenantId,
+        string clientId,
+        string clientSecret,
+        CancellationToken ct,
+        ILogger? logger = null)
+    {
+        var tokenUrl = string.Format(GraphApiConstants.TokenUrl, entraIdTenantId);
+        using var requestBody = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["grant_type"] = GraphApiConstants.ClientCredentialsGrantType,
+            ["client_id"] = clientId,
+            ["client_secret"] = clientSecret,
+            ["scope"] = GraphApiConstants.DefaultScope,
+        });
+
+        using var response = await httpClient.PostAsync(tokenUrl, requestBody, ct);
+        response.EnsureSuccessStatusCode();
+
+        var tokenResponse = await DeserializeAsync<GraphTokenResponse>(response, SharedJsonOptions.CamelCaseIgnoreNull, ct, logger);
+        if (tokenResponse?.AccessToken is null)
+            throw new InvalidOperationException("Failed to acquire Graph API access token: empty response.");
+
+        return tokenResponse.AccessToken;
+    }
+
+    /// <summary>
+    /// OAuth2 token response model for Microsoft Graph API client_credentials flow.
+    /// </summary>
+    internal sealed class GraphTokenResponse
+    {
+        [JsonPropertyName("access_token")]
+        public string? AccessToken { get; set; }
+
+        [JsonPropertyName("token_type")]
+        public string? TokenType { get; set; }
+
+        [JsonPropertyName("expires_in")]
+        public int ExpiresIn { get; set; }
     }
 
     /// <summary>
