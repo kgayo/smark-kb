@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-25 (Asia/Manila) — iteration 203 (TECH-110: consolidate 170 hardcoded permission string literals into shared Permissions constants + 10 OpenAI message role strings into MessageRoleName constants + 2 system actor ID literals into ResponseMessages.SystemActorId)
-Status: **All phases and spec clarifications complete.** Phase 1 complete: P0-001–P0-022; Phase 2 complete: P1-001–P1-012, P2-001–P2-005; Phase 3 complete: P3-001–P3-038 (all 38 items). Tests complete: T-001–T-008; ~3176 tests passing (2586 backend + 492 frontend + 6 parity + 28 new + 22 TECH-110); 0 bugs blocking, 0 tech-debt blocking. Spec clarification backlog complete: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. Iteration 203: TECH-110 (Permissions + MessageRoleName + SystemActorId consolidation).
+Last updated: 2026-03-26 (Asia/Manila) — iteration 204
+Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase 1: P0-001–P0-022; Phase 2: P1-001–P1-012, P2-001–P2-005; Phase 3: P3-001–P3-038 (all 38 items). Tests: T-001–T-008; ~3176 tests passing (2586 backend + 492 frontend + 6 parity + 28 new + 22 TECH-110). Spec clarification backlog: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. BUG-001–BUG-005 resolved. TECH-001–TECH-110 resolved. 271/271 checklist items complete, 0 remaining.
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -958,16 +958,16 @@ Items below were identified by comparing all 11 specs (jtbd-01 through jtbd-11) 
 - [x] T-008: Backend service test gaps.
   - Completed: (a) **DeadLetterService** — `DeadLetterServiceTests` with 8 tests: DLQ path construction, empty peek, message mapping (messageId, correlationId, subject, deliveryCount, body), multiple messages, default maxMessages=20, DisposeAsync receiver cleanup, DeadLetterMessage record properties, DeadLetterListResponse record properties. Mock `ServiceBusClient` + `ServiceBusReceiver` with virtual method overrides. (b) **KeyVaultSecretProvider** — `KeyVaultSecretProviderTests` with 5 tests: GetSecretAsync returns value, GetSecretAsync propagates RequestFailedException for missing secret, SetSecretAsync stores value, DeleteSecretAsync removes secret, multiple secrets return correct values. Mock `SecretClient` with virtual method overrides + `SecretModelFactory`. (c) **SqlAnswerTraceWriter** — `SqlAnswerTraceWriterTests` with 5 tests: all fields persisted (including JSON chunk IDs), multiple traces, escalation recommended flag, empty chunk lists as JSON arrays, CreatedAt timestamp range check. (d) `AdoSyncJobProcessorIntegrationTests` naming cosmetic — not changed (accurate description: "ADO connector wired into SyncJobProcessor").
 
-## Open Risks / Watch Items
-- [ ] R-001: Connector API limits and webhook reliability variability across providers. Mitigated by polling fallback (P0-008A) and rate-limit metrics (P1-008). Residual: per-provider quota tuning needed in production.
-- [ ] R-002: Retrieval quality drift as corpus grows; requires active eval + tuning. Mitigated by eval harness (P0-021), per-tenant tuning (P1-007), and scheduled eval CI (P3-006 complete). Residual: monitor nightly/weekly eval trends for early drift detection.
-- [ ] R-003: Escalation over/under-triggering before enough outcome data accumulates. Mitigated by routing analytics (P1-009) and improvement recommendations. Residual: cold-start period.
-- [ ] R-004: Tenant misconfiguration risk in early environments. Mitigated by validation endpoints. Consider P3-010 (guided scope selection) for further mitigation.
-- [ ] R-005: Terraform/ARM drift risk if infra updates bypass IaC workflows. Mitigated by drift-detection.yml (weekly scheduled), infra-validate.yml, and IaC parity tests (P1-010, T-006).
-- [x] R-006: ~~PII leakage into model context~~ — resolved (P0-014A baseline redaction + P2-001 per-tenant policy with 3 enforcement modes + custom patterns).
-- [ ] R-007: Service Bus message ordering under high load; design for idempotency. Mitigated by idempotency keys on all webhook handlers and content hash dedup in SyncJobProcessor.
-- [x] R-008: Embedding model and chunking parameters — resolved in P0-005C.
-- [ ] R-009: Dual Terraform + ARM maintenance burden. Fixed BUG-002. Ongoing vigilance via T-006 parity tests.
+## Open Risks / Watch Items (monitoring only — not actionable checklist items)
+- R-001: Connector API limits and webhook reliability variability across providers. Mitigated by polling fallback (P0-008A) and rate-limit metrics (P1-008). Residual: per-provider quota tuning needed in production.
+- R-002: Retrieval quality drift as corpus grows; requires active eval + tuning. Mitigated by eval harness (P0-021), per-tenant tuning (P1-007), and scheduled eval CI (P3-006 complete). Residual: monitor nightly/weekly eval trends for early drift detection.
+- R-003: Escalation over/under-triggering before enough outcome data accumulates. Mitigated by routing analytics (P1-009) and improvement recommendations. Residual: cold-start period.
+- R-004: Tenant misconfiguration risk in early environments. Mitigated by validation endpoints. Consider P3-010 (guided scope selection) for further mitigation.
+- R-005: Terraform/ARM drift risk if infra updates bypass IaC workflows. Mitigated by drift-detection.yml (weekly scheduled), infra-validate.yml, and IaC parity tests (P1-010, T-006).
+- ~~R-006~~: PII leakage into model context — resolved (P0-014A baseline redaction + P2-001 per-tenant policy with 3 enforcement modes + custom patterns).
+- R-007: Service Bus message ordering under high load; design for idempotency. Mitigated by idempotency keys on all webhook handlers and content hash dedup in SyncJobProcessor.
+- ~~R-008~~: Embedding model and chunking parameters — resolved in P0-005C.
+- R-009: Dual Terraform + ARM maintenance burden. Fixed BUG-002. Ongoing vigilance via T-006 parity tests.
 - [x] R-010: ~~Confidence/escalation thresholds undefined~~ — resolved. Configurable via `ChatOrchestrationSettings` and `EscalationSettings`.
 - [x] R-011: ~~Phase 1 escalation drafts — copy/export only~~ — resolved. P1-003 added external ticket creation (ADO/ClickUp) after human approval.
 - [x] R-012: ACL metadata models differ per source — resolved. Each connector documents its ACL mapping.
@@ -1065,12 +1065,12 @@ Items where specs are ambiguous, inconsistent, or missing detail. Patch before o
 - [x] SPEC-016: jtbd-10 — Cross-tenant detection beyond missing-tid. **Spec patched**: jtbd-10 lines 30-35 document 403 for missing tid, 404 for cross-tenant resource access, EF per-tenant filters, and audit trail.
 - [x] SPEC-017: jtbd-11 — Add Ingestion Worker to IaC. Resolved in TECH-001.
 
-## Plan Maintenance Checklist (run each iteration)
-- [ ] Mark completed items with evidence (PR/test IDs).
-- [ ] Reorder remaining items by risk and dependency.
-- [ ] Add newly discovered bugs/tech debt with priority.
-- [ ] Confirm Terraform and ARM templates remain synchronized after Azure resource changes.
-- [ ] Remove stale completed details to keep plan concise.
+## Plan Maintenance Rules (applied each iteration, not checklist items)
+- Mark completed items with evidence (PR/test IDs).
+- Reorder remaining items by risk and dependency.
+- Only add new bugs/tech debt if they cause **correctness failures, security vulnerabilities, or data loss** — not for style, linting, or micro-refactors.
+- Confirm Terraform and ARM templates remain synchronized after Azure resource changes.
+- Remove stale completed details to keep plan concise.
 
 ## Audit Log
 - **Iteration 66 (2026-03-18)**: Full spec-vs-code gap audit. All 11 specs and PRD FR-*/NFR-* requirements compared against implemented codebase. Phase 1+2 confirmed complete (1880 tests, 0 bugs blocking). 23 new Phase 3 backlog items added (P3-001 through P3-023). 4 new design decisions (D-014 through D-017). 7 new risks (R-021 through R-027). Open spec clarifications annotated with implementation status. Risk items R-006, R-010, R-011 marked resolved. Key gaps: pre-retrieval classification (FR-TRIAGE), binary text extraction (SharePoint), scheduled eval automation, Phase 2 admin frontend pages.
