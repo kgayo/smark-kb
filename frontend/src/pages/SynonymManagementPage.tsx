@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { logger } from '../utils/logger';
 import type {
   SynonymRuleResponse,
   SynonymRuleListResponse,
@@ -86,6 +87,7 @@ function SynonymsTab() {
       setRules(result.rules);
       setGroups(result.groups);
     } catch (e) {
+      logger.warn('Failed to load synonym rules', e);
       setError(e instanceof Error ? e.message : 'Failed to load synonym rules.');
     } finally {
       setLoading(false);
@@ -100,7 +102,7 @@ function SynonymsTab() {
       await api.createSynonymRule({ rule: newRule, groupName: newGroup, description: newDescription || undefined });
       setNewRule(''); setNewGroup('general'); setNewDescription(''); setShowCreate(false);
       loadRules(selectedGroup);
-    } catch (e) { setCreateError(e instanceof Error ? e.message : 'Failed to create rule.'); }
+    } catch (e) { logger.warn('Failed to create synonym rule', e); setCreateError(e instanceof Error ? e.message : 'Failed to create rule.'); }
   };
 
   const handleUpdate = async (id: string) => {
@@ -108,19 +110,19 @@ function SynonymsTab() {
       await api.updateSynonymRule(id, { rule: editRule, groupName: editGroup, description: editDescription });
       setEditingId(null);
       loadRules(selectedGroup);
-    } catch (e) { setError(e instanceof Error ? e.message : 'Failed to update rule.'); }
+    } catch (e) { logger.warn('Failed to update synonym rule', e); setError(e instanceof Error ? e.message : 'Failed to update rule.'); }
   };
 
   const handleToggleActive = async (rule: SynonymRuleResponse) => {
     try {
       await api.updateSynonymRule(rule.id, { isActive: !rule.isActive });
       loadRules(selectedGroup);
-    } catch (e) { setError(e instanceof Error ? e.message : 'Failed to toggle rule.'); }
+    } catch (e) { logger.warn('Failed to toggle synonym rule', e); setError(e instanceof Error ? e.message : 'Failed to toggle rule.'); }
   };
 
   const handleDelete = async (id: string) => {
     try { await api.deleteSynonymRule(id); loadRules(selectedGroup); }
-    catch (e) { setError(e instanceof Error ? e.message : 'Failed to delete rule.'); }
+    catch (e) { logger.warn('Failed to delete synonym rule', e); setError(e instanceof Error ? e.message : 'Failed to delete rule.'); }
   };
 
   const handleSync = async () => {
@@ -128,7 +130,7 @@ function SynonymsTab() {
     try {
       const result = await api.syncSynonymMaps();
       setSyncMessage(result.success ? `Synced ${result.ruleCount} rules to Azure AI Search.` : `Sync failed: ${result.errorDetail}`);
-    } catch (e) { setSyncMessage(e instanceof Error ? e.message : 'Sync failed.'); }
+    } catch (e) { logger.warn('Failed to sync synonym maps', e); setSyncMessage(e instanceof Error ? e.message : 'Sync failed.'); }
     finally { setSyncing(false); }
   };
 
@@ -137,7 +139,7 @@ function SynonymsTab() {
       const result = await api.seedSynonymRules(false);
       setSyncMessage(`Seeded ${result.seeded} default synonym rules.`);
       loadRules(selectedGroup);
-    } catch (e) { setError(e instanceof Error ? e.message : 'Failed to seed defaults.'); }
+    } catch (e) { logger.warn('Failed to seed synonym defaults', e); setError(e instanceof Error ? e.message : 'Failed to seed defaults.'); }
   };
 
   const startEdit = (rule: SynonymRuleResponse) => {
@@ -259,7 +261,7 @@ function StopWordsTab() {
       const result: StopWordListResponse = await api.listStopWords(group || undefined);
       setWords(result.words);
       setGroups(result.groups);
-    } catch (e) { setError(e instanceof Error ? e.message : 'Failed to load stop words.'); }
+    } catch (e) { logger.warn('Failed to load stop words', e); setError(e instanceof Error ? e.message : 'Failed to load stop words.'); }
     finally { setLoading(false); }
   }, []);
 
@@ -271,19 +273,19 @@ function StopWordsTab() {
       await api.createStopWord({ word: newWord, groupName: newGroup });
       setNewWord(''); setNewGroup('general'); setShowCreate(false);
       loadWords(selectedGroup);
-    } catch (e) { setCreateError(e instanceof Error ? e.message : 'Failed to create stop word.'); }
+    } catch (e) { logger.warn('Failed to create stop word', e); setCreateError(e instanceof Error ? e.message : 'Failed to create stop word.'); }
   };
 
   const handleToggleActive = async (word: StopWordResponse) => {
     try {
       await api.updateStopWord(word.id, { isActive: !word.isActive });
       loadWords(selectedGroup);
-    } catch (e) { setError(e instanceof Error ? e.message : 'Failed to toggle stop word.'); }
+    } catch (e) { logger.warn('Failed to toggle stop word', e); setError(e instanceof Error ? e.message : 'Failed to toggle stop word.'); }
   };
 
   const handleDelete = async (id: string) => {
     try { await api.deleteStopWord(id); loadWords(selectedGroup); }
-    catch (e) { setError(e instanceof Error ? e.message : 'Failed to delete stop word.'); }
+    catch (e) { logger.warn('Failed to delete stop word', e); setError(e instanceof Error ? e.message : 'Failed to delete stop word.'); }
   };
 
   const handleSeed = async () => {
@@ -291,7 +293,7 @@ function StopWordsTab() {
       const result = await api.seedStopWords(false);
       setMessage(`Seeded ${result.seeded} default stop words.`);
       loadWords(selectedGroup);
-    } catch (e) { setError(e instanceof Error ? e.message : 'Failed to seed defaults.'); }
+    } catch (e) { logger.warn('Failed to seed stop word defaults', e); setError(e instanceof Error ? e.message : 'Failed to seed defaults.'); }
   };
 
   return (
@@ -396,7 +398,7 @@ function SpecialTokensTab() {
       const result: SpecialTokenListResponse = await api.listSpecialTokens(category || undefined);
       setTokens(result.tokens);
       setCategories(result.categories);
-    } catch (e) { setError(e instanceof Error ? e.message : 'Failed to load special tokens.'); }
+    } catch (e) { logger.warn('Failed to load special tokens', e); setError(e instanceof Error ? e.message : 'Failed to load special tokens.'); }
     finally { setLoading(false); }
   }, []);
 
@@ -408,19 +410,19 @@ function SpecialTokensTab() {
       await api.createSpecialToken({ token: newToken, category: newCategory, boostFactor: newBoost, description: newDescription || undefined });
       setNewToken(''); setNewCategory('error-code'); setNewBoost(2); setNewDescription(''); setShowCreate(false);
       loadTokens(selectedCategory);
-    } catch (e) { setCreateError(e instanceof Error ? e.message : 'Failed to create special token.'); }
+    } catch (e) { logger.warn('Failed to create special token', e); setCreateError(e instanceof Error ? e.message : 'Failed to create special token.'); }
   };
 
   const handleToggleActive = async (token: SpecialTokenResponse) => {
     try {
       await api.updateSpecialToken(token.id, { isActive: !token.isActive });
       loadTokens(selectedCategory);
-    } catch (e) { setError(e instanceof Error ? e.message : 'Failed to toggle special token.'); }
+    } catch (e) { logger.warn('Failed to toggle special token', e); setError(e instanceof Error ? e.message : 'Failed to toggle special token.'); }
   };
 
   const handleDelete = async (id: string) => {
     try { await api.deleteSpecialToken(id); loadTokens(selectedCategory); }
-    catch (e) { setError(e instanceof Error ? e.message : 'Failed to delete special token.'); }
+    catch (e) { logger.warn('Failed to delete special token', e); setError(e instanceof Error ? e.message : 'Failed to delete special token.'); }
   };
 
   const handleSeed = async () => {
@@ -428,7 +430,7 @@ function SpecialTokensTab() {
       const result = await api.seedSpecialTokens(false);
       setMessage(`Seeded ${result.seeded} default special tokens.`);
       loadTokens(selectedCategory);
-    } catch (e) { setError(e instanceof Error ? e.message : 'Failed to seed defaults.'); }
+    } catch (e) { logger.warn('Failed to seed special token defaults', e); setError(e instanceof Error ? e.message : 'Failed to seed defaults.'); }
   };
 
   return (

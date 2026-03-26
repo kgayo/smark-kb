@@ -166,7 +166,7 @@ export function PatternGovernancePage() {
           <PatternList
             patterns={patterns}
             onSelect={handleSelectPattern}
-            selectedPatternId={selectedPattern ? (selectedPattern as PatternDetail).patternId : undefined}
+            selectedPatternId={undefined}
             trustLevelFilter={trustFilter}
             onTrustLevelFilterChange={(level) => {
               setTrustFilter(level);

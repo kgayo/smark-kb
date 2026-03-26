@@ -72,10 +72,8 @@ public sealed class FusedRetrievalService : IRetrievalService
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             // Salvage partial results when one index fails (e.g., RequestFailedException).
-            // .Result is safe here because IsCompletedSuccessfully guarantees the task finished
-            // without faulting or cancellation, so .Result will not block or throw.
-            evidenceResults = evidenceTask.IsCompletedSuccessfully ? evidenceTask.Result : [];
-            patternResults = patternTask.IsCompletedSuccessfully ? patternTask.Result : [];
+            evidenceResults = evidenceTask.IsCompletedSuccessfully ? await evidenceTask : [];
+            patternResults = patternTask.IsCompletedSuccessfully ? await patternTask : [];
 
             if (evidenceResults.Count == 0 && patternResults.Count == 0)
             {
