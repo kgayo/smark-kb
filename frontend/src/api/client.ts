@@ -1113,7 +1113,6 @@ export async function getStopWord(id: string): Promise<StopWordResponse> {
 export async function createStopWord(req: CreateStopWordRequest): Promise<StopWordResponse> {
   return apiFetch<StopWordResponse>('/api/admin/stop-words', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(req),
   });
 }
@@ -1121,7 +1120,6 @@ export async function createStopWord(req: CreateStopWordRequest): Promise<StopWo
 export async function updateStopWord(id: string, req: UpdateStopWordRequest): Promise<StopWordResponse> {
   return apiFetch<StopWordResponse>(`/api/admin/stop-words/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(req),
   });
 }
@@ -1133,7 +1131,6 @@ export async function deleteStopWord(id: string): Promise<void> {
 export async function seedStopWords(overwriteExisting: boolean = false): Promise<{ seeded: number }> {
   return apiFetch<{ seeded: number }>('/api/admin/stop-words/seed', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ overwriteExisting }),
   });
 }
@@ -1152,7 +1149,6 @@ export async function getSpecialToken(id: string): Promise<SpecialTokenResponse>
 export async function createSpecialToken(req: CreateSpecialTokenRequest): Promise<SpecialTokenResponse> {
   return apiFetch<SpecialTokenResponse>('/api/admin/special-tokens', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(req),
   });
 }
@@ -1160,7 +1156,6 @@ export async function createSpecialToken(req: CreateSpecialTokenRequest): Promis
 export async function updateSpecialToken(id: string, req: UpdateSpecialTokenRequest): Promise<SpecialTokenResponse> {
   return apiFetch<SpecialTokenResponse>(`/api/admin/special-tokens/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(req),
   });
 }
@@ -1172,7 +1167,6 @@ export async function deleteSpecialToken(id: string): Promise<void> {
 export async function seedSpecialTokens(overwriteExisting: boolean = false): Promise<{ seeded: number }> {
   return apiFetch<{ seeded: number }>('/api/admin/special-tokens/seed', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ overwriteExisting }),
   });
 }

@@ -68,6 +68,11 @@ try
 
     return result.ExitCode;
 }
+catch (OperationCanceledException)
+{
+    Console.Error.WriteLine("::warning title=Eval Cancelled::Evaluation was cancelled.");
+    return 130;
+}
 catch (Exception ex)
 {
     Console.Error.WriteLine($"::error title=Eval Fatal Error::{ex.Message}");

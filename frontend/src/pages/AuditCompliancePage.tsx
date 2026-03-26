@@ -315,7 +315,7 @@ function EventDetail({ event }: { event: AuditEventResponse }) {
   try {
     parsedDetail = JSON.parse(event.detail);
   } catch {
-    // detail is not JSON
+    logger.warn('[AuditCompliancePage] EventDetail: detail field is not valid JSON, rendering as plain text');
   }
 
   return (
