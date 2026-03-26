@@ -413,7 +413,7 @@ public class GoldCaseServiceTests : IDisposable
         });
         await _db.SaveChangesAsync();
 
-        var result = await _service.ListAsync("t1", 1, 10);
+        var result = await _service.ListAsync("t1", page: 1, pageSize: 10);
 
         Assert.Single(result.Cases);
         Assert.Equal("unknown", result.Cases[0].ResponseType);
@@ -474,9 +474,9 @@ public class GoldCaseServiceTests : IDisposable
     {
         public List<(string TenantId, string EventType, string ActorId, string CorrelationId, string Detail)> Events { get; } = new();
 
-        public Task WriteAsync(string tenantId, string eventType, string actorId, string correlationId, string detail, CancellationToken ct = default)
+        public Task WriteAsync(AuditEvent auditEvent, CancellationToken cancellationToken = default)
         {
-            Events.Add((tenantId, eventType, actorId, correlationId, detail));
+            Events.Add((auditEvent.TenantId, auditEvent.EventType, auditEvent.ActorId, auditEvent.CorrelationId, auditEvent.Detail));
             return Task.CompletedTask;
         }
     }

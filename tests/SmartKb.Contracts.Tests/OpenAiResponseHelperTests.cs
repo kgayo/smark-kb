@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using SmartKb.Contracts.Services;
 
 namespace SmartKb.Contracts.Tests;
 
@@ -29,7 +30,7 @@ public sealed class OpenAiResponseHelperTests
         }
         """).RootElement;
 
-        var result = Services.OpenAiResponseHelper.ExtractContent<SampleResult>(
+        var result = OpenAiResponseHelper.ExtractContent<SampleResult>(
             json, SharedJsonOptions.CamelCase);
 
         Assert.NotNull(result);
@@ -42,7 +43,7 @@ public sealed class OpenAiResponseHelperTests
     {
         var json = JsonDocument.Parse("""{ "choices": [] }""").RootElement;
 
-        var result = Services.OpenAiResponseHelper.ExtractContent<SampleResult>(
+        var result = OpenAiResponseHelper.ExtractContent<SampleResult>(
             json, SharedJsonOptions.CamelCase);
 
         Assert.Null(result);
@@ -53,7 +54,7 @@ public sealed class OpenAiResponseHelperTests
     {
         var json = JsonDocument.Parse("""{ "id": "test" }""").RootElement;
 
-        var result = Services.OpenAiResponseHelper.ExtractContent<SampleResult>(
+        var result = OpenAiResponseHelper.ExtractContent<SampleResult>(
             json, SharedJsonOptions.CamelCase);
 
         Assert.Null(result);
@@ -74,7 +75,7 @@ public sealed class OpenAiResponseHelperTests
         }
         """).RootElement;
 
-        var result = Services.OpenAiResponseHelper.ExtractContent<SampleResult>(
+        var result = OpenAiResponseHelper.ExtractContent<SampleResult>(
             json, SharedJsonOptions.CamelCase);
 
         Assert.Null(result);
@@ -95,7 +96,7 @@ public sealed class OpenAiResponseHelperTests
         }
         """).RootElement;
 
-        var result = Services.OpenAiResponseHelper.ExtractContent<SampleResult>(
+        var result = OpenAiResponseHelper.ExtractContent<SampleResult>(
             json, SharedJsonOptions.CamelCase);
 
         Assert.Null(result);
@@ -118,7 +119,7 @@ public sealed class OpenAiResponseHelperTests
 
         var logger = new CapturingLogger();
 
-        var result = Services.OpenAiResponseHelper.ExtractContent<SampleResult>(
+        var result = OpenAiResponseHelper.ExtractContent<SampleResult>(
             json, SharedJsonOptions.CamelCase, logger);
 
         Assert.Null(result);
@@ -142,7 +143,7 @@ public sealed class OpenAiResponseHelperTests
         }
         """).RootElement;
 
-        var result = Services.OpenAiResponseHelper.ExtractContent<SampleResult>(
+        var result = OpenAiResponseHelper.ExtractContent<SampleResult>(
             json, SharedJsonOptions.CamelCase);
 
         Assert.Null(result);
@@ -161,7 +162,7 @@ public sealed class OpenAiResponseHelperTests
         }
         """).RootElement;
 
-        var result = Services.OpenAiResponseHelper.ExtractContent<SampleResult>(
+        var result = OpenAiResponseHelper.ExtractContent<SampleResult>(
             json, SharedJsonOptions.CamelCase);
 
         Assert.Null(result);
@@ -182,7 +183,7 @@ public sealed class OpenAiResponseHelperTests
         }
         """).RootElement;
 
-        var result = Services.OpenAiResponseHelper.ExtractContent<SampleResult>(
+        var result = OpenAiResponseHelper.ExtractContent<SampleResult>(
             json, SharedJsonOptions.SnakeCase);
 
         Assert.NotNull(result);
@@ -204,7 +205,7 @@ public sealed class OpenAiResponseHelperTests
         }
         """).RootElement;
 
-        var (prompt, completion, total) = Services.OpenAiResponseHelper.ExtractTokenUsage(json);
+        var (prompt, completion, total) = OpenAiResponseHelper.ExtractTokenUsage(json);
 
         Assert.Equal(100, prompt);
         Assert.Equal(50, completion);
@@ -216,7 +217,7 @@ public sealed class OpenAiResponseHelperTests
     {
         var json = JsonDocument.Parse("""{ "id": "test" }""").RootElement;
 
-        var (prompt, completion, total) = Services.OpenAiResponseHelper.ExtractTokenUsage(json);
+        var (prompt, completion, total) = OpenAiResponseHelper.ExtractTokenUsage(json);
 
         Assert.Equal(0, prompt);
         Assert.Equal(0, completion);
@@ -234,7 +235,7 @@ public sealed class OpenAiResponseHelperTests
         }
         """).RootElement;
 
-        var (prompt, completion, total) = Services.OpenAiResponseHelper.ExtractTokenUsage(json);
+        var (prompt, completion, total) = OpenAiResponseHelper.ExtractTokenUsage(json);
 
         Assert.Equal(42, prompt);
         Assert.Equal(0, completion);
@@ -247,7 +248,7 @@ public sealed class OpenAiResponseHelperTests
     public void AddAuthorizationHeader_SetsCorrectBearerHeader()
     {
         using var request = new HttpRequestMessage();
-        Services.OpenAiResponseHelper.AddAuthorizationHeader(request, "sk-test-key-123");
+        OpenAiResponseHelper.AddAuthorizationHeader(request, "sk-test-key-123");
 
         Assert.True(request.Headers.Contains("Authorization"));
         Assert.Equal("Bearer sk-test-key-123",

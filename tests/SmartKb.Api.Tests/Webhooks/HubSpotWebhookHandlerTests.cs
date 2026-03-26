@@ -311,7 +311,7 @@ public sealed class HubSpotWebhookHandlerTests : IAsyncLifetime
         long eventId = 100,
         string subscriptionType = "ticket.creation",
         long portalId = 12345) =>
-        $"""[{{"eventId":{eventId},"subscriptionId":1,"portalId":{portalId},"appId":99,"occurredAt":1234567890,"subscriptionType":"{subscriptionType}","attemptNumber":0,"objectId":42,"changeSource":"CRM","propertyName":"subject","propertyValue":"Help needed"}}]""";
+        $$"""[{"eventId":{{eventId}},"subscriptionId":1,"portalId":{{portalId}},"appId":99,"occurredAt":1234567890,"subscriptionType":"{{subscriptionType}}","attemptNumber":0,"objectId":42,"changeSource":"CRM","propertyName":"subject","propertyValue":"Help needed"}]""";
 
     private static string ComputeHmacSignature(string body, string secret)
     {

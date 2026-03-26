@@ -51,8 +51,9 @@ public sealed class GoldCaseService : IGoldCaseService
         _db.GoldCases.Add(entity);
         await _db.SaveChangesAsync(ct);
 
-        await _audit.WriteAsync(tenantId, AuditEventTypes.GoldCaseCreated, actorId, string.Empty,
-            JsonSerializer.Serialize(new { entity.CaseId, entity.Id }), ct);
+        await _audit.WriteAsync(new AuditEvent(Guid.NewGuid().ToString(), AuditEventTypes.GoldCaseCreated,
+            tenantId, actorId, string.Empty, DateTimeOffset.UtcNow,
+            JsonSerializer.Serialize(new { entity.CaseId, entity.Id })), ct);
 
         _logger.LogInformation("Gold case {CaseId} created by {Actor} in tenant {TenantId}", entity.CaseId, actorId, tenantId);
 
@@ -126,8 +127,9 @@ public sealed class GoldCaseService : IGoldCaseService
 
         await _db.SaveChangesAsync(ct);
 
-        await _audit.WriteAsync(tenantId, AuditEventTypes.GoldCaseUpdated, actorId, string.Empty,
-            JsonSerializer.Serialize(new { entity.CaseId, entity.Id }), ct);
+        await _audit.WriteAsync(new AuditEvent(Guid.NewGuid().ToString(), AuditEventTypes.GoldCaseUpdated,
+            tenantId, actorId, string.Empty, DateTimeOffset.UtcNow,
+            JsonSerializer.Serialize(new { entity.CaseId, entity.Id })), ct);
 
         _logger.LogInformation("Gold case {CaseId} updated by {Actor}", entity.CaseId, actorId);
 
@@ -143,8 +145,9 @@ public sealed class GoldCaseService : IGoldCaseService
         _db.GoldCases.Remove(entity);
         await _db.SaveChangesAsync(ct);
 
-        await _audit.WriteAsync(tenantId, AuditEventTypes.GoldCaseDeleted, actorId, string.Empty,
-            JsonSerializer.Serialize(new { entity.CaseId, entity.Id }), ct);
+        await _audit.WriteAsync(new AuditEvent(Guid.NewGuid().ToString(), AuditEventTypes.GoldCaseDeleted,
+            tenantId, actorId, string.Empty, DateTimeOffset.UtcNow,
+            JsonSerializer.Serialize(new { entity.CaseId, entity.Id })), ct);
 
         _logger.LogInformation("Gold case {CaseId} deleted by {Actor}", entity.CaseId, actorId);
 
@@ -211,8 +214,9 @@ public sealed class GoldCaseService : IGoldCaseService
         _db.GoldCases.Add(entity);
         await _db.SaveChangesAsync(ct);
 
-        await _audit.WriteAsync(tenantId, AuditEventTypes.GoldCasePromoted, actorId, string.Empty,
-            JsonSerializer.Serialize(new { entity.CaseId, entity.Id, request.FeedbackId }), ct);
+        await _audit.WriteAsync(new AuditEvent(Guid.NewGuid().ToString(), AuditEventTypes.GoldCasePromoted,
+            tenantId, actorId, string.Empty, DateTimeOffset.UtcNow,
+            JsonSerializer.Serialize(new { entity.CaseId, entity.Id, request.FeedbackId })), ct);
 
         _logger.LogInformation("Gold case {CaseId} promoted from feedback {FeedbackId} by {Actor}", entity.CaseId, request.FeedbackId, actorId);
 

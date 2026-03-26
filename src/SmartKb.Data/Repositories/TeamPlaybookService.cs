@@ -320,8 +320,8 @@ public sealed class TeamPlaybookService : ITeamPlaybookService
         }
     }
 
-    private List<string> DeserializeStringList(string json) =>
-        JsonDeserializeHelper.Deserialize<List<string>>(json, SharedJsonOptions.CamelCaseWrite, _logger, []);
+    private static List<string> DeserializeStringList(string json, ILogger? logger = null) =>
+        JsonDeserializeHelper.Deserialize<List<string>>(json, SharedJsonOptions.CamelCaseWrite, logger!, []);
 
     private static TeamPlaybookDto MapPlaybook(TeamPlaybookEntity entity) => new()
     {

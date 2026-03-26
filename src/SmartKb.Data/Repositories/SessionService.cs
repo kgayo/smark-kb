@@ -314,6 +314,6 @@ public sealed class SessionService : ISessionService
         CreatedAt = entity.CreatedAt,
     };
 
-    private IReadOnlyList<CitationDto>? DeserializeCitations(string? json) =>
-        JsonDeserializeHelper.DeserializeOrNull<List<CitationDto>>(json, SharedJsonOptions.CamelCaseWrite, _logger);
+    private static IReadOnlyList<CitationDto>? DeserializeCitations(string? json, ILogger? logger = null) =>
+        JsonDeserializeHelper.DeserializeOrNull<List<CitationDto>>(json, SharedJsonOptions.CamelCaseWrite, logger!);
 }

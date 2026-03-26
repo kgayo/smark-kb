@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using SmartKb.Contracts.Configuration;
+using SmartKb.Contracts.Connectors;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
 
@@ -265,7 +266,7 @@ public sealed class OAuthTokenService : IOAuthTokenService
             ConnectorType.SharePoint => (
                 $"https://login.microsoftonline.com/{GetJsonField(sourceConfig, "entraIdTenantId") ?? "common"}/oauth2/v2.0/authorize",
                 GetJsonField(sourceConfig, "oAuthClientId") ?? GetJsonField(sourceConfig, "clientId") ?? "",
-                GetJsonField(sourceConfig, "oAuthScopes") ?? "https://graph.microsoft.com/.default offline_access"),
+                GetJsonField(sourceConfig, "oAuthScopes") ?? $"{GraphApiConstants.DefaultScope} offline_access"),
 
             _ => throw new NotSupportedException($"OAuth is not supported for connector type '{connectorType}'."),
         };
@@ -335,7 +336,7 @@ public sealed class OAuthTokenService : IOAuthTokenService
         }
     }
 
-    private string? GetJsonField(string? json, string fieldName)
+    internal static string? GetJsonField(string? json, string fieldName, ILogger? logger = null)
     {
         if (string.IsNullOrWhiteSpace(json)) return null;
         try
@@ -345,7 +346,7 @@ public sealed class OAuthTokenService : IOAuthTokenService
         }
         catch (JsonException ex)
         {
-            _logger.LogWarning(ex, "Failed to parse JSON when extracting field '{FieldName}'", fieldName);
+            logger?.LogWarning(ex, "Failed to parse JSON when extracting field '{FieldName}'", fieldName);
             return null;
         }
     }

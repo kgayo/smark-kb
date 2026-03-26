@@ -173,4 +173,82 @@ public sealed class DiagnosticsTests
     {
         Assert.Same(Diagnostics.Meter, Diagnostics.Meter);
     }
+
+    // --- TECH-111: TagNames constant tests ---
+
+    [Fact]
+    public void TagNames_AllConstants_AreNotNullOrEmpty()
+    {
+        var fields = typeof(Diagnostics.TagNames)
+            .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            .Where(f => f.FieldType == typeof(string));
+
+        foreach (var field in fields)
+        {
+            var value = (string?)field.GetValue(null);
+            Assert.False(string.IsNullOrEmpty(value), $"{field.Name} must not be null or empty");
+        }
+    }
+
+    [Fact]
+    public void TagNames_AllConstants_AreUnique()
+    {
+        var fields = typeof(Diagnostics.TagNames)
+            .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            .Where(f => f.FieldType == typeof(string))
+            .Select(f => (string?)f.GetValue(null))
+            .ToList();
+
+        Assert.Equal(fields.Count, fields.Distinct().Count());
+    }
+
+    [Fact]
+    public void TagNames_AllConstants_StartWithSmartKbPrefix()
+    {
+        var fields = typeof(Diagnostics.TagNames)
+            .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            .Where(f => f.FieldType == typeof(string));
+
+        foreach (var field in fields)
+        {
+            var value = (string?)field.GetValue(null);
+            Assert.StartsWith("smartkb.", value!);
+        }
+    }
+
+    [Fact]
+    public void TagNames_HasExpectedConstantCount()
+    {
+        var count = typeof(Diagnostics.TagNames)
+            .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            .Count(f => f.FieldType == typeof(string));
+
+        Assert.Equal(31, count);
+    }
+
+    [Theory]
+    [InlineData("smartkb.tenant_id")]
+    [InlineData("smartkb.user_id")]
+    [InlineData("smartkb.correlation_id")]
+    [InlineData("smartkb.response_type")]
+    [InlineData("smartkb.sync_run_id")]
+    [InlineData("smartkb.connector_id")]
+    [InlineData("smartkb.connector_type")]
+    [InlineData("smartkb.is_backfill")]
+    [InlineData("smartkb.records_processed")]
+    [InlineData("smartkb.chunks_produced")]
+    [InlineData("smartkb.classification.category")]
+    [InlineData("smartkb.embedding_cache_hit")]
+    [InlineData("smartkb.blended_confidence")]
+    [InlineData("smartkb.scheduled_sync.connectors_evaluated")]
+    public void TagNames_ContainsExpectedValue(string expectedValue)
+    {
+        var values = typeof(Diagnostics.TagNames)
+            .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            .Where(f => f.FieldType == typeof(string))
+            .Select(f => (string?)f.GetValue(null))
+            .ToHashSet();
+
+        Assert.Contains(expectedValue, values);
+    }
 }

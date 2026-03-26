@@ -169,7 +169,7 @@ public static class SearchTokenEndpoints
             var (response, validation) = await service.CreateStopWordAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, request, ct);
             if (validation is not null)
-                return Results.UnprocessableEntity(ApiResponse<object>.Fail(
+                return Results.UnprocessableEntity(ApiResponse<object>.Failure(
                     string.Join("; ", validation.Errors), tenant.CorrelationId));
             return Results.Created($"/api/admin/stop-words/{response!.Id}",
                 ApiResponse<StopWordResponse>.Success(response, tenant.CorrelationId));
@@ -191,7 +191,7 @@ public static class SearchTokenEndpoints
                     tenant.TenantId, tenant.UserId, tenant.CorrelationId, id, request, ct);
                 if (notFound) return Results.NotFound();
                 if (validation is not null)
-                    return Results.UnprocessableEntity(ApiResponse<object>.Fail(
+                    return Results.UnprocessableEntity(ApiResponse<object>.Failure(
                         string.Join("; ", validation.Errors), tenant.CorrelationId));
                 return Results.Ok(ApiResponse<StopWordResponse>.Success(response!, tenant.CorrelationId));
             }
@@ -266,7 +266,7 @@ public static class SearchTokenEndpoints
             var (response, validation) = await service.CreateSpecialTokenAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, request, ct);
             if (validation is not null)
-                return Results.UnprocessableEntity(ApiResponse<object>.Fail(
+                return Results.UnprocessableEntity(ApiResponse<object>.Failure(
                     string.Join("; ", validation.Errors), tenant.CorrelationId));
             return Results.Created($"/api/admin/special-tokens/{response!.Id}",
                 ApiResponse<SpecialTokenResponse>.Success(response, tenant.CorrelationId));
@@ -288,7 +288,7 @@ public static class SearchTokenEndpoints
                     tenant.TenantId, tenant.UserId, tenant.CorrelationId, id, request, ct);
                 if (notFound) return Results.NotFound();
                 if (validation is not null)
-                    return Results.UnprocessableEntity(ApiResponse<object>.Fail(
+                    return Results.UnprocessableEntity(ApiResponse<object>.Failure(
                         string.Join("; ", validation.Errors), tenant.CorrelationId));
                 return Results.Ok(ApiResponse<SpecialTokenResponse>.Success(response!, tenant.CorrelationId));
             }

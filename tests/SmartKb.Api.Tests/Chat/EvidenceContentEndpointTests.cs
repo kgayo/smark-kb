@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using SmartKb.Api.Tests.Auth;
+using SmartKb.Contracts.Enums;
 using SmartKb.Data;
 using SmartKb.Data.Entities;
 
@@ -44,9 +45,9 @@ public sealed class EvidenceContentEndpointTests : IClassFixture<AuthTestFactory
                 Id = connectorId,
                 TenantId = tenantId,
                 Name = $"test-{chunkId}",
-                ConnectorType = "AzureDevOps",
-                Status = "Enabled",
-                AuthType = "Pat",
+                ConnectorType = ConnectorType.AzureDevOps,
+                Status = ConnectorStatus.Enabled,
+                AuthType = SecretAuthType.Pat,
                 CreatedAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow,
             });

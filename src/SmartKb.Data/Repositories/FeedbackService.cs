@@ -162,6 +162,6 @@ public sealed class FeedbackService : IFeedbackService
         CreatedAt = entity.CreatedAt,
     };
 
-    private IReadOnlyList<string> DeserializeReasonCodes(string? json) =>
-        JsonDeserializeHelper.Deserialize<List<string>>(json, SharedJsonOptions.CamelCaseWrite, _logger, []);
+    private static IReadOnlyList<string> DeserializeReasonCodes(string? json, ILogger? logger = null) =>
+        JsonDeserializeHelper.Deserialize<List<string>>(json, SharedJsonOptions.CamelCaseWrite, logger!, []);
 }

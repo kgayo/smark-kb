@@ -339,7 +339,7 @@ public sealed class ConnectorAdminService
             };
         }
 
-        var mapping = request.FieldMapping ?? DeserializeFieldMapping(entity.FieldMapping);
+        var mapping = request.FieldMapping ?? DeserializeFieldMapping(entity.FieldMapping, _logger);
         var records = await client.PreviewAsync(tenantId, entity.SourceConfig, mapping, secretValue, request.SampleSize, ct);
 
         // Validate preview records against required fields.
@@ -629,7 +629,7 @@ public sealed class ConnectorAdminService
 
     private ConnectorValidationResult ValidateFieldMappingForActivation(string? fieldMappingJson)
     {
-        var mapping = DeserializeFieldMapping(fieldMappingJson);
+        var mapping = DeserializeFieldMapping(fieldMappingJson, _logger);
         if (mapping is null || mapping.Rules.Count == 0)
             return ConnectorValidationResult.Invalid("Field mapping is required before enabling a connector.");
 
@@ -703,8 +703,8 @@ public sealed class ConnectorAdminService
         };
     }
 
-    private FieldMappingConfig? DeserializeFieldMapping(string? json) =>
-        string.IsNullOrWhiteSpace(json) ? null : JsonDeserializeHelper.DeserializeOrNull<FieldMappingConfig>(json, SharedJsonOptions.CamelCaseCompact, _logger);
+    private static FieldMappingConfig? DeserializeFieldMapping(string? json, ILogger? logger = null) =>
+        string.IsNullOrWhiteSpace(json) ? null : JsonDeserializeHelper.DeserializeOrNull<FieldMappingConfig>(json, SharedJsonOptions.CamelCaseCompact, logger!);
 
     private async Task RegisterWebhooksAsync(ConnectorEntity entity, string correlationId, CancellationToken ct)
     {

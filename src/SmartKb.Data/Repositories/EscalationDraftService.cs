@@ -490,6 +490,6 @@ public sealed class EscalationDraftService : IEscalationDraftService
         PlaybookValidation = playbookValidation,
     };
 
-    private IReadOnlyList<CitationDto> DeserializeCitations(string json) =>
-        JsonDeserializeHelper.Deserialize<List<CitationDto>>(json, SharedJsonOptions.CamelCaseWrite, _logger, []);
+    private static IReadOnlyList<CitationDto> DeserializeCitations(string json, ILogger? logger = null) =>
+        JsonDeserializeHelper.Deserialize<List<CitationDto>>(json, SharedJsonOptions.CamelCaseWrite, logger!, []);
 }

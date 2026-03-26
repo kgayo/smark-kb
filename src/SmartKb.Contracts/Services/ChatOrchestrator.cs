@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Models;
 using DiagnosticsHelper = SmartKb.Contracts.Diagnostics;
+using TagNames = SmartKb.Contracts.Diagnostics.TagNames;
 
 namespace SmartKb.Contracts.Services;
 
@@ -72,9 +73,9 @@ public sealed class ChatOrchestrator : IChatOrchestrator
     {
         using var orchestrationActivity = DiagnosticsHelper.OrchestrationSource.StartActivity(
             "ChatOrchestrate", ActivityKind.Internal);
-        orchestrationActivity?.SetTag("smartkb.tenant_id", tenantId);
-        orchestrationActivity?.SetTag("smartkb.user_id", userId);
-        orchestrationActivity?.SetTag("smartkb.correlation_id", correlationId);
+        orchestrationActivity?.SetTag(TagNames.TenantId, tenantId);
+        orchestrationActivity?.SetTag(TagNames.UserId, userId);
+        orchestrationActivity?.SetTag(TagNames.CorrelationId, correlationId);
 
         var sw = Stopwatch.StartNew();
         var traceId = correlationId;
@@ -96,10 +97,10 @@ public sealed class ChatOrchestrator : IChatOrchestrator
                 classification = await _classificationService.ClassifyAsync(
                     request.Query, request.SessionHistory, classificationCts.Token);
 
-                classificationActivity?.SetTag("smartkb.classification.category", classification.IssueCategory);
-                classificationActivity?.SetTag("smartkb.classification.product_area", classification.ProductArea);
-                classificationActivity?.SetTag("smartkb.classification.severity", classification.SeverityHint);
-                classificationActivity?.SetTag("smartkb.classification.confidence", classification.ClassificationConfidence);
+                classificationActivity?.SetTag(TagNames.ClassificationCategory, classification.IssueCategory);
+                classificationActivity?.SetTag(TagNames.ClassificationProductArea, classification.ProductArea);
+                classificationActivity?.SetTag(TagNames.ClassificationSeverity, classification.SeverityHint);
+                classificationActivity?.SetTag(TagNames.ClassificationConfidence, classification.ClassificationConfidence);
 
                 _logger.LogInformation(
                     "Query classification complete. TraceId={TraceId}, Category={Category}, " +
@@ -144,21 +145,21 @@ public sealed class ChatOrchestrator : IChatOrchestrator
 
                 queryEmbedding = cached;
                 embeddingCacheHit = cacheHit;
-                embeddingActivity?.SetTag("smartkb.embedding_cache_hit", cacheHit);
+                embeddingActivity?.SetTag(TagNames.EmbeddingCacheHit, cacheHit);
 
                 if (cacheHit)
                     DiagnosticsHelper.EmbeddingCacheHitsTotal.Add(1,
-                        new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId));
+                        new KeyValuePair<string, object?>(TagNames.TenantId, tenantId));
                 else
                     DiagnosticsHelper.EmbeddingCacheMissesTotal.Add(1,
-                        new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId));
+                        new KeyValuePair<string, object?>(TagNames.TenantId, tenantId));
             }
             else
             {
                 queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(request.Query, cancellationToken);
             }
 
-            embeddingActivity?.SetTag("smartkb.embedding_dims", queryEmbedding.Length);
+            embeddingActivity?.SetTag(TagNames.EmbeddingDims, queryEmbedding.Length);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -174,9 +175,9 @@ public sealed class ChatOrchestrator : IChatOrchestrator
             using var retrievalActivity = DiagnosticsHelper.OrchestrationSource.StartActivity("RetrieveEvidence");
             retrievalResult = await _retrievalService.RetrieveAsync(
                 tenantId, request.Query, queryEmbedding, request.UserGroups, effectiveFilters, correlationId, cancellationToken);
-            retrievalActivity?.SetTag("smartkb.chunk_count", retrievalResult.Chunks.Count);
-            retrievalActivity?.SetTag("smartkb.has_evidence", retrievalResult.HasEvidence);
-            retrievalActivity?.SetTag("smartkb.acl_filtered", retrievalResult.AclFilteredOutCount);
+            retrievalActivity?.SetTag(TagNames.ChunkCount, retrievalResult.Chunks.Count);
+            retrievalActivity?.SetTag(TagNames.HasEvidence, retrievalResult.HasEvidence);
+            retrievalActivity?.SetTag(TagNames.AclFiltered, retrievalResult.AclFilteredOutCount);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -196,13 +197,13 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         {
             _logger.LogInformation("No evidence path triggered. TraceId={TraceId}", traceId);
             DiagnosticsHelper.ChatRequestsTotal.Add(1,
-                new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId),
-                new KeyValuePair<string, object?>("smartkb.response_type", ChatResponseType.NextStepsOnly));
+                new KeyValuePair<string, object?>(TagNames.TenantId, tenantId),
+                new KeyValuePair<string, object?>(TagNames.ResponseType, ChatResponseType.NextStepsOnly));
             DiagnosticsHelper.ChatNoEvidenceTotal.Add(1,
-                new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId));
+                new KeyValuePair<string, object?>(TagNames.TenantId, tenantId));
             DiagnosticsHelper.ChatLatencyMs.Record(sw.ElapsedMilliseconds,
-                new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId),
-                new KeyValuePair<string, object?>("smartkb.response_type", ChatResponseType.NextStepsOnly));
+                new KeyValuePair<string, object?>(TagNames.TenantId, tenantId),
+                new KeyValuePair<string, object?>(TagNames.ResponseType, ChatResponseType.NextStepsOnly));
             return BuildNoEvidenceResponse(traceId);
         }
 
@@ -264,7 +265,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
                     "Retrieval compression truncated {TruncatedCount} chunk(s). TraceId={TraceId}",
                     truncCount, traceId);
                 DiagnosticsHelper.RetrievalCompressionTruncatedTotal.Add(truncCount,
-                    new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId));
+                    new KeyValuePair<string, object?>(TagNames.TenantId, tenantId));
             }
         }
 
@@ -290,10 +291,10 @@ public sealed class ChatOrchestrator : IChatOrchestrator
 
                 sessionSummary = await _summarizationService.SummarizeAsync(droppedMessages, summarizationCts.Token);
                 Diagnostics.SessionSummarizationsTotal.Add(1,
-                    new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId));
+                    new KeyValuePair<string, object?>(TagNames.TenantId, tenantId));
 
-                summarizationActivity?.SetTag("smartkb.summarization.dropped_count", droppedMessages.Count);
-                summarizationActivity?.SetTag("smartkb.summarization.summary_length", sessionSummary?.Length ?? 0);
+                summarizationActivity?.SetTag(TagNames.SummarizationDroppedCount, droppedMessages.Count);
+                summarizationActivity?.SetTag(TagNames.SummarizationSummaryLength, sessionSummary?.Length ?? 0);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -319,11 +320,11 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         try
         {
             using var generationActivity = DiagnosticsHelper.OrchestrationSource.StartActivity("GenerateAnswer");
-            generationActivity?.SetTag("smartkb.model", _openAiSettings.Model);
+            generationActivity?.SetTag(TagNames.Model, _openAiSettings.Model);
             callResult = await CallOpenAiStructuredAsync(messages, cancellationToken);
-            generationActivity?.SetTag("smartkb.response_type", callResult.Response?.ResponseType);
-            generationActivity?.SetTag("smartkb.prompt_tokens", callResult.PromptTokens);
-            generationActivity?.SetTag("smartkb.completion_tokens", callResult.CompletionTokens);
+            generationActivity?.SetTag(TagNames.ResponseType, callResult.Response?.ResponseType);
+            generationActivity?.SetTag(TagNames.PromptTokens, callResult.PromptTokens);
+            generationActivity?.SetTag(TagNames.CompletionTokens, callResult.CompletionTokens);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -393,24 +394,24 @@ public sealed class ChatOrchestrator : IChatOrchestrator
 
         // P0-022: Record SLO metrics.
         DiagnosticsHelper.ChatLatencyMs.Record(sw.ElapsedMilliseconds,
-            new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId),
-            new KeyValuePair<string, object?>("smartkb.response_type", responseType));
+            new KeyValuePair<string, object?>(TagNames.TenantId, tenantId),
+            new KeyValuePair<string, object?>(TagNames.ResponseType, responseType));
         DiagnosticsHelper.ChatRequestsTotal.Add(1,
-            new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId),
-            new KeyValuePair<string, object?>("smartkb.response_type", responseType));
+            new KeyValuePair<string, object?>(TagNames.TenantId, tenantId),
+            new KeyValuePair<string, object?>(TagNames.ResponseType, responseType));
         DiagnosticsHelper.ChatConfidence.Record(blendedConfidence,
-            new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId));
+            new KeyValuePair<string, object?>(TagNames.TenantId, tenantId));
         if (piiRedactedCount > 0)
             DiagnosticsHelper.PiiRedactionsTotal.Add(piiRedactedCount,
-                new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId));
+                new KeyValuePair<string, object?>(TagNames.TenantId, tenantId));
         if (restrictedRemovedCount > 0)
             DiagnosticsHelper.RestrictedContentBlockedTotal.Add(restrictedRemovedCount,
-                new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId));
+                new KeyValuePair<string, object?>(TagNames.TenantId, tenantId));
 
-        orchestrationActivity?.SetTag("smartkb.response_type", responseType);
-        orchestrationActivity?.SetTag("smartkb.blended_confidence", blendedConfidence);
-        orchestrationActivity?.SetTag("smartkb.citation_count", citations.Count);
-        orchestrationActivity?.SetTag("smartkb.duration_ms", sw.ElapsedMilliseconds);
+        orchestrationActivity?.SetTag(TagNames.ResponseType, responseType);
+        orchestrationActivity?.SetTag(TagNames.BlendedConfidence, blendedConfidence);
+        orchestrationActivity?.SetTag(TagNames.CitationCount, citations.Count);
+        orchestrationActivity?.SetTag(TagNames.DurationMs, sw.ElapsedMilliseconds);
         orchestrationActivity?.SetStatus(ActivityStatusCode.Ok);
 
         _logger.LogInformation(
@@ -458,11 +459,11 @@ public sealed class ChatOrchestrator : IChatOrchestrator
             await _tokenUsageService.RecordUsageAsync(tenantId, userId, correlationId, usageRecord, cancellationToken);
 
             DiagnosticsHelper.PromptTokensUsed.Record(callResult.PromptTokens,
-                new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId));
+                new KeyValuePair<string, object?>(TagNames.TenantId, tenantId));
             DiagnosticsHelper.CompletionTokensUsed.Record(callResult.CompletionTokens,
-                new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId));
+                new KeyValuePair<string, object?>(TagNames.TenantId, tenantId));
             DiagnosticsHelper.EstimatedCostUsd.Record((double)estimatedCost,
-                new KeyValuePair<string, object?>("smartkb.tenant_id", tenantId));
+                new KeyValuePair<string, object?>(TagNames.TenantId, tenantId));
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

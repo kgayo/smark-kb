@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using SmartKb.Api.Webhooks;
 
 namespace SmartKb.Api.Tests.Webhooks;

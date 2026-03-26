@@ -221,4 +221,58 @@ public static class Diagnostics
         Meter.CreateCounter<long>(
             "smartkb.chat.session_summarizations_total",
             description: "Session context summarizations performed when sliding window drops messages.");
+
+    /// <summary>
+    /// Shared OTel span tag name constants used by ChatOrchestrator, SyncJobProcessor, IngestionWorker,
+    /// and ScheduledSyncService. Eliminates hardcoded string literals for compile-time safety.
+    /// </summary>
+    public static class TagNames
+    {
+        // Common tags
+        public const string TenantId = "smartkb.tenant_id";
+        public const string UserId = "smartkb.user_id";
+        public const string CorrelationId = "smartkb.correlation_id";
+        public const string Reason = "smartkb.reason";
+
+        // Orchestration tags
+        public const string ResponseType = "smartkb.response_type";
+        public const string Model = "smartkb.model";
+        public const string PromptTokens = "smartkb.prompt_tokens";
+        public const string CompletionTokens = "smartkb.completion_tokens";
+        public const string BlendedConfidence = "smartkb.blended_confidence";
+        public const string CitationCount = "smartkb.citation_count";
+        public const string DurationMs = "smartkb.duration_ms";
+
+        // Embedding tags
+        public const string EmbeddingCacheHit = "smartkb.embedding_cache_hit";
+        public const string EmbeddingDims = "smartkb.embedding_dims";
+
+        // Retrieval tags
+        public const string ChunkCount = "smartkb.chunk_count";
+        public const string HasEvidence = "smartkb.has_evidence";
+        public const string AclFiltered = "smartkb.acl_filtered";
+
+        // Classification tags
+        public const string ClassificationCategory = "smartkb.classification.category";
+        public const string ClassificationProductArea = "smartkb.classification.product_area";
+        public const string ClassificationSeverity = "smartkb.classification.severity";
+        public const string ClassificationConfidence = "smartkb.classification.confidence";
+
+        // Summarization tags
+        public const string SummarizationDroppedCount = "smartkb.summarization.dropped_count";
+        public const string SummarizationSummaryLength = "smartkb.summarization.summary_length";
+
+        // Ingestion tags
+        public const string SyncRunId = "smartkb.sync_run_id";
+        public const string ConnectorId = "smartkb.connector_id";
+        public const string ConnectorType = "smartkb.connector_type";
+        public const string IsBackfill = "smartkb.is_backfill";
+        public const string RecordsProcessed = "smartkb.records_processed";
+        public const string RecordsFailed = "smartkb.records_failed";
+        public const string ChunksProduced = "smartkb.chunks_produced";
+
+        // Scheduled sync tags
+        public const string ScheduledSyncConnectorsEvaluated = "smartkb.scheduled_sync.connectors_evaluated";
+        public const string ScheduledSyncTriggeredCount = "smartkb.scheduled_sync.triggered_count";
+    }
 }

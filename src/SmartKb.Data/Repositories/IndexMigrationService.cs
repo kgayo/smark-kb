@@ -542,8 +542,8 @@ public sealed class IndexMigrationService : IIndexMigrationService
         };
     }
 
-    private List<string> DeserializeJsonList(string? json) =>
-        JsonDeserializeHelper.Deserialize<List<string>>(json, SharedJsonOptions.CaseInsensitive, _logger, []);
+    private static List<string> DeserializeJsonList(string? json, ILogger? logger = null) =>
+        JsonDeserializeHelper.Deserialize<List<string>>(json, SharedJsonOptions.CaseInsensitive, logger!, []);
 
     private static IndexSchemaVersionInfo MapToInfo(IndexSchemaVersionEntity e)
     {

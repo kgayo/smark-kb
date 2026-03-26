@@ -604,6 +604,6 @@ public sealed class PatternDistillationService : IPatternDistillationService
         };
     }
 
-    private IReadOnlyList<string> DeserializeStringList(string? json) =>
-        JsonDeserializeHelper.Deserialize<List<string>>(json, SharedJsonOptions.CamelCaseWrite, _logger, []);
+    private static IReadOnlyList<string> DeserializeStringList(string? json, ILogger? logger = null) =>
+        JsonDeserializeHelper.Deserialize<List<string>>(json, SharedJsonOptions.CamelCaseWrite, logger!, []);
 }

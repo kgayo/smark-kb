@@ -3,6 +3,7 @@ using SmartKb.Contracts;
 using SmartKb.Api.Tenant;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
+using Microsoft.EntityFrameworkCore;
 using SmartKb.Data.Repositories;
 
 namespace SmartKb.Api.Endpoints;

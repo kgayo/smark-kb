@@ -23,4 +23,16 @@ public sealed class GraphApiConstantsTests
         var result = string.Format(GraphApiConstants.TokenUrl, tenantId);
         Assert.Equal($"https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token", result);
     }
+
+    [Fact]
+    public void DefaultScope_IsGraphDefaultScope()
+    {
+        Assert.Equal("https://graph.microsoft.com/.default", GraphApiConstants.DefaultScope);
+    }
+
+    [Fact]
+    public void ClientCredentialsGrantType_IsClientCredentials()
+    {
+        Assert.Equal("client_credentials", GraphApiConstants.ClientCredentialsGrantType);
+    }
 }

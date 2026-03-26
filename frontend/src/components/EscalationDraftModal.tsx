@@ -266,6 +266,7 @@ export function EscalationDraftModal({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   data-testid="draft-title"
+                  aria-label="Escalation draft title"
                 />
               </label>
 
@@ -291,6 +292,7 @@ export function EscalationDraftModal({
                     value={targetTeam}
                     onChange={(e) => setTargetTeam(e.target.value)}
                     data-testid="draft-target-team"
+                    aria-label="Escalation target team"
                   />
                 </label>
               </div>
@@ -302,6 +304,7 @@ export function EscalationDraftModal({
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   data-testid="draft-reason"
+                  aria-label="Escalation reason"
                 />
               </label>
 
@@ -313,6 +316,7 @@ export function EscalationDraftModal({
                   onChange={(e) => setCustomerSummary(e.target.value)}
                   data-testid="draft-customer-summary"
                   placeholder="Describe the customer's issue..."
+                  aria-label="Customer summary"
                 />
               </label>
 
@@ -324,6 +328,7 @@ export function EscalationDraftModal({
                   onChange={(e) => setSuspectedComponent(e.target.value)}
                   data-testid="draft-suspected-component"
                   placeholder="e.g., Authentication, Billing"
+                  aria-label="Suspected component"
                 />
               </label>
 
@@ -335,6 +340,7 @@ export function EscalationDraftModal({
                   onChange={(e) => setStepsToReproduce(e.target.value)}
                   data-testid="draft-steps-to-reproduce"
                   placeholder="1. Go to...&#10;2. Click on..."
+                  aria-label="Steps to reproduce"
                 />
               </label>
 
@@ -346,6 +352,7 @@ export function EscalationDraftModal({
                   onChange={(e) => setLogsIdsRequested(e.target.value)}
                   data-testid="draft-logs-ids"
                   placeholder="Correlation IDs, log file references..."
+                  aria-label="Logs and IDs requested"
                 />
               </label>
 

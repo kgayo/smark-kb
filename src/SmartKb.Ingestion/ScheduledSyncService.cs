@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using NCrontab;
 using SmartKb.Contracts;
 using SmartKb.Contracts.Configuration;
+using TagNames = SmartKb.Contracts.Diagnostics.TagNames;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
@@ -93,7 +94,7 @@ public sealed class ScheduledSyncService : BackgroundService
             .Include(c => c.SyncRuns)
             .ToListAsync(ct);
 
-        activity?.SetTag("smartkb.scheduled_sync.connectors_evaluated", connectors.Count);
+        activity?.SetTag(TagNames.ScheduledSyncConnectorsEvaluated, connectors.Count);
 
         if (connectors.Count == 0) return;
 
@@ -118,7 +119,7 @@ public sealed class ScheduledSyncService : BackgroundService
             }
         }
 
-        activity?.SetTag("smartkb.scheduled_sync.triggered_count", triggered);
+        activity?.SetTag(TagNames.ScheduledSyncTriggeredCount, triggered);
 
         if (triggered > 0)
         {
@@ -219,7 +220,7 @@ public sealed class ScheduledSyncService : BackgroundService
         await _syncJobPublisher.PublishAsync(message, ct);
 
         Diagnostics.ScheduledSyncTriggeredTotal.Add(1,
-            new KeyValuePair<string, object?>("smartkb.connector_type", connector.ConnectorType.ToString()));
+            new KeyValuePair<string, object?>(TagNames.ConnectorType, connector.ConnectorType.ToString()));
 
         _logger.LogInformation(
             "Scheduled sync triggered for connector {ConnectorId} ({ConnectorName}, type={ConnectorType}, runId={SyncRunId})",

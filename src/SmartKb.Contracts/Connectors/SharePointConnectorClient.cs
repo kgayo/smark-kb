@@ -487,10 +487,10 @@ public sealed class SharePointConnectorClient : IConnectorClient
         var tokenUrl = string.Format(GraphTokenUrl, entraIdTenantId);
         using var requestBody = new FormUrlEncodedContent(new Dictionary<string, string>
         {
-            ["grant_type"] = "client_credentials",
+            ["grant_type"] = GraphApiConstants.ClientCredentialsGrantType,
             ["client_id"] = clientId,
             ["client_secret"] = clientSecret,
-            ["scope"] = "https://graph.microsoft.com/.default",
+            ["scope"] = GraphApiConstants.DefaultScope,
         });
 
         using var response = await client.PostAsync(tokenUrl, requestBody, ct);

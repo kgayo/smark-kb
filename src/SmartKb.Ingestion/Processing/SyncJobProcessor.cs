@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using SmartKb.Contracts;
 using SmartKb.Contracts.Enums;
+using TagNames = SmartKb.Contracts.Diagnostics.TagNames;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
 using SmartKb.Data;
@@ -58,11 +59,11 @@ public sealed class SyncJobProcessor
     {
         var syncSw = System.Diagnostics.Stopwatch.StartNew();
         using var activity = Diagnostics.IngestionSource.StartActivity("SyncJobProcess");
-        activity?.SetTag("smartkb.sync_run_id", message.SyncRunId.ToString());
-        activity?.SetTag("smartkb.connector_id", message.ConnectorId.ToString());
-        activity?.SetTag("smartkb.tenant_id", message.TenantId);
-        activity?.SetTag("smartkb.connector_type", message.ConnectorType.ToString());
-        activity?.SetTag("smartkb.is_backfill", message.IsBackfill);
+        activity?.SetTag(TagNames.SyncRunId, message.SyncRunId.ToString());
+        activity?.SetTag(TagNames.ConnectorId, message.ConnectorId.ToString());
+        activity?.SetTag(TagNames.TenantId, message.TenantId);
+        activity?.SetTag(TagNames.ConnectorType, message.ConnectorType.ToString());
+        activity?.SetTag(TagNames.IsBackfill, message.IsBackfill);
 
         var syncRun = await _db.SyncRuns
             .FirstOrDefaultAsync(s => s.Id == message.SyncRunId && s.TenantId == message.TenantId, cancellationToken);
@@ -205,22 +206,22 @@ public sealed class SyncJobProcessor
             await WriteAuditAsync(message, AuditEventTypes.SyncCompleted,
                 $"Sync run {message.SyncRunId} completed: {totalProcessed} processed, {totalFailed} failed, {totalChunks} chunks produced.", cancellationToken);
 
-            activity?.SetTag("smartkb.records_processed", totalProcessed);
-            activity?.SetTag("smartkb.records_failed", totalFailed);
-            activity?.SetTag("smartkb.chunks_produced", totalChunks);
+            activity?.SetTag(TagNames.RecordsProcessed, totalProcessed);
+            activity?.SetTag(TagNames.RecordsFailed, totalFailed);
+            activity?.SetTag(TagNames.ChunksProduced, totalChunks);
             activity?.SetStatus(ActivityStatusCode.Ok);
 
             // P0-022: Record SLO metrics.
             syncSw.Stop();
             Diagnostics.SyncJobDurationMs.Record(syncSw.ElapsedMilliseconds,
-                new KeyValuePair<string, object?>("smartkb.connector_type", message.ConnectorType.ToString()),
-                new KeyValuePair<string, object?>("smartkb.tenant_id", message.TenantId));
+                new KeyValuePair<string, object?>(TagNames.ConnectorType, message.ConnectorType.ToString()),
+                new KeyValuePair<string, object?>(TagNames.TenantId, message.TenantId));
             Diagnostics.SyncJobsCompletedTotal.Add(1,
-                new KeyValuePair<string, object?>("smartkb.connector_type", message.ConnectorType.ToString()),
-                new KeyValuePair<string, object?>("smartkb.tenant_id", message.TenantId));
+                new KeyValuePair<string, object?>(TagNames.ConnectorType, message.ConnectorType.ToString()),
+                new KeyValuePair<string, object?>(TagNames.TenantId, message.TenantId));
             Diagnostics.RecordsProcessedTotal.Add(totalProcessed,
-                new KeyValuePair<string, object?>("smartkb.connector_type", message.ConnectorType.ToString()),
-                new KeyValuePair<string, object?>("smartkb.tenant_id", message.TenantId));
+                new KeyValuePair<string, object?>(TagNames.ConnectorType, message.ConnectorType.ToString()),
+                new KeyValuePair<string, object?>(TagNames.TenantId, message.TenantId));
 
             _logger.LogInformation(
                 "Sync run {SyncRunId} completed: {Processed} processed, {Failed} failed, {Chunks} chunks",
@@ -250,8 +251,8 @@ public sealed class SyncJobProcessor
             if (ex is HttpRequestException hre && hre.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
             {
                 Diagnostics.SourceRateLimitTotal.Add(1,
-                    new KeyValuePair<string, object?>("smartkb.connector_type", message.ConnectorType.ToString()),
-                    new KeyValuePair<string, object?>("smartkb.tenant_id", message.TenantId));
+                    new KeyValuePair<string, object?>(TagNames.ConnectorType, message.ConnectorType.ToString()),
+                    new KeyValuePair<string, object?>(TagNames.TenantId, message.TenantId));
 
                 // P3-020: Persist rate-limit event for diagnostics alerting.
                 if (_rateLimitAlertService is not null)
@@ -271,11 +272,11 @@ public sealed class SyncJobProcessor
             // P0-022: Record failure metrics.
             syncSw.Stop();
             Diagnostics.SyncJobDurationMs.Record(syncSw.ElapsedMilliseconds,
-                new KeyValuePair<string, object?>("smartkb.connector_type", message.ConnectorType.ToString()),
-                new KeyValuePair<string, object?>("smartkb.tenant_id", message.TenantId));
+                new KeyValuePair<string, object?>(TagNames.ConnectorType, message.ConnectorType.ToString()),
+                new KeyValuePair<string, object?>(TagNames.TenantId, message.TenantId));
             Diagnostics.SyncJobsFailedTotal.Add(1,
-                new KeyValuePair<string, object?>("smartkb.connector_type", message.ConnectorType.ToString()),
-                new KeyValuePair<string, object?>("smartkb.tenant_id", message.TenantId));
+                new KeyValuePair<string, object?>(TagNames.ConnectorType, message.ConnectorType.ToString()),
+                new KeyValuePair<string, object?>(TagNames.TenantId, message.TenantId));
 
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
             return false;

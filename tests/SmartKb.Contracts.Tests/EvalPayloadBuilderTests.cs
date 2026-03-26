@@ -16,13 +16,14 @@ public class EvalPayloadBuilderTests
         HasBlockingRegression = blocking,
         ViolationCount = violations,
         Violations = violations > 0
-            ? [new ThresholdViolation { MetricName = "accuracy", ActualValue = 0.5, ThresholdValue = 0.7, Direction = "gte" }]
+            ? [new EvalViolationDto { MetricName = "accuracy", ActualValue = 0.5f, ThresholdValue = 0.7f, Direction = "gte" }]
             : [],
         BaselineComparison = blocking
-            ? new BaselineComparison
+            ? new EvalBaselineComparisonDto
             {
                 HasRegression = true,
-                Details = [new RegressionDetail { MetricName = "latency", BaselineValue = 1.0, CurrentValue = 2.0, Delta = 1.0, Severity = "critical" }],
+                ShouldBlock = true,
+                Details = [new EvalRegressionDetailDto { MetricName = "latency", BaselineValue = 1.0f, CurrentValue = 2.0f, Delta = 1.0f, Severity = "critical" }],
             }
             : null,
         RunUrl = "https://example.com/runs/001",
@@ -137,8 +138,7 @@ public class EvalPayloadBuilderTests
     [Fact]
     public void BuildTeamsPayload_NoUrl_EmptyActions()
     {
-        var payload = CreatePayload();
-        payload.RunUrl = null;
+        var payload = CreatePayload() with { RunUrl = null };
         var result = EvalPayloadBuilder.BuildTeamsPayload(payload);
 
         using var doc = JsonDocument.Parse(result);
@@ -149,14 +149,23 @@ public class EvalPayloadBuilderTests
     public void BuildSlackPayload_Regressions_ExcludesOkSeverity()
     {
         var payload = CreatePayload(blocking: true);
-        payload.BaselineComparison!.Details.Add(new RegressionDetail
+        payload = payload with
         {
-            MetricName = "stable_metric",
-            BaselineValue = 1.0,
-            CurrentValue = 1.0,
-            Delta = 0,
-            Severity = "ok",
-        });
+            BaselineComparison = payload.BaselineComparison! with
+            {
+                Details = [
+                    ..payload.BaselineComparison!.Details,
+                    new EvalRegressionDetailDto
+                    {
+                        MetricName = "stable_metric",
+                        BaselineValue = 1.0f,
+                        CurrentValue = 1.0f,
+                        Delta = 0f,
+                        Severity = "ok",
+                    },
+                ],
+            },
+        };
         var result = EvalPayloadBuilder.BuildSlackPayload(payload);
 
         using var doc = JsonDocument.Parse(result);
@@ -184,11 +193,14 @@ public class EvalPayloadBuilderTests
     [Fact]
     public void ShouldNotify_WarningRegression_ReturnsTrue()
     {
-        var payload = CreatePayload();
-        payload.BaselineComparison = new BaselineComparison
+        var payload = CreatePayload() with
         {
-            HasRegression = true,
-            Details = [new RegressionDetail { MetricName = "m", Severity = "warning", BaselineValue = 1, CurrentValue = 2, Delta = 1 }],
+            BaselineComparison = new EvalBaselineComparisonDto
+            {
+                HasRegression = true,
+                ShouldBlock = false,
+                Details = [new EvalRegressionDetailDto { MetricName = "m", Severity = "warning", BaselineValue = 1f, CurrentValue = 2f, Delta = 1f }],
+            },
         };
         Assert.True(EvalPayloadBuilder.ShouldNotify(payload, notifyOnRegressions: true, notifyOnViolations: false));
     }

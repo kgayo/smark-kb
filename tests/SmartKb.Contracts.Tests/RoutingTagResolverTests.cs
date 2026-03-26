@@ -21,13 +21,13 @@ public sealed class RoutingTagResolverTests
             EvidenceId = "ev-001",
             SourceSystem = ConnectorType.AzureDevOps,
             SourceType = SourceType.Ticket,
-            SourceLocator = new SourceLocator { Url = "https://dev.azure.com/test" },
+            SourceLocator = new SourceLocator("ev-001", "https://dev.azure.com/test"),
             Title = title,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow,
-            Status = EvidenceStatus.Active,
+            Status = EvidenceStatus.Open,
             TextContent = textContent,
-            Permissions = new RecordPermissions { Visibility = "Internal", AllowedGroups = [] },
+            Permissions = new RecordPermissions(AccessVisibility.Internal, []),
             ContentHash = "abc123",
             AccessLabel = "Internal",
             ProductArea = productArea,
@@ -234,7 +234,7 @@ public sealed class RoutingTagResolverTests
         };
 
         var result = _resolver.ApplyRoutingTags(record, mapping);
-        Assert.Single(result.Tags.Where(t => t.StartsWith("module:", StringComparison.OrdinalIgnoreCase)));
+        Assert.Single(result.Tags, t => t.StartsWith("module:", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

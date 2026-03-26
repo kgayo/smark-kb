@@ -1455,6 +1455,7 @@ public class ChatOrchestratorIntegrationTests
             Chunks = [MakeChunk("c1", "Content", 0.8)],
             AclFilteredOutCount = 0,
             HasEvidence = true,
+            TraceId = "test-trace",
         });
 
         var orchestrator = new ChatOrchestrator(
@@ -1502,6 +1503,7 @@ public class ChatOrchestratorIntegrationTests
             Chunks = [MakeChunk("c1", "Content", 0.8)],
             AclFilteredOutCount = 0,
             HasEvidence = true,
+            TraceId = "test-trace",
         });
 
         // Handler throws OCE to simulate cancelled HTTP call
@@ -1536,6 +1538,7 @@ public class ChatOrchestratorIntegrationTests
                 Chunks = [MakeChunk("c1", "Content", 0.8)],
                 AclFilteredOutCount = 0,
                 HasEvidence = true,
+                TraceId = "test-trace",
             }),
             new StubTraceWriter(),
             new StubPiiRedactionService(), new StubAuditWriter(), new StubTokenUsageService(),
@@ -1569,6 +1572,7 @@ public class ChatOrchestratorIntegrationTests
                 Chunks = [MakeChunk("c1", "Content", 0.8)],
                 AclFilteredOutCount = 0,
                 HasEvidence = true,
+                TraceId = "test-trace",
             }),
             new StubTraceWriter(),
             new StubPiiRedactionService(), new StubAuditWriter(), new StubTokenUsageService(),
@@ -1734,7 +1738,7 @@ public class ChatOrchestratorIntegrationTests
         }
     }
 
-    private class StubHttpClientFactory(StubHttpMessageHandler handler) : IHttpClientFactory
+    private class StubHttpClientFactory(HttpMessageHandler handler) : IHttpClientFactory
     {
         public HttpClient CreateClient(string name) => new(handler);
     }

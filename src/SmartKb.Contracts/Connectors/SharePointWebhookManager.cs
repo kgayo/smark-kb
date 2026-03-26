@@ -210,10 +210,10 @@ public sealed class SharePointWebhookManager : IWebhookManager
         var tokenUrl = string.Format(GraphTokenUrl, config.EntraIdTenantId);
         using var requestBody = new FormUrlEncodedContent(new Dictionary<string, string>
         {
-            ["grant_type"] = "client_credentials",
+            ["grant_type"] = GraphApiConstants.ClientCredentialsGrantType,
             ["client_id"] = config.ClientId,
             ["client_secret"] = clientSecret,
-            ["scope"] = "https://graph.microsoft.com/.default",
+            ["scope"] = GraphApiConstants.DefaultScope,
         });
 
         using var response = await client.PostAsync(tokenUrl, requestBody, ct);

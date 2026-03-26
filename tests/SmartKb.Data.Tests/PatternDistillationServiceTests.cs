@@ -730,7 +730,7 @@ public class PatternDistillationServiceTests : IDisposable
         var result = await service.DistillAsync(TenantId, "admin", "corr-idx-ok");
 
         Assert.Equal(1, result.PatternsCreated);
-        Assert.Equal(1, indexingService.IndexedPatterns.Count);
+        Assert.Single(indexingService.IndexedPatterns);
         Assert.NotNull(indexingService.IndexedPatterns[0].EmbeddingVector);
     }
 
@@ -876,7 +876,7 @@ public class PatternDistillationServiceTests : IDisposable
         var result = await service.DistillAsync(TenantId, "admin", "corr-all");
 
         Assert.Equal(1, result.PatternsCreated);
-        Assert.Equal(1, indexingService.IndexedPatterns.Count);
+        Assert.Single(indexingService.IndexedPatterns);
         var pattern = _db.CasePatterns.First(p => p.PatternId == result.CreatedPatternIds[0]);
         Assert.Equal(0.9f, pattern.QualityScore!.Value, 0.01f);
     }

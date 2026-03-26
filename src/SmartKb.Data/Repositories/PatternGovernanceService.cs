@@ -414,9 +414,9 @@ public sealed class PatternGovernanceService : IPatternGovernanceService
         return previous;
     }
 
-    private IReadOnlyList<string> DeserializeStringList(string? json) =>
-        JsonDeserializeHelper.Deserialize<List<string>>(json, SharedJsonOptions.CamelCaseWrite, _logger, []);
+    private static IReadOnlyList<string> DeserializeStringList(string? json, ILogger? logger = null) =>
+        JsonDeserializeHelper.Deserialize<List<string>>(json, SharedJsonOptions.CamelCaseWrite, logger!, []);
 
-    private IReadOnlyDictionary<string, string?> DeserializeStringDictionary(string? json) =>
-        JsonDeserializeHelper.Deserialize<Dictionary<string, string?>>(json, SharedJsonOptions.CamelCaseWrite, _logger, new Dictionary<string, string?>());
+    private static IReadOnlyDictionary<string, string?> DeserializeStringDictionary(string? json, ILogger? logger = null) =>
+        JsonDeserializeHelper.Deserialize<Dictionary<string, string?>>(json, SharedJsonOptions.CamelCaseWrite, logger!, new Dictionary<string, string?>());
 }

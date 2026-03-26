@@ -442,4 +442,30 @@ describe('EscalationDraftModal', () => {
     fireEvent.change(screen.getByTestId('draft-severity'), { target: { value: 'P1' } });
     expect(screen.getByTestId('draft-severity')).toHaveValue('P1');
   });
+
+  it('renders aria-labels on all form inputs', async () => {
+    vi.mocked(api.createEscalationDraft).mockResolvedValue(mockDraftResponse);
+
+    render(
+      <EscalationDraftModal
+        open={true}
+        sessionId="sess-1"
+        messageId="msg-1"
+        escalation={mockEscalation}
+        citations={[mockCitation]}
+        onClose={() => {}}
+      />,
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId('draft-title')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('draft-title')).toHaveAttribute('aria-label', 'Escalation draft title');
+    expect(screen.getByTestId('draft-target-team')).toHaveAttribute('aria-label', 'Escalation target team');
+    expect(screen.getByTestId('draft-reason')).toHaveAttribute('aria-label', 'Escalation reason');
+    expect(screen.getByTestId('draft-customer-summary')).toHaveAttribute('aria-label', 'Customer summary');
+    expect(screen.getByTestId('draft-suspected-component')).toHaveAttribute('aria-label', 'Suspected component');
+    expect(screen.getByTestId('draft-steps-to-reproduce')).toHaveAttribute('aria-label', 'Steps to reproduce');
+    expect(screen.getByTestId('draft-logs-ids')).toHaveAttribute('aria-label', 'Logs and IDs requested');
+  });
 });

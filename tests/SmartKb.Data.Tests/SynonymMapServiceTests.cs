@@ -394,7 +394,7 @@ public class SynonymMapServiceTests : IDisposable
     public async Task Update_ConcurrentModification_ThrowsConcurrencyConflictException()
     {
         // Create a synonym rule.
-        var (created, _, _) = await _service.CreateAsync(
+        var (created, _) = await _service.CreateAsync(
             "t1", "actor", "corr", new CreateSynonymRuleRequest
             {
                 GroupName = "test",

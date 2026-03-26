@@ -3,6 +3,7 @@ using System.Text.Json;
 using Azure.Messaging.ServiceBus;
 using SmartKb.Contracts;
 using SmartKb.Contracts.Configuration;
+using TagNames = SmartKb.Contracts.Diagnostics.TagNames;
 using SmartKb.Contracts.Models;
 using SmartKb.Ingestion.Processing;
 
@@ -85,7 +86,7 @@ public sealed class IngestionWorker : BackgroundService
             _logger.LogError(ex, "Failed to deserialize sync job message {MessageId}. Dead-lettering.",
                 args.Message.MessageId);
             Diagnostics.DeadLetterTotal.Add(1,
-                new KeyValuePair<string, object?>("smartkb.reason", "DeserializationFailed"));
+                new KeyValuePair<string, object?>(TagNames.Reason, "DeserializationFailed"));
             await args.DeadLetterMessageAsync(args.Message, "DeserializationFailed",
                 $"Could not deserialize message body: {ex.Message}", args.CancellationToken);
             return;
@@ -95,7 +96,7 @@ public sealed class IngestionWorker : BackgroundService
         {
             _logger.LogError("Deserialized message {MessageId} was null. Dead-lettering.", args.Message.MessageId);
             Diagnostics.DeadLetterTotal.Add(1,
-                new KeyValuePair<string, object?>("smartkb.reason", "NullMessage"));
+                new KeyValuePair<string, object?>(TagNames.Reason, "NullMessage"));
             await args.DeadLetterMessageAsync(args.Message, "NullMessage",
                 "Deserialized message was null.", args.CancellationToken);
             return;
@@ -112,9 +113,9 @@ public sealed class IngestionWorker : BackgroundService
 
         activity?.SetTag("messaging.message_id", args.Message.MessageId);
         activity?.SetTag("messaging.delivery_count", args.Message.DeliveryCount);
-        activity?.SetTag("smartkb.sync_run_id", message.SyncRunId.ToString());
-        activity?.SetTag("smartkb.connector_id", message.ConnectorId.ToString());
-        activity?.SetTag("smartkb.tenant_id", message.TenantId);
+        activity?.SetTag(TagNames.SyncRunId, message.SyncRunId.ToString());
+        activity?.SetTag(TagNames.ConnectorId, message.ConnectorId.ToString());
+        activity?.SetTag(TagNames.TenantId, message.TenantId);
 
         _logger.LogInformation(
             "Processing sync job {SyncRunId} for connector {ConnectorId} (delivery {DeliveryCount})",
