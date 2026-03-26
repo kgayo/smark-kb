@@ -116,9 +116,8 @@ public sealed class EmbeddingCacheService : IEmbeddingCacheService
     public async Task<int> EvictExpiredAsync(CancellationToken ct = default)
     {
         var now = DateTimeOffset.UtcNow;
-        var expired = await _db.EmbeddingCache
-            .Where(c => c.ExpiresAt <= now)
-            .ToListAsync(ct);
+        var allEntries = await _db.EmbeddingCache.ToListAsync(ct);
+        var expired = allEntries.Where(c => c.ExpiresAt <= now).ToList();
 
         if (expired.Count == 0) return 0;
 

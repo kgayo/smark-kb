@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using SmartKb.Api.Auth;
 using SmartKb.Contracts;
 using SmartKb.Api.Tenant;
@@ -16,9 +17,9 @@ public static class SearchTokenEndpoints
 
         app.MapGet("/api/admin/synonym-rules", async (
             HttpContext httpContext,
-            string? groupName,
-            ITenantContextAccessor tenantAccessor,
-            ISynonymMapService service) =>
+            [FromQuery] string? groupName,
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ISynonymMapService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -29,8 +30,8 @@ public static class SearchTokenEndpoints
         app.MapGet("/api/admin/synonym-rules/{ruleId:guid}", async (
             HttpContext httpContext,
             Guid ruleId,
-            ITenantContextAccessor tenantAccessor,
-            ISynonymMapService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ISynonymMapService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -43,8 +44,8 @@ public static class SearchTokenEndpoints
         app.MapPost("/api/admin/synonym-rules", async (
             HttpContext httpContext,
             CreateSynonymRuleRequest request,
-            ITenantContextAccessor tenantAccessor,
-            ISynonymMapService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ISynonymMapService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -63,8 +64,8 @@ public static class SearchTokenEndpoints
             HttpContext httpContext,
             Guid ruleId,
             UpdateSynonymRuleRequest request,
-            ITenantContextAccessor tenantAccessor,
-            ISynonymMapService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ISynonymMapService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -91,8 +92,8 @@ public static class SearchTokenEndpoints
         app.MapDelete("/api/admin/synonym-rules/{ruleId:guid}", async (
             HttpContext httpContext,
             Guid ruleId,
-            ITenantContextAccessor tenantAccessor,
-            ISynonymMapService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ISynonymMapService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -105,8 +106,8 @@ public static class SearchTokenEndpoints
 
         app.MapPost("/api/admin/synonym-rules/sync", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            ISynonymMapService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ISynonymMapService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -120,8 +121,8 @@ public static class SearchTokenEndpoints
         app.MapPost("/api/admin/synonym-rules/seed", async (
             HttpContext httpContext,
             SeedSynonymRulesRequest request,
-            ITenantContextAccessor tenantAccessor,
-            ISynonymMapService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ISynonymMapService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -134,9 +135,9 @@ public static class SearchTokenEndpoints
 
         app.MapGet("/api/admin/stop-words", async (
             HttpContext httpContext,
-            string? groupName,
-            ITenantContextAccessor tenantAccessor,
-            ISearchTokenService service) =>
+            [FromQuery] string? groupName,
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ISearchTokenService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -147,8 +148,8 @@ public static class SearchTokenEndpoints
         app.MapGet("/api/admin/stop-words/{id:guid}", async (
             HttpContext httpContext,
             Guid id,
-            ITenantContextAccessor tenantAccessor,
-            ISearchTokenService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ISearchTokenService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -161,8 +162,8 @@ public static class SearchTokenEndpoints
         app.MapPost("/api/admin/stop-words", async (
             HttpContext httpContext,
             CreateStopWordRequest request,
-            ITenantContextAccessor tenantAccessor,
-            ISearchTokenService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ISearchTokenService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -179,8 +180,8 @@ public static class SearchTokenEndpoints
             HttpContext httpContext,
             Guid id,
             UpdateStopWordRequest request,
-            ITenantContextAccessor tenantAccessor,
-            ISearchTokenService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ISearchTokenService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -204,8 +205,8 @@ public static class SearchTokenEndpoints
         app.MapDelete("/api/admin/stop-words/{id:guid}", async (
             HttpContext httpContext,
             Guid id,
-            ITenantContextAccessor tenantAccessor,
-            ISearchTokenService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ISearchTokenService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -217,8 +218,8 @@ public static class SearchTokenEndpoints
         app.MapPost("/api/admin/stop-words/seed", async (
             HttpContext httpContext,
             SeedStopWordsRequest request,
-            ITenantContextAccessor tenantAccessor,
-            ISearchTokenService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ISearchTokenService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -231,9 +232,9 @@ public static class SearchTokenEndpoints
 
         app.MapGet("/api/admin/special-tokens", async (
             HttpContext httpContext,
-            string? category,
-            ITenantContextAccessor tenantAccessor,
-            ISearchTokenService service) =>
+            [FromQuery] string? category,
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ISearchTokenService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -244,8 +245,8 @@ public static class SearchTokenEndpoints
         app.MapGet("/api/admin/special-tokens/{id:guid}", async (
             HttpContext httpContext,
             Guid id,
-            ITenantContextAccessor tenantAccessor,
-            ISearchTokenService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ISearchTokenService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -258,8 +259,8 @@ public static class SearchTokenEndpoints
         app.MapPost("/api/admin/special-tokens", async (
             HttpContext httpContext,
             CreateSpecialTokenRequest request,
-            ITenantContextAccessor tenantAccessor,
-            ISearchTokenService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ISearchTokenService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -276,8 +277,8 @@ public static class SearchTokenEndpoints
             HttpContext httpContext,
             Guid id,
             UpdateSpecialTokenRequest request,
-            ITenantContextAccessor tenantAccessor,
-            ISearchTokenService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ISearchTokenService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -301,8 +302,8 @@ public static class SearchTokenEndpoints
         app.MapDelete("/api/admin/special-tokens/{id:guid}", async (
             HttpContext httpContext,
             Guid id,
-            ITenantContextAccessor tenantAccessor,
-            ISearchTokenService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ISearchTokenService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -314,8 +315,8 @@ public static class SearchTokenEndpoints
         app.MapPost("/api/admin/special-tokens/seed", async (
             HttpContext httpContext,
             SeedSpecialTokensRequest request,
-            ITenantContextAccessor tenantAccessor,
-            ISearchTokenService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ISearchTokenService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;

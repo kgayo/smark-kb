@@ -49,9 +49,12 @@ public sealed class RateLimitAlertService : IRateLimitAlertService
     {
         var windowStart = _timeProvider.GetUtcNow().AddMinutes(-_sloSettings.RateLimitAlertWindowMinutes);
 
-        var recentEvents = await _db.RateLimitEvents
-            .Where(e => e.TenantId == tenantId && e.OccurredAt >= windowStart)
+        var allTenantEvents = await _db.RateLimitEvents
+            .Where(e => e.TenantId == tenantId)
             .ToListAsync(ct);
+        var recentEvents = allTenantEvents
+            .Where(e => e.OccurredAt >= windowStart)
+            .ToList();
 
         var grouped = recentEvents
             .GroupBy(e => new { e.ConnectorId, e.ConnectorType })

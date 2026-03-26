@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using SmartKb.Api.Auth;
 using SmartKb.Contracts;
 using SmartKb.Api.Tenant;
@@ -17,8 +18,8 @@ public static class ChatEndpoints
         app.MapPost("/api/sessions", async (
             HttpContext httpContext,
             CreateSessionRequest request,
-            ITenantContextAccessor tenantAccessor,
-            ISessionService sessionService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ISessionService sessionService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -29,8 +30,8 @@ public static class ChatEndpoints
 
         app.MapGet("/api/sessions", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            ISessionService sessionService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ISessionService sessionService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -41,8 +42,8 @@ public static class ChatEndpoints
         app.MapGet("/api/sessions/{sessionId:guid}", async (
             HttpContext httpContext,
             Guid sessionId,
-            ITenantContextAccessor tenantAccessor,
-            ISessionService sessionService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ISessionService sessionService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -55,8 +56,8 @@ public static class ChatEndpoints
         app.MapDelete("/api/sessions/{sessionId:guid}", async (
             HttpContext httpContext,
             Guid sessionId,
-            ITenantContextAccessor tenantAccessor,
-            ISessionService sessionService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ISessionService sessionService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -69,8 +70,8 @@ public static class ChatEndpoints
         app.MapGet("/api/sessions/{sessionId:guid}/messages", async (
             HttpContext httpContext,
             Guid sessionId,
-            ITenantContextAccessor tenantAccessor,
-            ISessionService sessionService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ISessionService sessionService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -84,8 +85,8 @@ public static class ChatEndpoints
             HttpContext httpContext,
             Guid sessionId,
             SendMessageRequest request,
-            ITenantContextAccessor tenantAccessor,
-            ISessionService sessionService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ISessionService sessionService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -108,9 +109,9 @@ public static class ChatEndpoints
             Guid sessionId,
             Guid messageId,
             SubmitFeedbackRequest request,
-            ITenantContextAccessor tenantAccessor,
-            IFeedbackService feedbackService,
-            ILogger<Program> logger) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IFeedbackService feedbackService,
+            [FromServices] ILogger<Program> logger) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -133,8 +134,8 @@ public static class ChatEndpoints
             HttpContext httpContext,
             Guid sessionId,
             Guid messageId,
-            ITenantContextAccessor tenantAccessor,
-            IFeedbackService feedbackService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IFeedbackService feedbackService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -148,8 +149,8 @@ public static class ChatEndpoints
         app.MapGet("/api/sessions/{sessionId:guid}/feedbacks", async (
             HttpContext httpContext,
             Guid sessionId,
-            ITenantContextAccessor tenantAccessor,
-            IFeedbackService feedbackService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IFeedbackService feedbackService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -166,9 +167,9 @@ public static class ChatEndpoints
             HttpContext httpContext,
             Guid sessionId,
             RecordOutcomeRequest request,
-            ITenantContextAccessor tenantAccessor,
-            IOutcomeService outcomeService,
-            ILogger<Program> logger) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IOutcomeService outcomeService,
+            [FromServices] ILogger<Program> logger) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -191,8 +192,8 @@ public static class ChatEndpoints
         app.MapGet("/api/sessions/{sessionId:guid}/outcome", async (
             HttpContext httpContext,
             Guid sessionId,
-            ITenantContextAccessor tenantAccessor,
-            IOutcomeService outcomeService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IOutcomeService outcomeService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -208,9 +209,9 @@ public static class ChatEndpoints
         app.MapPost("/api/escalations/draft", async (
             HttpContext httpContext,
             CreateEscalationDraftRequest request,
-            ITenantContextAccessor tenantAccessor,
-            IEscalationDraftService escalationService,
-            ILogger<Program> logger) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IEscalationDraftService escalationService,
+            [FromServices] ILogger<Program> logger) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -232,8 +233,8 @@ public static class ChatEndpoints
         app.MapGet("/api/escalations/draft/{draftId:guid}", async (
             HttpContext httpContext,
             Guid draftId,
-            ITenantContextAccessor tenantAccessor,
-            IEscalationDraftService escalationService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IEscalationDraftService escalationService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -246,8 +247,8 @@ public static class ChatEndpoints
         app.MapGet("/api/sessions/{sessionId:guid}/escalations/drafts", async (
             HttpContext httpContext,
             Guid sessionId,
-            ITenantContextAccessor tenantAccessor,
-            IEscalationDraftService escalationService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IEscalationDraftService escalationService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -261,8 +262,8 @@ public static class ChatEndpoints
             HttpContext httpContext,
             Guid draftId,
             UpdateEscalationDraftRequest request,
-            ITenantContextAccessor tenantAccessor,
-            IEscalationDraftService escalationService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IEscalationDraftService escalationService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -276,8 +277,8 @@ public static class ChatEndpoints
         app.MapGet("/api/escalations/draft/{draftId:guid}/export", async (
             HttpContext httpContext,
             Guid draftId,
-            ITenantContextAccessor tenantAccessor,
-            IEscalationDraftService escalationService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IEscalationDraftService escalationService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -292,9 +293,9 @@ public static class ChatEndpoints
             HttpContext httpContext,
             Guid draftId,
             ApproveEscalationDraftRequest request,
-            ITenantContextAccessor tenantAccessor,
-            IEscalationDraftService escalationService,
-            ILogger<Program> logger) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IEscalationDraftService escalationService,
+            [FromServices] ILogger<Program> logger) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -320,8 +321,8 @@ public static class ChatEndpoints
         app.MapDelete("/api/escalations/draft/{draftId:guid}", async (
             HttpContext httpContext,
             Guid draftId,
-            ITenantContextAccessor tenantAccessor,
-            IEscalationDraftService escalationService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IEscalationDraftService escalationService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -335,10 +336,10 @@ public static class ChatEndpoints
 
         app.MapGet("/api/evidence/{chunkId}/content", async (
             string chunkId,
-            ITenantContextAccessor tenantAccessor,
-            SmartKb.Data.SmartKbDbContext db,
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] SmartKb.Data.SmartKbDbContext db,
             HttpContext httpContext,
-            ILogger<Program> logger,
+            [FromServices] ILogger<Program> logger,
             CancellationToken ct) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
@@ -435,7 +436,7 @@ public static class ChatEndpoints
 
         app.MapPost("/api/chat", async (
             ChatRequest request,
-            ITenantContextAccessor tenantAccessor,
+            [FromServices] ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();

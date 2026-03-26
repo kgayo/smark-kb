@@ -165,11 +165,13 @@ public sealed class GoldCaseService : IGoldCaseService
             throw new InvalidOperationException("Feedback not found.");
 
         // Build query from the original user message in the session.
-        var userMessage = await _db.Messages
+        var userMessages = await _db.Messages
             .Where(m => m.SessionId == feedback.SessionId && m.TenantId == tenantId && m.Role == Contracts.Enums.MessageRole.User)
-            .OrderByDescending(m => m.CreatedAt)
+            .ToListAsync(ct);
+        var userMessage = userMessages
             .Where(m => m.CreatedAt <= feedback.Message.CreatedAt)
-            .FirstOrDefaultAsync(ct);
+            .OrderByDescending(m => m.CreatedAt)
+            .FirstOrDefault();
 
         var query = feedback.CorrectionText
             ?? userMessage?.Content

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using SmartKb.Api.Auth;
 using SmartKb.Contracts;
 using SmartKb.Api.Tenant;
@@ -15,8 +16,8 @@ public static class PrivacyEndpoints
 
         app.MapGet("/api/admin/privacy/pii-policy", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            IPiiPolicyService piiPolicyService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IPiiPolicyService piiPolicyService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -29,9 +30,9 @@ public static class PrivacyEndpoints
         app.MapPut("/api/admin/privacy/pii-policy", async (
             HttpContext httpContext,
             PiiPolicyUpdateRequest request,
-            ITenantContextAccessor tenantAccessor,
-            IPiiPolicyService piiPolicyService,
-            ILogger<Program> logger) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IPiiPolicyService piiPolicyService,
+            [FromServices] ILogger<Program> logger) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -49,8 +50,8 @@ public static class PrivacyEndpoints
 
         app.MapDelete("/api/admin/privacy/pii-policy", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            IPiiPolicyService piiPolicyService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IPiiPolicyService piiPolicyService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -62,8 +63,8 @@ public static class PrivacyEndpoints
 
         app.MapGet("/api/admin/privacy/retention", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            IRetentionCleanupService retentionService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IRetentionCleanupService retentionService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -74,9 +75,9 @@ public static class PrivacyEndpoints
         app.MapPut("/api/admin/privacy/retention", async (
             HttpContext httpContext,
             RetentionPolicyUpdateRequest request,
-            ITenantContextAccessor tenantAccessor,
-            IRetentionCleanupService retentionService,
-            ILogger<Program> logger) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IRetentionCleanupService retentionService,
+            [FromServices] ILogger<Program> logger) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -95,8 +96,8 @@ public static class PrivacyEndpoints
         app.MapDelete("/api/admin/privacy/retention/{entityType}", async (
             HttpContext httpContext,
             string entityType,
-            ITenantContextAccessor tenantAccessor,
-            IRetentionCleanupService retentionService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IRetentionCleanupService retentionService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -108,8 +109,8 @@ public static class PrivacyEndpoints
 
         app.MapPost("/api/admin/privacy/retention/cleanup", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            IRetentionCleanupService retentionService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IRetentionCleanupService retentionService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -120,9 +121,9 @@ public static class PrivacyEndpoints
         app.MapPost("/api/admin/privacy/data-subject-deletion", async (
             HttpContext httpContext,
             DataSubjectDeletionRequest request,
-            ITenantContextAccessor tenantAccessor,
-            IDataSubjectDeletionService deletionService,
-            ILogger<Program> logger) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IDataSubjectDeletionService deletionService,
+            [FromServices] ILogger<Program> logger) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -140,8 +141,8 @@ public static class PrivacyEndpoints
 
         app.MapGet("/api/admin/privacy/data-subject-deletion", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            IDataSubjectDeletionService deletionService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IDataSubjectDeletionService deletionService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -152,8 +153,8 @@ public static class PrivacyEndpoints
         app.MapGet("/api/admin/privacy/data-subject-deletion/{requestId:guid}", async (
             HttpContext httpContext,
             Guid requestId,
-            ITenantContextAccessor tenantAccessor,
-            IDataSubjectDeletionService deletionService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IDataSubjectDeletionService deletionService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -167,11 +168,11 @@ public static class PrivacyEndpoints
 
         app.MapGet("/api/admin/privacy/retention/history", async (
             HttpContext httpContext,
-            string? entityType,
-            int? skip,
-            int? take,
-            ITenantContextAccessor tenantAccessor,
-            IRetentionCleanupService retentionService) =>
+            [FromQuery] string? entityType,
+            [FromQuery] int? skip,
+            [FromQuery] int? take,
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IRetentionCleanupService retentionService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -182,8 +183,8 @@ public static class PrivacyEndpoints
 
         app.MapGet("/api/admin/privacy/retention/compliance", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            IRetentionCleanupService retentionService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IRetentionCleanupService retentionService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;

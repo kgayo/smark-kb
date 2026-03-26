@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using SmartKb.Api.Auth;
 using SmartKb.Contracts;
 using SmartKb.Api.Tenant;
@@ -13,8 +14,8 @@ public static class PlaybookEndpoints
     {
         app.MapGet("/api/admin/playbooks", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            ITeamPlaybookService playbookService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ITeamPlaybookService playbookService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -25,8 +26,8 @@ public static class PlaybookEndpoints
         app.MapGet("/api/admin/playbooks/{playbookId:guid}", async (
             HttpContext httpContext,
             Guid playbookId,
-            ITenantContextAccessor tenantAccessor,
-            ITeamPlaybookService playbookService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ITeamPlaybookService playbookService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -39,8 +40,8 @@ public static class PlaybookEndpoints
         app.MapGet("/api/admin/playbooks/team/{teamName}", async (
             HttpContext httpContext,
             string teamName,
-            ITenantContextAccessor tenantAccessor,
-            ITeamPlaybookService playbookService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ITeamPlaybookService playbookService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -53,8 +54,8 @@ public static class PlaybookEndpoints
         app.MapPost("/api/admin/playbooks", async (
             HttpContext httpContext,
             CreateTeamPlaybookRequest request,
-            ITenantContextAccessor tenantAccessor,
-            ITeamPlaybookService playbookService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ITeamPlaybookService playbookService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -68,8 +69,8 @@ public static class PlaybookEndpoints
             HttpContext httpContext,
             Guid playbookId,
             UpdateTeamPlaybookRequest request,
-            ITenantContextAccessor tenantAccessor,
-            ITeamPlaybookService playbookService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ITeamPlaybookService playbookService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -83,8 +84,8 @@ public static class PlaybookEndpoints
         app.MapDelete("/api/admin/playbooks/{playbookId:guid}", async (
             HttpContext httpContext,
             Guid playbookId,
-            ITenantContextAccessor tenantAccessor,
-            ITeamPlaybookService playbookService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ITeamPlaybookService playbookService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -98,8 +99,8 @@ public static class PlaybookEndpoints
         app.MapPost("/api/admin/playbooks/validate", async (
             HttpContext httpContext,
             PlaybookValidateRequest request,
-            ITenantContextAccessor tenantAccessor,
-            ITeamPlaybookService playbookService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ITeamPlaybookService playbookService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;

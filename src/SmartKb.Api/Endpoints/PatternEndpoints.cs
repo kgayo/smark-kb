@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using SmartKb.Api.Auth;
 using SmartKb.Contracts;
 using SmartKb.Api.Tenant;
@@ -15,8 +16,8 @@ public static class PatternEndpoints
 
         app.MapGet("/api/admin/retrieval-settings", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            ITenantRetrievalSettingsService settingsService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ITenantRetrievalSettingsService settingsService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -27,8 +28,8 @@ public static class PatternEndpoints
         app.MapPut("/api/admin/retrieval-settings", async (
             HttpContext httpContext,
             UpdateRetrievalSettingsRequest request,
-            ITenantContextAccessor tenantAccessor,
-            ITenantRetrievalSettingsService settingsService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ITenantRetrievalSettingsService settingsService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -38,8 +39,8 @@ public static class PatternEndpoints
 
         app.MapDelete("/api/admin/retrieval-settings", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            ITenantRetrievalSettingsService settingsService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ITenantRetrievalSettingsService settingsService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -53,8 +54,8 @@ public static class PatternEndpoints
 
         app.MapGet("/api/admin/patterns/candidates", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            IPatternDistillationService distillationService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IPatternDistillationService distillationService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -64,8 +65,8 @@ public static class PatternEndpoints
 
         app.MapPost("/api/admin/patterns/distill", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            IPatternDistillationService distillationService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IPatternDistillationService distillationService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -78,12 +79,12 @@ public static class PatternEndpoints
 
         app.MapGet("/api/patterns/governance-queue", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            IPatternGovernanceService governanceService,
-            string? trustLevel,
-            string? productArea,
-            int? page,
-            int? pageSize) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IPatternGovernanceService governanceService,
+            [FromQuery] string? trustLevel,
+            [FromQuery] string? productArea,
+            [FromQuery] int? page,
+            [FromQuery] int? pageSize) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -95,8 +96,8 @@ public static class PatternEndpoints
         app.MapGet("/api/patterns/{patternId}", async (
             HttpContext httpContext,
             string patternId,
-            ITenantContextAccessor tenantAccessor,
-            IPatternGovernanceService governanceService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IPatternGovernanceService governanceService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -110,8 +111,8 @@ public static class PatternEndpoints
             HttpContext httpContext,
             string patternId,
             ReviewPatternRequest request,
-            ITenantContextAccessor tenantAccessor,
-            IPatternGovernanceService governanceService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IPatternGovernanceService governanceService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -126,8 +127,8 @@ public static class PatternEndpoints
             HttpContext httpContext,
             string patternId,
             ApprovePatternRequest request,
-            ITenantContextAccessor tenantAccessor,
-            IPatternGovernanceService governanceService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IPatternGovernanceService governanceService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -142,8 +143,8 @@ public static class PatternEndpoints
             HttpContext httpContext,
             string patternId,
             DeprecatePatternRequest request,
-            ITenantContextAccessor tenantAccessor,
-            IPatternGovernanceService governanceService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IPatternGovernanceService governanceService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -159,8 +160,8 @@ public static class PatternEndpoints
         app.MapGet("/api/patterns/{patternId}/history", async (
             HttpContext httpContext,
             string patternId,
-            ITenantContextAccessor tenantAccessor,
-            IPatternGovernanceService governanceService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IPatternGovernanceService governanceService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -175,7 +176,7 @@ public static class PatternEndpoints
 
         app.MapGet("/api/admin/patterns/{patternId}/usage", async (
             string patternId,
-            ITenantContextAccessor tenantAccessor,
+            [FromServices] ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
@@ -189,8 +190,8 @@ public static class PatternEndpoints
 
         app.MapPost("/api/admin/patterns/detect-contradictions", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            IContradictionDetectionService contradictionService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IContradictionDetectionService contradictionService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var result = await contradictionService.DetectContradictionsAsync(
@@ -200,11 +201,11 @@ public static class PatternEndpoints
 
         app.MapGet("/api/admin/patterns/contradictions", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            IContradictionDetectionService contradictionService,
-            string? status,
-            int? page,
-            int? pageSize) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IContradictionDetectionService contradictionService,
+            [FromQuery] string? status,
+            [FromQuery] int? page,
+            [FromQuery] int? pageSize) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var result = await contradictionService.GetContradictionsAsync(
@@ -216,8 +217,8 @@ public static class PatternEndpoints
             Guid id,
             ResolveContradictionRequest request,
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            IContradictionDetectionService contradictionService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IContradictionDetectionService contradictionService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var result = await contradictionService.ResolveContradictionAsync(
@@ -229,8 +230,8 @@ public static class PatternEndpoints
 
         app.MapPost("/api/admin/patterns/detect-maintenance", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            IPatternMaintenanceService maintenanceService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IPatternMaintenanceService maintenanceService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var result = await maintenanceService.DetectMaintenanceIssuesAsync(
@@ -240,12 +241,12 @@ public static class PatternEndpoints
 
         app.MapGet("/api/admin/patterns/maintenance-tasks", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            IPatternMaintenanceService maintenanceService,
-            string? status,
-            string? taskType,
-            int? page,
-            int? pageSize) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IPatternMaintenanceService maintenanceService,
+            [FromQuery] string? status,
+            [FromQuery] string? taskType,
+            [FromQuery] int? page,
+            [FromQuery] int? pageSize) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var result = await maintenanceService.GetMaintenanceTasksAsync(
@@ -257,8 +258,8 @@ public static class PatternEndpoints
             Guid id,
             ResolveMaintenanceTaskRequest request,
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            IPatternMaintenanceService maintenanceService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IPatternMaintenanceService maintenanceService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var result = await maintenanceService.ResolveTaskAsync(
@@ -272,8 +273,8 @@ public static class PatternEndpoints
             Guid id,
             ResolveMaintenanceTaskRequest request,
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            IPatternMaintenanceService maintenanceService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IPatternMaintenanceService maintenanceService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var result = await maintenanceService.DismissTaskAsync(

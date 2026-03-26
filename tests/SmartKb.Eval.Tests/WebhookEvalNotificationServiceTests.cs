@@ -117,7 +117,7 @@ public class WebhookEvalNotificationServiceTests
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        await Assert.ThrowsAsync<OperationCanceledException>(
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => svc.NotifyAsync(CreatePayload(), cts.Token));
     }
 

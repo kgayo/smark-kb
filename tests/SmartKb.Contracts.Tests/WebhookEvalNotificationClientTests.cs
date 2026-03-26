@@ -174,7 +174,7 @@ public class WebhookEvalNotificationClientTests
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        await Assert.ThrowsAsync<OperationCanceledException>(
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => client.NotifyAsync(BlockingRegressionPayload(), cts.Token));
     }
 

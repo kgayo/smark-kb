@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using SmartKb.Api.Auth;
 using SmartKb.Contracts;
 using SmartKb.Api.Connectors;
@@ -13,8 +14,8 @@ public static class ConnectorAdminEndpoints
     {
         app.MapGet("/api/admin/connectors", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            ConnectorAdminService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ConnectorAdminService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -25,8 +26,8 @@ public static class ConnectorAdminEndpoints
         app.MapPost("/api/admin/connectors", async (
             HttpContext httpContext,
             CreateConnectorRequest request,
-            ITenantContextAccessor tenantAccessor,
-            ConnectorAdminService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ConnectorAdminService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -44,8 +45,8 @@ public static class ConnectorAdminEndpoints
         app.MapGet("/api/admin/connectors/{connectorId:guid}", async (
             HttpContext httpContext,
             Guid connectorId,
-            ITenantContextAccessor tenantAccessor,
-            ConnectorAdminService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ConnectorAdminService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -59,8 +60,8 @@ public static class ConnectorAdminEndpoints
             HttpContext httpContext,
             Guid connectorId,
             UpdateConnectorRequest request,
-            ITenantContextAccessor tenantAccessor,
-            ConnectorAdminService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ConnectorAdminService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -79,8 +80,8 @@ public static class ConnectorAdminEndpoints
         app.MapDelete("/api/admin/connectors/{connectorId:guid}", async (
             HttpContext httpContext,
             Guid connectorId,
-            ITenantContextAccessor tenantAccessor,
-            ConnectorAdminService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ConnectorAdminService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -94,8 +95,8 @@ public static class ConnectorAdminEndpoints
         app.MapPost("/api/admin/connectors/{connectorId:guid}/enable", async (
             HttpContext httpContext,
             Guid connectorId,
-            ITenantContextAccessor tenantAccessor,
-            ConnectorAdminService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ConnectorAdminService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -114,8 +115,8 @@ public static class ConnectorAdminEndpoints
         app.MapPost("/api/admin/connectors/{connectorId:guid}/disable", async (
             HttpContext httpContext,
             Guid connectorId,
-            ITenantContextAccessor tenantAccessor,
-            ConnectorAdminService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ConnectorAdminService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -131,8 +132,8 @@ public static class ConnectorAdminEndpoints
         app.MapPost("/api/admin/connectors/{connectorId:guid}/test", async (
             HttpContext httpContext,
             Guid connectorId,
-            ITenantContextAccessor tenantAccessor,
-            ConnectorAdminService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ConnectorAdminService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -147,8 +148,8 @@ public static class ConnectorAdminEndpoints
             HttpContext httpContext,
             Guid connectorId,
             SyncNowRequest request,
-            ITenantContextAccessor tenantAccessor,
-            ConnectorAdminService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ConnectorAdminService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -166,8 +167,8 @@ public static class ConnectorAdminEndpoints
             HttpContext httpContext,
             Guid connectorId,
             PreviewRequest request,
-            ITenantContextAccessor tenantAccessor,
-            ConnectorAdminService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ConnectorAdminService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -181,8 +182,8 @@ public static class ConnectorAdminEndpoints
         app.MapPost("/api/admin/connectors/{connectorId:guid}/validate-mapping", (
             Guid connectorId,
             FieldMappingConfig mapping,
-            ITenantContextAccessor tenantAccessor,
-            ConnectorAdminService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ConnectorAdminService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var result = service.ValidateFieldMapping(mapping);
@@ -193,8 +194,8 @@ public static class ConnectorAdminEndpoints
             HttpContext httpContext,
             Guid connectorId,
             PreviewRetrievalRequest request,
-            ITenantContextAccessor tenantAccessor,
-            ConnectorAdminService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ConnectorAdminService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -208,8 +209,8 @@ public static class ConnectorAdminEndpoints
         app.MapGet("/api/admin/connectors/{connectorId:guid}/sync-runs", async (
             HttpContext httpContext,
             Guid connectorId,
-            ITenantContextAccessor tenantAccessor,
-            ConnectorAdminService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ConnectorAdminService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -223,8 +224,8 @@ public static class ConnectorAdminEndpoints
             HttpContext httpContext,
             Guid connectorId,
             Guid syncRunId,
-            ITenantContextAccessor tenantAccessor,
-            ConnectorAdminService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ConnectorAdminService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -239,8 +240,8 @@ public static class ConnectorAdminEndpoints
         app.MapGet("/api/admin/connectors/{connectorId:guid}/oauth/authorize", async (
             HttpContext httpContext,
             Guid connectorId,
-            ITenantContextAccessor tenantAccessor,
-            ConnectorAdminService service) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ConnectorAdminService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -255,10 +256,10 @@ public static class ConnectorAdminEndpoints
         app.MapGet("/api/admin/connectors/{connectorId:guid}/oauth/callback", async (
             HttpContext httpContext,
             Guid connectorId,
-            string code,
-            string state,
-            ITenantContextAccessor tenantAccessor,
-            ConnectorAdminService service) =>
+            [FromQuery] string code,
+            [FromQuery] string state,
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ConnectorAdminService service) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;

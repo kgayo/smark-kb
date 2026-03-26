@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using SmartKb.Api.Auth;
 using SmartKb.Contracts;
 using SmartKb.Api.Tenant;
@@ -13,15 +14,15 @@ public static class AuditEndpoints
     {
         app.MapGet("/api/audit/events", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            IAuditEventQueryService auditQuery,
-            string? eventType,
-            string? actorId,
-            string? correlationId,
-            DateTimeOffset? from,
-            DateTimeOffset? to,
-            int? page,
-            int? pageSize) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IAuditEventQueryService auditQuery,
+            [FromQuery] string? eventType,
+            [FromQuery] string? actorId,
+            [FromQuery] string? correlationId,
+            [FromQuery] DateTimeOffset? from,
+            [FromQuery] DateTimeOffset? to,
+            [FromQuery] int? page,
+            [FromQuery] int? pageSize) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -41,15 +42,15 @@ public static class AuditEndpoints
 
         app.MapGet("/api/audit/events/export", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            IAuditEventQueryService auditQuery,
-            string? eventType,
-            string? actorId,
-            DateTimeOffset? from,
-            DateTimeOffset? to,
-            DateTimeOffset? afterTimestamp,
-            Guid? afterId,
-            int? limit) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IAuditEventQueryService auditQuery,
+            [FromQuery] string? eventType,
+            [FromQuery] string? actorId,
+            [FromQuery] DateTimeOffset? from,
+            [FromQuery] DateTimeOffset? to,
+            [FromQuery] DateTimeOffset? afterTimestamp,
+            [FromQuery] Guid? afterId,
+            [FromQuery] int? limit) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;

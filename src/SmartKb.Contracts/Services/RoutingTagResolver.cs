@@ -36,9 +36,9 @@ public sealed class RoutingTagResolver : IRoutingTagResolver
         foreach (var rule in routingRules)
         {
             var sourceValue = ReadSourceValue(record, rule.SourceField);
-            if (sourceValue is null) continue;
+            if (sourceValue is null && rule.Transform != FieldTransformType.Constant) continue;
 
-            var resolved = ApplyTransform(sourceValue, rule);
+            var resolved = ApplyTransform(sourceValue ?? string.Empty, rule);
             if (string.IsNullOrWhiteSpace(resolved)) continue;
 
             if (string.Equals(rule.RoutingTag, RoutingTagNames.ProductArea, StringComparison.OrdinalIgnoreCase))

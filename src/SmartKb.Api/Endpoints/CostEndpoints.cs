@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using SmartKb.Api.Auth;
 using SmartKb.Contracts;
 using SmartKb.Api.Tenant;
@@ -15,8 +16,8 @@ public static class CostEndpoints
 
         app.MapGet("/api/admin/cost-settings", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            ITenantCostSettingsService costSettingsService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ITenantCostSettingsService costSettingsService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -27,8 +28,8 @@ public static class CostEndpoints
         app.MapPut("/api/admin/cost-settings", async (
             HttpContext httpContext,
             UpdateCostSettingsRequest request,
-            ITenantContextAccessor tenantAccessor,
-            ITenantCostSettingsService costSettingsService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ITenantCostSettingsService costSettingsService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -38,8 +39,8 @@ public static class CostEndpoints
 
         app.MapDelete("/api/admin/cost-settings", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            ITenantCostSettingsService costSettingsService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ITenantCostSettingsService costSettingsService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -51,9 +52,9 @@ public static class CostEndpoints
 
         app.MapGet("/api/admin/token-usage/summary", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            ITokenUsageService tokenUsageService,
-            int? days) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ITokenUsageService tokenUsageService,
+            [FromQuery] int? days) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -66,9 +67,9 @@ public static class CostEndpoints
 
         app.MapGet("/api/admin/token-usage/daily", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            ITokenUsageService tokenUsageService,
-            int? days) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ITokenUsageService tokenUsageService,
+            [FromQuery] int? days) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -81,8 +82,8 @@ public static class CostEndpoints
 
         app.MapGet("/api/admin/token-usage/budget-check", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            ITokenUsageService tokenUsageService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] ITokenUsageService tokenUsageService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;

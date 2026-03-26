@@ -54,8 +54,9 @@ public class GoldDatasetLoaderTests
     [Fact]
     public void LoadFromString_InvalidJson_Throws()
     {
-        Assert.Throws<System.Text.Json.JsonException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             GoldDatasetLoader.LoadFromString("not json"));
+        Assert.IsType<System.Text.Json.JsonException>(ex.InnerException);
     }
 
     [Fact]

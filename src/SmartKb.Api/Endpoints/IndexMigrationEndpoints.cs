@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using SmartKb.Api.Auth;
 using SmartKb.Contracts;
 using SmartKb.Api.Tenant;
@@ -16,7 +17,7 @@ public static class IndexMigrationEndpoints
 
         app.MapGet("/api/admin/index-migrations/{indexType}/current", async (
             string indexType,
-            ITenantContextAccessor tenantAccessor,
+            [FromServices] ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
@@ -32,7 +33,7 @@ public static class IndexMigrationEndpoints
 
         app.MapGet("/api/admin/index-migrations/{indexType}/versions", async (
             string indexType,
-            ITenantContextAccessor tenantAccessor,
+            [FromServices] ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
@@ -46,7 +47,7 @@ public static class IndexMigrationEndpoints
 
         app.MapGet("/api/admin/index-migrations/{indexType}/plan", async (
             string indexType,
-            ITenantContextAccessor tenantAccessor,
+            [FromServices] ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
@@ -60,7 +61,7 @@ public static class IndexMigrationEndpoints
 
         app.MapPost("/api/admin/index-migrations/{indexType}/execute", async (
             string indexType,
-            ITenantContextAccessor tenantAccessor,
+            [FromServices] ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
@@ -77,7 +78,7 @@ public static class IndexMigrationEndpoints
 
         app.MapPost("/api/admin/index-migrations/{indexType}/rollback", async (
             string indexType,
-            ITenantContextAccessor tenantAccessor,
+            [FromServices] ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
@@ -94,7 +95,7 @@ public static class IndexMigrationEndpoints
 
         app.MapPost("/api/admin/index-migrations/{indexType}/bootstrap", async (
             string indexType,
-            ITenantContextAccessor tenantAccessor,
+            [FromServices] ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
@@ -108,7 +109,7 @@ public static class IndexMigrationEndpoints
 
         app.MapDelete("/api/admin/index-migrations/retired/{versionId:guid}", async (
             Guid versionId,
-            ITenantContextAccessor tenantAccessor,
+            [FromServices] ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();

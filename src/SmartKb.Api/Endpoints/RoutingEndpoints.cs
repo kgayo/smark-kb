@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using SmartKb.Api.Auth;
 using SmartKb.Contracts;
 using SmartKb.Api.Tenant;
@@ -15,8 +16,8 @@ public static class RoutingEndpoints
 
         app.MapGet("/api/admin/routing-rules", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            IRoutingRuleService ruleService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IRoutingRuleService ruleService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -27,8 +28,8 @@ public static class RoutingEndpoints
         app.MapGet("/api/admin/routing-rules/{ruleId:guid}", async (
             HttpContext httpContext,
             Guid ruleId,
-            ITenantContextAccessor tenantAccessor,
-            IRoutingRuleService ruleService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IRoutingRuleService ruleService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -41,8 +42,8 @@ public static class RoutingEndpoints
         app.MapPost("/api/admin/routing-rules", async (
             HttpContext httpContext,
             CreateRoutingRuleRequest request,
-            ITenantContextAccessor tenantAccessor,
-            IRoutingRuleService ruleService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IRoutingRuleService ruleService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -56,8 +57,8 @@ public static class RoutingEndpoints
             HttpContext httpContext,
             Guid ruleId,
             UpdateRoutingRuleRequest request,
-            ITenantContextAccessor tenantAccessor,
-            IRoutingRuleService ruleService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IRoutingRuleService ruleService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -71,8 +72,8 @@ public static class RoutingEndpoints
         app.MapDelete("/api/admin/routing-rules/{ruleId:guid}", async (
             HttpContext httpContext,
             Guid ruleId,
-            ITenantContextAccessor tenantAccessor,
-            IRoutingRuleService ruleService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IRoutingRuleService ruleService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -87,9 +88,9 @@ public static class RoutingEndpoints
 
         app.MapGet("/api/admin/routing/analytics", async (
             HttpContext httpContext,
-            int? windowDays,
-            ITenantContextAccessor tenantAccessor,
-            IRoutingAnalyticsService analyticsService) =>
+            [FromQuery] int? windowDays,
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IRoutingAnalyticsService analyticsService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -100,8 +101,8 @@ public static class RoutingEndpoints
         app.MapPost("/api/admin/routing/recommendations/generate", async (
             HttpContext httpContext,
             GenerateRecommendationsRequest? request,
-            ITenantContextAccessor tenantAccessor,
-            IRoutingImprovementService improvementService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IRoutingImprovementService improvementService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -113,9 +114,9 @@ public static class RoutingEndpoints
 
         app.MapGet("/api/admin/routing/recommendations", async (
             HttpContext httpContext,
-            string? status,
-            ITenantContextAccessor tenantAccessor,
-            IRoutingImprovementService improvementService) =>
+            [FromQuery] string? status,
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IRoutingImprovementService improvementService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -127,8 +128,8 @@ public static class RoutingEndpoints
             HttpContext httpContext,
             Guid recommendationId,
             ApplyRecommendationRequest? request,
-            ITenantContextAccessor tenantAccessor,
-            IRoutingImprovementService improvementService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IRoutingImprovementService improvementService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -143,8 +144,8 @@ public static class RoutingEndpoints
         app.MapPost("/api/admin/routing/recommendations/{recommendationId:guid}/dismiss", async (
             HttpContext httpContext,
             Guid recommendationId,
-            ITenantContextAccessor tenantAccessor,
-            IRoutingImprovementService improvementService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IRoutingImprovementService improvementService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -158,8 +159,8 @@ public static class RoutingEndpoints
         app.MapGet("/api/admin/eval/reports/{reportId:guid}/recommendations", async (
             HttpContext httpContext,
             Guid reportId,
-            ITenantContextAccessor tenantAccessor,
-            IRoutingImprovementService improvementService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IRoutingImprovementService improvementService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;

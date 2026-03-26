@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using SmartKb.Api.Auth;
 using SmartKb.Contracts;
 using SmartKb.Api.Tenant;
@@ -13,11 +14,11 @@ public static class EvalEndpoints
     {
         // Eval report endpoints (P3-021).
         app.MapGet("/api/admin/eval/reports", async (
-            ITenantContextAccessor tenantAccessor,
+            [FromServices] ITenantContextAccessor tenantAccessor,
             HttpContext httpContext,
-            string? runType,
-            int? page,
-            int? pageSize) =>
+            [FromQuery] string? runType,
+            [FromQuery] int? page,
+            [FromQuery] int? pageSize) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -29,7 +30,7 @@ public static class EvalEndpoints
 
         app.MapGet("/api/admin/eval/reports/{reportId:guid}", async (
             Guid reportId,
-            ITenantContextAccessor tenantAccessor,
+            [FromServices] ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
@@ -43,7 +44,7 @@ public static class EvalEndpoints
 
         app.MapPost("/api/admin/eval/reports", async (
             PersistEvalReportRequest request,
-            ITenantContextAccessor tenantAccessor,
+            [FromServices] ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
@@ -56,11 +57,11 @@ public static class EvalEndpoints
 
         // Gold case management endpoints (P3-022).
         app.MapGet("/api/admin/eval/gold-cases", async (
-            ITenantContextAccessor tenantAccessor,
+            [FromServices] ITenantContextAccessor tenantAccessor,
             HttpContext httpContext,
-            string? tag,
-            int? page,
-            int? pageSize) =>
+            [FromQuery] string? tag,
+            [FromQuery] int? page,
+            [FromQuery] int? pageSize) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -71,7 +72,7 @@ public static class EvalEndpoints
 
         app.MapGet("/api/admin/eval/gold-cases/{id:guid}", async (
             Guid id,
-            ITenantContextAccessor tenantAccessor,
+            [FromServices] ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
@@ -85,7 +86,7 @@ public static class EvalEndpoints
 
         app.MapPost("/api/admin/eval/gold-cases", async (
             CreateGoldCaseRequest request,
-            ITenantContextAccessor tenantAccessor,
+            [FromServices] ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
@@ -99,7 +100,7 @@ public static class EvalEndpoints
         app.MapPut("/api/admin/eval/gold-cases/{id:guid}", async (
             Guid id,
             UpdateGoldCaseRequest request,
-            ITenantContextAccessor tenantAccessor,
+            [FromServices] ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
@@ -113,7 +114,7 @@ public static class EvalEndpoints
 
         app.MapDelete("/api/admin/eval/gold-cases/{id:guid}", async (
             Guid id,
-            ITenantContextAccessor tenantAccessor,
+            [FromServices] ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
@@ -126,7 +127,7 @@ public static class EvalEndpoints
         }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapGet("/api/admin/eval/gold-cases/export", async (
-            ITenantContextAccessor tenantAccessor,
+            [FromServices] ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
@@ -138,7 +139,7 @@ public static class EvalEndpoints
 
         app.MapPost("/api/admin/eval/gold-cases/promote", async (
             PromoteFromFeedbackRequest request,
-            ITenantContextAccessor tenantAccessor,
+            [FromServices] ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();

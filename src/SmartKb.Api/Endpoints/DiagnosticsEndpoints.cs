@@ -1,5 +1,6 @@
 using Azure.Messaging.ServiceBus;
 using Azure.Search.Documents.Indexes;
+using Microsoft.AspNetCore.Mvc;
 using SmartKb.Api.Auth;
 using SmartKb.Contracts;
 using SmartKb.Api.Connectors;
@@ -19,8 +20,8 @@ public static class DiagnosticsEndpoints
         // --- SLO Status Endpoint (P0-022) ---
 
         app.MapGet("/api/admin/slo/status", (
-            ITenantContextAccessor tenantAccessor,
-            SloSettings sloSettingsInstance) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] SloSettings sloSettingsInstance) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             return Results.Ok(ApiResponse<object>.Success(new
@@ -56,10 +57,10 @@ public static class DiagnosticsEndpoints
         // --- Secrets Status Endpoint ---
 
         app.MapGet("/api/admin/secrets/status", (
-            ITenantContextAccessor tenantAccessor,
-            OpenAiKeyProvider openAiKeyProvider,
-            IServiceProvider sp,
-            ILogger<Program> logger) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] OpenAiKeyProvider openAiKeyProvider,
+            [FromServices] IServiceProvider sp,
+            [FromServices] ILogger<Program> logger) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var keyVaultConfigured = sp.GetService<ISecretProvider>() is not null;
@@ -88,7 +89,7 @@ public static class DiagnosticsEndpoints
         // --- Dead-Letter Queue Inspection ---
 
         app.MapGet("/api/admin/ingestion/dead-letters", async (
-            ITenantContextAccessor tenantAccessor,
+            [FromServices] ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
@@ -110,8 +111,8 @@ public static class DiagnosticsEndpoints
         app.MapGet("/api/admin/connectors/{connectorId}/webhooks", async (
             HttpContext httpContext,
             Guid connectorId,
-            ITenantContextAccessor tenantAccessor,
-            IWebhookStatusService webhookStatusService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IWebhookStatusService webhookStatusService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -121,8 +122,8 @@ public static class DiagnosticsEndpoints
 
         app.MapGet("/api/admin/webhooks", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            IWebhookStatusService webhookStatusService) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IWebhookStatusService webhookStatusService) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -134,10 +135,10 @@ public static class DiagnosticsEndpoints
 
         app.MapGet("/api/admin/diagnostics/summary", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor,
-            IWebhookStatusService webhookStatusService,
-            OpenAiKeyProvider openAiKeyProvider,
-            IServiceProvider sp) =>
+            [FromServices] ITenantContextAccessor tenantAccessor,
+            [FromServices] IWebhookStatusService webhookStatusService,
+            [FromServices] OpenAiKeyProvider openAiKeyProvider,
+            [FromServices] IServiceProvider sp) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -225,7 +226,7 @@ public static class DiagnosticsEndpoints
 
         app.MapGet("/api/admin/diagnostics/rate-limit-alerts", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor) =>
+            [FromServices] ITenantContextAccessor tenantAccessor) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -238,7 +239,7 @@ public static class DiagnosticsEndpoints
 
         app.MapGet("/api/admin/credentials/status", async (
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor) =>
+            [FromServices] ITenantContextAccessor tenantAccessor) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -250,7 +251,7 @@ public static class DiagnosticsEndpoints
         app.MapGet("/api/admin/connectors/{connectorId:guid}/credential-status", async (
             Guid connectorId,
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor) =>
+            [FromServices] ITenantContextAccessor tenantAccessor) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
@@ -263,7 +264,7 @@ public static class DiagnosticsEndpoints
             Guid connectorId,
             RotateSecretRequest request,
             HttpContext httpContext,
-            ITenantContextAccessor tenantAccessor) =>
+            [FromServices] ITenantContextAccessor tenantAccessor) =>
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;

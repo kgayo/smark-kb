@@ -1506,7 +1506,9 @@ public class ChatOrchestratorIntegrationTests
             TraceId = "test-trace",
         });
 
-        // Handler throws OCE to simulate cancelled HTTP call
+        // Handler throws OCE to simulate cancelled HTTP call.
+        // .NET 10's HttpClient wraps OperationCanceledException in TaskCanceledException,
+        // so we use ThrowsAnyAsync to accept either (TaskCanceledException : OperationCanceledException).
         var handler = new CancellingHttpMessageHandler();
         var httpClientFactory = new StubHttpClientFactory(handler);
 
@@ -1519,7 +1521,7 @@ public class ChatOrchestratorIntegrationTests
             new CostOptimizationSettings(),
             NullLogger<ChatOrchestrator>.Instance);
 
-        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             orchestrator.OrchestrateAsync("t1", "u1", "c1", new ChatRequest { Query = "test" }, cts.Token));
     }
 

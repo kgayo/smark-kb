@@ -126,6 +126,7 @@ public sealed class AuthTestFactory : WebApplicationFactory<Program>, IAsyncLife
             services.AddScoped<IContradictionDetectionService, SmartKb.Data.Repositories.ContradictionDetectionService>();
             services.AddScoped<IPatternMaintenanceService, SmartKb.Data.Repositories.PatternMaintenanceService>();
             services.AddScoped<ISynonymMapService, SmartKb.Data.Repositories.SynonymMapService>();
+            services.AddScoped<ISearchTokenService, SmartKb.Data.Repositories.SearchTokenService>();
             services.AddSingleton<IOptions<SloSettings>>(Options.Create(new SloSettings()));
             services.AddSingleton(TimeProvider.System);
             services.AddScoped<IRateLimitAlertService, SmartKb.Data.Repositories.RateLimitAlertService>();

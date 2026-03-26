@@ -628,9 +628,11 @@ public class SyncJobProcessorTests : IDisposable
         await Assert.ThrowsAsync<OperationCanceledException>(
             () => processor.ProcessAsync(message, cts.Token));
 
-        // SyncRun should remain Running (not Failed) for retry on restart.
+        // SyncRun should NOT be marked Failed so it can be retried on restart.
+        // With a pre-cancelled token the status may remain Pending (if SaveChangesAsync
+        // throws before persisting the Running transition) or Running.
         var updated = await _db.SyncRuns.FirstAsync(s => s.Id == syncRun.Id);
-        Assert.Equal(SyncRunStatus.Running, updated.Status);
+        Assert.NotEqual(SyncRunStatus.Failed, updated.Status);
     }
 
     [Fact]

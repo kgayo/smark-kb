@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using SmartKb.Api.Webhooks;
 
 namespace SmartKb.Api.Endpoints;
@@ -11,7 +12,7 @@ public static class WebhookEndpoints
         app.MapPost("/api/webhooks/ado/{connectorId:guid}", async (
             Guid connectorId,
             HttpContext httpContext,
-            AdoWebhookHandler handler) =>
+            [FromServices] AdoWebhookHandler handler) =>
         {
             // Read raw body for signature verification.
             var ct = httpContext.RequestAborted;
@@ -28,7 +29,7 @@ public static class WebhookEndpoints
         app.MapPost("/api/webhooks/msgraph/{connectorId:guid}", async (
             Guid connectorId,
             HttpContext httpContext,
-            SharePointWebhookHandler handler) =>
+            [FromServices] SharePointWebhookHandler handler) =>
         {
             // Graph subscription validation handshake: POST with ?validationToken=...
             var validationToken = httpContext.Request.Query["validationToken"].FirstOrDefault();
@@ -51,7 +52,7 @@ public static class WebhookEndpoints
         app.MapPost("/api/webhooks/hubspot/{connectorId:guid}", async (
             Guid connectorId,
             HttpContext httpContext,
-            HubSpotWebhookHandler handler) =>
+            [FromServices] HubSpotWebhookHandler handler) =>
         {
             var ct = httpContext.RequestAborted;
             using var reader = new StreamReader(httpContext.Request.Body);
@@ -68,7 +69,7 @@ public static class WebhookEndpoints
         app.MapPost("/api/webhooks/clickup/{connectorId:guid}", async (
             Guid connectorId,
             HttpContext httpContext,
-            ClickUpWebhookHandler handler) =>
+            [FromServices] ClickUpWebhookHandler handler) =>
         {
             var ct = httpContext.RequestAborted;
             using var reader = new StreamReader(httpContext.Request.Body);
