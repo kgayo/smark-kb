@@ -32,7 +32,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddHealthChecks();
 
 // --- OpenTelemetry ---
-var otelServiceName = "SmartKb.Api";
+var otelServiceName = Diagnostics.ApiSourceName;
 var appInsightsConnStr = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
 
 var otelBuilder = builder.Services.AddOpenTelemetry()
@@ -334,14 +334,14 @@ app.MapHealthChecks("/healthz").AllowAnonymous();
 app.MapGet("/api/health", () =>
 {
     var status = new HealthStatus(
-        Service: "SmartKb.Api",
+        Service: Diagnostics.ApiSourceName,
         Status: "Healthy",
         Version: version,
         Timestamp: DateTimeOffset.UtcNow);
     return Results.Ok(status);
 }).AllowAnonymous();
 
-app.MapGet("/", () => Results.Ok(new { service = "SmartKb.Api", status = "running" }))
+app.MapGet("/", () => Results.Ok(new { service = Diagnostics.ApiSourceName, status = "running" }))
     .AllowAnonymous();
 
 app.MapGet("/api/me", (ITenantContextAccessor tenantAccessor, HttpContext ctx) =>

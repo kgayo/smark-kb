@@ -96,4 +96,11 @@ public class ChatOrchestrationSettingsTests
         var settings = new ChatOrchestrationSettings();
         Assert.Equal("1.0", settings.SystemPromptVersion);
     }
+
+    [Fact]
+    public void DefaultSystemPromptVersion_MatchesPropertyDefault()
+    {
+        var settings = new ChatOrchestrationSettings();
+        Assert.Equal(ChatOrchestrationSettings.DefaultSystemPromptVersion, settings.SystemPromptVersion);
+    }
 }

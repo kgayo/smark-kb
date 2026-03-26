@@ -12,6 +12,9 @@ public sealed class ChatOrchestrationSettings
 {
     public const string SectionName = "ChatOrchestration";
 
+    /// <summary>Default system prompt version used when orchestrator is unavailable.</summary>
+    public const string DefaultSystemPromptVersion = "1.0";
+
     /// <summary>Max token budget for the full prompt (system + context + history + query). 80% of gpt-4o 128k.</summary>
     public int MaxTokenBudget { get; set; } = 102_400;
 
@@ -43,7 +46,7 @@ public sealed class ChatOrchestrationSettings
     public int MaxCitations { get; set; } = 10;
 
     /// <summary>System prompt template version for tracking.</summary>
-    public string SystemPromptVersion { get; set; } = "1.0";
+    public string SystemPromptVersion { get; set; } = DefaultSystemPromptVersion;
 
     /// <summary>Whether pre-retrieval query classification is enabled (P3-001).</summary>
     public bool EnableQueryClassification { get; set; } = true;

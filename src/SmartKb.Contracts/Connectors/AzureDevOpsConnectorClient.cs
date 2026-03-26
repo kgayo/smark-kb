@@ -15,7 +15,6 @@ namespace SmartKb.Contracts.Connectors;
 /// </summary>
 public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTargetConnector
 {
-    private const string ApiVersion = "7.1";
     private const int MaxWiqlResults = 200;
 
     private readonly IHttpClientFactory _httpClientFactory;
@@ -45,7 +44,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
         try
         {
             using var client = CreateHttpClient(config.OrganizationUrl, secretValue);
-            var url = $"_apis/projects?api-version={ApiVersion}&$top=1";
+            var url = $"_apis/projects?api-version={ConnectorConstants.AdoApiVersion}&$top=1";
             using var response = await client.GetAsync(url, cancellationToken);
 
             if (response.IsSuccessStatusCode)
@@ -271,12 +270,12 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
 
             var patchOps = new List<object>
             {
-                new { op = "add", path = "/fields/System.Title", value = request.Title },
-                new { op = "add", path = "/fields/System.Description", value = request.Description },
+                new { op = "add", path = $"/fields/{ConnectorConstants.AdoFieldTitle}", value = request.Title },
+                new { op = "add", path = $"/fields/{ConnectorConstants.AdoFieldDescription}", value = request.Description },
             };
 
             if (!string.IsNullOrEmpty(request.AreaPath))
-                patchOps.Add(new { op = "add", path = "/fields/System.AreaPath", value = request.AreaPath });
+                patchOps.Add(new { op = "add", path = $"/fields/{ConnectorConstants.AdoFieldAreaPath}", value = request.AreaPath });
 
             // Map severity to ADO priority: P1→1, P2→2, P3→3, P4→4.
             var priority = request.Severity switch
@@ -292,7 +291,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
             var payload = JsonSerializer.Serialize(patchOps, SharedJsonOptions.CamelCaseIgnoreNull);
             using var content = new StringContent(payload, Encoding.UTF8, ConnectorConstants.JsonPatchMediaType);
 
-            var url = $"{Uri.EscapeDataString(project)}/_apis/wit/workitems/${Uri.EscapeDataString(workItemType)}?api-version={ApiVersion}";
+            var url = $"{Uri.EscapeDataString(project)}/_apis/wit/workitems/${Uri.EscapeDataString(workItemType)}?api-version={ConnectorConstants.AdoApiVersion}";
             using var response = await client.PatchAsync(url, content, ct);
 
             if (!response.IsSuccessStatusCode)
@@ -342,31 +341,31 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
         DateTimeOffset? checkpoint, int top, CancellationToken ct)
     {
         // Build WIQL query.
-        var conditions = new List<string> { "[System.TeamProject] = @project" };
+        var conditions = new List<string> { $"[{ConnectorConstants.AdoFieldTeamProject}] = @project" };
 
         if (config.WorkItemTypes.Count > 0)
         {
             var types = string.Join("', '", config.WorkItemTypes);
-            conditions.Add($"[System.WorkItemType] IN ('{types}')");
+            conditions.Add($"[{ConnectorConstants.AdoFieldWorkItemType}] IN ('{types}')");
         }
 
         if (config.AreaPaths.Count > 0)
         {
             var paths = string.Join("', '", config.AreaPaths);
-            conditions.Add($"[System.AreaPath] IN ('{paths}')");
+            conditions.Add($"[{ConnectorConstants.AdoFieldAreaPath}] IN ('{paths}')");
         }
 
         if (checkpoint.HasValue)
         {
-            conditions.Add($"[System.ChangedDate] >= '{checkpoint.Value:yyyy-MM-ddTHH:mm:ssZ}'");
+            conditions.Add($"[{ConnectorConstants.AdoFieldChangedDate}] >= '{checkpoint.Value:yyyy-MM-ddTHH:mm:ssZ}'");
         }
 
-        var wiql = $"SELECT [System.Id] FROM WorkItems WHERE {string.Join(" AND ", conditions)} ORDER BY [System.ChangedDate] ASC";
+        var wiql = $"SELECT [{ConnectorConstants.AdoFieldId}] FROM WorkItems WHERE {string.Join(" AND ", conditions)} ORDER BY [{ConnectorConstants.AdoFieldChangedDate}] ASC";
 
         var wiqlPayload = JsonSerializer.Serialize(new { query = wiql }, SharedJsonOptions.CamelCaseIgnoreNull);
         using var wiqlContent = new StringContent(wiqlPayload, Encoding.UTF8, MediaTypeNames.Application.Json);
 
-        var wiqlUrl = $"{project}/_apis/wit/wiql?api-version={ApiVersion}&$top={Math.Min(top, MaxWiqlResults)}";
+        var wiqlUrl = $"{project}/_apis/wit/wiql?api-version={ConnectorConstants.AdoApiVersion}&$top={Math.Min(top, MaxWiqlResults)}";
         using var wiqlResponse = await client.PostAsync(wiqlUrl, wiqlContent, ct);
         wiqlResponse.EnsureSuccessStatusCode();
 
@@ -381,8 +380,8 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
         foreach (var batch in Chunk(ids, MaxWiqlResults))
         {
             var idList = string.Join(",", batch);
-            var fields = "System.Id,System.Title,System.Description,System.WorkItemType,System.State,System.AreaPath,System.AssignedTo,System.CreatedDate,System.ChangedDate,System.Tags";
-            var detailUrl = $"_apis/wit/workitems?ids={idList}&fields={fields}&api-version={ApiVersion}";
+            var fields = string.Join(",", ConnectorConstants.AdoFieldId, ConnectorConstants.AdoFieldTitle, ConnectorConstants.AdoFieldDescription, ConnectorConstants.AdoFieldWorkItemType, ConnectorConstants.AdoFieldState, ConnectorConstants.AdoFieldAreaPath, ConnectorConstants.AdoFieldAssignedTo, ConnectorConstants.AdoFieldCreatedDate, ConnectorConstants.AdoFieldChangedDate, ConnectorConstants.AdoFieldTags);
+            var detailUrl = $"_apis/wit/workitems?ids={idList}&fields={fields}&api-version={ConnectorConstants.AdoApiVersion}";
             using var detailResponse = await client.GetAsync(detailUrl, ct);
             detailResponse.EnsureSuccessStatusCode();
 
@@ -407,16 +406,16 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
         if (fields is null) return null;
 
         var id = wi.Id.ToString();
-        var title = fields.GetValueOrDefault("System.Title")?.ToString() ?? "";
-        var description = fields.GetValueOrDefault("System.Description")?.ToString() ?? "";
-        var workItemType = fields.GetValueOrDefault("System.WorkItemType")?.ToString() ?? "WorkItem";
-        var state = fields.GetValueOrDefault("System.State")?.ToString() ?? "";
-        var areaPath = fields.GetValueOrDefault("System.AreaPath")?.ToString() ?? "";
-        var assignedTo = fields.GetValueOrDefault("System.AssignedTo");
-        var tags = fields.GetValueOrDefault("System.Tags")?.ToString() ?? "";
+        var title = fields.GetValueOrDefault(ConnectorConstants.AdoFieldTitle)?.ToString() ?? "";
+        var description = fields.GetValueOrDefault(ConnectorConstants.AdoFieldDescription)?.ToString() ?? "";
+        var workItemType = fields.GetValueOrDefault(ConnectorConstants.AdoFieldWorkItemType)?.ToString() ?? "WorkItem";
+        var state = fields.GetValueOrDefault(ConnectorConstants.AdoFieldState)?.ToString() ?? "";
+        var areaPath = fields.GetValueOrDefault(ConnectorConstants.AdoFieldAreaPath)?.ToString() ?? "";
+        var assignedTo = fields.GetValueOrDefault(ConnectorConstants.AdoFieldAssignedTo);
+        var tags = fields.GetValueOrDefault(ConnectorConstants.AdoFieldTags)?.ToString() ?? "";
 
-        var createdDate = ParseDateField(fields.GetValueOrDefault("System.CreatedDate"));
-        var changedDate = ParseDateField(fields.GetValueOrDefault("System.ChangedDate"));
+        var createdDate = ParseDateField(fields.GetValueOrDefault(ConnectorConstants.AdoFieldCreatedDate));
+        var changedDate = ParseDateField(fields.GetValueOrDefault(ConnectorConstants.AdoFieldChangedDate));
 
         var author = assignedTo is JsonElement { ValueKind: JsonValueKind.Object } assignedObj
             ? assignedObj.TryGetProperty("displayName", out var displayName) ? displayName.GetString() : null
@@ -463,7 +462,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
         int top, CancellationToken ct)
     {
         // List wikis in project.
-        var wikisUrl = $"{project}/_apis/wiki/wikis?api-version={ApiVersion}";
+        var wikisUrl = $"{project}/_apis/wiki/wikis?api-version={ConnectorConstants.AdoApiVersion}";
         using var wikisResponse = await client.GetAsync(wikisUrl, ct);
 
         if (!wikisResponse.IsSuccessStatusCode)
@@ -504,7 +503,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
         HttpClient client, AzureDevOpsSourceConfig config, string project,
         WikiResponse wiki, string tenantId, int remaining, CancellationToken ct)
     {
-        var pagesUrl = $"{project}/_apis/wiki/wikis/{wiki.Id}/pages?api-version={ApiVersion}&recursionLevel=full&includeContent=false";
+        var pagesUrl = $"{project}/_apis/wiki/wikis/{wiki.Id}/pages?api-version={ConnectorConstants.AdoApiVersion}&recursionLevel=full&includeContent=false";
         using var pagesResponse = await client.GetAsync(pagesUrl, ct);
         pagesResponse.EnsureSuccessStatusCode();
 
@@ -519,7 +518,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
             // Fetch individual page content.
             try
             {
-                var pageContentUrl = $"{project}/_apis/wiki/wikis/{wiki.Id}/pages?path={Uri.EscapeDataString(page.Path)}&includeContent=true&api-version={ApiVersion}";
+                var pageContentUrl = $"{project}/_apis/wiki/wikis/{wiki.Id}/pages?path={Uri.EscapeDataString(page.Path)}&includeContent=true&api-version={ConnectorConstants.AdoApiVersion}";
                 using var contentResponse = await client.GetAsync(pageContentUrl, ct);
                 if (!contentResponse.IsSuccessStatusCode) continue;
 
@@ -585,7 +584,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
             return config.Projects.ToList();
 
         // List all accessible projects.
-        var url = $"_apis/projects?api-version={ApiVersion}";
+        var url = $"_apis/projects?api-version={ConnectorConstants.AdoApiVersion}";
         using var response = await client.GetAsync(url, ct);
         response.EnsureSuccessStatusCode();
 

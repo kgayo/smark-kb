@@ -20,7 +20,7 @@ public sealed class AdoWebhookManager : IWebhookManager
         "workitem.updated",
     ];
 
-    private const string ApiVersion = "7.1";
+
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<AdoWebhookManager> _logger;
@@ -85,7 +85,7 @@ public sealed class AdoWebhookManager : IWebhookManager
                 var json = JsonSerializer.Serialize(subscriptionRequest, SharedJsonOptions.CamelCase);
                 using var content = new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json);
 
-                var url = $"_apis/hooks/subscriptions?api-version={ApiVersion}";
+                var url = $"_apis/hooks/subscriptions?api-version={ConnectorConstants.AdoApiVersion}";
                 using var response = await client.PostAsync(url, content, cancellationToken);
 
                 if (response.IsSuccessStatusCode)
@@ -142,7 +142,7 @@ public sealed class AdoWebhookManager : IWebhookManager
         {
             try
             {
-                var url = $"_apis/hooks/subscriptions/{subscriptionId}?api-version={ApiVersion}";
+                var url = $"_apis/hooks/subscriptions/{subscriptionId}?api-version={ConnectorConstants.AdoApiVersion}";
                 using var response = await client.DeleteAsync(url, cancellationToken);
 
                 if (response.IsSuccessStatusCode)

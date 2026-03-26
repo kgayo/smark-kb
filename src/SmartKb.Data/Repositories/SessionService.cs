@@ -230,7 +230,7 @@ public sealed class SessionService : ISessionService
                 NextSteps = ["Ensure OpenAI and Search Service are configured."],
                 TraceId = correlationId,
                 HasEvidence = false,
-                SystemPromptVersion = "1.0",
+                SystemPromptVersion = ChatOrchestrationSettings.DefaultSystemPromptVersion,
             };
         }
 

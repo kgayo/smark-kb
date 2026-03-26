@@ -23,7 +23,7 @@ builder.Services.AddHostedService<ScheduledSyncService>();
 builder.Services.AddHealthChecks();
 
 // --- OpenTelemetry ---
-var otelServiceName = "SmartKb.Ingestion";
+var otelServiceName = Diagnostics.IngestionSourceName;
 var appInsightsConnStr = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
 
 builder.Services.AddOpenTelemetry()

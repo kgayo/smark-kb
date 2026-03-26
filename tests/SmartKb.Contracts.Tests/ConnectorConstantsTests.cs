@@ -23,4 +23,43 @@ public sealed class ConnectorConstantsTests
     {
         Assert.Equal("application/json-patch+json", ConnectorConstants.JsonPatchMediaType);
     }
+
+    [Fact]
+    public void AdoApiVersion_IsCorrectValue()
+    {
+        Assert.Equal("7.1", ConnectorConstants.AdoApiVersion);
+    }
+
+    [Theory]
+    [InlineData(nameof(ConnectorConstants.AdoFieldId), "System.Id")]
+    [InlineData(nameof(ConnectorConstants.AdoFieldTitle), "System.Title")]
+    [InlineData(nameof(ConnectorConstants.AdoFieldDescription), "System.Description")]
+    [InlineData(nameof(ConnectorConstants.AdoFieldWorkItemType), "System.WorkItemType")]
+    [InlineData(nameof(ConnectorConstants.AdoFieldState), "System.State")]
+    [InlineData(nameof(ConnectorConstants.AdoFieldAreaPath), "System.AreaPath")]
+    [InlineData(nameof(ConnectorConstants.AdoFieldAssignedTo), "System.AssignedTo")]
+    [InlineData(nameof(ConnectorConstants.AdoFieldCreatedDate), "System.CreatedDate")]
+    [InlineData(nameof(ConnectorConstants.AdoFieldChangedDate), "System.ChangedDate")]
+    [InlineData(nameof(ConnectorConstants.AdoFieldTags), "System.Tags")]
+    [InlineData(nameof(ConnectorConstants.AdoFieldTeamProject), "System.TeamProject")]
+    public void AdoFieldName_HasExpectedValue(string fieldName, string expectedValue)
+    {
+        var field = typeof(ConnectorConstants).GetField(fieldName,
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        Assert.NotNull(field);
+        Assert.Equal(expectedValue, field!.GetValue(null));
+    }
+
+    [Fact]
+    public void AdoFieldNames_AllStartWithSystem()
+    {
+        var fields = typeof(ConnectorConstants)
+            .GetFields(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+            .Where(f => f.Name.StartsWith("AdoField"))
+            .Select(f => (string)f.GetValue(null)!)
+            .ToList();
+
+        Assert.All(fields, f => Assert.StartsWith("System.", f));
+        Assert.Equal(11, fields.Count);
+    }
 }
