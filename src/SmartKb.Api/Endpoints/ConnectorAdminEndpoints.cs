@@ -16,7 +16,7 @@ public static class ConnectorAdminEndpoints
             ITenantContextAccessor tenantAccessor,
             ConnectorAdminService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await service.ListAsync(tenant.TenantId, ct);
             return Results.Ok(ApiResponse<ConnectorListResponse>.Success(result, tenant.CorrelationId));
@@ -28,7 +28,7 @@ public static class ConnectorAdminEndpoints
             ITenantContextAccessor tenantAccessor,
             ConnectorAdminService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var (response, validation) = await service.CreateAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, request, ct);
@@ -47,7 +47,7 @@ public static class ConnectorAdminEndpoints
             ITenantContextAccessor tenantAccessor,
             ConnectorAdminService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var response = await service.GetAsync(tenant.TenantId, connectorId, ct);
             return response is null
@@ -62,7 +62,7 @@ public static class ConnectorAdminEndpoints
             ITenantContextAccessor tenantAccessor,
             ConnectorAdminService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var (response, validation, notFound) = await service.UpdateAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, request, ct);
@@ -82,7 +82,7 @@ public static class ConnectorAdminEndpoints
             ITenantContextAccessor tenantAccessor,
             ConnectorAdminService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var deleted = await service.DeleteAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, ct);
@@ -97,7 +97,7 @@ public static class ConnectorAdminEndpoints
             ITenantContextAccessor tenantAccessor,
             ConnectorAdminService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var (found, validation, response) = await service.EnableAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, ct);
@@ -117,7 +117,7 @@ public static class ConnectorAdminEndpoints
             ITenantContextAccessor tenantAccessor,
             ConnectorAdminService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var (found, response) = await service.DisableAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, ct);
@@ -134,7 +134,7 @@ public static class ConnectorAdminEndpoints
             ITenantContextAccessor tenantAccessor,
             ConnectorAdminService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await service.TestConnectionAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, ct);
@@ -150,7 +150,7 @@ public static class ConnectorAdminEndpoints
             ITenantContextAccessor tenantAccessor,
             ConnectorAdminService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var (syncRunId, notFound) = await service.SyncNowAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, request, ct);
@@ -169,7 +169,7 @@ public static class ConnectorAdminEndpoints
             ITenantContextAccessor tenantAccessor,
             ConnectorAdminService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await service.PreviewAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, request, ct);
@@ -184,7 +184,7 @@ public static class ConnectorAdminEndpoints
             ITenantContextAccessor tenantAccessor,
             ConnectorAdminService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var result = service.ValidateFieldMapping(mapping);
             return Results.Ok(ApiResponse<ConnectorValidationResult>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
@@ -196,7 +196,7 @@ public static class ConnectorAdminEndpoints
             ITenantContextAccessor tenantAccessor,
             ConnectorAdminService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await service.PreviewRetrievalAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, request, ct);
@@ -211,7 +211,7 @@ public static class ConnectorAdminEndpoints
             ITenantContextAccessor tenantAccessor,
             ConnectorAdminService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await service.ListSyncRunsAsync(tenant.TenantId, connectorId, ct);
             return result is null
@@ -226,7 +226,7 @@ public static class ConnectorAdminEndpoints
             ITenantContextAccessor tenantAccessor,
             ConnectorAdminService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await service.GetSyncRunAsync(tenant.TenantId, connectorId, syncRunId, ct);
             return result is null
@@ -242,7 +242,7 @@ public static class ConnectorAdminEndpoints
             ITenantContextAccessor tenantAccessor,
             ConnectorAdminService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await service.GetOAuthAuthorizeUrlAsync(tenant.TenantId, connectorId, ct);
             if (result is null)
@@ -260,7 +260,7 @@ public static class ConnectorAdminEndpoints
             ITenantContextAccessor tenantAccessor,
             ConnectorAdminService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var (response, notFound, invalidState) = await service.HandleOAuthCallbackAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, connectorId, code, state, ct);

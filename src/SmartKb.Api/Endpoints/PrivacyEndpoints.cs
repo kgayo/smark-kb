@@ -18,7 +18,7 @@ public static class PrivacyEndpoints
             ITenantContextAccessor tenantAccessor,
             IPiiPolicyService piiPolicyService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var policy = await piiPolicyService.GetPolicyAsync(tenant.TenantId, ct);
             return policy is not null
@@ -33,7 +33,7 @@ public static class PrivacyEndpoints
             IPiiPolicyService piiPolicyService,
             ILogger<Program> logger) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             try
             {
@@ -52,7 +52,7 @@ public static class PrivacyEndpoints
             ITenantContextAccessor tenantAccessor,
             IPiiPolicyService piiPolicyService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var deleted = await piiPolicyService.DeletePolicyAsync(tenant.TenantId, tenant.UserId, ct);
             return deleted
@@ -65,7 +65,7 @@ public static class PrivacyEndpoints
             ITenantContextAccessor tenantAccessor,
             IRetentionCleanupService retentionService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await retentionService.GetPoliciesAsync(tenant.TenantId, ct);
             return Results.Ok(ApiResponse<RetentionPolicyResponse>.Success(result, tenant.CorrelationId));
@@ -78,7 +78,7 @@ public static class PrivacyEndpoints
             IRetentionCleanupService retentionService,
             ILogger<Program> logger) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             try
             {
@@ -98,7 +98,7 @@ public static class PrivacyEndpoints
             ITenantContextAccessor tenantAccessor,
             IRetentionCleanupService retentionService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var deleted = await retentionService.DeletePolicyAsync(tenant.TenantId, entityType, tenant.UserId, ct);
             return deleted
@@ -111,7 +111,7 @@ public static class PrivacyEndpoints
             ITenantContextAccessor tenantAccessor,
             IRetentionCleanupService retentionService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var results = await retentionService.ExecuteCleanupAsync(tenant.TenantId, ct);
             return Results.Ok(ApiResponse<IReadOnlyList<RetentionCleanupResult>>.Success(results, tenant.CorrelationId));
@@ -124,7 +124,7 @@ public static class PrivacyEndpoints
             IDataSubjectDeletionService deletionService,
             ILogger<Program> logger) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             try
             {
@@ -143,7 +143,7 @@ public static class PrivacyEndpoints
             ITenantContextAccessor tenantAccessor,
             IDataSubjectDeletionService deletionService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await deletionService.ListDeletionRequestsAsync(tenant.TenantId, ct);
             return Results.Ok(ApiResponse<DataSubjectDeletionListResponse>.Success(result, tenant.CorrelationId));
@@ -155,7 +155,7 @@ public static class PrivacyEndpoints
             ITenantContextAccessor tenantAccessor,
             IDataSubjectDeletionService deletionService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await deletionService.GetDeletionRequestAsync(tenant.TenantId, requestId, ct);
             return result is not null
@@ -173,7 +173,7 @@ public static class PrivacyEndpoints
             ITenantContextAccessor tenantAccessor,
             IRetentionCleanupService retentionService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await retentionService.GetExecutionHistoryAsync(
                 tenant.TenantId, entityType, skip ?? 0, take ?? 50, ct);
@@ -185,7 +185,7 @@ public static class PrivacyEndpoints
             ITenantContextAccessor tenantAccessor,
             IRetentionCleanupService retentionService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var report = await retentionService.GetComplianceReportAsync(tenant.TenantId, ct);
             return Results.Ok(ApiResponse<RetentionComplianceReport>.Success(report, tenant.CorrelationId));

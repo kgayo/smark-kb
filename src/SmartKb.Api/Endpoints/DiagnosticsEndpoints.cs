@@ -22,7 +22,7 @@ public static class DiagnosticsEndpoints
             ITenantContextAccessor tenantAccessor,
             SloSettings sloSettingsInstance) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             return Results.Ok(ApiResponse<object>.Success(new
             {
                 targets = new
@@ -61,7 +61,7 @@ public static class DiagnosticsEndpoints
             IServiceProvider sp,
             ILogger<Program> logger) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var keyVaultConfigured = sp.GetService<ISecretProvider>() is not null;
 
             bool openAiConfigured;
@@ -91,7 +91,7 @@ public static class DiagnosticsEndpoints
             ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var dlService = httpContext.RequestServices.GetService<DeadLetterService>();
             if (dlService is null)
@@ -113,7 +113,7 @@ public static class DiagnosticsEndpoints
             ITenantContextAccessor tenantAccessor,
             IWebhookStatusService webhookStatusService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await webhookStatusService.GetByConnectorAsync(tenant.TenantId, connectorId, ct);
             return Results.Ok(ApiResponse<WebhookStatusListResponse>.Success(result, tenant.CorrelationId));
@@ -124,7 +124,7 @@ public static class DiagnosticsEndpoints
             ITenantContextAccessor tenantAccessor,
             IWebhookStatusService webhookStatusService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await webhookStatusService.GetAllAsync(tenant.TenantId, ct);
             return Results.Ok(ApiResponse<WebhookStatusListResponse>.Success(result, tenant.CorrelationId));
@@ -139,7 +139,7 @@ public static class DiagnosticsEndpoints
             OpenAiKeyProvider openAiKeyProvider,
             IServiceProvider sp) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var summary = await webhookStatusService.GetDiagnosticsSummaryAsync(tenant.TenantId, ct);
 
@@ -227,7 +227,7 @@ public static class DiagnosticsEndpoints
             HttpContext httpContext,
             ITenantContextAccessor tenantAccessor) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var rateLimitService = httpContext.RequestServices.GetRequiredService<IRateLimitAlertService>();
             var result = await rateLimitService.GetRateLimitAlertsAsync(tenant.TenantId, ct);
@@ -240,7 +240,7 @@ public static class DiagnosticsEndpoints
             HttpContext httpContext,
             ITenantContextAccessor tenantAccessor) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var rotationService = httpContext.RequestServices.GetRequiredService<ISecretRotationService>();
             var result = await rotationService.GetAllCredentialStatusesAsync(tenant.TenantId, ct);
@@ -252,7 +252,7 @@ public static class DiagnosticsEndpoints
             HttpContext httpContext,
             ITenantContextAccessor tenantAccessor) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var rotationService = httpContext.RequestServices.GetRequiredService<ISecretRotationService>();
             var result = await rotationService.GetCredentialStatusAsync(connectorId, tenant.TenantId, ct);
@@ -265,7 +265,7 @@ public static class DiagnosticsEndpoints
             HttpContext httpContext,
             ITenantContextAccessor tenantAccessor) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var rotationService = httpContext.RequestServices.GetRequiredService<ISecretRotationService>();
             var result = await rotationService.RotateSecretAsync(

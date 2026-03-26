@@ -18,7 +18,7 @@ public static class PatternEndpoints
             ITenantContextAccessor tenantAccessor,
             ITenantRetrievalSettingsService settingsService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await settingsService.GetSettingsAsync(tenant.TenantId, ct);
             return Results.Ok(ApiResponse<RetrievalSettingsResponse>.Success(result, tenant.CorrelationId));
@@ -30,7 +30,7 @@ public static class PatternEndpoints
             ITenantContextAccessor tenantAccessor,
             ITenantRetrievalSettingsService settingsService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await settingsService.UpdateSettingsAsync(tenant.TenantId, request, ct);
             return Results.Ok(ApiResponse<RetrievalSettingsResponse>.Success(result, tenant.CorrelationId));
@@ -41,7 +41,7 @@ public static class PatternEndpoints
             ITenantContextAccessor tenantAccessor,
             ITenantRetrievalSettingsService settingsService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var deleted = await settingsService.ResetSettingsAsync(tenant.TenantId, ct);
             return deleted
@@ -56,7 +56,7 @@ public static class PatternEndpoints
             ITenantContextAccessor tenantAccessor,
             IPatternDistillationService distillationService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await distillationService.FindCandidatesAsync(tenant.TenantId, ct);
             return Results.Ok(ApiResponse<DistillationCandidateListResponse>.Success(result, tenant.CorrelationId));
@@ -67,7 +67,7 @@ public static class PatternEndpoints
             ITenantContextAccessor tenantAccessor,
             IPatternDistillationService distillationService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await distillationService.DistillAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, ct);
@@ -85,7 +85,7 @@ public static class PatternEndpoints
             int? page,
             int? pageSize) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await governanceService.GetGovernanceQueueAsync(
                 tenant.TenantId, trustLevel, productArea, page ?? 1, pageSize ?? 20, ct);
@@ -98,7 +98,7 @@ public static class PatternEndpoints
             ITenantContextAccessor tenantAccessor,
             IPatternGovernanceService governanceService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await governanceService.GetPatternDetailAsync(tenant.TenantId, patternId, ct);
             return result is null
@@ -113,7 +113,7 @@ public static class PatternEndpoints
             ITenantContextAccessor tenantAccessor,
             IPatternGovernanceService governanceService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await governanceService.ReviewPatternAsync(
                 tenant.TenantId, patternId, tenant.UserId, tenant.CorrelationId, request, ct);
@@ -129,7 +129,7 @@ public static class PatternEndpoints
             ITenantContextAccessor tenantAccessor,
             IPatternGovernanceService governanceService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await governanceService.ApprovePatternAsync(
                 tenant.TenantId, patternId, tenant.UserId, tenant.CorrelationId, request, ct);
@@ -145,7 +145,7 @@ public static class PatternEndpoints
             ITenantContextAccessor tenantAccessor,
             IPatternGovernanceService governanceService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await governanceService.DeprecatePatternAsync(
                 tenant.TenantId, patternId, tenant.UserId, tenant.CorrelationId, request, ct);
@@ -162,7 +162,7 @@ public static class PatternEndpoints
             ITenantContextAccessor tenantAccessor,
             IPatternGovernanceService governanceService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await governanceService.GetPatternHistoryAsync(
                 tenant.TenantId, patternId, ct);
@@ -178,7 +178,7 @@ public static class PatternEndpoints
             ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var usageService = httpContext.RequestServices.GetRequiredService<IPatternUsageMetricsService>();
             var metrics = await usageService.GetUsageAsync(tenant.TenantId, patternId, ct);
@@ -192,7 +192,7 @@ public static class PatternEndpoints
             ITenantContextAccessor tenantAccessor,
             IContradictionDetectionService contradictionService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var result = await contradictionService.DetectContradictionsAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, httpContext.RequestAborted);
             return Results.Ok(ApiResponse<ContradictionDetectionResult>.Success(result, tenant.CorrelationId));
@@ -206,7 +206,7 @@ public static class PatternEndpoints
             int? page,
             int? pageSize) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var result = await contradictionService.GetContradictionsAsync(
                 tenant.TenantId, status, page ?? 1, pageSize ?? 20, httpContext.RequestAborted);
             return Results.Ok(ApiResponse<ContradictionListResponse>.Success(result, tenant.CorrelationId));
@@ -219,7 +219,7 @@ public static class PatternEndpoints
             ITenantContextAccessor tenantAccessor,
             IContradictionDetectionService contradictionService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var result = await contradictionService.ResolveContradictionAsync(
                 id, tenant.TenantId, tenant.UserId, tenant.CorrelationId, request, httpContext.RequestAborted);
             return result is null
@@ -232,7 +232,7 @@ public static class PatternEndpoints
             ITenantContextAccessor tenantAccessor,
             IPatternMaintenanceService maintenanceService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var result = await maintenanceService.DetectMaintenanceIssuesAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, httpContext.RequestAborted);
             return Results.Ok(ApiResponse<MaintenanceDetectionResult>.Success(result, tenant.CorrelationId));
@@ -247,7 +247,7 @@ public static class PatternEndpoints
             int? page,
             int? pageSize) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var result = await maintenanceService.GetMaintenanceTasksAsync(
                 tenant.TenantId, status, taskType, page ?? 1, pageSize ?? 20, httpContext.RequestAborted);
             return Results.Ok(ApiResponse<MaintenanceTaskListResponse>.Success(result, tenant.CorrelationId));
@@ -260,7 +260,7 @@ public static class PatternEndpoints
             ITenantContextAccessor tenantAccessor,
             IPatternMaintenanceService maintenanceService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var result = await maintenanceService.ResolveTaskAsync(
                 id, tenant.TenantId, tenant.UserId, tenant.CorrelationId, request, httpContext.RequestAborted);
             return result is null
@@ -275,7 +275,7 @@ public static class PatternEndpoints
             ITenantContextAccessor tenantAccessor,
             IPatternMaintenanceService maintenanceService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var result = await maintenanceService.DismissTaskAsync(
                 id, tenant.TenantId, tenant.UserId, tenant.CorrelationId, request, httpContext.RequestAborted);
             return result is null

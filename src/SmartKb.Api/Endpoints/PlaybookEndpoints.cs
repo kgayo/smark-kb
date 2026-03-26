@@ -16,7 +16,7 @@ public static class PlaybookEndpoints
             ITenantContextAccessor tenantAccessor,
             ITeamPlaybookService playbookService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await playbookService.GetPlaybooksAsync(tenant.TenantId, ct);
             return Results.Ok(ApiResponse<TeamPlaybookListResponse>.Success(result, tenant.CorrelationId));
@@ -28,7 +28,7 @@ public static class PlaybookEndpoints
             ITenantContextAccessor tenantAccessor,
             ITeamPlaybookService playbookService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await playbookService.GetPlaybookAsync(tenant.TenantId, playbookId, ct);
             return result is null
@@ -42,7 +42,7 @@ public static class PlaybookEndpoints
             ITenantContextAccessor tenantAccessor,
             ITeamPlaybookService playbookService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await playbookService.GetPlaybookByTeamAsync(tenant.TenantId, teamName, ct);
             return result is null
@@ -56,7 +56,7 @@ public static class PlaybookEndpoints
             ITenantContextAccessor tenantAccessor,
             ITeamPlaybookService playbookService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await playbookService.CreatePlaybookAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, request, ct);
@@ -71,7 +71,7 @@ public static class PlaybookEndpoints
             ITenantContextAccessor tenantAccessor,
             ITeamPlaybookService playbookService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await playbookService.UpdatePlaybookAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, playbookId, request, ct);
@@ -86,7 +86,7 @@ public static class PlaybookEndpoints
             ITenantContextAccessor tenantAccessor,
             ITeamPlaybookService playbookService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var deleted = await playbookService.DeletePlaybookAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, playbookId, ct);
@@ -101,7 +101,7 @@ public static class PlaybookEndpoints
             ITenantContextAccessor tenantAccessor,
             ITeamPlaybookService playbookService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await playbookService.ValidateDraftAsync(
                 tenant.TenantId, request.TargetTeam, request.Draft, ct);

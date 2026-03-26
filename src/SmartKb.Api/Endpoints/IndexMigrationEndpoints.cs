@@ -19,7 +19,7 @@ public static class IndexMigrationEndpoints
             ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
             if (service is null)
@@ -35,7 +35,7 @@ public static class IndexMigrationEndpoints
             ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
             if (service is null)
@@ -49,7 +49,7 @@ public static class IndexMigrationEndpoints
             ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
             if (service is null)
@@ -63,7 +63,7 @@ public static class IndexMigrationEndpoints
             ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
             if (service is null)
@@ -80,7 +80,7 @@ public static class IndexMigrationEndpoints
             ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
             if (service is null)
@@ -97,7 +97,7 @@ public static class IndexMigrationEndpoints
             ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
             if (service is null)
@@ -111,7 +111,7 @@ public static class IndexMigrationEndpoints
             ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
             if (service is null)

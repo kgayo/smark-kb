@@ -20,7 +20,7 @@ public static class ChatEndpoints
             ITenantContextAccessor tenantAccessor,
             ISessionService sessionService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var response = await sessionService.CreateSessionAsync(tenant.TenantId, tenant.UserId, request, ct);
             return Results.Created($"/api/sessions/{response.SessionId}",
@@ -32,7 +32,7 @@ public static class ChatEndpoints
             ITenantContextAccessor tenantAccessor,
             ISessionService sessionService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var response = await sessionService.ListSessionsAsync(tenant.TenantId, tenant.UserId, ct);
             return Results.Ok(ApiResponse<SessionListResponse>.Success(response, tenant.CorrelationId));
@@ -44,7 +44,7 @@ public static class ChatEndpoints
             ITenantContextAccessor tenantAccessor,
             ISessionService sessionService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var response = await sessionService.GetSessionAsync(tenant.TenantId, tenant.UserId, sessionId, ct);
             return response is null
@@ -58,7 +58,7 @@ public static class ChatEndpoints
             ITenantContextAccessor tenantAccessor,
             ISessionService sessionService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var deleted = await sessionService.DeleteSessionAsync(tenant.TenantId, tenant.UserId, sessionId, ct);
             return deleted
@@ -72,7 +72,7 @@ public static class ChatEndpoints
             ITenantContextAccessor tenantAccessor,
             ISessionService sessionService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var response = await sessionService.GetMessagesAsync(tenant.TenantId, tenant.UserId, sessionId, ct);
             return response is null
@@ -87,7 +87,7 @@ public static class ChatEndpoints
             ITenantContextAccessor tenantAccessor,
             ISessionService sessionService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             // P0-014: Inject JWT-extracted user groups for ACL enforcement.
             var effectiveRequest = request with
@@ -112,7 +112,7 @@ public static class ChatEndpoints
             IFeedbackService feedbackService,
             ILogger<Program> logger) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             try
             {
@@ -136,7 +136,7 @@ public static class ChatEndpoints
             ITenantContextAccessor tenantAccessor,
             IFeedbackService feedbackService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var response = await feedbackService.GetFeedbackAsync(
                 tenant.TenantId, tenant.UserId, sessionId, messageId, ct);
@@ -151,7 +151,7 @@ public static class ChatEndpoints
             ITenantContextAccessor tenantAccessor,
             IFeedbackService feedbackService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var response = await feedbackService.ListFeedbacksAsync(
                 tenant.TenantId, tenant.UserId, sessionId, ct);
@@ -170,7 +170,7 @@ public static class ChatEndpoints
             IOutcomeService outcomeService,
             ILogger<Program> logger) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             try
             {
@@ -194,7 +194,7 @@ public static class ChatEndpoints
             ITenantContextAccessor tenantAccessor,
             IOutcomeService outcomeService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var response = await outcomeService.GetOutcomesAsync(
                 tenant.TenantId, tenant.UserId, sessionId, ct);
@@ -212,7 +212,7 @@ public static class ChatEndpoints
             IEscalationDraftService escalationService,
             ILogger<Program> logger) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             try
             {
@@ -235,7 +235,7 @@ public static class ChatEndpoints
             ITenantContextAccessor tenantAccessor,
             IEscalationDraftService escalationService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var response = await escalationService.GetDraftAsync(tenant.TenantId, tenant.UserId, draftId, ct);
             return response is null
@@ -249,7 +249,7 @@ public static class ChatEndpoints
             ITenantContextAccessor tenantAccessor,
             IEscalationDraftService escalationService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var response = await escalationService.ListDraftsAsync(tenant.TenantId, tenant.UserId, sessionId, ct);
             return response is null
@@ -264,7 +264,7 @@ public static class ChatEndpoints
             ITenantContextAccessor tenantAccessor,
             IEscalationDraftService escalationService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var (response, notFound) = await escalationService.UpdateDraftAsync(
                 tenant.TenantId, tenant.UserId, draftId, request, ct);
@@ -279,7 +279,7 @@ public static class ChatEndpoints
             ITenantContextAccessor tenantAccessor,
             IEscalationDraftService escalationService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var response = await escalationService.ExportDraftAsMarkdownAsync(
                 tenant.TenantId, tenant.UserId, draftId, ct);
@@ -296,7 +296,7 @@ public static class ChatEndpoints
             IEscalationDraftService escalationService,
             ILogger<Program> logger) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             try
             {
@@ -323,7 +323,7 @@ public static class ChatEndpoints
             ITenantContextAccessor tenantAccessor,
             IEscalationDraftService escalationService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var deleted = await escalationService.DeleteDraftAsync(tenant.TenantId, tenant.UserId, draftId, ct);
             return deleted
@@ -341,7 +341,7 @@ public static class ChatEndpoints
             ILogger<Program> logger,
             CancellationToken ct) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
 
             var chunk = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
                 .FirstOrDefaultAsync(db.EvidenceChunks.AsNoTracking(),
@@ -438,7 +438,7 @@ public static class ChatEndpoints
             ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var orchestrator = httpContext.RequestServices.GetService<IChatOrchestrator>();
             if (orchestrator is null)

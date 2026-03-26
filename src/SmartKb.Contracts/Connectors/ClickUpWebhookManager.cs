@@ -203,11 +203,7 @@ public sealed class ClickUpWebhookManager : IWebhookManager
         }
     }
 
-    internal static string GenerateWebhookSecret()
-    {
-        var bytes = RandomNumberGenerator.GetBytes(32);
-        return Convert.ToBase64String(bytes);
-    }
+    internal static string GenerateWebhookSecret() => ConnectorHttpHelper.GenerateSecret();
 
     internal static List<string> ResolveEventTypes(ClickUpSourceConfig config)
     {

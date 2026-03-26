@@ -20,7 +20,7 @@ public static class SearchTokenEndpoints
             ITenantContextAccessor tenantAccessor,
             ISynonymMapService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await service.ListAsync(tenant.TenantId, groupName, ct);
             return Results.Ok(ApiResponse<SynonymRuleListResponse>.Success(result, tenant.CorrelationId));
@@ -32,7 +32,7 @@ public static class SearchTokenEndpoints
             ITenantContextAccessor tenantAccessor,
             ISynonymMapService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await service.GetAsync(tenant.TenantId, ruleId, ct);
             return result is null
@@ -46,7 +46,7 @@ public static class SearchTokenEndpoints
             ITenantContextAccessor tenantAccessor,
             ISynonymMapService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var (response, validation) = await service.CreateAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, request, ct);
@@ -66,7 +66,7 @@ public static class SearchTokenEndpoints
             ITenantContextAccessor tenantAccessor,
             ISynonymMapService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
 
             try
@@ -94,7 +94,7 @@ public static class SearchTokenEndpoints
             ITenantContextAccessor tenantAccessor,
             ISynonymMapService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var deleted = await service.DeleteAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, ruleId, ct);
@@ -108,7 +108,7 @@ public static class SearchTokenEndpoints
             ITenantContextAccessor tenantAccessor,
             ISynonymMapService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await service.SyncToSearchAsync(tenant.TenantId, tenant.CorrelationId, ct);
             return result.Success
@@ -123,7 +123,7 @@ public static class SearchTokenEndpoints
             ITenantContextAccessor tenantAccessor,
             ISynonymMapService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var count = await service.SeedDefaultsAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, request.OverwriteExisting, ct);
@@ -138,7 +138,7 @@ public static class SearchTokenEndpoints
             ITenantContextAccessor tenantAccessor,
             ISearchTokenService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await service.ListStopWordsAsync(tenant.TenantId, groupName, ct);
             return Results.Ok(ApiResponse<StopWordListResponse>.Success(result, tenant.CorrelationId));
@@ -150,7 +150,7 @@ public static class SearchTokenEndpoints
             ITenantContextAccessor tenantAccessor,
             ISearchTokenService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await service.GetStopWordAsync(tenant.TenantId, id, ct);
             return result is null
@@ -164,7 +164,7 @@ public static class SearchTokenEndpoints
             ITenantContextAccessor tenantAccessor,
             ISearchTokenService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var (response, validation) = await service.CreateStopWordAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, request, ct);
@@ -182,7 +182,7 @@ public static class SearchTokenEndpoints
             ITenantContextAccessor tenantAccessor,
             ISearchTokenService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
 
             try
@@ -207,7 +207,7 @@ public static class SearchTokenEndpoints
             ITenantContextAccessor tenantAccessor,
             ISearchTokenService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var deleted = await service.DeleteStopWordAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, id, ct);
@@ -220,7 +220,7 @@ public static class SearchTokenEndpoints
             ITenantContextAccessor tenantAccessor,
             ISearchTokenService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var count = await service.SeedDefaultStopWordsAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, request.OverwriteExisting, ct);
@@ -235,7 +235,7 @@ public static class SearchTokenEndpoints
             ITenantContextAccessor tenantAccessor,
             ISearchTokenService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await service.ListSpecialTokensAsync(tenant.TenantId, category, ct);
             return Results.Ok(ApiResponse<SpecialTokenListResponse>.Success(result, tenant.CorrelationId));
@@ -247,7 +247,7 @@ public static class SearchTokenEndpoints
             ITenantContextAccessor tenantAccessor,
             ISearchTokenService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await service.GetSpecialTokenAsync(tenant.TenantId, id, ct);
             return result is null
@@ -261,7 +261,7 @@ public static class SearchTokenEndpoints
             ITenantContextAccessor tenantAccessor,
             ISearchTokenService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var (response, validation) = await service.CreateSpecialTokenAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, request, ct);
@@ -279,7 +279,7 @@ public static class SearchTokenEndpoints
             ITenantContextAccessor tenantAccessor,
             ISearchTokenService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
 
             try
@@ -304,7 +304,7 @@ public static class SearchTokenEndpoints
             ITenantContextAccessor tenantAccessor,
             ISearchTokenService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var deleted = await service.DeleteSpecialTokenAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, id, ct);
@@ -317,7 +317,7 @@ public static class SearchTokenEndpoints
             ITenantContextAccessor tenantAccessor,
             ISearchTokenService service) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var count = await service.SeedDefaultSpecialTokensAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, request.OverwriteExisting, ct);

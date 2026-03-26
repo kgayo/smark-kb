@@ -1,5 +1,4 @@
 using System.Net.Mime;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
@@ -197,11 +196,7 @@ public sealed class SharePointWebhookManager : IWebhookManager
         }
     }
 
-    internal static string GenerateClientState()
-    {
-        var bytes = RandomNumberGenerator.GetBytes(32);
-        return Convert.ToBase64String(bytes);
-    }
+    internal static string GenerateClientState() => ConnectorHttpHelper.GenerateSecret();
 
     private async Task<string> AcquireTokenAsync(
         SharePointSourceConfig config, string clientSecret, CancellationToken ct)

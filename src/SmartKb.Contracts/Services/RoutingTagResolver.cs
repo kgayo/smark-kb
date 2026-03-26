@@ -41,34 +41,32 @@ public sealed class RoutingTagResolver : IRoutingTagResolver
             var resolved = ApplyTransform(sourceValue, rule);
             if (string.IsNullOrWhiteSpace(resolved)) continue;
 
-            switch (rule.RoutingTag!.ToLowerInvariant())
+            if (string.Equals(rule.RoutingTag, RoutingTagNames.ProductArea, StringComparison.OrdinalIgnoreCase))
             {
-                case RoutingTagNames.ProductArea:
-                    productArea = resolved;
+                productArea = resolved;
+                _logger.LogDebug(
+                    "Routing tag resolved: {SourceField} → product_area = {Value} for {EvidenceId}",
+                    rule.SourceField, resolved, record.EvidenceId);
+            }
+            else if (string.Equals(rule.RoutingTag, RoutingTagNames.Module, StringComparison.OrdinalIgnoreCase))
+            {
+                if (!moduleAdded)
+                {
+                    // Add module as a tag with "module:" prefix for downstream routing.
+                    var moduleTag = $"module:{resolved}";
+                    if (!tags.Contains(moduleTag, StringComparer.OrdinalIgnoreCase))
+                        tags.Add(moduleTag);
+                    moduleAdded = true;
                     _logger.LogDebug(
-                        "Routing tag resolved: {SourceField} → product_area = {Value} for {EvidenceId}",
+                        "Routing tag resolved: {SourceField} → module = {Value} for {EvidenceId}",
                         rule.SourceField, resolved, record.EvidenceId);
-                    break;
-
-                case RoutingTagNames.Module:
-                    if (!moduleAdded)
-                    {
-                        // Add module as a tag with "module:" prefix for downstream routing.
-                        var moduleTag = $"module:{resolved}";
-                        if (!tags.Contains(moduleTag, StringComparer.OrdinalIgnoreCase))
-                            tags.Add(moduleTag);
-                        moduleAdded = true;
-                        _logger.LogDebug(
-                            "Routing tag resolved: {SourceField} → module = {Value} for {EvidenceId}",
-                            rule.SourceField, resolved, record.EvidenceId);
-                    }
-                    break;
-
-                default:
-                    _logger.LogWarning(
-                        "Unknown routing tag '{RoutingTag}' on rule {SourceField} → {TargetField}",
-                        rule.RoutingTag, rule.SourceField, rule.TargetField);
-                    break;
+                }
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Unknown routing tag '{RoutingTag}' on rule {SourceField} → {TargetField}",
+                    rule.RoutingTag, rule.SourceField, rule.TargetField);
             }
         }
 

@@ -314,6 +314,27 @@ public class ConnectorHttpHelperTests
         Assert.Null(client.BaseAddress);
     }
 
+    // --- GenerateSecret tests ---
+
+    [Fact]
+    public void GenerateSecret_ReturnsNonEmptyBase64()
+    {
+        var secret = ConnectorHttpHelper.GenerateSecret();
+
+        Assert.False(string.IsNullOrWhiteSpace(secret));
+        var bytes = Convert.FromBase64String(secret);
+        Assert.Equal(32, bytes.Length);
+    }
+
+    [Fact]
+    public void GenerateSecret_ReturnsUniqueValues()
+    {
+        var secret1 = ConnectorHttpHelper.GenerateSecret();
+        var secret2 = ConnectorHttpHelper.GenerateSecret();
+
+        Assert.NotEqual(secret1, secret2);
+    }
+
     private sealed class TestDto
     {
         public string? Name { get; set; }

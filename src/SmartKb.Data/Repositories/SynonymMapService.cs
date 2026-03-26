@@ -297,7 +297,10 @@ public sealed class SynonymMapService : ISynonymMapService
 
     private async Task ApplySynonymMapToIndexAsync(string indexName, string synonymMapName, CancellationToken ct)
     {
-        var index = await _searchIndexClient!.GetIndexAsync(indexName, ct);
+        if (_searchIndexClient is null)
+            throw new InvalidOperationException("Azure AI Search is not configured.");
+
+        var index = await _searchIndexClient.GetIndexAsync(indexName, ct);
         var definition = index.Value;
 
         var updated = false;

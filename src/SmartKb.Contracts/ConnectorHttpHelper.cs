@@ -47,6 +47,16 @@ public static class ConnectorHttpHelper
     }
 
     /// <summary>
+    /// Generates a cryptographically random 32-byte Base64 secret for webhook signatures.
+    /// Used by all 4 webhook managers (ADO, HubSpot, ClickUp, SharePoint).
+    /// </summary>
+    public static string GenerateSecret()
+    {
+        var bytes = RandomNumberGenerator.GetBytes(32);
+        return Convert.ToBase64String(bytes);
+    }
+
+    /// <summary>
     /// Computes a lowercase hex SHA-256 hash of the input string.
     /// Used for content deduplication across all connector clients and embedding cache.
     /// </summary>

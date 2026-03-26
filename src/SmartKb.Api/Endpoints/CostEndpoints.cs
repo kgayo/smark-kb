@@ -18,7 +18,7 @@ public static class CostEndpoints
             ITenantContextAccessor tenantAccessor,
             ITenantCostSettingsService costSettingsService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await costSettingsService.GetSettingsAsync(tenant.TenantId, ct);
             return Results.Ok(ApiResponse<CostSettingsResponse>.Success(result, tenant.CorrelationId));
@@ -30,7 +30,7 @@ public static class CostEndpoints
             ITenantContextAccessor tenantAccessor,
             ITenantCostSettingsService costSettingsService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await costSettingsService.UpdateSettingsAsync(tenant.TenantId, request, ct);
             return Results.Ok(ApiResponse<CostSettingsResponse>.Success(result, tenant.CorrelationId));
@@ -41,7 +41,7 @@ public static class CostEndpoints
             ITenantContextAccessor tenantAccessor,
             ITenantCostSettingsService costSettingsService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var deleted = await costSettingsService.ResetSettingsAsync(tenant.TenantId, ct);
             return deleted
@@ -55,7 +55,7 @@ public static class CostEndpoints
             ITokenUsageService tokenUsageService,
             int? days) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var periodDays = days ?? 30;
             var periodEnd = DateTimeOffset.UtcNow;
@@ -70,7 +70,7 @@ public static class CostEndpoints
             ITokenUsageService tokenUsageService,
             int? days) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var periodDays = days ?? 30;
             var periodEnd = DateTimeOffset.UtcNow;
@@ -84,7 +84,7 @@ public static class CostEndpoints
             ITenantContextAccessor tenantAccessor,
             ITokenUsageService tokenUsageService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await tokenUsageService.CheckBudgetAsync(tenant.TenantId, ct);
             return Results.Ok(ApiResponse<BudgetCheckResult>.Success(result, tenant.CorrelationId));

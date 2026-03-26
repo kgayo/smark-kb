@@ -18,7 +18,7 @@ public static class RoutingEndpoints
             ITenantContextAccessor tenantAccessor,
             IRoutingRuleService ruleService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await ruleService.GetRulesAsync(tenant.TenantId, ct);
             return Results.Ok(ApiResponse<RoutingRuleListResponse>.Success(result, tenant.CorrelationId));
@@ -30,7 +30,7 @@ public static class RoutingEndpoints
             ITenantContextAccessor tenantAccessor,
             IRoutingRuleService ruleService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await ruleService.GetRuleAsync(tenant.TenantId, ruleId, ct);
             return result is null
@@ -44,7 +44,7 @@ public static class RoutingEndpoints
             ITenantContextAccessor tenantAccessor,
             IRoutingRuleService ruleService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await ruleService.CreateRuleAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, request, ct);
@@ -59,7 +59,7 @@ public static class RoutingEndpoints
             ITenantContextAccessor tenantAccessor,
             IRoutingRuleService ruleService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await ruleService.UpdateRuleAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, ruleId, request, ct);
@@ -74,7 +74,7 @@ public static class RoutingEndpoints
             ITenantContextAccessor tenantAccessor,
             IRoutingRuleService ruleService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var deleted = await ruleService.DeleteRuleAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, ruleId, ct);
@@ -91,7 +91,7 @@ public static class RoutingEndpoints
             ITenantContextAccessor tenantAccessor,
             IRoutingAnalyticsService analyticsService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await analyticsService.GetAnalyticsAsync(tenant.TenantId, windowDays, ct);
             return Results.Ok(ApiResponse<RoutingAnalyticsSummary>.Success(result, tenant.CorrelationId));
@@ -103,7 +103,7 @@ public static class RoutingEndpoints
             ITenantContextAccessor tenantAccessor,
             IRoutingImprovementService improvementService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await improvementService.GenerateRecommendationsAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId,
@@ -117,7 +117,7 @@ public static class RoutingEndpoints
             ITenantContextAccessor tenantAccessor,
             IRoutingImprovementService improvementService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await improvementService.GetRecommendationsAsync(tenant.TenantId, status, ct);
             return Results.Ok(ApiResponse<RoutingRecommendationListResponse>.Success(result, tenant.CorrelationId));
@@ -130,7 +130,7 @@ public static class RoutingEndpoints
             ITenantContextAccessor tenantAccessor,
             IRoutingImprovementService improvementService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await improvementService.ApplyRecommendationAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId,
@@ -146,7 +146,7 @@ public static class RoutingEndpoints
             ITenantContextAccessor tenantAccessor,
             IRoutingImprovementService improvementService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var dismissed = await improvementService.DismissRecommendationAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, recommendationId, ct);
@@ -161,7 +161,7 @@ public static class RoutingEndpoints
             ITenantContextAccessor tenantAccessor,
             IRoutingImprovementService improvementService) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await improvementService.GetRecommendationsByEvalReportAsync(
                 tenant.TenantId, reportId, ct);

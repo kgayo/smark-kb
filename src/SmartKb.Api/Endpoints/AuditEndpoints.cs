@@ -23,7 +23,7 @@ public static class AuditEndpoints
             int? page,
             int? pageSize) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var request = new AuditEventQueryRequest
             {
@@ -51,7 +51,7 @@ public static class AuditEndpoints
             Guid? afterId,
             int? limit) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var cursor = new AuditExportCursor
             {

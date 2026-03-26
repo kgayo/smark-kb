@@ -19,7 +19,7 @@ public static class EvalEndpoints
             int? page,
             int? pageSize) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var evalReportService = httpContext.RequestServices.GetRequiredService<IEvalReportService>();
             var result = await evalReportService.ListReportsAsync(
@@ -32,7 +32,7 @@ public static class EvalEndpoints
             ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var evalReportService = httpContext.RequestServices.GetRequiredService<IEvalReportService>();
             var report = await evalReportService.GetReportAsync(tenant.TenantId, reportId, ct);
@@ -46,7 +46,7 @@ public static class EvalEndpoints
             ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var evalReportService = httpContext.RequestServices.GetRequiredService<IEvalReportService>();
             var report = await evalReportService.PersistReportAsync(tenant.TenantId, request, tenant.UserId, ct);
@@ -62,7 +62,7 @@ public static class EvalEndpoints
             int? page,
             int? pageSize) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var svc = httpContext.RequestServices.GetRequiredService<IGoldCaseService>();
             var result = await svc.ListAsync(tenant.TenantId, tag, page ?? 1, pageSize ?? 20, ct);
@@ -74,7 +74,7 @@ public static class EvalEndpoints
             ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var svc = httpContext.RequestServices.GetRequiredService<IGoldCaseService>();
             var detail = await svc.GetAsync(tenant.TenantId, id, ct);
@@ -88,7 +88,7 @@ public static class EvalEndpoints
             ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var svc = httpContext.RequestServices.GetRequiredService<IGoldCaseService>();
             var detail = await svc.CreateAsync(tenant.TenantId, request, tenant.UserId, ct);
@@ -102,7 +102,7 @@ public static class EvalEndpoints
             ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var svc = httpContext.RequestServices.GetRequiredService<IGoldCaseService>();
             var detail = await svc.UpdateAsync(tenant.TenantId, id, request, tenant.UserId, ct);
@@ -116,7 +116,7 @@ public static class EvalEndpoints
             ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var svc = httpContext.RequestServices.GetRequiredService<IGoldCaseService>();
             var deleted = await svc.DeleteAsync(tenant.TenantId, id, tenant.UserId, ct);
@@ -129,7 +129,7 @@ public static class EvalEndpoints
             ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var svc = httpContext.RequestServices.GetRequiredService<IGoldCaseService>();
             var jsonl = await svc.ExportAsJsonlAsync(tenant.TenantId, ct);
@@ -141,7 +141,7 @@ public static class EvalEndpoints
             ITenantContextAccessor tenantAccessor,
             HttpContext httpContext) =>
         {
-            var tenant = tenantAccessor.Current!;
+            var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var svc = httpContext.RequestServices.GetRequiredService<IGoldCaseService>();
             var detail = await svc.PromoteFromFeedbackAsync(tenant.TenantId, request, tenant.UserId, ct);
