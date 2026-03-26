@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-26 (Asia/Manila) — iteration 217
-Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase 1: P0-001–P0-022; Phase 2: P1-001–P1-012, P2-001–P2-005; Phase 3: P3-001–P3-038 (all 38 items). Tests: T-001–T-008; ~3295 tests passing (2813 backend + 498 frontend). Spec clarification backlog: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. BUG-001–BUG-005 resolved. TECH-001–TECH-123 resolved. 282/282 checklist items complete, 0 remaining.
+Last updated: 2026-03-26 (Asia/Manila) — iteration 218
+Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase 1: P0-001–P0-022; Phase 2: P1-001–P1-012, P2-001–P2-005; Phase 3: P3-001–P3-038 (all 38 items). Tests: T-001–T-008; ~3295 tests passing (2813 backend + 498 frontend). Spec clarification backlog: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. BUG-001–BUG-005 resolved. TECH-001–TECH-124 resolved. 283/283 checklist items complete, 0 remaining.
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -525,6 +525,10 @@ Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase
 - [x] TECH-123: Consolidate 11 duplicate hardcoded OTel metric name strings in `DiagnosticsEndpoints.cs` into shared `Diagnostics.MetricNames` constants.
   - Root cause: `DiagnosticsEndpoints.cs` SLO status endpoint (lines 41-51) contained 11 hardcoded metric name strings (`"smartkb.chat.latency_ms"`, etc.) duplicating the canonical names defined in `Diagnostics.cs` instrument creation calls. Any metric rename would require updating two files.
   - Completed (iteration 217): Added `Diagnostics.MetricNames` nested class with 31 constants covering all OTel metric names (chat, ingestion, security, privacy, cost, eval categories). Updated all 31 instrument creation calls in `Diagnostics.cs` to reference constants. Updated 11 references in `DiagnosticsEndpoints.cs` SLO endpoint. 6 new tests (non-null, unique, prefix, count=31, expected values, instrument-match). Zero hardcoded metric name strings remaining in production code. 2813 backend tests passing.
+
+- [x] TECH-124: Consolidate ~30 hardcoded eval severity, threshold direction, and quality severity string literals into shared `EvalSeverity`, `ThresholdDirection`, and `QualitySeverity` constants.
+  - Root cause: Eval regression severity strings (`"ok"`, `"warning"`, `"blocking"`) were hardcoded in 12 places across `BaselineComparator`, `GitHubActionsFormatter`, and `EvalPayloadBuilder`. Threshold direction strings (`">="`, `"<="`) were hardcoded in 4 places in `ThresholdChecker`. Case-card quality severity strings (`"error"`, `"warning"`) were hardcoded in 14 places in `CaseCardQualityValidator`. Any string rename or addition would require updating multiple files.
+  - Completed (iteration 218): Created `EvalSeverity` (`Ok`, `Warning`, `Blocking`), `ThresholdDirection` (`GreaterThanOrEqual`, `LessThanOrEqual`), and `QualitySeverity` (`Warning`, `Error`) constant classes in `SmartKb.Contracts/EvalSeverity.cs`. Extracted duplicated severity determination logic in `BaselineComparator` into shared `DetermineSeverity` helper. Updated all ~30 hardcoded string references across 5 production files and 8 test files. 2813 backend tests passing.
 
 - [x] TECH-121: Replace ~50 direct `console.warn`/`console.error` calls in frontend production code with centralized `logger` utility that suppresses output in production builds.
   - Root cause: 52 `console.warn`/`console.error` calls across 19 production frontend files (pages, components, auth, utils) leaked implementation details, component names, and error objects to browser DevTools in production. No environment-aware suppression existed.

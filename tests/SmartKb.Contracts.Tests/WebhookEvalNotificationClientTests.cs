@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
@@ -35,8 +36,8 @@ public class WebhookEvalNotificationClientTests
         ViolationCount = 2,
         Violations =
         [
-            new EvalViolationDto { MetricName = "groundedness", ActualValue = 0.65f, ThresholdValue = 0.80f, Direction = ">=" },
-            new EvalViolationDto { MetricName = "citationCoverage", ActualValue = 0.50f, ThresholdValue = 0.70f, Direction = ">=" },
+            new EvalViolationDto { MetricName = "groundedness", ActualValue = 0.65f, ThresholdValue = 0.80f, Direction = ThresholdDirection.GreaterThanOrEqual },
+            new EvalViolationDto { MetricName = "citationCoverage", ActualValue = 0.50f, ThresholdValue = 0.70f, Direction = ThresholdDirection.GreaterThanOrEqual },
         ],
         BaselineComparison = new EvalBaselineComparisonDto
         {
@@ -45,8 +46,8 @@ public class WebhookEvalNotificationClientTests
             Details =
             [
                 new EvalRegressionDetailDto { MetricName = "groundedness", BaselineValue = 0.85f, CurrentValue = 0.65f, Delta = -0.20f, Severity = "critical" },
-                new EvalRegressionDetailDto { MetricName = "citationCoverage", BaselineValue = 0.75f, CurrentValue = 0.50f, Delta = -0.25f, Severity = "warning" },
-                new EvalRegressionDetailDto { MetricName = "safetyPassRate", BaselineValue = 1.0f, CurrentValue = 1.0f, Delta = 0f, Severity = "ok" },
+                new EvalRegressionDetailDto { MetricName = "citationCoverage", BaselineValue = 0.75f, CurrentValue = 0.50f, Delta = -0.25f, Severity = EvalSeverity.Warning },
+                new EvalRegressionDetailDto { MetricName = "safetyPassRate", BaselineValue = 1.0f, CurrentValue = 1.0f, Delta = 0f, Severity = EvalSeverity.Ok },
             ],
         },
         RunUrl = "https://ci.example.com/runs/001",
@@ -63,7 +64,7 @@ public class WebhookEvalNotificationClientTests
         ViolationCount = 1,
         Violations =
         [
-            new EvalViolationDto { MetricName = "noEvidenceRate", ActualValue = 0.15f, ThresholdValue = 0.10f, Direction = "<=" },
+            new EvalViolationDto { MetricName = "noEvidenceRate", ActualValue = 0.15f, ThresholdValue = 0.10f, Direction = ThresholdDirection.LessThanOrEqual },
         ],
     };
 
@@ -93,7 +94,7 @@ public class WebhookEvalNotificationClientTests
             ShouldBlock = false,
             Details =
             [
-                new EvalRegressionDetailDto { MetricName = "groundedness", BaselineValue = 0.85f, CurrentValue = 0.80f, Delta = -0.05f, Severity = "warning" },
+                new EvalRegressionDetailDto { MetricName = "groundedness", BaselineValue = 0.85f, CurrentValue = 0.80f, Delta = -0.05f, Severity = EvalSeverity.Warning },
             ],
         },
     };

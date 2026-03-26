@@ -1040,7 +1040,7 @@ public class PatternDistillationServiceTests : IDisposable
                 Passed = _passed,
                 Rejected = _rejected,
                 Issues = _rejected
-                    ? [new QualityIssue { Field = "title", Severity = "error", Message = "Too short", Penalty = 0.5f }]
+                    ? [new QualityIssue { Field = "title", Severity = QualitySeverity.Error, Message = "Too short", Penalty = 0.5f }]
                     : [],
             };
         }

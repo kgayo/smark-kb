@@ -70,7 +70,7 @@ public static class EvalPayloadBuilder
         {
             sb.AppendLine();
             sb.AppendLine("*Regressions:*");
-            foreach (var d in payload.BaselineComparison.Details.Where(d => d.Severity is not "ok"))
+            foreach (var d in payload.BaselineComparison.Details.Where(d => d.Severity is not EvalSeverity.Ok))
                 sb.AppendLine($"• {d.MetricName}: {d.BaselineValue:F3} → {d.CurrentValue:F3} (Δ{d.Delta:+0.000;-0.000}) [{d.Severity.ToUpperInvariant()}]");
         }
 
@@ -106,7 +106,7 @@ public static class EvalPayloadBuilder
         {
             sb.AppendLine();
             sb.AppendLine("**Regressions:**");
-            foreach (var d in payload.BaselineComparison.Details.Where(d => d.Severity is not "ok"))
+            foreach (var d in payload.BaselineComparison.Details.Where(d => d.Severity is not EvalSeverity.Ok))
                 sb.AppendLine($"- {d.MetricName}: {d.BaselineValue:F3} → {d.CurrentValue:F3} (Δ{d.Delta:+0.000;-0.000}) [{d.Severity.ToUpperInvariant()}]");
         }
 

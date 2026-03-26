@@ -1,3 +1,4 @@
+using SmartKb.Contracts;
 using SmartKb.Eval.Models;
 
 namespace SmartKb.Eval;
@@ -23,7 +24,7 @@ public static class ThresholdChecker
                 MetricName = "Groundedness",
                 ActualValue = metrics.Groundedness,
                 ThresholdValue = settings.GroundednessThreshold,
-                Direction = ">=",
+                Direction = ThresholdDirection.GreaterThanOrEqual,
             });
         }
 
@@ -34,7 +35,7 @@ public static class ThresholdChecker
                 MetricName = "CitationCoverage",
                 ActualValue = metrics.CitationCoverage,
                 ThresholdValue = settings.CitationCoverageThreshold,
-                Direction = ">=",
+                Direction = ThresholdDirection.GreaterThanOrEqual,
             });
         }
 
@@ -45,7 +46,7 @@ public static class ThresholdChecker
                 MetricName = "RoutingAccuracy",
                 ActualValue = metrics.RoutingAccuracy,
                 ThresholdValue = settings.RoutingAccuracyThreshold,
-                Direction = ">=",
+                Direction = ThresholdDirection.GreaterThanOrEqual,
             });
         }
 
@@ -56,7 +57,7 @@ public static class ThresholdChecker
                 MetricName = "NoEvidenceRate",
                 ActualValue = metrics.NoEvidenceRate,
                 ThresholdValue = settings.MaxNoEvidenceRate,
-                Direction = "<=",
+                Direction = ThresholdDirection.LessThanOrEqual,
             });
         }
 

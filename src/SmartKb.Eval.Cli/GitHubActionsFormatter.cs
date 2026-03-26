@@ -34,9 +34,9 @@ public static class GitHubActionsFormatter
         {
             foreach (var detail in regression.Details)
             {
-                if (detail.Severity == "blocking")
+                if (detail.Severity == EvalSeverity.Blocking)
                     sb.AppendLine($"::error title=Blocking Regression: {detail.MetricName}::baseline={detail.BaselineValue:F3} current={detail.CurrentValue:F3} delta={detail.Delta:F3}");
-                else if (detail.Severity == "warning")
+                else if (detail.Severity == EvalSeverity.Warning)
                     sb.AppendLine($"::warning title=Regression Warning: {detail.MetricName}::baseline={detail.BaselineValue:F3} current={detail.CurrentValue:F3} delta={detail.Delta:F3}");
             }
         }
@@ -99,9 +99,9 @@ public static class GitHubActionsFormatter
                 sb.AppendLine("| Metric | Baseline | Current | Delta | Severity |");
                 sb.AppendLine("|--------|----------|---------|-------|----------|");
 
-                foreach (var d in regression.Details.Where(d => d.Severity != "ok"))
+                foreach (var d in regression.Details.Where(d => d.Severity != EvalSeverity.Ok))
                 {
-                    var icon = d.Severity == "blocking" ? "BLOCK" : "WARN";
+                    var icon = d.Severity == EvalSeverity.Blocking ? "BLOCK" : "WARN";
                     sb.AppendLine($"| {d.MetricName} | {d.BaselineValue:F3} | {d.CurrentValue:F3} | {d.Delta:+0.000;-0.000} | {icon} |");
                 }
             }

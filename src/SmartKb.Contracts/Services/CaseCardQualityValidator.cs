@@ -73,7 +73,7 @@ public sealed class CaseCardQualityValidator : ICaseCardQualityValidator
             issues.Add(new QualityIssue
             {
                 Field = "Title",
-                Severity = "error",
+                Severity = QualitySeverity.Error,
                 Message = "Title is empty.",
                 Penalty = 0.3f,
             });
@@ -85,7 +85,7 @@ public sealed class CaseCardQualityValidator : ICaseCardQualityValidator
             issues.Add(new QualityIssue
             {
                 Field = "Title",
-                Severity = "warning",
+                Severity = QualitySeverity.Warning,
                 Message = $"Title too short ({pattern.Title.Length} chars, minimum {_settings.MinTitleLength}).",
                 Penalty = 0.15f,
             });
@@ -96,7 +96,7 @@ public sealed class CaseCardQualityValidator : ICaseCardQualityValidator
             issues.Add(new QualityIssue
             {
                 Field = "Title",
-                Severity = "warning",
+                Severity = QualitySeverity.Warning,
                 Message = $"Title too long ({pattern.Title.Length} chars, maximum {_settings.MaxTitleLength}).",
                 Penalty = 0.05f,
             });
@@ -107,7 +107,7 @@ public sealed class CaseCardQualityValidator : ICaseCardQualityValidator
             issues.Add(new QualityIssue
             {
                 Field = "Title",
-                Severity = "warning",
+                Severity = QualitySeverity.Warning,
                 Message = "Title appears generic and non-descriptive.",
                 Penalty = 0.15f,
             });
@@ -121,7 +121,7 @@ public sealed class CaseCardQualityValidator : ICaseCardQualityValidator
             issues.Add(new QualityIssue
             {
                 Field = "ProblemStatement",
-                Severity = "error",
+                Severity = QualitySeverity.Error,
                 Message = "Problem statement is empty.",
                 Penalty = 0.25f,
             });
@@ -133,7 +133,7 @@ public sealed class CaseCardQualityValidator : ICaseCardQualityValidator
             issues.Add(new QualityIssue
             {
                 Field = "ProblemStatement",
-                Severity = "warning",
+                Severity = QualitySeverity.Warning,
                 Message = $"Problem statement too short ({pattern.ProblemStatement.Length} chars, minimum {_settings.MinProblemStatementLength}).",
                 Penalty = 0.15f,
             });
@@ -144,7 +144,7 @@ public sealed class CaseCardQualityValidator : ICaseCardQualityValidator
             issues.Add(new QualityIssue
             {
                 Field = "ProblemStatement",
-                Severity = "warning",
+                Severity = QualitySeverity.Warning,
                 Message = "Problem statement is generic placeholder text.",
                 Penalty = 0.2f,
             });
@@ -158,7 +158,7 @@ public sealed class CaseCardQualityValidator : ICaseCardQualityValidator
             issues.Add(new QualityIssue
             {
                 Field = "Symptoms",
-                Severity = "warning",
+                Severity = QualitySeverity.Warning,
                 Message = $"Insufficient symptoms ({pattern.Symptoms.Count}, minimum {_settings.MinSymptomCount}).",
                 Penalty = 0.1f,
             });
@@ -172,7 +172,7 @@ public sealed class CaseCardQualityValidator : ICaseCardQualityValidator
             issues.Add(new QualityIssue
             {
                 Field = "ResolutionSteps",
-                Severity = "error",
+                Severity = QualitySeverity.Error,
                 Message = $"Insufficient resolution steps ({pattern.ResolutionSteps.Count}, minimum {_settings.MinResolutionStepCount}).",
                 Penalty = 0.3f,
             });
@@ -189,7 +189,7 @@ public sealed class CaseCardQualityValidator : ICaseCardQualityValidator
             issues.Add(new QualityIssue
             {
                 Field = "ResolutionSteps",
-                Severity = "warning",
+                Severity = QualitySeverity.Warning,
                 Message = $"{shortStepCount} of {pattern.ResolutionSteps.Count} resolution steps are too short (< {_settings.MinResolutionStepLength} chars).",
                 Penalty = 0.1f * ratio,
             });
@@ -203,7 +203,7 @@ public sealed class CaseCardQualityValidator : ICaseCardQualityValidator
             issues.Add(new QualityIssue
             {
                 Field = "ResolutionSteps",
-                Severity = "warning",
+                Severity = QualitySeverity.Warning,
                 Message = $"{duplicateCount} duplicate resolution step(s) found.",
                 Penalty = 0.1f,
             });
@@ -217,7 +217,7 @@ public sealed class CaseCardQualityValidator : ICaseCardQualityValidator
             issues.Add(new QualityIssue
             {
                 Field = "RelatedEvidenceIds",
-                Severity = "error",
+                Severity = QualitySeverity.Error,
                 Message = $"Insufficient related evidence ({pattern.RelatedEvidenceIds.Count}, minimum {_settings.MinRelatedEvidenceCount}).",
                 Penalty = 0.2f,
             });
@@ -231,7 +231,7 @@ public sealed class CaseCardQualityValidator : ICaseCardQualityValidator
             issues.Add(new QualityIssue
             {
                 Field = "DiagnosisSteps",
-                Severity = "warning",
+                Severity = QualitySeverity.Warning,
                 Message = "No diagnosis steps provided.",
                 Penalty = 0.05f,
             });
@@ -245,7 +245,7 @@ public sealed class CaseCardQualityValidator : ICaseCardQualityValidator
             issues.Add(new QualityIssue
             {
                 Field = "VerificationSteps",
-                Severity = "warning",
+                Severity = QualitySeverity.Warning,
                 Message = "No verification steps provided.",
                 Penalty = 0.05f,
             });

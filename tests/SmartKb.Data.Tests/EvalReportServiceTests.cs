@@ -105,7 +105,7 @@ public class EvalReportServiceTests : IDisposable
         Assert.True(result.BaselineComparison!.HasRegression);
         Assert.False(result.BaselineComparison.ShouldBlock);
         Assert.Single(result.BaselineComparison.Details);
-        Assert.Equal("warning", result.BaselineComparison.Details[0].Severity);
+        Assert.Equal(EvalSeverity.Warning, result.BaselineComparison.Details[0].Severity);
     }
 
     [Fact]

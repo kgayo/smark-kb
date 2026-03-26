@@ -1,3 +1,4 @@
+using SmartKb.Contracts;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
 using SmartKb.Eval.Cli;
@@ -26,7 +27,7 @@ public class EvalCliRunnerNotificationTests
         var report = CreateReport();
         var violations = new List<ThresholdViolation>
         {
-            new() { MetricName = "Groundedness", ActualValue = 0.50f, ThresholdValue = 0.80f, Direction = ">=" },
+            new() { MetricName = "Groundedness", ActualValue = 0.50f, ThresholdValue = 0.80f, Direction = ThresholdDirection.GreaterThanOrEqual },
         };
 
         var result = await EvalCliRunner.SendNotificationAsync(
@@ -46,7 +47,7 @@ public class EvalCliRunnerNotificationTests
         var report = CreateReport();
         var violations = new List<ThresholdViolation>
         {
-            new() { MetricName = "Groundedness", ActualValue = 0.50f, ThresholdValue = 0.80f, Direction = ">=" },
+            new() { MetricName = "Groundedness", ActualValue = 0.50f, ThresholdValue = 0.80f, Direction = ThresholdDirection.GreaterThanOrEqual },
         };
 
         var result = await EvalCliRunner.SendNotificationAsync(
@@ -80,7 +81,7 @@ public class EvalCliRunnerNotificationTests
             ShouldBlock = true,
             Details = new List<RegressionDetail>
             {
-                new() { MetricName = "Groundedness", BaselineValue = 0.90f, CurrentValue = 0.70f, Delta = 0.20f, Severity = "blocking" },
+                new() { MetricName = "Groundedness", BaselineValue = 0.90f, CurrentValue = 0.70f, Delta = 0.20f, Severity = EvalSeverity.Blocking },
             },
         };
 
@@ -103,7 +104,7 @@ public class EvalCliRunnerNotificationTests
         var report = CreateReport(caseCount: 35);
         var violations = new List<ThresholdViolation>
         {
-            new() { MetricName = "Groundedness", ActualValue = 0.50f, ThresholdValue = 0.80f, Direction = ">=" },
+            new() { MetricName = "Groundedness", ActualValue = 0.50f, ThresholdValue = 0.80f, Direction = ThresholdDirection.GreaterThanOrEqual },
         };
 
         await EvalCliRunner.SendNotificationAsync(

@@ -1,4 +1,5 @@
 using System.Net;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
@@ -23,8 +24,8 @@ public class WebhookEvalNotificationServiceTests
         Violations = violationCount > 0
             ? new List<EvalViolationDto>
             {
-                new() { MetricName = "Groundedness", ActualValue = 0.72f, ThresholdValue = 0.80f, Direction = ">=" },
-                new() { MetricName = "CitationCoverage", ActualValue = 0.60f, ThresholdValue = 0.70f, Direction = ">=" },
+                new() { MetricName = "Groundedness", ActualValue = 0.72f, ThresholdValue = 0.80f, Direction = ThresholdDirection.GreaterThanOrEqual },
+                new() { MetricName = "CitationCoverage", ActualValue = 0.60f, ThresholdValue = 0.70f, Direction = ThresholdDirection.GreaterThanOrEqual },
             }
             : [],
         BaselineComparison = hasRegressionDetails
@@ -34,8 +35,8 @@ public class WebhookEvalNotificationServiceTests
                 ShouldBlock = hasBlockingRegression,
                 Details = new List<EvalRegressionDetailDto>
                 {
-                    new() { MetricName = "Groundedness", BaselineValue = 0.90f, CurrentValue = 0.72f, Delta = 0.18f, Severity = "blocking" },
-                    new() { MetricName = "RoutingAccuracy", BaselineValue = 0.75f, CurrentValue = 0.72f, Delta = 0.03f, Severity = "warning" },
+                    new() { MetricName = "Groundedness", BaselineValue = 0.90f, CurrentValue = 0.72f, Delta = 0.18f, Severity = EvalSeverity.Blocking },
+                    new() { MetricName = "RoutingAccuracy", BaselineValue = 0.75f, CurrentValue = 0.72f, Delta = 0.03f, Severity = EvalSeverity.Warning },
                 },
             }
             : null,

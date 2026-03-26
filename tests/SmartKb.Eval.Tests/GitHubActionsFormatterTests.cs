@@ -1,3 +1,4 @@
+using SmartKb.Contracts;
 using SmartKb.Contracts.Models;
 using SmartKb.Eval.Cli;
 using SmartKb.Eval.Models;
@@ -45,7 +46,7 @@ public class GitHubActionsFormatterTests
         var report = CreateReport();
         var violations = new List<ThresholdViolation>
         {
-            new() { MetricName = "Groundedness", ActualValue = 0.50f, ThresholdValue = 0.80f, Direction = ">=" },
+            new() { MetricName = "Groundedness", ActualValue = 0.50f, ThresholdValue = 0.80f, Direction = ThresholdDirection.GreaterThanOrEqual },
         };
 
         var result = GitHubActionsFormatter.FormatAnnotations(report, violations, null);
@@ -67,7 +68,7 @@ public class GitHubActionsFormatterTests
                 BaselineValue = 0.90f,
                 CurrentValue = 0.80f,
                 Delta = 0.10f,
-                Severity = "blocking",
+                Severity = EvalSeverity.Blocking,
             }],
         };
 
@@ -90,7 +91,7 @@ public class GitHubActionsFormatterTests
                 BaselineValue = 0.80f,
                 CurrentValue = 0.77f,
                 Delta = 0.03f,
-                Severity = "warning",
+                Severity = EvalSeverity.Warning,
             }],
         };
 
@@ -119,7 +120,7 @@ public class GitHubActionsFormatterTests
         var report = CreateReport();
         var violations = new List<ThresholdViolation>
         {
-            new() { MetricName = "Groundedness", ActualValue = 0.50f, ThresholdValue = 0.80f, Direction = ">=" },
+            new() { MetricName = "Groundedness", ActualValue = 0.50f, ThresholdValue = 0.80f, Direction = ThresholdDirection.GreaterThanOrEqual },
         };
 
         var result = GitHubActionsFormatter.FormatJobSummary(report, violations, null, "Weekly Full");
@@ -142,7 +143,7 @@ public class GitHubActionsFormatterTests
                 BaselineValue = 0.90f,
                 CurrentValue = 0.80f,
                 Delta = 0.10f,
-                Severity = "blocking",
+                Severity = EvalSeverity.Blocking,
             }],
         };
 

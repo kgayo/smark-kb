@@ -1,4 +1,5 @@
 using System.Text.Json;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
 
@@ -161,7 +162,7 @@ public class EvalPayloadBuilderTests
                         BaselineValue = 1.0f,
                         CurrentValue = 1.0f,
                         Delta = 0f,
-                        Severity = "ok",
+                        Severity = EvalSeverity.Ok,
                     },
                 ],
             },
@@ -199,7 +200,7 @@ public class EvalPayloadBuilderTests
             {
                 HasRegression = true,
                 ShouldBlock = false,
-                Details = [new EvalRegressionDetailDto { MetricName = "m", Severity = "warning", BaselineValue = 1f, CurrentValue = 2f, Delta = 1f }],
+                Details = [new EvalRegressionDetailDto { MetricName = "m", Severity = EvalSeverity.Warning, BaselineValue = 1f, CurrentValue = 2f, Delta = 1f }],
             },
         };
         Assert.True(EvalPayloadBuilder.ShouldNotify(payload, notifyOnRegressions: true, notifyOnViolations: false));

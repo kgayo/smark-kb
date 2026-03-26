@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using SmartKb.Contracts;
 using SmartKb.Eval.Models;
 
 namespace SmartKb.Eval.Tests;
@@ -17,7 +18,7 @@ public class BaselineComparatorTests
 
         Assert.False(result.HasRegression);
         Assert.False(result.ShouldBlock);
-        Assert.All(result.Details, d => Assert.Equal("ok", d.Severity));
+        Assert.All(result.Details, d => Assert.Equal(EvalSeverity.Ok, d.Severity));
     }
 
     [Fact]
@@ -32,7 +33,7 @@ public class BaselineComparatorTests
         Assert.False(result.ShouldBlock);
 
         var groundedness = result.Details.First(d => d.MetricName == "Groundedness");
-        Assert.Equal("warning", groundedness.Severity);
+        Assert.Equal(EvalSeverity.Warning, groundedness.Severity);
     }
 
     [Fact]
@@ -47,7 +48,7 @@ public class BaselineComparatorTests
         Assert.True(result.ShouldBlock);
 
         var groundedness = result.Details.First(d => d.MetricName == "Groundedness");
-        Assert.Equal("blocking", groundedness.Severity);
+        Assert.Equal(EvalSeverity.Blocking, groundedness.Severity);
     }
 
     [Fact]
@@ -60,7 +61,7 @@ public class BaselineComparatorTests
 
         Assert.True(result.HasRegression);
         var noEvidence = result.Details.First(d => d.MetricName == "NoEvidenceRate");
-        Assert.Equal("warning", noEvidence.Severity);
+        Assert.Equal(EvalSeverity.Warning, noEvidence.Severity);
     }
 
     [Fact]
@@ -73,7 +74,7 @@ public class BaselineComparatorTests
 
         Assert.True(result.ShouldBlock);
         var noEvidence = result.Details.First(d => d.MetricName == "NoEvidenceRate");
-        Assert.Equal("blocking", noEvidence.Severity);
+        Assert.Equal(EvalSeverity.Blocking, noEvidence.Severity);
     }
 
     [Fact]
@@ -96,7 +97,7 @@ public class BaselineComparatorTests
 
         var result = BaselineComparator.Compare(current, baseline, DefaultSettings);
 
-        var regressions = result.Details.Where(d => d.Severity != "ok").ToList();
+        var regressions = result.Details.Where(d => d.Severity != EvalSeverity.Ok).ToList();
         Assert.Equal(2, regressions.Count);
     }
 
@@ -135,7 +136,7 @@ public class BaselineComparatorTests
         var result = BaselineComparator.Compare(current, baseline, settings);
 
         var groundedness = result.Details.First(d => d.MetricName == "Groundedness");
-        Assert.Equal("warning", groundedness.Severity);
+        Assert.Equal(EvalSeverity.Warning, groundedness.Severity);
     }
 
     [Fact]
@@ -147,7 +148,7 @@ public class BaselineComparatorTests
         var result = BaselineComparator.Compare(current, baseline, DefaultSettings);
 
         var groundedness = result.Details.First(d => d.MetricName == "Groundedness");
-        Assert.Equal("warning", groundedness.Severity);
+        Assert.Equal(EvalSeverity.Warning, groundedness.Severity);
     }
 
     [Fact]

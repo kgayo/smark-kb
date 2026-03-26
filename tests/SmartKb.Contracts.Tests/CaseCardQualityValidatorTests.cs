@@ -54,7 +54,7 @@ public class CaseCardQualityValidatorTests
         var validator = new CaseCardQualityValidator(DefaultSettings());
         var pattern = CreatePattern(title: "");
         var report = validator.Validate(pattern);
-        Assert.Contains(report.Issues, i => i.Field == "Title" && i.Severity == "error");
+        Assert.Contains(report.Issues, i => i.Field == "Title" && i.Severity == QualitySeverity.Error);
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public class CaseCardQualityValidatorTests
         var validator = new CaseCardQualityValidator(DefaultSettings());
         var pattern = CreatePattern(problemStatement: "");
         var report = validator.Validate(pattern);
-        Assert.Contains(report.Issues, i => i.Field == "ProblemStatement" && i.Severity == "error");
+        Assert.Contains(report.Issues, i => i.Field == "ProblemStatement" && i.Severity == QualitySeverity.Error);
     }
 
     [Fact]
@@ -132,7 +132,7 @@ public class CaseCardQualityValidatorTests
         var validator = new CaseCardQualityValidator(DefaultSettings());
         var pattern = CreatePattern(resolutionSteps: []);
         var report = validator.Validate(pattern);
-        Assert.Contains(report.Issues, i => i.Field == "ResolutionSteps" && i.Severity == "error");
+        Assert.Contains(report.Issues, i => i.Field == "ResolutionSteps" && i.Severity == QualitySeverity.Error);
     }
 
     [Fact]
@@ -161,7 +161,7 @@ public class CaseCardQualityValidatorTests
         var validator = new CaseCardQualityValidator(DefaultSettings());
         var pattern = CreatePattern(relatedEvidenceIds: []);
         var report = validator.Validate(pattern);
-        Assert.Contains(report.Issues, i => i.Field == "RelatedEvidenceIds" && i.Severity == "error");
+        Assert.Contains(report.Issues, i => i.Field == "RelatedEvidenceIds" && i.Severity == QualitySeverity.Error);
     }
 
     // --- Diagnosis & Verification Warnings ---
@@ -173,7 +173,7 @@ public class CaseCardQualityValidatorTests
         var pattern = CreatePattern(diagnosisSteps: []);
         var report = validator.Validate(pattern);
         var issue = report.Issues.Single(i => i.Field == "DiagnosisSteps");
-        Assert.Equal("warning", issue.Severity);
+        Assert.Equal(QualitySeverity.Warning, issue.Severity);
         Assert.Equal(0.05f, issue.Penalty);
     }
 
@@ -184,7 +184,7 @@ public class CaseCardQualityValidatorTests
         var pattern = CreatePattern(verificationSteps: []);
         var report = validator.Validate(pattern);
         var issue = report.Issues.Single(i => i.Field == "VerificationSteps");
-        Assert.Equal("warning", issue.Severity);
+        Assert.Equal(QualitySeverity.Warning, issue.Severity);
         Assert.Equal(0.05f, issue.Penalty);
     }
 

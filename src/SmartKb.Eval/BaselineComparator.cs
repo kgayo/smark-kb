@@ -34,8 +34,8 @@ public static class BaselineComparator
         // Lower-is-better metrics: regression = current - baseline > threshold
         AddLowerIsBetter(details, "NoEvidenceRate", baseline.NoEvidenceRate, current.NoEvidenceRate, settings);
 
-        var hasRegression = details.Any(d => d.Severity is "warning" or "blocking");
-        var shouldBlock = details.Any(d => d.Severity == "blocking");
+        var hasRegression = details.Any(d => d.Severity is EvalSeverity.Warning or EvalSeverity.Blocking);
+        var shouldBlock = details.Any(d => d.Severity == EvalSeverity.Blocking);
 
         return new RegressionResult
         {
@@ -114,9 +114,7 @@ public static class BaselineComparator
         EvalSettings settings)
     {
         var delta = baselineValue - currentValue; // positive means regression
-        var severity = delta >= settings.RegressionBlockingThreshold ? "blocking"
-            : delta >= settings.RegressionWarningThreshold ? "warning"
-            : "ok";
+        var severity = DetermineSeverity(delta, settings);
 
         details.Add(new RegressionDetail
         {
@@ -136,9 +134,7 @@ public static class BaselineComparator
         EvalSettings settings)
     {
         var delta = currentValue - baselineValue; // positive means regression (rate went up)
-        var severity = delta >= settings.RegressionBlockingThreshold ? "blocking"
-            : delta >= settings.RegressionWarningThreshold ? "warning"
-            : "ok";
+        var severity = DetermineSeverity(delta, settings);
 
         details.Add(new RegressionDetail
         {
@@ -149,4 +145,9 @@ public static class BaselineComparator
             Severity = severity,
         });
     }
+
+    private static string DetermineSeverity(float delta, EvalSettings settings) =>
+        delta >= settings.RegressionBlockingThreshold ? EvalSeverity.Blocking
+        : delta >= settings.RegressionWarningThreshold ? EvalSeverity.Warning
+        : EvalSeverity.Ok;
 }

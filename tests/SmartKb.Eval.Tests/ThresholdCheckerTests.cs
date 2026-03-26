@@ -1,3 +1,4 @@
+using SmartKb.Contracts;
 using SmartKb.Eval.Models;
 
 namespace SmartKb.Eval.Tests;
@@ -35,7 +36,7 @@ public class ThresholdCheckerTests
         var violations = ThresholdChecker.Check(metrics, DefaultSettings);
         Assert.Single(violations);
         Assert.Equal("Groundedness", violations[0].MetricName);
-        Assert.Equal(">=", violations[0].Direction);
+        Assert.Equal(ThresholdDirection.GreaterThanOrEqual, violations[0].Direction);
     }
 
     [Fact]
@@ -52,7 +53,7 @@ public class ThresholdCheckerTests
         var violations = ThresholdChecker.Check(metrics, DefaultSettings);
         Assert.Single(violations);
         Assert.Equal("NoEvidenceRate", violations[0].MetricName);
-        Assert.Equal("<=", violations[0].Direction);
+        Assert.Equal(ThresholdDirection.LessThanOrEqual, violations[0].Direction);
     }
 
     [Fact]
@@ -114,7 +115,7 @@ public class ThresholdCheckerTests
             MetricName = "Groundedness",
             ActualValue = 0.75f,
             ThresholdValue = 0.80f,
-            Direction = ">=",
+            Direction = ThresholdDirection.GreaterThanOrEqual,
         };
 
         var str = violation.ToString();
