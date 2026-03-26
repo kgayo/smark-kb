@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using System.Net.Mime;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -20,7 +21,7 @@ public static class ConnectorHttpHelper
     {
         client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(MediaTypeNames.Application.Json));
     }
 
     /// <summary>
@@ -32,7 +33,17 @@ public static class ConnectorHttpHelper
         client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
         var credentials = Convert.ToBase64String(Encoding.ASCII.GetBytes($":{pat}"));
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", credentials);
-        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(MediaTypeNames.Application.Json));
+    }
+
+    /// <summary>
+    /// Configures an HttpClient with Bearer token authentication and JSON accept header (no base address).
+    /// Used by SharePoint connector client and webhook manager for Microsoft Graph API calls.
+    /// </summary>
+    public static void ConfigureGraphClient(HttpClient client, string accessToken)
+    {
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(MediaTypeNames.Application.Json));
     }
 
     /// <summary>

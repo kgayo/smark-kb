@@ -1,3 +1,4 @@
+using System.Net.Mime;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -83,7 +84,7 @@ public sealed class AdoWebhookManager : IWebhookManager
                 }
 
                 var json = JsonSerializer.Serialize(subscriptionRequest, SharedJsonOptions.CamelCase);
-                using var content = new StringContent(json, Encoding.UTF8, "application/json");
+                using var content = new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json);
 
                 var url = $"_apis/hooks/subscriptions?api-version={ApiVersion}";
                 using var response = await client.PostAsync(url, content, cancellationToken);

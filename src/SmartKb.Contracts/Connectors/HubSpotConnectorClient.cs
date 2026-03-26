@@ -1,3 +1,4 @@
+using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -316,7 +317,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
         };
 
         var json = JsonSerializer.Serialize(searchRequest, SharedJsonOptions.CamelCaseIgnoreNull);
-        using var content = new StringContent(json, Encoding.UTF8, "application/json");
+        using var content = new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json);
 
         var url = $"crm/v3/objects/{objectType}/search";
         using var response = await client.PostAsync(url, content, ct);

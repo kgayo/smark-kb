@@ -1,3 +1,4 @@
+using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -280,7 +281,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
             };
 
             var payload = JsonSerializer.Serialize(body, SharedJsonOptions.CamelCaseIgnoreNull);
-            using var content = new StringContent(payload, Encoding.UTF8, "application/json");
+            using var content = new StringContent(payload, Encoding.UTF8, MediaTypeNames.Application.Json);
 
             var url = $"api/v2/list/{listId}/task";
             using var response = await client.PostAsync(url, content, ct);

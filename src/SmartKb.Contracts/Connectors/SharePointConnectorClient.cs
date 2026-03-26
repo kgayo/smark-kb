@@ -1,4 +1,3 @@
-using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
@@ -576,8 +575,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
     internal HttpClient CreateGraphClient(string accessToken)
     {
         var client = _httpClientFactory.CreateClient(HttpClientNames.SharePoint);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        ConnectorHttpHelper.ConfigureGraphClient(client, accessToken);
         return client;
     }
 

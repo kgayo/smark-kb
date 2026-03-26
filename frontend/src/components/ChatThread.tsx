@@ -48,8 +48,8 @@ function NextStepsList({ steps }: { steps: string[] }) {
     <div className="next-steps" data-testid="next-steps">
       <h4>Suggested next steps:</h4>
       <ul>
-        {steps.map((s, i) => (
-          <li key={i}>{s}</li>
+        {steps.map((s) => (
+          <li key={s}>{s}</li>
         ))}
       </ul>
     </div>

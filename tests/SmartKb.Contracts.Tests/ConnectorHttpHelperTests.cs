@@ -283,6 +283,37 @@ public class ConnectorHttpHelperTests
             h => h.MediaType == "application/json");
     }
 
+    // --- ConfigureGraphClient tests ---
+
+    [Fact]
+    public void ConfigureGraphClient_SetsBearerAuth()
+    {
+        using var client = new HttpClient();
+        ConnectorHttpHelper.ConfigureGraphClient(client, "graph-token");
+
+        Assert.Equal("Bearer", client.DefaultRequestHeaders.Authorization?.Scheme);
+        Assert.Equal("graph-token", client.DefaultRequestHeaders.Authorization?.Parameter);
+    }
+
+    [Fact]
+    public void ConfigureGraphClient_SetsJsonAcceptHeader()
+    {
+        using var client = new HttpClient();
+        ConnectorHttpHelper.ConfigureGraphClient(client, "graph-token");
+
+        Assert.Contains(client.DefaultRequestHeaders.Accept,
+            h => h.MediaType == "application/json");
+    }
+
+    [Fact]
+    public void ConfigureGraphClient_DoesNotSetBaseAddress()
+    {
+        using var client = new HttpClient();
+        ConnectorHttpHelper.ConfigureGraphClient(client, "graph-token");
+
+        Assert.Null(client.BaseAddress);
+    }
+
     private sealed class TestDto
     {
         public string? Name { get; set; }

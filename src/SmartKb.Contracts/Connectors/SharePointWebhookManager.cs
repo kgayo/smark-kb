@@ -1,4 +1,4 @@
-using System.Net.Http.Headers;
+using System.Net.Mime;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -103,7 +103,7 @@ public sealed class SharePointWebhookManager : IWebhookManager
                 };
 
                 var json = JsonSerializer.Serialize(subscriptionRequest, SharedJsonOptions.CamelCase);
-                using var content = new StringContent(json, Encoding.UTF8, "application/json");
+                using var content = new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json);
 
                 using var response = await graphClient.PostAsync($"{GraphBaseUrl}/subscriptions", content, cancellationToken);
 
@@ -227,8 +227,7 @@ public sealed class SharePointWebhookManager : IWebhookManager
     private HttpClient CreateGraphClient(string accessToken)
     {
         var client = _httpClientFactory.CreateClient(HttpClientNames.SharePoint);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        ConnectorHttpHelper.ConfigureGraphClient(client, accessToken);
         return client;
     }
 

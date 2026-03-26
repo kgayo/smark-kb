@@ -1,3 +1,4 @@
+using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -363,7 +364,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
         var wiql = $"SELECT [System.Id] FROM WorkItems WHERE {string.Join(" AND ", conditions)} ORDER BY [System.ChangedDate] ASC";
 
         var wiqlPayload = JsonSerializer.Serialize(new { query = wiql }, SharedJsonOptions.CamelCaseIgnoreNull);
-        using var wiqlContent = new StringContent(wiqlPayload, Encoding.UTF8, "application/json");
+        using var wiqlContent = new StringContent(wiqlPayload, Encoding.UTF8, MediaTypeNames.Application.Json);
 
         var wiqlUrl = $"{project}/_apis/wit/wiql?api-version={ApiVersion}&$top={Math.Min(top, MaxWiqlResults)}";
         using var wiqlResponse = await client.PostAsync(wiqlUrl, wiqlContent, ct);

@@ -1,3 +1,4 @@
+using System.Net.Mime;
 using System.Text;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Models;
@@ -34,7 +35,7 @@ public sealed class WebhookEvalNotificationClient : IEvalNotificationService
             return true;
 
         var body = BuildPayload(payload);
-        using var content = new StringContent(body, Encoding.UTF8, "application/json");
+        using var content = new StringContent(body, Encoding.UTF8, MediaTypeNames.Application.Json);
 
         try
         {

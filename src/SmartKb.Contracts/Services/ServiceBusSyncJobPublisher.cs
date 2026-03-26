@@ -1,3 +1,4 @@
+using System.Net.Mime;
 using System.Text.Json;
 using Azure.Messaging.ServiceBus;
 using SmartKb.Contracts.Configuration;
@@ -22,7 +23,7 @@ public sealed class ServiceBusSyncJobPublisher : ISyncJobPublisher, IAsyncDispos
         var json = JsonSerializer.Serialize(message, SharedJsonOptions.CamelCaseWrite);
         var sbMessage = new ServiceBusMessage(json)
         {
-            ContentType = "application/json",
+            ContentType = MediaTypeNames.Application.Json,
             MessageId = message.SyncRunId.ToString(),
             CorrelationId = message.CorrelationId,
             Subject = $"sync:{message.ConnectorType}:{message.ConnectorId}",
