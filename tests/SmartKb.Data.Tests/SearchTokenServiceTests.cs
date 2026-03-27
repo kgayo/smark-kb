@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
 using SmartKb.Data.Entities;
@@ -220,20 +221,20 @@ public class SearchTokenServiceTests : IDisposable
     public async Task ListSpecialTokens_ReturnsTenantScoped()
     {
         await _service.CreateSpecialTokenAsync(TenantId, ActorId, CorrelationId, new CreateSpecialTokenRequest { Token = "HTTP 500", Category = "http-status" });
-        await _service.CreateSpecialTokenAsync(TenantId, ActorId, CorrelationId, new CreateSpecialTokenRequest { Token = "BSOD", Category = "error-code" });
+        await _service.CreateSpecialTokenAsync(TenantId, ActorId, CorrelationId, new CreateSpecialTokenRequest { Token = "BSOD", Category = SpecialTokenDefaults.Category });
 
         var result = await _service.ListSpecialTokensAsync(TenantId);
 
         Assert.Equal(2, result.TotalCount);
         Assert.Contains("http-status", result.Categories);
-        Assert.Contains("error-code", result.Categories);
+        Assert.Contains(SpecialTokenDefaults.Category, result.Categories);
     }
 
     [Fact]
     public async Task ListSpecialTokens_FilterByCategory()
     {
         await _service.CreateSpecialTokenAsync(TenantId, ActorId, CorrelationId, new CreateSpecialTokenRequest { Token = "HTTP 500", Category = "http-status" });
-        await _service.CreateSpecialTokenAsync(TenantId, ActorId, CorrelationId, new CreateSpecialTokenRequest { Token = "BSOD", Category = "error-code" });
+        await _service.CreateSpecialTokenAsync(TenantId, ActorId, CorrelationId, new CreateSpecialTokenRequest { Token = "BSOD", Category = SpecialTokenDefaults.Category });
 
         var result = await _service.ListSpecialTokensAsync(TenantId, "http-status");
 

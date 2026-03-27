@@ -168,8 +168,7 @@ public static class DiagnosticsEndpoints
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     // Non-fatal: diagnostics still returns even if credential check fails.
-                    sp.GetRequiredService<ILogger<Program>>()
-                        .LogWarning(ex, "Failed to check credential status for diagnostics summary");
+                    logger.LogWarning(ex, "Failed to check credential status for diagnostics summary");
                 }
             }
 
@@ -186,8 +185,7 @@ public static class DiagnosticsEndpoints
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
-                    sp.GetRequiredService<ILogger<Program>>()
-                        .LogWarning(ex, "Failed to check rate-limit alerts for diagnostics summary");
+                    logger.LogWarning(ex, "Failed to check rate-limit alerts for diagnostics summary");
                 }
             }
 

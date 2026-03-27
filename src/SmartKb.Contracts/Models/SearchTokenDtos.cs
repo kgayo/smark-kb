@@ -51,7 +51,7 @@ public sealed record StopWordListResponse
 public sealed record CreateSpecialTokenRequest
 {
     public required string Token { get; init; }
-    public string Category { get; init; } = "error-code";
+    public string Category { get; init; } = SpecialTokenDefaults.Category;
     public int BoostFactor { get; init; } = 2;
     public string? Description { get; init; }
 }

@@ -240,7 +240,7 @@ public sealed partial class SearchTokenService : ISearchTokenService
             Id = Guid.NewGuid(),
             TenantId = tenantId,
             Token = normalizedToken,
-            Category = string.IsNullOrWhiteSpace(request.Category) ? "error-code" : request.Category.Trim(),
+            Category = string.IsNullOrWhiteSpace(request.Category) ? SmartKb.Contracts.SpecialTokenDefaults.Category : request.Category.Trim(),
             BoostFactor = request.BoostFactor,
             IsActive = true,
             Description = request.Description?.Trim(),
@@ -574,7 +574,7 @@ public sealed partial class SearchTokenService : ISearchTokenService
     private static IReadOnlyList<(string Token, string Category, int Boost, string? Description)> GetDefaultSpecialTokens() =>
     [
         // Common error codes
-        ("BSOD", "error-code", 3, "Blue screen of death"),
+        ("BSOD", SmartKb.Contracts.SpecialTokenDefaults.Category, 3, "Blue screen of death"),
         ("0x80070005", "hex-error", 3, "Access denied Windows error"),
         ("0x80004005", "hex-error", 3, "Unspecified Windows error"),
         ("0x800700E1", "hex-error", 3, "Virus detected error"),

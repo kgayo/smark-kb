@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
+using SmartKb.Contracts;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
@@ -424,8 +425,8 @@ public class ChatOrchestratorTests
     {
         var chunks = new List<RetrievedChunk>
         {
-            CreateChunk("c1", rrfScore: 0.7) with { ResultSource = "Evidence", UpdatedAt = DateTimeOffset.UtcNow },
-            CreateChunk("c2", rrfScore: 0.6) with { ResultSource = "Pattern", UpdatedAt = DateTimeOffset.UtcNow },
+            CreateChunk("c1", rrfScore: 0.7) with { ResultSource = ResultSources.Evidence, UpdatedAt = DateTimeOffset.UtcNow },
+            CreateChunk("c2", rrfScore: 0.6) with { ResultSource = ResultSources.Pattern, UpdatedAt = DateTimeOffset.UtcNow },
         };
 
         var rationale = ChatOrchestrator.BuildConfidenceRationale(chunks, 0.65f, "Medium", null);

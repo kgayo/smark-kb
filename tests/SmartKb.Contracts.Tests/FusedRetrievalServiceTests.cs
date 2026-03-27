@@ -1,3 +1,4 @@
+using SmartKb.Contracts;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
@@ -71,10 +72,10 @@ public class FusedRetrievalServiceTests
     {
         var results = new List<RankedResult>
         {
-            CreateRanked("c1", visibility: "Public", resultSource: "Evidence"),
-            CreateRanked("c2", visibility: "Internal", resultSource: "Pattern"),
-            CreateRanked("c3", visibility: "Restricted", allowedGroups: ["team-a"], resultSource: "Evidence"),
-            CreateRanked("c4", visibility: "Restricted", allowedGroups: ["team-b"], resultSource: "Pattern"),
+            CreateRanked("c1", visibility: "Public", resultSource: ResultSources.Evidence),
+            CreateRanked("c2", visibility: "Internal", resultSource: ResultSources.Pattern),
+            CreateRanked("c3", visibility: "Restricted", allowedGroups: ["team-a"], resultSource: ResultSources.Evidence),
+            CreateRanked("c4", visibility: "Restricted", allowedGroups: ["team-b"], resultSource: ResultSources.Pattern),
         };
 
         var (filtered, filteredOut) = FusedRetrievalService.ApplyAclFilter(results, ["team-a"]);
@@ -278,12 +279,12 @@ public class FusedRetrievalServiceTests
     {
         var results = new List<RankedResult>
         {
-            CreateRanked("e1", sourceId: "ev-1", resultSource: "Evidence"),
-            CreateRanked("e2", sourceId: "ev-1", resultSource: "Evidence"),
-            CreateRanked("e3", sourceId: "ev-1", resultSource: "Evidence"),
-            CreateRanked("e4", sourceId: "ev-1", resultSource: "Evidence"), // trimmed
-            CreateRanked("p1", sourceId: "pat-1", resultSource: "Pattern"),
-            CreateRanked("p2", sourceId: "pat-1", resultSource: "Pattern"),
+            CreateRanked("e1", sourceId: "ev-1", resultSource: ResultSources.Evidence),
+            CreateRanked("e2", sourceId: "ev-1", resultSource: ResultSources.Evidence),
+            CreateRanked("e3", sourceId: "ev-1", resultSource: ResultSources.Evidence),
+            CreateRanked("e4", sourceId: "ev-1", resultSource: ResultSources.Evidence), // trimmed
+            CreateRanked("p1", sourceId: "pat-1", resultSource: ResultSources.Pattern),
+            CreateRanked("p2", sourceId: "pat-1", resultSource: ResultSources.Pattern),
         };
 
         var diversified = FusedRetrievalService.ApplyDiversityConstraint(results, 2);
@@ -351,7 +352,7 @@ public class FusedRetrievalServiceTests
             ChunkContext = "Symptoms: slow response",
             Title = "Auth Timeout Pattern",
             SourceUrl = "https://patterns.example.com/123",
-            SourceSystem = "Pattern",
+            SourceSystem = ResultSources.Pattern,
             SourceType = "CasePattern",
             UpdatedAt = new DateTimeOffset(2026, 3, 15, 0, 0, 0, TimeSpan.Zero),
             ProductArea = "Auth",
@@ -361,7 +362,7 @@ public class FusedRetrievalServiceTests
             AllowedGroups = [],
             Score = 0.85,
             SemanticScore = 2.1,
-            ResultSource = "Pattern",
+            ResultSource = ResultSources.Pattern,
             TrustLevel = "Approved",
             BoostedScore = 1.326,
         };
@@ -372,7 +373,7 @@ public class FusedRetrievalServiceTests
         Assert.Equal("pattern-123", chunk.EvidenceId);
         Assert.Contains("Resolution Steps", chunk.ChunkText);
         Assert.Equal("Symptoms: slow response", chunk.ChunkContext);
-        Assert.Equal("Pattern", chunk.ResultSource);
+        Assert.Equal(ResultSources.Pattern, chunk.ResultSource);
         Assert.Equal("Approved", chunk.TrustLevel);
         Assert.Equal(1.326, chunk.BoostedScore);
         Assert.Equal(0.85, chunk.RrfScore);
@@ -382,12 +383,12 @@ public class FusedRetrievalServiceTests
     [Fact]
     public void ToRetrievedChunk_EvidenceResult_DefaultSourceAndNullTrustLevel()
     {
-        var result = CreateRanked("c1", resultSource: "Evidence");
+        var result = CreateRanked("c1", resultSource: ResultSources.Evidence);
         result.BoostedScore = 0.5;
 
         var chunk = result.ToRetrievedChunk();
 
-        Assert.Equal("Evidence", chunk.ResultSource);
+        Assert.Equal(ResultSources.Evidence, chunk.ResultSource);
         Assert.Null(chunk.TrustLevel);
     }
 
@@ -399,7 +400,7 @@ public class FusedRetrievalServiceTests
     public void RetrievedChunk_ResultSource_DefaultsToEvidence()
     {
         var chunk = CreateChunk("c1", rrfScore: 0.5);
-        Assert.Equal("Evidence", chunk.ResultSource);
+        Assert.Equal(ResultSources.Evidence, chunk.ResultSource);
     }
 
     [Fact]
@@ -448,7 +449,7 @@ public class FusedRetrievalServiceTests
         string sourceId = "",
         string visibility = "Internal",
         IReadOnlyList<string>? allowedGroups = null,
-        string resultSource = "Evidence",
+        string resultSource = ResultSources.Evidence,
         string? trustLevel = null,
         double score = 0.5) => new()
     {
@@ -457,8 +458,8 @@ public class FusedRetrievalServiceTests
         ChunkText = $"Text for {id}",
         Title = $"Title {id}",
         SourceUrl = $"https://example.com/{id}",
-        SourceSystem = resultSource == "Pattern" ? "Pattern" : "AzureDevOps",
-        SourceType = resultSource == "Pattern" ? "CasePattern" : "WorkItem",
+        SourceSystem = resultSource == ResultSources.Pattern ? ResultSources.Pattern : "AzureDevOps",
+        SourceType = resultSource == ResultSources.Pattern ? "CasePattern" : "WorkItem",
         UpdatedAt = DateTimeOffset.UtcNow,
         AccessLabel = visibility,
         Visibility = visibility,

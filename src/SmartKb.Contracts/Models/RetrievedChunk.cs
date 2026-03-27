@@ -34,7 +34,7 @@ public sealed record RetrievedChunk
     /// Source index this result came from: "Evidence" or "Pattern" (P1-004).
     /// Defaults to "Evidence" for backward compatibility.
     /// </summary>
-    public string ResultSource { get; init; } = "Evidence";
+    public string ResultSource { get; init; } = ResultSources.Evidence;
 
     /// <summary>
     /// Trust level for pattern results (P1-004). Null for evidence chunks.

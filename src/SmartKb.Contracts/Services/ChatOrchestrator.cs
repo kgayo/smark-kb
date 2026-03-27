@@ -762,7 +762,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
             parts.Add($"most recent evidence is {daysSinceMostRecent} days old");
 
         // Pattern vs evidence mix.
-        var patternCount = chunks.Count(c => c.ResultSource == "Pattern");
+        var patternCount = chunks.Count(c => c.ResultSource == ResultSources.Pattern);
         if (patternCount > 0)
             parts.Add($"{patternCount} case pattern{(patternCount != 1 ? "s" : "")} included");
 

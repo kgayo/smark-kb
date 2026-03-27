@@ -137,7 +137,7 @@ public sealed class FusedRetrievalService : IRetrievalService
             c.BoostedScore >= _retrievalSettings.NoEvidenceScoreThreshold);
         var hasEvidence = aboveThresholdCount >= _retrievalSettings.NoEvidenceMinResults;
 
-        var patternCount = chunks.Count(c => c.ResultSource == "Pattern");
+        var patternCount = chunks.Count(c => c.ResultSource == ResultSources.Pattern);
         stopwatch.Stop();
 
         _logger.LogInformation(
@@ -249,7 +249,7 @@ public sealed class FusedRetrievalService : IRetrievalService
                     AllowedGroups = SearchDocumentHelper.GetStringList(doc, SearchFieldNames.AllowedGroups),
                     Score = result.Score ?? 0.0,
                     SemanticScore = result.SemanticSearch?.RerankerScore,
-                    ResultSource = "Evidence",
+                    ResultSource = ResultSources.Evidence,
                     TrustLevel = null,
                 });
             }
@@ -352,7 +352,7 @@ public sealed class FusedRetrievalService : IRetrievalService
                     ChunkContext = chunkContext,
                     Title = SearchDocumentHelper.GetString(doc, PatternFieldNames.Title),
                     SourceUrl = SearchDocumentHelper.GetString(doc, PatternFieldNames.SourceUrl),
-                    SourceSystem = "Pattern",
+                    SourceSystem = ResultSources.Pattern,
                     SourceType = "CasePattern",
                     UpdatedAt = doc.TryGetValue(PatternFieldNames.UpdatedAt, out var u) && u is DateTimeOffset dto
                         ? dto : DateTimeOffset.MinValue,
@@ -363,7 +363,7 @@ public sealed class FusedRetrievalService : IRetrievalService
                     AllowedGroups = SearchDocumentHelper.GetStringList(doc, PatternFieldNames.AllowedGroups),
                     Score = result.Score ?? 0.0,
                     SemanticScore = result.SemanticSearch?.RerankerScore,
-                    ResultSource = "Pattern",
+                    ResultSource = ResultSources.Pattern,
                     TrustLevel = SearchDocumentHelper.GetStringOrNull(doc, PatternFieldNames.TrustLevel),
                 });
             }

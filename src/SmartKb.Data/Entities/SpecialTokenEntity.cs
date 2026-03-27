@@ -14,7 +14,7 @@ public sealed class SpecialTokenEntity
     public string Token { get; set; } = string.Empty;
 
     /// <summary>Category for grouping (e.g., "error-code", "product-name", "status-code").</summary>
-    public string Category { get; set; } = "error-code";
+    public string Category { get; set; } = SmartKb.Contracts.SpecialTokenDefaults.Category;
 
     /// <summary>
     /// BM25 boost factor. The token is repeated this many times in the search query
