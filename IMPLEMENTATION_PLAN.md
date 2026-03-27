@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-27 (Asia/Manila) — iteration 231
-Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase 1: P0-001–P0-022; Phase 2: P1-001–P1-012, P2-001–P2-005; Phase 3: P3-001–P3-038 (all 38 items). Tests: T-001–T-008; ~3378 tests passing (2880 backend + 498 frontend). Spec clarification backlog: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. BUG-001–BUG-005 resolved. TECH-001–TECH-139 resolved. 294/294 checklist items complete, 0 remaining.
+Last updated: 2026-03-27 (Asia/Manila) — iteration 232
+Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase 1: P0-001–P0-022; Phase 2: P1-001–P1-012, P2-001–P2-005; Phase 3: P3-001–P3-038 (all 38 items). Tests: T-001–T-008; ~3385 tests passing (2887 backend + 498 frontend). Spec clarification backlog: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. BUG-001–BUG-005 resolved. TECH-001–TECH-140 resolved. 295/295 checklist items complete, 0 remaining.
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -630,6 +630,10 @@ Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase
 - [x] TECH-139: Catch `ArgumentException` for invalid custom regex patterns in `PiiRedactionService`.
   - Root cause: `PiiRedactionService.Redact` only caught `RegexMatchTimeoutException` when constructing `new Regex(custom.Pattern, ...)` for custom PII patterns. An invalid regex (e.g. `[invalid(regex`) would throw `ArgumentException`, crashing the entire redaction operation instead of gracefully skipping the invalid pattern.
   - Completed (iteration 231): Added `catch (ArgumentException ex)` block with warning log alongside existing `RegexMatchTimeoutException` handler. 1 new test in `PolicyAwarePiiRedactionTests` verifies invalid-regex custom patterns are skipped while valid patterns and built-in types still apply.
+
+- [x] TECH-140: Expand `ChatEndpointTests` integration test coverage from 5 to 13 tests.
+  - Root cause: The core `/api/chat` endpoint — the primary user interaction point — had only 5 integration tests covering basic auth and happy path. Missing coverage for: RBAC denial of non-chat roles (SecurityAuditor), correlation ID propagation in responses, session history passthrough, MaxCitations passthrough, retrieval filter passthrough, citation structure verification, and orchestrator exception handling (500 response).
+  - Completed (iteration 232): Added 8 new tests: `SecurityAuditor_IsDenied` (RBAC), `ResponseIncludesCorrelationId`, `AnswerContainsQueryEcho` (request passthrough), `WithSessionHistory_PassesThroughToOrchestrator`, `WithMaxCitations_PassesThroughToOrchestrator`, `WithRetrievalFilters_PassesThroughToOrchestrator`, `CitationsArePopulated` (response structure), `OrchestratorException_Returns500` (error handling with `ThrowingChatOrchestrator` stub). Added `ThrowingChatOrchestrator` stub and parameterized `ChatTestFactory(useThrowingOrchestrator)`. 2887 backend tests passing.
 
 ### P0 Ingestion + Evidence Store MVP (continued)
 

@@ -93,6 +93,124 @@ public class ChatEndpointTests : IAsyncLifetime
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
+
+    [Fact]
+    public async Task PostChat_SecurityAuditor_IsDenied()
+    {
+        var auditorClient = _factory.CreateAuthenticatedClient(roles: "SecurityAuditor");
+        var request = new ChatRequest { Query = "test" };
+        var response = await auditorClient.PostAsJsonAsync("/api/chat", request);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task PostChat_ResponseIncludesCorrelationId()
+    {
+        var request = new ChatRequest { Query = "correlation test" };
+        var response = await _client.PostAsJsonAsync("/api/chat", request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<ChatResponse>>();
+        Assert.NotNull(body);
+        Assert.NotNull(body.CorrelationId);
+        Assert.NotEmpty(body.CorrelationId);
+    }
+
+    [Fact]
+    public async Task PostChat_AnswerContainsQueryEcho()
+    {
+        // The stub orchestrator echoes the query; verify the endpoint passes it through.
+        var request = new ChatRequest { Query = "unique-query-12345" };
+        var response = await _client.PostAsJsonAsync("/api/chat", request);
+
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<ChatResponse>>();
+        Assert.NotNull(body?.Data);
+        Assert.Contains("unique-query-12345", body.Data.Answer);
+    }
+
+    [Fact]
+    public async Task PostChat_WithSessionHistory_PassesThroughToOrchestrator()
+    {
+        var request = new ChatRequest
+        {
+            Query = "follow-up question",
+            SessionHistory =
+            [
+                new ChatMessage { Role = "user", Content = "first message" },
+                new ChatMessage { Role = "assistant", Content = "first reply" },
+            ],
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/chat", request);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<ChatResponse>>();
+        Assert.NotNull(body?.Data);
+        Assert.True(body.IsSuccess);
+    }
+
+    [Fact]
+    public async Task PostChat_WithMaxCitations_PassesThroughToOrchestrator()
+    {
+        var request = new ChatRequest { Query = "test", MaxCitations = 3 };
+        var response = await _client.PostAsJsonAsync("/api/chat", request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<ChatResponse>>();
+        Assert.NotNull(body?.Data);
+        Assert.True(body.IsSuccess);
+    }
+
+    [Fact]
+    public async Task PostChat_WithRetrievalFilters_PassesThroughToOrchestrator()
+    {
+        var request = new ChatRequest
+        {
+            Query = "filtered search",
+            Filters = new RetrievalFilter
+            {
+                SourceTypes = ["AzureDevOps"],
+                ProductAreas = ["billing"],
+                TimeHorizonDays = 30,
+            },
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/chat", request);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<ChatResponse>>();
+        Assert.NotNull(body?.Data);
+        Assert.True(body.IsSuccess);
+    }
+
+    [Fact]
+    public async Task PostChat_CitationsArePopulated()
+    {
+        var request = new ChatRequest { Query = "give me citations" };
+        var response = await _client.PostAsJsonAsync("/api/chat", request);
+
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<ChatResponse>>();
+        Assert.NotNull(body?.Data);
+        Assert.NotEmpty(body.Data.Citations);
+        var citation = body.Data.Citations[0];
+        Assert.Equal("Test Article", citation.Title);
+        Assert.Equal("AzureDevOps", citation.SourceSystem);
+        Assert.NotNull(citation.Snippet);
+    }
+
+    [Fact]
+    public async Task PostChat_OrchestratorException_Returns500()
+    {
+        // Use the factory that registers the throwing orchestrator.
+        using var throwingFactory = new ChatTestFactory(useThrowingOrchestrator: true);
+        await throwingFactory.InitializeAsync();
+        var client = throwingFactory.CreateAuthenticatedClient(roles: "SupportAgent");
+        await throwingFactory.EnsureDatabaseAsync();
+
+        var request = new ChatRequest { Query = "trigger error" };
+        var response = await client.PostAsJsonAsync("/api/chat", request);
+
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+    }
 }
 
 /// <summary>
@@ -133,9 +251,28 @@ internal sealed class StubChatOrchestrator : IChatOrchestrator
     }
 }
 
+/// <summary>
+/// Orchestrator stub that throws to test error-handling behavior at the endpoint level.
+/// </summary>
+internal sealed class ThrowingChatOrchestrator : IChatOrchestrator
+{
+    public Task<ChatResponse> OrchestrateAsync(
+        string tenantId, string userId, string correlationId,
+        ChatRequest request, CancellationToken cancellationToken = default)
+    {
+        throw new InvalidOperationException("Simulated orchestration failure");
+    }
+}
+
 internal sealed class ChatTestFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     private SqliteConnection _connection = null!;
+    private readonly bool _useThrowingOrchestrator;
+
+    public ChatTestFactory(bool useThrowingOrchestrator = false)
+    {
+        _useThrowingOrchestrator = useThrowingOrchestrator;
+    }
 
     public Task InitializeAsync()
     {
@@ -210,7 +347,10 @@ internal sealed class ChatTestFactory : WebApplicationFactory<Program>, IAsyncLi
             services.AddScoped<ISynonymMapService, SmartKb.Data.Repositories.SynonymMapService>();
 
             // Use stub orchestrator — no real OpenAI or search calls.
-            services.AddScoped<IChatOrchestrator, StubChatOrchestrator>();
+            if (_useThrowingOrchestrator)
+                services.AddScoped<IChatOrchestrator, ThrowingChatOrchestrator>();
+            else
+                services.AddScoped<IChatOrchestrator, StubChatOrchestrator>();
         });
     }
 
