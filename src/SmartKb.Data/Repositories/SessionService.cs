@@ -260,9 +260,7 @@ public sealed class SessionService : ISessionService
         if (string.IsNullOrEmpty(session.Title))
         {
             // Auto-title from first user query (truncated).
-            session.Title = request.Query.Length > 100
-                ? request.Query[..100] + "..."
-                : request.Query;
+            session.Title = request.Query.Truncate(TruncationLimits.SessionTitle, "...");
         }
 
         // Extend expiry on activity.

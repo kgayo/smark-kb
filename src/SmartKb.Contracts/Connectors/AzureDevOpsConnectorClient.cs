@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
+using SmartKb.Contracts;
 
 namespace SmartKb.Contracts.Connectors;
 
@@ -61,7 +62,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
             {
                 Success = false,
                 Message = $"Connection failed with status {(int)response.StatusCode}.",
-                DiagnosticDetail = body.Length > 500 ? body[..500] : body,
+                DiagnosticDetail = body.Truncate(TruncationLimits.DiagnosticBody),
             };
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
@@ -298,11 +299,11 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
             {
                 var errorBody = await response.Content.ReadAsStringAsync(ct);
                 _logger.LogWarning("ADO work item creation failed. Status={Status}, Body={Body}",
-                    (int)response.StatusCode, errorBody.Length > 500 ? errorBody[..500] : errorBody);
+                    (int)response.StatusCode, errorBody.Truncate(TruncationLimits.DiagnosticBody));
                 return new ExternalWorkItemResult
                 {
                     Success = false,
-                    ErrorDetail = $"ADO API returned {(int)response.StatusCode}: {(errorBody.Length > 200 ? errorBody[..200] : errorBody)}",
+                    ErrorDetail = $"ADO API returned {(int)response.StatusCode}: {errorBody.Truncate(TruncationLimits.ErrorBodyShort)}",
                 };
             }
 

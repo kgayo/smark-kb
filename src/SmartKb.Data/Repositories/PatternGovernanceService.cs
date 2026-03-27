@@ -72,9 +72,7 @@ public sealed class PatternGovernanceService : IPatternGovernanceService
             Id = p.Id,
             PatternId = p.PatternId,
             Title = p.Title,
-            ProblemStatement = p.ProblemStatement.Length > 200
-                ? p.ProblemStatement[..200] + "..."
-                : p.ProblemStatement,
+            ProblemStatement = p.ProblemStatement.Truncate(TruncationLimits.SnippetPreview, "..."),
             TrustLevel = p.TrustLevel,
             Confidence = p.Confidence,
             Version = p.Version,

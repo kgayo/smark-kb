@@ -135,7 +135,7 @@ public static class PrivacyEndpoints
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 logger.LogError(ex, "Data subject deletion request failed. TenantId={TenantId}", tenant.TenantId);
-                return Results.Problem(detail: ex.Message, statusCode: 500);
+                return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status500InternalServerError);
             }
         }).RequirePermission(Permissions.PrivacyManage);
 

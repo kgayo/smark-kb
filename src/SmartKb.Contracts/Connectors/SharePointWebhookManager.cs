@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
+using SmartKb.Contracts;
 
 namespace SmartKb.Contracts.Connectors;
 
@@ -128,7 +129,7 @@ public sealed class SharePointWebhookManager : IWebhookManager
                     _logger.LogWarning(
                         "Failed to register Graph subscription: connector={ConnectorId}, drive={DriveId}, status={Status}, body={Body}",
                         context.ConnectorId, drive.Id, (int)response.StatusCode,
-                        body.Length > 500 ? body[..500] : body);
+                        body.Truncate(TruncationLimits.DiagnosticBody));
                 }
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)

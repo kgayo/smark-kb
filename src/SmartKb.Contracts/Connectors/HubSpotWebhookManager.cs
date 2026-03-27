@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
+using SmartKb.Contracts;
 
 namespace SmartKb.Contracts.Connectors;
 
@@ -121,7 +122,7 @@ public sealed class HubSpotWebhookManager : IWebhookManager
                     _logger.LogWarning(
                         "Failed to register HubSpot webhook: connector={ConnectorId}, event={EventType}, status={Status}, body={Body}",
                         context.ConnectorId, eventType, (int)response.StatusCode,
-                        body.Length > 500 ? body[..500] : body);
+                        body.Truncate(TruncationLimits.DiagnosticBody));
                 }
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)

@@ -413,7 +413,7 @@ public sealed class ConnectorAdminService
         {
             ChunkId = c.ChunkId,
             Title = c.Title,
-            ChunkText = c.ChunkText.Length > 500 ? c.ChunkText[..500] + "..." : c.ChunkText,
+            ChunkText = c.ChunkText.Truncate(TruncationLimits.DiagnosticBody, "..."),
             SourceType = c.SourceType,
             ProductArea = c.ProductArea,
             Score = 1.0, // Text-match score (no vector search in preview).

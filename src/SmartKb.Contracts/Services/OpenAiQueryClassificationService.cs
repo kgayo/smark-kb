@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Models;
+using SmartKb.Contracts;
 
 namespace SmartKb.Contracts.Services;
 
@@ -109,7 +110,7 @@ public sealed class OpenAiQueryClassificationService : IQueryClassificationServi
 
             foreach (var msg in recentHistory)
             {
-                contextParts.Add($"[{msg.Role}]: {(msg.Content.Length > 200 ? msg.Content[..200] + "..." : msg.Content)}");
+                contextParts.Add($"[{msg.Role}]: {msg.Content.Truncate(TruncationLimits.SnippetPreview, "...")}");
             }
 
             contextParts.Add($"\nCurrent question:\n{query}");

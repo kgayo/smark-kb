@@ -7,6 +7,7 @@ using SmartKb.Contracts.Configuration;
 using SmartKb.Contracts.Models;
 using DiagnosticsHelper = SmartKb.Contracts.Diagnostics;
 using TagNames = SmartKb.Contracts.Diagnostics.TagNames;
+using SmartKb.Contracts;
 
 namespace SmartKb.Contracts.Services;
 
@@ -811,9 +812,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
                     Title = chunk.Title,
                     SourceUrl = chunk.SourceUrl,
                     SourceSystem = chunk.SourceSystem,
-                    Snippet = chunk.ChunkText.Length > 200
-                        ? chunk.ChunkText[..200] + "..."
-                        : chunk.ChunkText,
+                    Snippet = chunk.ChunkText.Truncate(TruncationLimits.SnippetPreview, "..."),
                     UpdatedAt = chunk.UpdatedAt,
                     AccessLabel = chunk.AccessLabel,
                 });

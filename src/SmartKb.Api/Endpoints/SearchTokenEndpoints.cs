@@ -57,7 +57,7 @@ public static class SearchTokenEndpoints
                     string.Join("; ", validation.Errors), tenant.CorrelationId));
 
             if (response is null)
-                return Results.Problem("Unexpected null response from service.", statusCode: 500);
+                return Results.Problem("Unexpected null response from service.", statusCode: StatusCodes.Status500InternalServerError);
 
             return Results.Created($"/api/admin/synonym-rules/{response.Id}",
                 ApiResponse<SynonymRuleResponse>.Success(response, tenant.CorrelationId));
@@ -176,7 +176,7 @@ public static class SearchTokenEndpoints
                 return Results.UnprocessableEntity(ApiResponse<object>.Failure(
                     string.Join("; ", validation.Errors), tenant.CorrelationId));
             if (response is null)
-                return Results.Problem("Unexpected null response from service.", statusCode: 500);
+                return Results.Problem("Unexpected null response from service.", statusCode: StatusCodes.Status500InternalServerError);
 
             return Results.Created($"/api/admin/stop-words/{response.Id}",
                 ApiResponse<StopWordResponse>.Success(response, tenant.CorrelationId));
@@ -276,7 +276,7 @@ public static class SearchTokenEndpoints
                 return Results.UnprocessableEntity(ApiResponse<object>.Failure(
                     string.Join("; ", validation.Errors), tenant.CorrelationId));
             if (response is null)
-                return Results.Problem("Unexpected null response from service.", statusCode: 500);
+                return Results.Problem("Unexpected null response from service.", statusCode: StatusCodes.Status500InternalServerError);
 
             return Results.Created($"/api/admin/special-tokens/{response.Id}",
                 ApiResponse<SpecialTokenResponse>.Success(response, tenant.CorrelationId));

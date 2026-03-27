@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
 using SmartKb.Contracts.Services;
+using SmartKb.Contracts;
 
 namespace SmartKb.Contracts.Connectors;
 
@@ -76,7 +77,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
             {
                 Success = false,
                 Message = $"Connection failed with status {(int)response.StatusCode}.",
-                DiagnosticDetail = body.Length > 500 ? body[..500] : body,
+                DiagnosticDetail = body.Truncate(TruncationLimits.DiagnosticBody),
             };
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)

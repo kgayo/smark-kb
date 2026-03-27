@@ -287,7 +287,7 @@ public sealed class SyncJobProcessor
     {
         syncRun.Status = SyncRunStatus.Failed;
         syncRun.CompletedAt = DateTimeOffset.UtcNow;
-        syncRun.ErrorDetail = error.Length > 4000 ? error[..4000] : error;
+        syncRun.ErrorDetail = error.Truncate(TruncationLimits.ErrorDetail);
         await _db.SaveChangesAsync(ct);
 
         _logger.LogError("Sync run {SyncRunId} failed: {Error}", syncRun.Id, error);

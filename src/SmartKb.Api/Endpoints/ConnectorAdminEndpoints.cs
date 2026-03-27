@@ -39,7 +39,7 @@ public static class ConnectorAdminEndpoints
                     string.Join("; ", validation.Errors), tenant.CorrelationId));
 
             if (response is null)
-                return Results.Problem("Unexpected null response from service.", statusCode: 500);
+                return Results.Problem("Unexpected null response from service.", statusCode: StatusCodes.Status500InternalServerError);
 
             return Results.Created($"/api/admin/connectors/{response.Id}",
                 ApiResponse<ConnectorResponse>.Success(response, tenant.CorrelationId));

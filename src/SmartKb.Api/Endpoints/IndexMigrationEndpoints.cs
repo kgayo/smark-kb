@@ -24,7 +24,7 @@ public static class IndexMigrationEndpoints
             var ct = httpContext.RequestAborted;
             var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
             if (service is null)
-                return Results.Json(ApiResponse<object>.Failure(ResponseMessages.SearchServiceNotConfigured, tenant.CorrelationId), statusCode: 503);
+                return Results.Json(ApiResponse<object>.Failure(ResponseMessages.SearchServiceNotConfigured, tenant.CorrelationId), statusCode: StatusCodes.Status503ServiceUnavailable);
             var result = await service.GetCurrentVersionAsync(indexType, ct);
             return result is null
                 ? Results.NotFound(ApiResponse<object>.Failure($"No version tracked for index type '{indexType}'.", tenant.CorrelationId))
@@ -40,7 +40,7 @@ public static class IndexMigrationEndpoints
             var ct = httpContext.RequestAborted;
             var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
             if (service is null)
-                return Results.Json(ApiResponse<object>.Failure(ResponseMessages.SearchServiceNotConfigured, tenant.CorrelationId), statusCode: 503);
+                return Results.Json(ApiResponse<object>.Failure(ResponseMessages.SearchServiceNotConfigured, tenant.CorrelationId), statusCode: StatusCodes.Status503ServiceUnavailable);
             var result = await service.ListVersionsAsync(indexType, ct);
             return Results.Ok(ApiResponse<IReadOnlyList<IndexSchemaVersionInfo>>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
@@ -54,7 +54,7 @@ public static class IndexMigrationEndpoints
             var ct = httpContext.RequestAborted;
             var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
             if (service is null)
-                return Results.Json(ApiResponse<object>.Failure(ResponseMessages.SearchServiceNotConfigured, tenant.CorrelationId), statusCode: 503);
+                return Results.Json(ApiResponse<object>.Failure(ResponseMessages.SearchServiceNotConfigured, tenant.CorrelationId), statusCode: StatusCodes.Status503ServiceUnavailable);
             var result = await service.PlanMigrationAsync(indexType, ct);
             return Results.Ok(ApiResponse<MigrationPlan>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
@@ -68,7 +68,7 @@ public static class IndexMigrationEndpoints
             var ct = httpContext.RequestAborted;
             var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
             if (service is null)
-                return Results.Json(ApiResponse<object>.Failure(ResponseMessages.SearchServiceNotConfigured, tenant.CorrelationId), statusCode: 503);
+                return Results.Json(ApiResponse<object>.Failure(ResponseMessages.SearchServiceNotConfigured, tenant.CorrelationId), statusCode: StatusCodes.Status503ServiceUnavailable);
             var result = await service.ExecuteMigrationAsync(indexType, tenant.UserId, ct);
             return result.Success
                 ? Results.Ok(ApiResponse<MigrationResult>.Success(result, tenant.CorrelationId))
@@ -85,7 +85,7 @@ public static class IndexMigrationEndpoints
             var ct = httpContext.RequestAborted;
             var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
             if (service is null)
-                return Results.Json(ApiResponse<object>.Failure(ResponseMessages.SearchServiceNotConfigured, tenant.CorrelationId), statusCode: 503);
+                return Results.Json(ApiResponse<object>.Failure(ResponseMessages.SearchServiceNotConfigured, tenant.CorrelationId), statusCode: StatusCodes.Status503ServiceUnavailable);
             var result = await service.RollbackAsync(indexType, tenant.UserId, ct);
             return result.Success
                 ? Results.Ok(ApiResponse<MigrationResult>.Success(result, tenant.CorrelationId))
@@ -102,7 +102,7 @@ public static class IndexMigrationEndpoints
             var ct = httpContext.RequestAborted;
             var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
             if (service is null)
-                return Results.Json(ApiResponse<object>.Failure(ResponseMessages.SearchServiceNotConfigured, tenant.CorrelationId), statusCode: 503);
+                return Results.Json(ApiResponse<object>.Failure(ResponseMessages.SearchServiceNotConfigured, tenant.CorrelationId), statusCode: StatusCodes.Status503ServiceUnavailable);
             var result = await service.EnsureVersionTrackingAsync(indexType, tenant.UserId, ct);
             return Results.Ok(ApiResponse<IndexSchemaVersionInfo>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
@@ -116,7 +116,7 @@ public static class IndexMigrationEndpoints
             var ct = httpContext.RequestAborted;
             var service = httpContext.RequestServices.GetService<IIndexMigrationService>();
             if (service is null)
-                return Results.Json(ApiResponse<object>.Failure(ResponseMessages.SearchServiceNotConfigured, tenant.CorrelationId), statusCode: 503);
+                return Results.Json(ApiResponse<object>.Failure(ResponseMessages.SearchServiceNotConfigured, tenant.CorrelationId), statusCode: StatusCodes.Status503ServiceUnavailable);
             var deleted = await service.DeleteRetiredVersionAsync(versionId, tenant.UserId, ct);
             return deleted
                 ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))

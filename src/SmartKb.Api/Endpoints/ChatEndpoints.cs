@@ -445,7 +445,7 @@ public static class ChatEndpoints
             if (orchestrator is null)
                 return Results.Json(
                     ApiResponse<object>.Failure("Chat orchestration is not configured. Ensure OpenAI and Search Service are set up.", tenant.CorrelationId),
-                    statusCode: 503);
+                    statusCode: StatusCodes.Status503ServiceUnavailable);
 
             // P0-014: Inject JWT-extracted user groups for ACL enforcement.
             // Merge with any groups provided in the request body (server-side groups take precedence).
