@@ -18,24 +18,27 @@ public sealed record DeadLetterListResponse(
     IReadOnlyList<DeadLetterMessage> Messages,
     int Count);
 
-public sealed class DeadLetterService : IAsyncDisposable
+public sealed class DeadLetterService
 {
-    private readonly ServiceBusReceiver _receiver;
+    private readonly ServiceBusClient _client;
+    private readonly string _dlqPath;
     private readonly ILogger<DeadLetterService> _logger;
 
     public DeadLetterService(ServiceBusClient client, ServiceBusSettings settings, ILogger<DeadLetterService> logger)
     {
-        var dlqPath = $"{settings.QueueName}/$deadletterqueue";
-        _receiver = client.CreateReceiver(dlqPath, new ServiceBusReceiverOptions
-        {
-            ReceiveMode = ServiceBusReceiveMode.PeekLock,
-        });
+        _client = client;
+        _dlqPath = $"{settings.QueueName}/$deadletterqueue";
         _logger = logger;
     }
 
     public async Task<DeadLetterListResponse> PeekAsync(int maxMessages = 20, CancellationToken ct = default)
     {
-        var messages = await _receiver.PeekMessagesAsync(maxMessages, cancellationToken: ct);
+        await using var receiver = _client.CreateReceiver(_dlqPath, new ServiceBusReceiverOptions
+        {
+            ReceiveMode = ServiceBusReceiveMode.PeekLock,
+        });
+
+        var messages = await receiver.PeekMessagesAsync(maxMessages, cancellationToken: ct);
         var result = messages.Select(m => new DeadLetterMessage(
             m.MessageId,
             m.CorrelationId,
@@ -49,10 +52,5 @@ public sealed class DeadLetterService : IAsyncDisposable
         )).ToList();
 
         return new DeadLetterListResponse(result, result.Count);
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await _receiver.DisposeAsync();
     }
 }

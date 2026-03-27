@@ -14,7 +14,9 @@ public class DeadLetterServiceTests
         var mockClient = new MockServiceBusClient("test-queue");
         var logger = NullLogger<DeadLetterService>.Instance;
 
-        await using var service = new DeadLetterService(mockClient, settings, logger);
+        var service = new DeadLetterService(mockClient, settings, logger);
+
+        await service.PeekAsync(maxMessages: 1);
 
         Assert.Equal("test-queue/$deadletterqueue", mockClient.LastReceiverPath);
     }
@@ -26,7 +28,7 @@ public class DeadLetterServiceTests
         var mockClient = new MockServiceBusClient("empty-queue", messages: []);
         var logger = NullLogger<DeadLetterService>.Instance;
 
-        await using var service = new DeadLetterService(mockClient, settings, logger);
+        var service = new DeadLetterService(mockClient, settings, logger);
 
         var result = await service.PeekAsync(maxMessages: 10);
 
@@ -40,11 +42,6 @@ public class DeadLetterServiceTests
     {
         var settings = new ServiceBusSettings { QueueName = "test-queue" };
 
-        // ServiceBusModelFactory parameter order:
-        // body, messageId, partitionKey, viaPartitionKey, sessionId, replyToSessionId,
-        // timeToLive, correlationId, subject, to, contentType, replyTo,
-        // scheduledEnqueueTime, properties, lockTokenGuid, deliveryCount,
-        // lockedUntil, sequenceNumber, deadLetterSource, enqueuedSequenceNumber, enqueuedTime
         var messages = new[]
         {
             ServiceBusModelFactory.ServiceBusReceivedMessage(
@@ -56,10 +53,10 @@ public class DeadLetterServiceTests
                 enqueuedTime: new DateTimeOffset(2026, 3, 15, 10, 0, 0, TimeSpan.Zero)),
         };
 
-        var mockClient = new MockServiceBusClient("test-queue", messages);
+        var mockClient = new MockServiceBusClient("test-queue", messages: messages);
         var logger = NullLogger<DeadLetterService>.Instance;
 
-        await using var service = new DeadLetterService(mockClient, settings, logger);
+        var service = new DeadLetterService(mockClient, settings, logger);
 
         var result = await service.PeekAsync(maxMessages: 20);
 
@@ -86,10 +83,10 @@ public class DeadLetterServiceTests
                 messageId: $"msg-{i}",
                 deliveryCount: i)).ToArray();
 
-        var mockClient = new MockServiceBusClient("multi-queue", messages);
+        var mockClient = new MockServiceBusClient("multi-queue", messages: messages);
         var logger = NullLogger<DeadLetterService>.Instance;
 
-        await using var service = new DeadLetterService(mockClient, settings, logger);
+        var service = new DeadLetterService(mockClient, settings, logger);
 
         var result = await service.PeekAsync(maxMessages: 10);
 
@@ -108,25 +105,46 @@ public class DeadLetterServiceTests
         var mockClient = new MockServiceBusClient("default-queue", messages: []);
         var logger = NullLogger<DeadLetterService>.Instance;
 
-        await using var service = new DeadLetterService(mockClient, settings, logger);
+        var service = new DeadLetterService(mockClient, settings, logger);
 
         var result = await service.PeekAsync();
 
-        Assert.Equal(20, mockClient.MockReceiver!.LastMaxMessages);
+        Assert.Equal(20, mockClient.LastMockReceiver!.LastMaxMessages);
     }
 
     [Fact]
-    public async Task DisposeAsync_DisposesReceiver()
+    public async Task PeekAsync_CreatesAndDisposesReceiverPerCall()
     {
-        var settings = new ServiceBusSettings { QueueName = "dispose-queue" };
-        var mockClient = new MockServiceBusClient("dispose-queue", messages: []);
+        var settings = new ServiceBusSettings { QueueName = "per-call-queue" };
+        var mockClient = new MockServiceBusClient("per-call-queue", messages: []);
         var logger = NullLogger<DeadLetterService>.Instance;
 
         var service = new DeadLetterService(mockClient, settings, logger);
 
-        await service.DisposeAsync();
+        await service.PeekAsync(maxMessages: 5);
+        var firstReceiver = mockClient.LastMockReceiver!;
+        Assert.True(firstReceiver.WasDisposed);
 
-        Assert.True(mockClient.MockReceiver!.WasDisposed);
+        await service.PeekAsync(maxMessages: 10);
+        var secondReceiver = mockClient.LastMockReceiver!;
+        Assert.True(secondReceiver.WasDisposed);
+
+        Assert.NotSame(firstReceiver, secondReceiver);
+        Assert.Equal(2, mockClient.ReceiverCreationCount);
+    }
+
+    [Fact]
+    public async Task PeekAsync_DisposesReceiver_EvenOnException()
+    {
+        var settings = new ServiceBusSettings { QueueName = "error-queue" };
+        var mockClient = new MockServiceBusClient("error-queue", throwOnPeek: true);
+        var logger = NullLogger<DeadLetterService>.Instance;
+
+        var service = new DeadLetterService(mockClient, settings, logger);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.PeekAsync());
+
+        Assert.True(mockClient.LastMockReceiver!.WasDisposed);
     }
 
     [Fact]
@@ -164,25 +182,29 @@ public class DeadLetterServiceTests
 }
 
 /// <summary>
-/// Mock ServiceBusClient that returns a mock receiver.
+/// Mock ServiceBusClient that creates a new mock receiver per call, tracking creation count.
 /// </summary>
 internal class MockServiceBusClient : ServiceBusClient
 {
     private readonly ServiceBusReceivedMessage[] _messages;
+    private readonly bool _throwOnPeek;
 
     public string? LastReceiverPath { get; private set; }
-    public MockServiceBusReceiver? MockReceiver { get; private set; }
+    public MockServiceBusReceiver? LastMockReceiver { get; private set; }
+    public int ReceiverCreationCount { get; private set; }
 
-    public MockServiceBusClient(string queueName, params ServiceBusReceivedMessage[] messages)
+    public MockServiceBusClient(string queueName, ServiceBusReceivedMessage[]? messages = null, bool throwOnPeek = false)
     {
-        _messages = messages;
+        _messages = messages ?? [];
+        _throwOnPeek = throwOnPeek;
     }
 
     public override ServiceBusReceiver CreateReceiver(string queueName, ServiceBusReceiverOptions? options = null)
     {
         LastReceiverPath = queueName;
-        MockReceiver = new MockServiceBusReceiver(_messages);
-        return MockReceiver;
+        ReceiverCreationCount++;
+        LastMockReceiver = new MockServiceBusReceiver(_messages ?? [], _throwOnPeek);
+        return LastMockReceiver;
     }
 }
 
@@ -192,19 +214,23 @@ internal class MockServiceBusClient : ServiceBusClient
 internal class MockServiceBusReceiver : ServiceBusReceiver
 {
     private readonly IReadOnlyList<ServiceBusReceivedMessage> _messages;
+    private readonly bool _throwOnPeek;
 
     public int LastMaxMessages { get; private set; }
     public bool WasDisposed { get; private set; }
 
-    public MockServiceBusReceiver(IReadOnlyList<ServiceBusReceivedMessage> messages)
+    public MockServiceBusReceiver(IReadOnlyList<ServiceBusReceivedMessage> messages, bool throwOnPeek = false)
     {
         _messages = messages;
+        _throwOnPeek = throwOnPeek;
     }
 
     public override Task<IReadOnlyList<ServiceBusReceivedMessage>> PeekMessagesAsync(
         int maxMessages, long? fromSequenceNumber = null, CancellationToken cancellationToken = default)
     {
         LastMaxMessages = maxMessages;
+        if (_throwOnPeek)
+            throw new InvalidOperationException("Simulated peek failure");
         return Task.FromResult(_messages);
     }
 

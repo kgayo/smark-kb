@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-27 (Asia/Manila) — iteration 234
-Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase 1: P0-001–P0-022; Phase 2: P1-001–P1-012, P2-001–P2-005; Phase 3: P3-001–P3-038 (all 38 items). Tests: T-001–T-008; ~3392 tests passing (2894 backend + 498 frontend). Spec clarification backlog: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. BUG-001–BUG-005 resolved. TECH-001–TECH-143 resolved. 299/299 checklist items complete, 0 remaining.
+Last updated: 2026-03-27 (Asia/Manila) — iteration 235
+Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase 1: P0-001–P0-022; Phase 2: P1-001–P1-012, P2-001–P2-005; Phase 3: P3-001–P3-038 (all 38 items). Tests: T-001–T-008; ~3393 tests passing (2895 backend + 498 frontend). Spec clarification backlog: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. BUG-001–BUG-005 resolved. TECH-001–TECH-144 resolved. 299/299 checklist items complete, 0 remaining.
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -646,6 +646,10 @@ Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase
 - [x] TECH-143: Fix HubSpot evidence ID singularization — `TrimEnd('s')` produced wrong IDs for "companies" → "companie".
   - Root cause: `MapObjectToCanonical` at line 390 used `objectType.TrimEnd('s')` to build evidence IDs, while `MapObjectTypeToUrlPath` (lines 480-487) had an explicit mapping with correct singular forms. For "companies", `TrimEnd('s')` produces "companie" instead of "company", creating malformed evidence IDs and breaking lookups.
   - Completed (iteration 234): Extracted `SingularizeObjectType` (internal, testable) with explicit cases for tickets/contacts/companies/deals and `TrimEnd('s')` fallback for unknown types. Evidence ID now calls `SingularizeObjectType`. `MapObjectTypeToUrlPath` delegates to same method. Added 7 new tests: `MapObjectToCanonical_Company_MapsCorrectly` verifies full company record mapping including `hubspot-company-321` evidence ID; `SingularizeObjectType_ReturnsExpected` Theory with 5 cases (tickets, contacts, companies, deals, widgets).
+
+- [x] TECH-144: Fix DeadLetterService thread-safety — singleton held non-thread-safe `ServiceBusReceiver` across concurrent requests.
+  - Root cause: `DeadLetterService` was registered as singleton and created a single `ServiceBusReceiver` in its constructor, stored as a field. `ServiceBusReceiver` is not thread-safe — it maintains internal AMQP link state, sequence number cursors for `PeekMessages`, and prefetch cache. Concurrent `GET /api/admin/ingestion/dead-letters` requests would invoke `PeekMessagesAsync` on the same receiver simultaneously, risking corrupted peek state (partial/duplicated results), `InvalidOperationException` from mid-operation AMQP link state, or connection failures affecting all subsequent calls.
+  - Completed (iteration 235): Refactored `DeadLetterService` to create a `ServiceBusReceiver` per-call inside `PeekAsync` with `await using` for deterministic disposal. Removed singleton `_receiver` field. Removed `IAsyncDisposable` implementation (no longer needed — receivers are scoped to each call). Service stores `ServiceBusClient` and `_dlqPath` (both thread-safe) instead. Replaced `DisposeAsync_DisposesReceiver` test with 2 new tests: `PeekAsync_CreatesAndDisposesReceiverPerCall` (verifies 2 calls create 2 distinct receivers, both disposed, via `ReceiverCreationCount` tracker) and `PeekAsync_DisposesReceiver_EvenOnException` (verifies receiver disposal on `PeekMessagesAsync` failure via `ThrowingMockReceiver`). Updated `MockServiceBusClient` with `ReceiverCreationCount` and `LastMockReceiver` tracking. 9 tests (was 8), all passing. 2895 backend tests passing.
 
 ### P0 Ingestion + Evidence Store MVP (continued)
 
