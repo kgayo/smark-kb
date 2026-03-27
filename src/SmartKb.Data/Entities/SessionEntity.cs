@@ -8,6 +8,10 @@ public sealed class SessionEntity
     public string? Title { get; set; }
     public string? CustomerRef { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
+
+    /// <summary>Unix epoch seconds of <see cref="CreatedAt"/>. Enables server-side filtering in SQLite (which cannot compare DateTimeOffset).</summary>
+    public long CreatedAtEpoch { get; set; }
+
     public DateTimeOffset UpdatedAt { get; set; }
     public DateTimeOffset? ExpiresAt { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }

@@ -41,6 +41,7 @@ public sealed class SessionService : ISessionService
             Title = request.Title,
             CustomerRef = request.CustomerRef,
             CreatedAt = now,
+            CreatedAtEpoch = now.ToUnixTimeSeconds(),
             UpdatedAt = now,
             ExpiresAt = _sessionSettings.HasExpiry
                 ? now.AddHours(_sessionSettings.DefaultExpiryHours)
@@ -185,6 +186,7 @@ public sealed class SessionService : ISessionService
             Content = request.Query,
             CorrelationId = correlationId,
             CreatedAt = now,
+            CreatedAtEpoch = now.ToUnixTimeSeconds(),
         };
         _db.Messages.Add(userMessage);
 
@@ -252,6 +254,7 @@ public sealed class SessionService : ISessionService
             TraceId = chatResponse.TraceId,
             CorrelationId = correlationId,
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         };
         _db.Messages.Add(assistantMessage);
 

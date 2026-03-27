@@ -351,11 +351,10 @@ public sealed class RetentionCleanupService : IRetentionCleanupService
 
     private async Task<int> CleanupSessions(string tenantId, DateTimeOffset cutoff, CancellationToken ct)
     {
-        var sessions = (await _db.Sessions
-            .Where(s => s.TenantId == tenantId)
-            .ToListAsync(ct))
-            .Where(s => s.CreatedAt < cutoff)
-            .ToList();
+        var cutoffEpoch = cutoff.ToUnixTimeSeconds();
+        var sessions = await _db.Sessions
+            .Where(s => s.TenantId == tenantId && s.CreatedAtEpoch < cutoffEpoch)
+            .ToListAsync(ct);
 
         foreach (var session in sessions)
             session.DeletedAt = DateTimeOffset.UtcNow;
@@ -366,11 +365,10 @@ public sealed class RetentionCleanupService : IRetentionCleanupService
 
     private async Task<int> CleanupMessages(string tenantId, DateTimeOffset cutoff, CancellationToken ct)
     {
-        var messages = (await _db.Messages
-            .Where(m => m.TenantId == tenantId)
-            .ToListAsync(ct))
-            .Where(m => m.CreatedAt < cutoff)
-            .ToList();
+        var cutoffEpoch = cutoff.ToUnixTimeSeconds();
+        var messages = await _db.Messages
+            .Where(m => m.TenantId == tenantId && m.CreatedAtEpoch < cutoffEpoch)
+            .ToListAsync(ct);
 
         foreach (var msg in messages)
             msg.DeletedAt = DateTimeOffset.UtcNow;
@@ -381,11 +379,10 @@ public sealed class RetentionCleanupService : IRetentionCleanupService
 
     private async Task<int> CleanupAuditEvents(string tenantId, DateTimeOffset cutoff, CancellationToken ct)
     {
-        var events = (await _db.AuditEvents
-            .Where(a => a.TenantId == tenantId)
-            .ToListAsync(ct))
-            .Where(a => a.Timestamp < cutoff)
-            .ToList();
+        var cutoffEpoch = cutoff.ToUnixTimeSeconds();
+        var events = await _db.AuditEvents
+            .Where(a => a.TenantId == tenantId && a.TimestampEpoch < cutoffEpoch)
+            .ToListAsync(ct);
 
         _db.AuditEvents.RemoveRange(events);
         await _db.SaveChangesAsync(ct);
@@ -394,11 +391,10 @@ public sealed class RetentionCleanupService : IRetentionCleanupService
 
     private async Task<int> CleanupEvidenceChunks(string tenantId, DateTimeOffset cutoff, CancellationToken ct)
     {
-        var chunks = (await _db.EvidenceChunks
-            .Where(c => c.TenantId == tenantId)
-            .ToListAsync(ct))
-            .Where(c => c.CreatedAt < cutoff)
-            .ToList();
+        var cutoffEpoch = cutoff.ToUnixTimeSeconds();
+        var chunks = await _db.EvidenceChunks
+            .Where(c => c.TenantId == tenantId && c.CreatedAtEpoch < cutoffEpoch)
+            .ToListAsync(ct);
 
         _db.EvidenceChunks.RemoveRange(chunks);
         await _db.SaveChangesAsync(ct);
@@ -407,11 +403,10 @@ public sealed class RetentionCleanupService : IRetentionCleanupService
 
     private async Task<int> CleanupAnswerTraces(string tenantId, DateTimeOffset cutoff, CancellationToken ct)
     {
-        var traces = (await _db.AnswerTraces
-            .Where(a => a.TenantId == tenantId)
-            .ToListAsync(ct))
-            .Where(a => a.CreatedAt < cutoff)
-            .ToList();
+        var cutoffEpoch = cutoff.ToUnixTimeSeconds();
+        var traces = await _db.AnswerTraces
+            .Where(a => a.TenantId == tenantId && a.CreatedAtEpoch < cutoffEpoch)
+            .ToListAsync(ct);
 
         _db.AnswerTraces.RemoveRange(traces);
         await _db.SaveChangesAsync(ct);

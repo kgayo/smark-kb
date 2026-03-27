@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-27 (Asia/Manila) — iteration 240
-Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase 1: P0-001–P0-022; Phase 2: P1-001–P1-012, P2-001–P2-005; Phase 3: P3-001–P3-038 (all 38 items). Tests: T-001–T-008; ~3400 tests passing (2901 backend + 499 frontend). Spec clarification backlog: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. BUG-001–BUG-005 resolved. TECH-001–TECH-149 resolved. 303/303 checklist items complete, 0 remaining.
+Last updated: 2026-03-27 (Asia/Manila) — iteration 241
+Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase 1: P0-001–P0-022; Phase 2: P1-001–P1-012, P2-001–P2-005; Phase 3: P3-001–P3-038 (all 38 items). Tests: T-001–T-008; ~3400 tests passing (2901 backend + 499 frontend). Spec clarification backlog: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. BUG-001–BUG-005 resolved. TECH-001–TECH-151 resolved. 303/303 checklist items complete, 0 remaining.
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -670,6 +670,14 @@ Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase
 - [x] TECH-149: Add logger.warn to 2 silent `.catch(() => '')` in frontend API client for observability when error response body read fails.
   - Root cause: `rawFetch` and `apiFetch` in `frontend/src/api/client.ts` both called `res.text().catch(() => '')` to extract error response bodies, silently swallowing failures. If the response stream was already consumed or errored, operators had no visibility into the body-read failure.
   - Completed (iteration 240): Replaced both silent catches with `.catch((e) => { logger.warn(...); return ''; })` that logs the function name and error message. Added 1 new test (`logs warning and falls back to statusText when error body read fails`) verifying warning output and correct `ApiError` with `statusText` fallback. All 499 frontend tests passing.
+
+- [x] TECH-150: Fix `ConnectorAdminService.PreviewRetrievalAsync` unbounded `.ToListAsync()` — move `OrderByDescending`/`Take` to server-side query.
+  - Root cause: `PreviewRetrievalAsync` materialized ALL matching evidence chunks into memory via `.ToListAsync()`, then applied `.OrderByDescending(c => c.UpdatedAt).Take(maxResults)` client-side. For connectors with many indexed chunks, this loaded the entire matching result set into memory when only `maxResults` (1–20) rows were needed.
+  - Completed (iteration 241): Moved `.OrderByDescending(c => c.UpdatedAt).Take(maxResults)` before `.ToListAsync(ct)` so SQL Server performs the sort and limit server-side. No new columns needed — `ORDER BY` on DateTimeOffset works in both SQL Server and SQLite (ISO 8601 text sorts lexicographically).
+
+- [x] TECH-151: Fix unbounded `.ToListAsync()` in `RetentionCleanupService` (5 cleanup methods) by adding `long` epoch columns for SQLite-compatible server-side time filtering.
+  - Root cause: All 5 private cleanup methods (`CleanupSessions`, `CleanupMessages`, `CleanupAuditEvents`, `CleanupEvidenceChunks`, `CleanupAnswerTraces`) loaded ALL rows for a tenant into memory via `.ToListAsync()`, then filtered by `CreatedAt < cutoff` (or `Timestamp < cutoff`) client-side. Same class of bug as TECH-146: EF Core 10's SQLite provider cannot translate `DateTimeOffset` comparisons, so these were left as client-side filters that grow unboundedly.
+  - Completed (iteration 241): Added `long CreatedAtEpoch` to `SessionEntity`, `MessageEntity`, `EvidenceChunkEntity`, `AnswerTraceEntity` and `long TimestampEpoch` to `AuditEventEntity` — Unix epoch seconds paired with their DateTimeOffset columns. EF Core migration `20260327120000_AddEpochColumnsForRetentionFiltering` adds columns with composite `(TenantId, *Epoch)` indexes and backfills existing rows via `DATEDIFF_BIG`. Updated 5 write paths (`SessionService`, `SqlAuditEventWriter`, `SyncJobProcessor`, `SqlAnswerTraceWriter`) to set epoch fields alongside DateTimeOffset values. All 5 cleanup methods now filter `WHERE TenantId = @tid AND *Epoch < cutoffEpoch` server-side. Added `HasIndex` entries in `SmartKbDbContext` for all 5 epoch columns. 4 new tests: `ExecuteCleanup_Sessions_FiltersServerSideViaEpochColumn`, `ExecuteCleanup_Messages_FiltersServerSideViaEpochColumn`, `ExecuteCleanup_AuditEvents_FiltersServerSideViaEpochColumn`, `ExecuteCleanup_EvidenceChunks_FiltersServerSideViaEpochColumn`. Updated 3 existing test fixtures to set epoch fields on manually seeded entities.
 
 ### P0 Ingestion + Evidence Store MVP (continued)
 

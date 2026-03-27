@@ -34,6 +34,10 @@ public sealed class EvidenceChunkEntity
     public string ContentHash { get; set; } = string.Empty;
 
     public DateTimeOffset CreatedAt { get; set; }
+
+    /// <summary>Unix epoch seconds of <see cref="CreatedAt"/>. Enables server-side filtering in SQLite (which cannot compare DateTimeOffset).</summary>
+    public long CreatedAtEpoch { get; set; }
+
     public DateTimeOffset? ReprocessedAt { get; set; }
 
     // Navigation.

@@ -53,6 +53,7 @@ public sealed class SqlAnswerTraceWriter : IAnswerTraceWriter
             SystemPromptVersion = systemPromptVersion,
             DurationMs = durationMs,
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         };
 
         _db.AnswerTraces.Add(entity);

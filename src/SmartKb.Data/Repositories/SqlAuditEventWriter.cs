@@ -26,6 +26,7 @@ public sealed class SqlAuditEventWriter : IAuditEventWriter
             ActorId = auditEvent.ActorId,
             CorrelationId = auditEvent.CorrelationId,
             Timestamp = auditEvent.Timestamp,
+            TimestampEpoch = auditEvent.Timestamp.ToUnixTimeSeconds(),
             Detail = auditEvent.Detail,
         };
 

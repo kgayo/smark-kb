@@ -400,14 +400,13 @@ public sealed class ConnectorAdminService
         var queryLower = request.Query.ToLower();
         var maxResults = Math.Clamp(request.MaxResults, 1, 20);
 
-        var matchingChunks = (await _db.EvidenceChunks
+        var matchingChunks = await _db.EvidenceChunks
             .Where(c => c.ConnectorId == connectorId && c.TenantId == tenantId)
             .Where(c => c.ChunkText.ToLower().Contains(queryLower)
                      || c.Title.ToLower().Contains(queryLower))
-            .ToListAsync(ct))
             .OrderByDescending(c => c.UpdatedAt)
             .Take(maxResults)
-            .ToList();
+            .ToListAsync(ct);
 
         var chunks = matchingChunks.Select(c => new PreviewRetrievalChunk
         {

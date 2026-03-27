@@ -400,6 +400,7 @@ public sealed class SyncJobProcessor
                 EnrichmentVersion = chunk.EnrichmentVersion,
                 ContentHash = ComputeChunkHash(chunk),
                 CreatedAt = existing?.CreatedAt ?? now,
+                CreatedAtEpoch = (existing?.CreatedAt ?? now).ToUnixTimeSeconds(),
                 ReprocessedAt = existing is not null ? now : null,
             };
 

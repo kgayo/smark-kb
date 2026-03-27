@@ -159,6 +159,7 @@ public class SmartKbDbContext : DbContext
             e.Property(s => s.CustomerRef).HasMaxLength(256);
             e.HasIndex(s => s.TenantId);
             e.HasIndex(s => new { s.TenantId, s.UserId });
+            e.HasIndex(s => new { s.TenantId, s.CreatedAtEpoch });
             e.HasQueryFilter(s => s.DeletedAt == null);
             e.HasOne(s => s.Tenant).WithMany(t => t.Sessions).HasForeignKey(s => s.TenantId);
         });
@@ -182,6 +183,7 @@ public class SmartKbDbContext : DbContext
             e.Property(m => m.CorrelationId).HasMaxLength(128);
             e.HasIndex(m => m.SessionId);
             e.HasIndex(m => m.TenantId);
+            e.HasIndex(m => new { m.TenantId, m.CreatedAtEpoch });
             e.HasQueryFilter(m => m.DeletedAt == null);
             e.HasOne(m => m.Session).WithMany(s => s.Messages).HasForeignKey(m => m.SessionId);
         });
@@ -240,6 +242,7 @@ public class SmartKbDbContext : DbContext
             e.HasIndex(a => a.EventType);
             e.HasIndex(a => a.Timestamp);
             e.HasIndex(a => new { a.TenantId, a.Timestamp });
+            e.HasIndex(a => new { a.TenantId, a.TimestampEpoch });
             e.HasIndex(a => new { a.TenantId, a.EventType });
         });
     }
@@ -300,6 +303,7 @@ public class SmartKbDbContext : DbContext
             e.HasIndex(c => c.ConnectorId);
             e.HasIndex(c => new { c.TenantId, c.EvidenceId });
             e.HasIndex(c => new { c.EvidenceId, c.ContentHash });
+            e.HasIndex(c => new { c.TenantId, c.CreatedAtEpoch });
             e.HasOne(c => c.Connector).WithMany().HasForeignKey(c => c.ConnectorId);
         });
     }
@@ -340,6 +344,7 @@ public class SmartKbDbContext : DbContext
             e.HasIndex(a => a.TenantId);
             e.HasIndex(a => a.CorrelationId);
             e.HasIndex(a => new { a.TenantId, a.CreatedAt });
+            e.HasIndex(a => new { a.TenantId, a.CreatedAtEpoch });
         });
     }
 

@@ -178,15 +178,17 @@ public class RetentionCleanupServiceTests : IDisposable
             RetentionDays = 30,
         }, "admin-1");
 
+        var oldTime = DateTimeOffset.UtcNow.AddDays(-60);
+        var newTime = DateTimeOffset.UtcNow.AddDays(-5);
         _db.Sessions.Add(new SessionEntity
         {
             Id = Guid.NewGuid(), TenantId = "t1", UserId = "u1", Title = "Old Session",
-            CreatedAt = DateTimeOffset.UtcNow.AddDays(-60),
+            CreatedAt = oldTime, CreatedAtEpoch = oldTime.ToUnixTimeSeconds(),
         });
         _db.Sessions.Add(new SessionEntity
         {
             Id = Guid.NewGuid(), TenantId = "t1", UserId = "u1", Title = "New Session",
-            CreatedAt = DateTimeOffset.UtcNow.AddDays(-5),
+            CreatedAt = newTime, CreatedAtEpoch = newTime.ToUnixTimeSeconds(),
         });
         await _db.SaveChangesAsync();
 
@@ -206,19 +208,21 @@ public class RetentionCleanupServiceTests : IDisposable
             RetentionDays = 30,
         }, "admin-1");
 
+        var oldTime = DateTimeOffset.UtcNow.AddDays(-60);
+        var newTime = DateTimeOffset.UtcNow.AddDays(-5);
         _db.AnswerTraces.Add(new AnswerTraceEntity
         {
             Id = Guid.NewGuid(), TenantId = "t1", UserId = "u1", CorrelationId = "c1",
             Query = "test", ResponseType = "final_answer", ConfidenceLabel = "High",
             CitedChunkIds = "[]", RetrievedChunkIds = "[]", SystemPromptVersion = "v1",
-            CreatedAt = DateTimeOffset.UtcNow.AddDays(-60),
+            CreatedAt = oldTime, CreatedAtEpoch = oldTime.ToUnixTimeSeconds(),
         });
         _db.AnswerTraces.Add(new AnswerTraceEntity
         {
             Id = Guid.NewGuid(), TenantId = "t1", UserId = "u1", CorrelationId = "c2",
             Query = "test2", ResponseType = "final_answer", ConfidenceLabel = "Low",
             CitedChunkIds = "[]", RetrievedChunkIds = "[]", SystemPromptVersion = "v1",
-            CreatedAt = DateTimeOffset.UtcNow.AddDays(-5),
+            CreatedAt = newTime, CreatedAtEpoch = newTime.ToUnixTimeSeconds(),
         });
         await _db.SaveChangesAsync();
 
@@ -239,10 +243,11 @@ public class RetentionCleanupServiceTests : IDisposable
         }, "admin-1");
         _auditWriter.Events.Clear();
 
+        var oldTime = DateTimeOffset.UtcNow.AddDays(-10);
         _db.Sessions.Add(new SessionEntity
         {
             Id = Guid.NewGuid(), TenantId = "t1", UserId = "u1", Title = "Old",
-            CreatedAt = DateTimeOffset.UtcNow.AddDays(-10),
+            CreatedAt = oldTime, CreatedAtEpoch = oldTime.ToUnixTimeSeconds(),
         });
         await _db.SaveChangesAsync();
 
@@ -276,10 +281,11 @@ public class RetentionCleanupServiceTests : IDisposable
             RetentionDays = 30,
         }, "admin-1");
 
+        var oldTime = DateTimeOffset.UtcNow.AddDays(-60);
         _db.Sessions.Add(new SessionEntity
         {
             Id = Guid.NewGuid(), TenantId = "t1", UserId = "u1", Title = "Old",
-            CreatedAt = DateTimeOffset.UtcNow.AddDays(-60),
+            CreatedAt = oldTime, CreatedAtEpoch = oldTime.ToUnixTimeSeconds(),
         });
         await _db.SaveChangesAsync();
 
@@ -469,6 +475,165 @@ public class RetentionCleanupServiceTests : IDisposable
         Assert.True(report.IsCompliant);
         Assert.Equal(2, report.TotalPolicies);
         Assert.Equal(0, report.OverduePolicies);
+    }
+
+    // ──── TECH-151: Epoch-based server-side filtering tests ────
+
+    [Fact]
+    public async Task ExecuteCleanup_Sessions_FiltersServerSideViaEpochColumn()
+    {
+        await _service.UpsertPolicyAsync("t1", new RetentionPolicyUpdateRequest
+        {
+            EntityType = "AppSession",
+            RetentionDays = 30,
+        }, "admin-1");
+
+        var oldTime = DateTimeOffset.UtcNow.AddDays(-60);
+        var newTime = DateTimeOffset.UtcNow.AddDays(-5);
+
+        _db.Sessions.AddRange(
+            new SessionEntity
+            {
+                Id = Guid.NewGuid(), TenantId = "t1", UserId = "u1", Title = "Old",
+                CreatedAt = oldTime, CreatedAtEpoch = oldTime.ToUnixTimeSeconds(),
+            },
+            new SessionEntity
+            {
+                Id = Guid.NewGuid(), TenantId = "t1", UserId = "u1", Title = "Recent",
+                CreatedAt = newTime, CreatedAtEpoch = newTime.ToUnixTimeSeconds(),
+            });
+        await _db.SaveChangesAsync();
+
+        var results = await _service.ExecuteCleanupAsync("t1");
+
+        Assert.Equal(1, results[0].DeletedCount);
+        // Only the old session should be soft-deleted; the recent one remains active.
+        Assert.Equal(1, _db.Sessions.Count());
+    }
+
+    [Fact]
+    public async Task ExecuteCleanup_Messages_FiltersServerSideViaEpochColumn()
+    {
+        await _service.UpsertPolicyAsync("t1", new RetentionPolicyUpdateRequest
+        {
+            EntityType = "Message",
+            RetentionDays = 30,
+        }, "admin-1");
+
+        var sessionId = Guid.NewGuid();
+        _db.Sessions.Add(new SessionEntity
+        {
+            Id = sessionId, TenantId = "t1", UserId = "u1", Title = "S",
+            CreatedAt = DateTimeOffset.UtcNow, CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+        });
+
+        var oldTime = DateTimeOffset.UtcNow.AddDays(-60);
+        var newTime = DateTimeOffset.UtcNow.AddDays(-5);
+
+        _db.Messages.AddRange(
+            new MessageEntity
+            {
+                Id = Guid.NewGuid(), SessionId = sessionId, TenantId = "t1",
+                Role = Contracts.Enums.MessageRole.User, Content = "old",
+                CreatedAt = oldTime, CreatedAtEpoch = oldTime.ToUnixTimeSeconds(),
+            },
+            new MessageEntity
+            {
+                Id = Guid.NewGuid(), SessionId = sessionId, TenantId = "t1",
+                Role = Contracts.Enums.MessageRole.User, Content = "new",
+                CreatedAt = newTime, CreatedAtEpoch = newTime.ToUnixTimeSeconds(),
+            });
+        await _db.SaveChangesAsync();
+
+        var results = await _service.ExecuteCleanupAsync("t1");
+
+        Assert.Equal(1, results[0].DeletedCount);
+        Assert.Equal(1, _db.Messages.Count());
+    }
+
+    [Fact]
+    public async Task ExecuteCleanup_AuditEvents_FiltersServerSideViaEpochColumn()
+    {
+        await _service.UpsertPolicyAsync("t1", new RetentionPolicyUpdateRequest
+        {
+            EntityType = "AuditEvent",
+            RetentionDays = 30,
+        }, "admin-1");
+
+        var oldTime = DateTimeOffset.UtcNow.AddDays(-60);
+        var newTime = DateTimeOffset.UtcNow.AddDays(-5);
+
+        _db.AuditEvents.AddRange(
+            new AuditEventEntity
+            {
+                Id = Guid.NewGuid(), TenantId = "t1", EventType = "test", ActorId = "a",
+                CorrelationId = "c1", Detail = "old", Timestamp = oldTime,
+                TimestampEpoch = oldTime.ToUnixTimeSeconds(),
+            },
+            new AuditEventEntity
+            {
+                Id = Guid.NewGuid(), TenantId = "t1", EventType = "test", ActorId = "a",
+                CorrelationId = "c2", Detail = "new", Timestamp = newTime,
+                TimestampEpoch = newTime.ToUnixTimeSeconds(),
+            });
+        await _db.SaveChangesAsync();
+
+        var results = await _service.ExecuteCleanupAsync("t1");
+
+        Assert.Equal(1, results[0].DeletedCount);
+        // Hard delete — only the new event remains.
+        var remaining = _db.AuditEvents.Where(a => a.TenantId == "t1" && a.EventType == "test").ToList();
+        Assert.Single(remaining);
+        Assert.Equal("new", remaining[0].Detail);
+    }
+
+    [Fact]
+    public async Task ExecuteCleanup_EvidenceChunks_FiltersServerSideViaEpochColumn()
+    {
+        await _service.UpsertPolicyAsync("t1", new RetentionPolicyUpdateRequest
+        {
+            EntityType = "EvidenceChunk",
+            RetentionDays = 30,
+        }, "admin-1");
+
+        // Need a connector for FK.
+        var connectorId = Guid.NewGuid();
+        _db.Connectors.Add(new ConnectorEntity
+        {
+            Id = connectorId, TenantId = "t1", Name = "test",
+            ConnectorType = Contracts.Enums.ConnectorType.AzureDevOps,
+            Status = Contracts.Enums.ConnectorStatus.Enabled,
+            CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow,
+        });
+
+        var oldTime = DateTimeOffset.UtcNow.AddDays(-60);
+        var newTime = DateTimeOffset.UtcNow.AddDays(-5);
+
+        _db.EvidenceChunks.AddRange(
+            new EvidenceChunkEntity
+            {
+                ChunkId = "old_chunk", EvidenceId = "e1", TenantId = "t1",
+                ConnectorId = connectorId, ChunkIndex = 0, ChunkText = "old",
+                SourceSystem = "ado", SourceType = "ticket", Status = "active",
+                Visibility = "public", AccessLabel = "all", Title = "Old",
+                SourceUrl = "https://example.com", ContentHash = "h1",
+                UpdatedAt = oldTime, CreatedAt = oldTime, CreatedAtEpoch = oldTime.ToUnixTimeSeconds(),
+            },
+            new EvidenceChunkEntity
+            {
+                ChunkId = "new_chunk", EvidenceId = "e2", TenantId = "t1",
+                ConnectorId = connectorId, ChunkIndex = 0, ChunkText = "new",
+                SourceSystem = "ado", SourceType = "ticket", Status = "active",
+                Visibility = "public", AccessLabel = "all", Title = "New",
+                SourceUrl = "https://example.com", ContentHash = "h2",
+                UpdatedAt = newTime, CreatedAt = newTime, CreatedAtEpoch = newTime.ToUnixTimeSeconds(),
+            });
+        await _db.SaveChangesAsync();
+
+        var results = await _service.ExecuteCleanupAsync("t1");
+
+        Assert.Equal(1, results[0].DeletedCount);
+        Assert.Equal(1, _db.EvidenceChunks.Count());
     }
 
     private sealed class StubAuditWriter : IAuditEventWriter
