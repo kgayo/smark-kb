@@ -51,6 +51,7 @@ export function GoldDatasetPage() {
       const result = await api.listGoldCases(tag || undefined, p, 20);
       setCases(result);
     } catch (e) {
+      logger.warn('[GoldDatasetPage] Failed to load gold cases:', e);
       setCasesError(e instanceof Error ? e.message : 'Failed to load gold cases');
     } finally {
       setCasesLoading(false);
@@ -82,6 +83,7 @@ export function GoldDatasetPage() {
       setSelectedCase(null);
       loadCases(page, tagFilter);
     } catch (e) {
+      logger.warn('[GoldDatasetPage] Failed to delete gold case:', e);
       setCasesError(e instanceof Error ? e.message : 'Delete failed');
     }
   };
@@ -119,6 +121,7 @@ export function GoldDatasetPage() {
         shouldHaveEvidence: true,
       });
     } catch (e) {
+      logger.warn('[GoldDatasetPage] Failed to create gold case:', e);
       setCreateError(e instanceof Error ? e.message : 'Create failed');
     } finally {
       setCreating(false);
@@ -134,6 +137,7 @@ export function GoldDatasetPage() {
       const ts = new Date().toISOString().replace(/[:.]/g, '-');
       downloadFile(blob, `gold-dataset-${ts}.jsonl`);
     } catch (e) {
+      logger.warn('[GoldDatasetPage] Failed to export gold cases:', e);
       setExportError(e instanceof Error ? e.message : 'Export failed');
     } finally {
       setExporting(false);

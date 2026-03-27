@@ -125,6 +125,7 @@ export function EscalationDraftModal({
           });
         }
       } catch (e) {
+        logger.warn('[EscalationDraftModal] Failed to create draft:', e);
         if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to create draft');
       } finally {
         if (!cancelled) setSaving(false);
@@ -168,6 +169,7 @@ export function EscalationDraftModal({
       });
       setDraft(result);
     } catch (e) {
+      logger.warn('[EscalationDraftModal] Failed to save draft:', e);
       setError(e instanceof Error ? e.message : 'Failed to save draft');
     } finally {
       setSaving(false);
@@ -184,6 +186,7 @@ export function EscalationDraftModal({
       if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
       copyTimerRef.current = setTimeout(() => setCopySuccess(false), 2000);
     } catch (e) {
+      logger.warn('[EscalationDraftModal] Failed to export draft as Markdown:', e);
       setError(e instanceof Error ? e.message : 'Failed to export draft');
     }
   }, [draft]);
@@ -220,6 +223,7 @@ export function EscalationDraftModal({
         setDraft(updatedDraft);
       }
     } catch (e) {
+      logger.warn('[EscalationDraftModal] Failed to create external work item:', e);
       setError(e instanceof Error ? e.message : 'Failed to create external work item');
     } finally {
       setCreatingExternal(false);

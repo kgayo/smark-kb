@@ -95,6 +95,7 @@ export function ConnectorDetail({
       onUpdated(updated);
       setEditing(false);
     } catch (e) {
+      logger.warn('[ConnectorDetail] Failed to save connector:', e);
       setActionError(e instanceof Error ? e.message : 'Failed to save');
     } finally {
       setSaving(false);
@@ -109,6 +110,7 @@ export function ConnectorDetail({
       const result = await api.testConnection(connector.id);
       setTestResult(result);
     } catch (e) {
+      logger.warn('[ConnectorDetail] Connection test failed:', e);
       setActionError(e instanceof Error ? e.message : 'Test failed');
     } finally {
       setTesting(false);
@@ -125,6 +127,7 @@ export function ConnectorDetail({
           : await api.enableConnector(connector.id);
       onUpdated(updated);
     } catch (e) {
+      logger.warn('[ConnectorDetail] Failed to toggle connector status:', e);
       setActionError(e instanceof Error ? e.message : 'Failed to toggle status');
     } finally {
       setTogglingStatus(false);
@@ -138,6 +141,7 @@ export function ConnectorDetail({
       await api.syncNow(connector.id, { isBackfill });
       await loadSyncRuns();
     } catch (e) {
+      logger.warn('[ConnectorDetail] Sync trigger failed:', e);
       setActionError(e instanceof Error ? e.message : 'Sync trigger failed');
     } finally {
       setSyncing(false);
@@ -162,6 +166,7 @@ export function ConnectorDetail({
       setPreviewErrors(previewResult.validationErrors);
       setValidationResult(validation);
     } catch (e) {
+      logger.warn('[ConnectorDetail] Preview failed:', e);
       setActionError(e instanceof Error ? e.message : 'Preview failed');
     } finally {
       setPreviewing(false);
@@ -183,6 +188,7 @@ export function ConnectorDetail({
       setRetrievalTotal(result.totalChunksForConnector);
       setRetrievalMessage(result.message);
     } catch (e) {
+      logger.warn('[ConnectorDetail] Retrieval test failed:', e);
       setActionError(e instanceof Error ? e.message : 'Retrieval test failed');
     } finally {
       setRetrievalTesting(false);
@@ -195,6 +201,7 @@ export function ConnectorDetail({
       await api.deleteConnector(connector.id);
       onDeleted(connector.id);
     } catch (e) {
+      logger.warn('[ConnectorDetail] Failed to delete connector:', e);
       setActionError(e instanceof Error ? e.message : 'Delete failed');
     }
   }

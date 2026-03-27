@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { ConnectorResponse, CreateConnectorRequest } from '../api/types';
 import * as api from '../api/client';
 import { useRoles, hasAdminRole } from '../auth/useRoles';
+import { logger } from '../utils/logger';
 import { ConnectorList } from '../components/ConnectorList';
 import { ConnectorDetail } from '../components/ConnectorDetail';
 import { CreateConnectorForm } from '../components/CreateConnectorForm';
@@ -25,6 +26,7 @@ export function AdminPage() {
       const result = await api.listConnectors();
       setConnectors(result.connectors);
     } catch (e) {
+      logger.warn('[AdminPage] Failed to load connectors:', e);
       setError(e instanceof Error ? e.message : 'Failed to load connectors');
     } finally {
       setLoading(false);
@@ -64,6 +66,7 @@ export function AdminPage() {
       setSelectedConnector(connector);
       setView('detail');
     } catch (e) {
+      logger.warn('[AdminPage] Failed to load connector:', e);
       setError(e instanceof Error ? e.message : 'Failed to load connector');
     }
   }
@@ -77,6 +80,7 @@ export function AdminPage() {
       setSelectedConnector(connector);
       setView('detail');
     } catch (e) {
+      logger.warn('[AdminPage] Failed to create connector:', e);
       setCreateError(e instanceof Error ? e.message : 'Failed to create connector');
       throw e;
     } finally {

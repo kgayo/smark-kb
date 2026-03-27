@@ -59,6 +59,7 @@ export function PatternDetailView({
     try {
       await action();
     } catch (e) {
+      logger.warn('[PatternDetailView] Governance action failed:', e);
       setActionError(e instanceof Error ? e.message : 'Action failed');
     }
   }

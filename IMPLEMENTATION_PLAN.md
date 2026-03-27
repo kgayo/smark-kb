@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-27 (Asia/Manila) — iteration 235
-Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase 1: P0-001–P0-022; Phase 2: P1-001–P1-012, P2-001–P2-005; Phase 3: P3-001–P3-038 (all 38 items). Tests: T-001–T-008; ~3393 tests passing (2895 backend + 498 frontend). Spec clarification backlog: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. BUG-001–BUG-005 resolved. TECH-001–TECH-144 resolved. 299/299 checklist items complete, 0 remaining.
+Last updated: 2026-03-27 (Asia/Manila) — iteration 236
+Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase 1: P0-001–P0-022; Phase 2: P1-001–P1-012, P2-001–P2-005; Phase 3: P3-001–P3-038 (all 38 items). Tests: T-001–T-008; ~3393 tests passing (2895 backend + 498 frontend). Spec clarification backlog: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. BUG-001–BUG-005 resolved. TECH-001–TECH-145 resolved. 300/300 checklist items complete, 0 remaining.
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -650,6 +650,10 @@ Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase
 - [x] TECH-144: Fix DeadLetterService thread-safety — singleton held non-thread-safe `ServiceBusReceiver` across concurrent requests.
   - Root cause: `DeadLetterService` was registered as singleton and created a single `ServiceBusReceiver` in its constructor, stored as a field. `ServiceBusReceiver` is not thread-safe — it maintains internal AMQP link state, sequence number cursors for `PeekMessages`, and prefetch cache. Concurrent `GET /api/admin/ingestion/dead-letters` requests would invoke `PeekMessagesAsync` on the same receiver simultaneously, risking corrupted peek state (partial/duplicated results), `InvalidOperationException` from mid-operation AMQP link state, or connection failures affecting all subsequent calls.
   - Completed (iteration 235): Refactored `DeadLetterService` to create a `ServiceBusReceiver` per-call inside `PeekAsync` with `await using` for deterministic disposal. Removed singleton `_receiver` field. Removed `IAsyncDisposable` implementation (no longer needed — receivers are scoped to each call). Service stores `ServiceBusClient` and `_dlqPath` (both thread-safe) instead. Replaced `DisposeAsync_DisposesReceiver` test with 2 new tests: `PeekAsync_CreatesAndDisposesReceiverPerCall` (verifies 2 calls create 2 distinct receivers, both disposed, via `ReceiverCreationCount` tracker) and `PeekAsync_DisposesReceiver_EvenOnException` (verifies receiver disposal on `PeekMessagesAsync` failure via `ThrowingMockReceiver`). Updated `MockServiceBusClient` with `ReceiverCreationCount` and `LastMockReceiver` tracking. 9 tests (was 8), all passing. 2895 backend tests passing.
+
+- [x] TECH-145: Add `logger.warn` to 22 silent frontend catch blocks across 7 files.
+  - Root cause: Code quality scan found 22 catch blocks across 7 frontend files (PlaybooksPage ×5, AdminPage ×3, GoldDatasetPage ×4, ConnectorDetail ×7, FeedbackWidget ×2, PatternDetailView ×1, EscalationDraftModal ×4) that set error state for the UI but never called `logger.warn()`. Errors were visible to users but left no trace in dev-tools observability, making it impossible to diagnose failures during local development. By contrast, well-patterned files like PatternGovernancePage, DiagnosticsPage, and CostControlsPage consistently logged in every catch block.
+  - Completed (iteration 236): Added `import { logger } from '../utils/logger'` to PlaybooksPage, AdminPage, FeedbackWidget (3 files that were missing it; GoldDatasetPage, ConnectorDetail, PatternDetailView, EscalationDraftModal already had it). Added `logger.warn('[Component] context:', e)` before every `setError`/`setActionError`/`setCasesError`/`setCreateError`/`setExportError` call in all 22 catch blocks, using the `[ComponentName] descriptive message` convention already established across the codebase. Lint clean, build clean, 498 frontend tests passing.
 
 ### P0 Ingestion + Evidence Store MVP (continued)
 

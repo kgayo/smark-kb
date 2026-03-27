@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { logger } from '../utils/logger';
 import type { FeedbackReasonCode, FeedbackType, SubmitFeedbackRequest } from '../api/types';
 
 const REASON_CODE_LABELS: Record<FeedbackReasonCode, string> = {
@@ -46,6 +47,7 @@ export function FeedbackWidget({ messageId, existingFeedback, onSubmit }: Feedba
           setSubmitted(true);
           setShowDetails(false);
         } catch (e) {
+          logger.warn('[FeedbackWidget] Failed to submit thumbs-up feedback:', e);
           setError(e instanceof Error ? e.message : 'Failed to submit feedback');
         } finally {
           setSubmitting(false);
@@ -82,6 +84,7 @@ export function FeedbackWidget({ messageId, existingFeedback, onSubmit }: Feedba
       setSubmitted(true);
       setShowDetails(false);
     } catch (e) {
+      logger.warn('[FeedbackWidget] Failed to submit detailed feedback:', e);
       setError(e instanceof Error ? e.message : 'Failed to submit feedback');
     } finally {
       setSubmitting(false);

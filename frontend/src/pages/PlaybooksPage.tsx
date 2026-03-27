@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { TeamPlaybookDto, CreateTeamPlaybookRequest, UpdateTeamPlaybookRequest } from '../api/types';
 import * as api from '../api/client';
 import { useRoles, hasAdminRole } from '../auth/useRoles';
+import { logger } from '../utils/logger';
 
 type View = 'list' | 'detail' | 'create';
 
@@ -37,6 +38,7 @@ export function PlaybooksPage() {
       const data = await api.listPlaybooks();
       setPlaybooks(data.playbooks);
     } catch (e) {
+      logger.warn('[PlaybooksPage] Failed to load playbooks:', e);
       setError(e instanceof Error ? e.message : 'Failed to load playbooks');
     } finally {
       setLoading(false);
@@ -78,6 +80,7 @@ export function PlaybooksPage() {
       setView('detail');
       setSuccess('Playbook created');
     } catch (e) {
+      logger.warn('[PlaybooksPage] Failed to create playbook:', e);
       setError(e instanceof Error ? e.message : 'Failed to create playbook');
     }
   }
@@ -90,6 +93,7 @@ export function PlaybooksPage() {
       setView('detail');
       setEditing(false);
     } catch (e) {
+      logger.warn('[PlaybooksPage] Failed to load playbook:', e);
       setError(e instanceof Error ? e.message : 'Failed to load playbook');
     }
   }
@@ -114,6 +118,7 @@ export function PlaybooksPage() {
       setEditing(false);
       setSuccess('Playbook updated');
     } catch (e) {
+      logger.warn('[PlaybooksPage] Failed to update playbook:', e);
       setError(e instanceof Error ? e.message : 'Failed to update playbook');
     }
   }
@@ -128,6 +133,7 @@ export function PlaybooksPage() {
       setView('list');
       setSuccess('Playbook deleted');
     } catch (e) {
+      logger.warn('[PlaybooksPage] Failed to delete playbook:', e);
       setError(e instanceof Error ? e.message : 'Failed to delete playbook');
     }
   }
