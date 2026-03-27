@@ -97,9 +97,7 @@ public static class GoldDatasetLoader
         var errors = new List<string>();
         var prefix = lineNumber > 0 ? $"Line {lineNumber}: " : "";
 
-        if (string.IsNullOrWhiteSpace(evalCase.Id))
-            errors.Add($"{prefix}Id is required");
-        else if (!evalCase.Id.StartsWith("eval-", StringComparison.Ordinal) || evalCase.Id.Length != 10)
+        if (!EvalCaseId.IsValid(evalCase.Id))
             errors.Add($"{prefix}Id must match format eval-NNNNN (got '{evalCase.Id}')");
 
         if (string.IsNullOrWhiteSpace(evalCase.TenantId))

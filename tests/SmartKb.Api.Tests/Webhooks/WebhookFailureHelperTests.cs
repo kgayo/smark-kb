@@ -139,6 +139,65 @@ public sealed class WebhookFailureHelperTests : IAsyncLifetime
             e.Message.Contains("SharePoint"));
     }
 
+    [Fact]
+    public void RecordDeliverySuccess_ResetsFailureCounters()
+    {
+        var sub = new WebhookSubscriptionEntity
+        {
+            Id = Guid.NewGuid(),
+            ConnectorId = _connectorId,
+            EventType = "workitem.created",
+            ExternalSubscriptionId = "sub-test",
+            WebhookSecretName = "secret-test",
+            IsActive = true,
+            ConsecutiveFailures = 5,
+            PollingFallbackActive = true,
+            NextPollAt = DateTimeOffset.UtcNow.AddMinutes(10),
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow.AddHours(-1),
+        };
+
+        WebhookFailureHelper.RecordDeliverySuccess([sub]);
+
+        Assert.Equal(0, sub.ConsecutiveFailures);
+        Assert.False(sub.PollingFallbackActive);
+        Assert.Null(sub.NextPollAt);
+        Assert.NotNull(sub.LastDeliveryAt);
+        Assert.True(sub.UpdatedAt > DateTimeOffset.UtcNow.AddSeconds(-5));
+    }
+
+    [Fact]
+    public void RecordDeliverySuccess_HandlesMultipleSubscriptions()
+    {
+        var subs = new[]
+        {
+            new WebhookSubscriptionEntity
+            {
+                Id = Guid.NewGuid(), ConnectorId = _connectorId, EventType = "a",
+                ExternalSubscriptionId = "s1", WebhookSecretName = "k1", IsActive = true,
+                ConsecutiveFailures = 3, PollingFallbackActive = true,
+                CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow,
+            },
+            new WebhookSubscriptionEntity
+            {
+                Id = Guid.NewGuid(), ConnectorId = _connectorId, EventType = "b",
+                ExternalSubscriptionId = "s2", WebhookSecretName = "k2", IsActive = true,
+                ConsecutiveFailures = 1, PollingFallbackActive = false,
+                CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow,
+            },
+        };
+
+        WebhookFailureHelper.RecordDeliverySuccess(subs);
+
+        Assert.All(subs, s =>
+        {
+            Assert.Equal(0, s.ConsecutiveFailures);
+            Assert.False(s.PollingFallbackActive);
+            Assert.Null(s.NextPollAt);
+            Assert.NotNull(s.LastDeliveryAt);
+        });
+    }
+
     private sealed class CapturingLogger : Microsoft.Extensions.Logging.ILogger
     {
         public List<(Microsoft.Extensions.Logging.LogLevel Level, string Message)> Entries { get; } = [];

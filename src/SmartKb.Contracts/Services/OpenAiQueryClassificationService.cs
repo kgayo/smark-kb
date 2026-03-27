@@ -44,8 +44,8 @@ public sealed class OpenAiQueryClassificationService : IQueryClassificationServi
         {
             model = _settings.ClassificationModel,
             messages,
-            max_tokens = 512,
-            temperature = 0.1,
+            max_tokens = _settings.ClassificationMaxTokens,
+            temperature = _settings.AuxiliaryTemperature,
             response_format = new
             {
                 type = "json_schema",

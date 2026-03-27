@@ -103,4 +103,32 @@ public class ChatOrchestrationSettingsTests
         var settings = new ChatOrchestrationSettings();
         Assert.Equal(ChatOrchestrationSettings.DefaultSystemPromptVersion, settings.SystemPromptVersion);
     }
+
+    [Fact]
+    public void Defaults_GenerationTemperature_Is02()
+    {
+        var settings = new ChatOrchestrationSettings();
+        Assert.Equal(0.2f, settings.GenerationTemperature);
+    }
+
+    [Fact]
+    public void Defaults_AuxiliaryTemperature_Is01()
+    {
+        var settings = new ChatOrchestrationSettings();
+        Assert.Equal(0.1f, settings.AuxiliaryTemperature);
+    }
+
+    [Fact]
+    public void Defaults_ClassificationMaxTokens_Is512()
+    {
+        var settings = new ChatOrchestrationSettings();
+        Assert.Equal(512, settings.ClassificationMaxTokens);
+    }
+
+    [Fact]
+    public void Defaults_ContextRecencyDays_Is30()
+    {
+        var settings = new ChatOrchestrationSettings();
+        Assert.Equal(30, settings.ContextRecencyDays);
+    }
 }

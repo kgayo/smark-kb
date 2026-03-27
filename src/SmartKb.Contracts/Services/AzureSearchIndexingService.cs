@@ -173,13 +173,7 @@ public sealed class AzureSearchIndexingService : IIndexingService
                 {
                     new HnswAlgorithmConfiguration("evidence-hnsw-config")
                     {
-                        Parameters = new HnswParameters
-                        {
-                            Metric = VectorSearchAlgorithmMetric.Cosine,
-                            M = 4,
-                            EfConstruction = 400,
-                            EfSearch = 500,
-                        },
+                        Parameters = VectorSearchDefaults.CreateHnswParameters(),
                     },
                 },
             },

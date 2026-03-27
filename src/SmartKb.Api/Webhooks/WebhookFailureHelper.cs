@@ -46,6 +46,22 @@ public static class WebhookFailureHelper
     }
 
     /// <summary>
+    /// Records a successful webhook delivery by resetting failure counters and disabling polling fallback.
+    /// </summary>
+    public static void RecordDeliverySuccess(IEnumerable<WebhookSubscriptionEntity> subscriptions)
+    {
+        var now = DateTimeOffset.UtcNow;
+        foreach (var sub in subscriptions)
+        {
+            sub.LastDeliveryAt = now;
+            sub.ConsecutiveFailures = 0;
+            sub.PollingFallbackActive = false;
+            sub.NextPollAt = null;
+            sub.UpdatedAt = now;
+        }
+    }
+
+    /// <summary>
     /// Computes the next polling time by adding the configured interval plus random jitter.
     /// </summary>
     public static DateTimeOffset ComputeNextPollTime(WebhookSettings webhookSettings, DateTimeOffset from)

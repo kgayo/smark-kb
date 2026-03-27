@@ -483,7 +483,8 @@ public sealed class ChatOrchestrator : IChatOrchestrator
 
         // P3-024: Build confidence rationale from retrieval metrics + model rationale.
         var confidenceRationale = BuildConfidenceRationale(
-            evidenceChunks, blendedConfidence, confidenceLabel, modelResponse.ConfidenceRationale);
+            evidenceChunks, blendedConfidence, confidenceLabel, modelResponse.ConfidenceRationale,
+            _settings.ContextRecencyDays);
 
         return new ChatResponse
         {
@@ -690,7 +691,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
             model = _openAiSettings.Model,
             messages,
             max_tokens = _settings.MaxResponseTokens,
-            temperature = 0.2,
+            temperature = _settings.GenerationTemperature,
             response_format = new
             {
                 type = "json_schema",
@@ -733,7 +734,8 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         IReadOnlyList<RetrievedChunk> chunks,
         float blendedConfidence,
         string confidenceLabel,
-        string? modelRationale)
+        string? modelRationale,
+        int contextRecencyDays = 30)
     {
         if (chunks.Count == 0)
             return "No matching evidence found in the knowledge base.";
@@ -757,7 +759,7 @@ public sealed class ChatOrchestrator : IChatOrchestrator
         var daysSinceMostRecent = (int)(DateTimeOffset.UtcNow - mostRecent).TotalDays;
         if (daysSinceMostRecent <= 7)
             parts.Add($"most recent evidence from {daysSinceMostRecent} day{(daysSinceMostRecent != 1 ? "s" : "")} ago");
-        else if (daysSinceMostRecent <= 30)
+        else if (daysSinceMostRecent <= contextRecencyDays)
             parts.Add($"most recent evidence from {daysSinceMostRecent} days ago");
         else
             parts.Add($"most recent evidence is {daysSinceMostRecent} days old");

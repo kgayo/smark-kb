@@ -126,14 +126,7 @@ public sealed class AdoWebhookHandler
         }
 
         // 5. Update subscription delivery tracking.
-        foreach (var sub in subscriptions)
-        {
-            sub.LastDeliveryAt = DateTimeOffset.UtcNow;
-            sub.ConsecutiveFailures = 0;
-            sub.PollingFallbackActive = false;
-            sub.NextPollAt = null;
-            sub.UpdatedAt = DateTimeOffset.UtcNow;
-        }
+        WebhookFailureHelper.RecordDeliverySuccess(subscriptions);
         await _db.SaveChangesAsync(cancellationToken);
 
         // 6. Trigger incremental sync via Service Bus.

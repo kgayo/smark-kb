@@ -265,8 +265,8 @@ public sealed class GoldCaseService : IGoldCaseService
     {
         var errors = new List<string>();
 
-        if (string.IsNullOrWhiteSpace(caseId) || !caseId.StartsWith("eval-", StringComparison.Ordinal) || caseId.Length < 10)
-            errors.Add("CaseId must match format 'eval-NNNNN' (eval- prefix + at least 5 digits).");
+        if (!EvalCaseId.IsValid(caseId))
+            errors.Add("CaseId must match format 'eval-NNNNN' (eval- prefix + exactly 5 digits).");
 
         if (string.IsNullOrWhiteSpace(query) || query.Length < 5)
             errors.Add("Query must be at least 5 characters.");

@@ -475,6 +475,23 @@ public class ChatOrchestratorTests
     }
 
     [Fact]
+    public void BuildConfidenceRationale_CustomRecencyDays_UsesCustomThreshold()
+    {
+        var chunks = new List<RetrievedChunk>
+        {
+            CreateChunk("c1", rrfScore: 0.5) with { UpdatedAt = DateTimeOffset.UtcNow.AddDays(-15) },
+        };
+
+        // With default 30, 15 days is "recent" → "from 15 days ago"
+        var rationale30 = ChatOrchestrator.BuildConfidenceRationale(chunks, 0.5f, "Medium", null, 30);
+        Assert.Contains("from 15 days ago", rationale30);
+
+        // With custom 10, 15 days is "old" → "is 15 days old"
+        var rationale10 = ChatOrchestrator.BuildConfidenceRationale(chunks, 0.5f, "Medium", null, 10);
+        Assert.Contains("15 days old", rationale10);
+    }
+
+    [Fact]
     public void ChatResponse_ConfidenceRationale_DefaultsToNull()
     {
         var response = new ChatResponse

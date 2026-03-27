@@ -75,6 +75,18 @@ public sealed class ChatOrchestrationSettings
     /// <summary>Minimum number of messages that must be dropped before triggering summarization. Avoids overhead for trivial drops.</summary>
     public int SummarizationMinDroppedMessages { get; set; } = 4;
 
+    /// <summary>Temperature for the main grounded-answer generation call. Lower values produce more deterministic outputs.</summary>
+    public float GenerationTemperature { get; set; } = 0.2f;
+
+    /// <summary>Temperature for classification and summarization calls. Lower than generation for more deterministic structured output.</summary>
+    public float AuxiliaryTemperature { get; set; } = 0.1f;
+
+    /// <summary>Max tokens for the classification response.</summary>
+    public int ClassificationMaxTokens { get; set; } = 512;
+
+    /// <summary>Recency threshold in days for context rationale phrasing. Evidence older than this is described as stale.</summary>
+    public int ContextRecencyDays { get; set; } = 30;
+
     public string GetConfidenceLabel(float confidence)
     {
         if (confidence >= HighConfidenceThreshold) return Models.ConfidenceLabel.High;

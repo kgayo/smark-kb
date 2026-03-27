@@ -639,8 +639,8 @@ public sealed class ConnectorAdminService
 
         if (string.IsNullOrWhiteSpace(request.Name))
             errors.Add("Name is required.");
-        if (request.Name?.Length > 256)
-            errors.Add("Name must not exceed 256 characters.");
+        if (request.Name?.Length > ValidationLimits.ConnectorNameMaxLength)
+            errors.Add($"Name must not exceed {ValidationLimits.ConnectorNameMaxLength} characters.");
 
         return errors.Count > 0
             ? ConnectorValidationResult.Invalid([.. errors])

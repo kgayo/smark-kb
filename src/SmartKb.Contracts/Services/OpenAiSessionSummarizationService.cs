@@ -45,7 +45,7 @@ public sealed class OpenAiSessionSummarizationService : ISessionSummarizationSer
             model = _settings.SummarizationModel,
             messages,
             max_tokens = _settings.SummarizationMaxTokens,
-            temperature = 0.1,
+            temperature = _settings.AuxiliaryTemperature,
             response_format = new
             {
                 type = "json_schema",

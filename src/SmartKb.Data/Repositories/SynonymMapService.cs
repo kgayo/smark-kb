@@ -325,8 +325,8 @@ public sealed class SynonymMapService : ISynonymMapService
         if (string.IsNullOrWhiteSpace(rule))
             return SynonymRuleValidationResult.Invalid("Rule cannot be empty.");
 
-        if (rule.Length > 1024)
-            return SynonymRuleValidationResult.Invalid("Rule must not exceed 1024 characters.");
+        if (rule.Length > ValidationLimits.SynonymRuleMaxLength)
+            return SynonymRuleValidationResult.Invalid($"Rule must not exceed {ValidationLimits.SynonymRuleMaxLength} characters.");
 
         // Solr synonym format: either "term1, term2, term3" (equivalent) or "term1 => term2" (explicit).
         var trimmed = rule.Trim();

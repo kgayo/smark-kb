@@ -494,8 +494,8 @@ public sealed partial class SearchTokenService : ISearchTokenService
         var errors = new List<string>();
         if (string.IsNullOrWhiteSpace(word))
             errors.Add("Word cannot be empty.");
-        else if (word.Trim().Length > 128)
-            errors.Add("Word cannot exceed 128 characters.");
+        else if (word.Trim().Length > ValidationLimits.StopWordMaxLength)
+            errors.Add($"Word cannot exceed {ValidationLimits.StopWordMaxLength} characters.");
         else if (word.Trim().Contains(' '))
             errors.Add("Stop word must be a single word (no spaces).");
 
@@ -509,11 +509,11 @@ public sealed partial class SearchTokenService : ISearchTokenService
         var errors = new List<string>();
         if (string.IsNullOrWhiteSpace(token))
             errors.Add("Token cannot be empty.");
-        else if (token.Trim().Length > 256)
-            errors.Add("Token cannot exceed 256 characters.");
+        else if (token.Trim().Length > ValidationLimits.SpecialTokenMaxLength)
+            errors.Add($"Token cannot exceed {ValidationLimits.SpecialTokenMaxLength} characters.");
 
-        if (boostFactor < 1 || boostFactor > 10)
-            errors.Add("Boost factor must be between 1 and 10.");
+        if (boostFactor < ValidationLimits.BoostFactorMin || boostFactor > ValidationLimits.BoostFactorMax)
+            errors.Add($"Boost factor must be between {ValidationLimits.BoostFactorMin} and {ValidationLimits.BoostFactorMax}.");
 
         return errors.Count > 0
             ? SearchTokenValidationResult.Invalid(errors.ToArray())
