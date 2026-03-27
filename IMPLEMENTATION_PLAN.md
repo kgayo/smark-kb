@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-27 (Asia/Manila) — iteration 228
-Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase 1: P0-001–P0-022; Phase 2: P1-001–P1-012, P2-001–P2-005; Phase 3: P3-001–P3-038 (all 38 items). Tests: T-001–T-008; ~3360 tests passing (2862 backend + 498 frontend). Spec clarification backlog: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. BUG-001–BUG-005 resolved. TECH-001–TECH-136 resolved. 291/291 checklist items complete, 0 remaining.
+Last updated: 2026-03-27 (Asia/Manila) — iteration 229
+Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase 1: P0-001–P0-022; Phase 2: P1-001–P1-012, P2-001–P2-005; Phase 3: P3-001–P3-038 (all 38 items). Tests: T-001–T-008; ~3370 tests passing (2870 backend + 498 frontend). Spec clarification backlog: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. BUG-001–BUG-005 resolved. TECH-001–TECH-137 resolved. 292/292 checklist items complete, 0 remaining.
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -618,6 +618,10 @@ Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase
 - [x] TECH-136: Replace 8 `response!` null-forgiving operators on service return values with explicit null guards in endpoint files.
   - Root cause: 8 `response!` null-forgiving operators across 3 endpoint files (`ConnectorAdminEndpoints` ×4, `SearchTokenEndpoints` ×3, `ChatEndpoints` ×1) suppressed nullable warnings on tuple-destructured service responses. If a service ever returned `(null, false)` in a non-error path, the `!` would mask a `NullReferenceException` at runtime. The same files already had the correct `if (response is null) return Results.Problem(...)` pattern on create endpoints (from TECH-126) — update/enable/disable/oauth endpoints were missed.
   - Completed (iteration 228): Replaced all 8 `response!` with explicit `if (response is null) return Results.Problem("Unexpected null response from service.", statusCode: StatusCodes.Status500InternalServerError)` guards followed by `response` (no `!`). Matches existing pattern on create endpoints. Zero remaining `response!` null-forgiving operators in endpoint files.
+
+- [x] TECH-137: Extract 5 duplicate page-size magic numbers into shared `PaginationDefaults` constants class with `ClampPageSize`/`ClampAuditPageSize` helper methods.
+  - Root cause: 5 list/query methods across `PatternGovernanceService`, `GoldCaseService`, `ContradictionDetectionService`, `PatternMaintenanceService`, and `EvalReportService` used inline `Math.Clamp(pageSize, 1, 100)` or `if (pageSize > 100) pageSize = 100` with the magic number `100`. `AuditEventQueryService` had its own private `MaxPageSize = 200` constant. Inconsistent and not centrally maintainable.
+  - Completed (iteration 229): Created `SmartKb.Contracts/Models/PaginationDefaults.cs` with `MinPageSize=1`, `MaxPageSize=100`, `AuditMaxPageSize=200`, `ClampPageSize()`, `ClampAuditPageSize()`. Replaced all 5 inline magic-number sites + removed private constant from `AuditEventQueryService`. Also normalized `EvalReportService` from 3-line `if` guards to `Math.Max`+`ClampPageSize`. 8 new tests in `PaginationDefaultsTests`. Zero remaining inline page-size magic numbers.
 
 ### P0 Ingestion + Evidence Store MVP (continued)
 

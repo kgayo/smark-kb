@@ -12,7 +12,6 @@ public sealed class AuditEventQueryService : IAuditEventQueryService
     private readonly SmartKbDbContext _db;
     private readonly ILogger<AuditEventQueryService> _logger;
 
-    private const int MaxPageSize = 200;
     private const int MaxExportBatchSize = 5000;
 
     public AuditEventQueryService(SmartKbDbContext db, ILogger<AuditEventQueryService> logger)
@@ -26,7 +25,7 @@ public sealed class AuditEventQueryService : IAuditEventQueryService
         AuditEventQueryRequest request,
         CancellationToken cancellationToken = default)
     {
-        var pageSize = Math.Clamp(request.PageSize, 1, MaxPageSize);
+        var pageSize = PaginationDefaults.ClampAuditPageSize(request.PageSize);
         var page = Math.Max(request.Page, 1);
 
         var query = _db.AuditEvents.AsNoTracking()

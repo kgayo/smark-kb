@@ -129,7 +129,7 @@ public sealed class ContradictionDetectionService : IContradictionDetectionServi
         string tenantId, string? status, int page, int pageSize, CancellationToken ct = default)
     {
         page = Math.Max(1, page);
-        pageSize = Math.Clamp(pageSize, 1, 100);
+        pageSize = PaginationDefaults.ClampPageSize(pageSize);
 
         var query = _db.PatternContradictions
             .Where(c => c.TenantId == tenantId);

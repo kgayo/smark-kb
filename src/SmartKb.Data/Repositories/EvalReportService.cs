@@ -113,9 +113,8 @@ public sealed class EvalReportService : IEvalReportService
         int pageSize = 20,
         CancellationToken ct = default)
     {
-        if (page < 1) page = 1;
-        if (pageSize < 1) pageSize = 1;
-        if (pageSize > 100) pageSize = 100;
+        page = Math.Max(1, page);
+        pageSize = PaginationDefaults.ClampPageSize(pageSize);
 
         var query = _db.EvalReports.Where(r => r.TenantId == tenantId);
 

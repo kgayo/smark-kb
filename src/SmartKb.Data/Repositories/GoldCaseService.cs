@@ -69,7 +69,7 @@ public sealed class GoldCaseService : IGoldCaseService
 
     public async Task<GoldCaseListResponse> ListAsync(string tenantId, string? tag = null, int page = 1, int pageSize = 20, CancellationToken ct = default)
     {
-        pageSize = Math.Clamp(pageSize, 1, 100);
+        pageSize = PaginationDefaults.ClampPageSize(pageSize);
         page = Math.Max(1, page);
 
         var query = _db.GoldCases.Where(g => g.TenantId == tenantId);

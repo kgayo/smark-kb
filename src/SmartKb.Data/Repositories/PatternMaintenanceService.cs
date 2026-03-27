@@ -187,7 +187,7 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
         string tenantId, string? status, string? taskType, int page, int pageSize, CancellationToken ct = default)
     {
         page = Math.Max(1, page);
-        pageSize = Math.Clamp(pageSize, 1, 100);
+        pageSize = PaginationDefaults.ClampPageSize(pageSize);
 
         var query = _db.PatternMaintenanceTasks
             .Where(t => t.TenantId == tenantId);

@@ -46,7 +46,7 @@ public sealed class PatternGovernanceService : IPatternGovernanceService
         int page = 1, int pageSize = 20, CancellationToken ct = default)
     {
         page = Math.Max(1, page);
-        pageSize = Math.Clamp(pageSize, 1, 100);
+        pageSize = PaginationDefaults.ClampPageSize(pageSize);
 
         var query = _db.CasePatterns
             .Where(p => p.TenantId == tenantId);
