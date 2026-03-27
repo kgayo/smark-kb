@@ -288,21 +288,7 @@ public sealed class ConnectorAdminService
         _db.SyncRuns.Add(syncRun);
         await _db.SaveChangesAsync(ct);
 
-        var message = new SyncJobMessage
-        {
-            SyncRunId = syncRun.Id,
-            ConnectorId = entity.Id,
-            TenantId = tenantId,
-            ConnectorType = entity.ConnectorType,
-            IsBackfill = request.IsBackfill,
-            SourceConfig = entity.SourceConfig,
-            FieldMapping = entity.FieldMapping,
-            KeyVaultSecretName = entity.KeyVaultSecretName,
-            AuthType = entity.AuthType,
-            Checkpoint = lastCheckpoint,
-            CorrelationId = correlationId,
-            EnqueuedAt = DateTimeOffset.UtcNow,
-        };
+        var message = entity.ToSyncJobMessage(syncRun.Id, lastCheckpoint, correlationId, isBackfill: request.IsBackfill);
 
         await _syncJobPublisher.PublishAsync(message, ct);
 

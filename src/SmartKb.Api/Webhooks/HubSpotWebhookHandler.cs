@@ -164,21 +164,7 @@ public sealed class HubSpotWebhookHandler
         _db.SyncRuns.Add(syncRun);
         await _db.SaveChangesAsync(cancellationToken);
 
-        var message = new SyncJobMessage
-        {
-            SyncRunId = syncRun.Id,
-            ConnectorId = connector.Id,
-            TenantId = connector.TenantId,
-            ConnectorType = connector.ConnectorType,
-            IsBackfill = false,
-            SourceConfig = connector.SourceConfig,
-            FieldMapping = connector.FieldMapping,
-            KeyVaultSecretName = connector.KeyVaultSecretName,
-            AuthType = connector.AuthType,
-            Checkpoint = lastCheckpoint,
-            CorrelationId = correlationId,
-            EnqueuedAt = DateTimeOffset.UtcNow,
-        };
+        var message = connector.ToSyncJobMessage(syncRun.Id, lastCheckpoint, correlationId);
 
         await _syncJobPublisher.PublishAsync(message, cancellationToken);
 

@@ -115,21 +115,7 @@ public sealed class WebhookPollingFallbackService : BackgroundService
 
                 db.SyncRuns.Add(syncRun);
 
-                var message = new SyncJobMessage
-                {
-                    SyncRunId = syncRun.Id,
-                    ConnectorId = connector.Id,
-                    TenantId = connector.TenantId,
-                    ConnectorType = connector.ConnectorType,
-                    IsBackfill = false,
-                    SourceConfig = connector.SourceConfig,
-                    FieldMapping = connector.FieldMapping,
-                    KeyVaultSecretName = connector.KeyVaultSecretName,
-                    AuthType = connector.AuthType,
-                    Checkpoint = lastCheckpoint,
-                    CorrelationId = correlationId,
-                    EnqueuedAt = now,
-                };
+                var message = connector.ToSyncJobMessage(syncRun.Id, lastCheckpoint, correlationId, enqueuedAt: now);
 
                 await syncPublisher.PublishAsync(message, cancellationToken);
 
