@@ -10,6 +10,13 @@ public class PaginationDefaultsTests
         Assert.Equal(1, PaginationDefaults.MinPageSize);
         Assert.Equal(100, PaginationDefaults.MaxPageSize);
         Assert.Equal(200, PaginationDefaults.AuditMaxPageSize);
+        Assert.Equal(20, PaginationDefaults.DefaultPageSize);
+        Assert.Equal(50, PaginationDefaults.AuditDefaultPageSize);
+        Assert.Equal(1000, PaginationDefaults.ExportDefaultLimit);
+        Assert.Equal(30, PaginationDefaults.DefaultDaysPeriod);
+        Assert.Equal(20, PaginationDefaults.DefaultMaxMessages);
+        Assert.Equal(1, PaginationDefaults.DefaultPage);
+        Assert.Equal(0, PaginationDefaults.DefaultSkip);
     }
 
     [Theory]

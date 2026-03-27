@@ -33,8 +33,8 @@ public static class AuditEndpoints
                 CorrelationId = correlationId,
                 From = from,
                 To = to,
-                Page = page ?? 1,
-                PageSize = pageSize ?? 50,
+                Page = page ?? PaginationDefaults.DefaultPage,
+                PageSize = pageSize ?? PaginationDefaults.AuditDefaultPageSize,
             };
             var result = await auditQuery.QueryAsync(tenant.TenantId, request, ct);
             return Results.Ok(ApiResponse<AuditEventListResponse>.Success(result, tenant.CorrelationId));
@@ -62,7 +62,7 @@ public static class AuditEndpoints
                 To = to,
                 AfterTimestamp = afterTimestamp,
                 AfterId = afterId,
-                Limit = limit ?? 1000,
+                Limit = limit ?? PaginationDefaults.ExportDefaultLimit,
             };
 
             httpContext.Response.ContentType = CustomMediaTypes.Ndjson;

@@ -24,7 +24,7 @@ public static class EvalEndpoints
             var ct = httpContext.RequestAborted;
             var evalReportService = httpContext.RequestServices.GetRequiredService<IEvalReportService>();
             var result = await evalReportService.ListReportsAsync(
-                tenant.TenantId, runType, page ?? 1, pageSize ?? 20, ct);
+                tenant.TenantId, runType, page ?? PaginationDefaults.DefaultPage, pageSize ?? PaginationDefaults.DefaultPageSize, ct);
             return Results.Ok(ApiResponse<EvalReportListResponse>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
@@ -66,7 +66,7 @@ public static class EvalEndpoints
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var svc = httpContext.RequestServices.GetRequiredService<IGoldCaseService>();
-            var result = await svc.ListAsync(tenant.TenantId, tag, page ?? 1, pageSize ?? 20, ct);
+            var result = await svc.ListAsync(tenant.TenantId, tag, page ?? PaginationDefaults.DefaultPage, pageSize ?? PaginationDefaults.DefaultPageSize, ct);
             return Results.Ok(ApiResponse<GoldCaseListResponse>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 

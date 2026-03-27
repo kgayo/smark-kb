@@ -45,6 +45,9 @@ public static class ResponseMessages
     public const string NoCustomPiiPolicy = "No custom PII policy found.";
     public const string RecommendationNotPending = "Recommendation not found or not pending.";
 
+    // Service-level error messages (shared across endpoint null guards).
+    public const string UnexpectedNullResponse = "Unexpected null response from service.";
+
     /// <summary>
     /// Actor ID used for system-initiated audit events (webhooks, background services).
     /// </summary>

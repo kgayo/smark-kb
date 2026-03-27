@@ -49,6 +49,7 @@ public sealed class ResponseMessagesTests
     [InlineData(nameof(ResponseMessages.DeletionRequestNotFound), "Deletion request not found.")]
     [InlineData(nameof(ResponseMessages.SyncRunNotFound), "Sync run not found.")]
     [InlineData(nameof(ResponseMessages.FeedbackNotFound), "Feedback not found.")]
+    [InlineData(nameof(ResponseMessages.UnexpectedNullResponse), "Unexpected null response from service.")]
     public void ExpectedConstants_HaveCorrectValues(string fieldName, string expectedValue)
     {
         var field = typeof(ResponseMessages).GetField(fieldName, BindingFlags.Public | BindingFlags.Static);

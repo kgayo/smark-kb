@@ -177,7 +177,7 @@ public static class PrivacyEndpoints
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await retentionService.GetExecutionHistoryAsync(
-                tenant.TenantId, entityType, skip ?? 0, take ?? 50, ct);
+                tenant.TenantId, entityType, skip ?? PaginationDefaults.DefaultSkip, take ?? PaginationDefaults.AuditDefaultPageSize, ct);
             return Results.Ok(ApiResponse<RetentionExecutionHistoryResponse>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.PrivacyManage);
 

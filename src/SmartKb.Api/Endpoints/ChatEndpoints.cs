@@ -272,7 +272,7 @@ public static class ChatEndpoints
             if (notFound)
                 return Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.EscalationDraftNotFound, tenant.CorrelationId));
             if (response is null)
-                return Results.Problem("Unexpected null response from service.", statusCode: StatusCodes.Status500InternalServerError);
+                return Results.Problem(ResponseMessages.UnexpectedNullResponse, statusCode: StatusCodes.Status500InternalServerError);
 
             return Results.Ok(ApiResponse<EscalationDraftResponse>.Success(response, tenant.CorrelationId));
         }).RequirePermission(Permissions.ChatQuery);

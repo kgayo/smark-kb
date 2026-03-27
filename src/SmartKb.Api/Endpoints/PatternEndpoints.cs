@@ -89,7 +89,7 @@ public static class PatternEndpoints
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
             var result = await governanceService.GetGovernanceQueueAsync(
-                tenant.TenantId, trustLevel, productArea, page ?? 1, pageSize ?? 20, ct);
+                tenant.TenantId, trustLevel, productArea, page ?? PaginationDefaults.DefaultPage, pageSize ?? PaginationDefaults.DefaultPageSize, ct);
             return Results.Ok(ApiResponse<PatternGovernanceQueueResponse>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.PatternApprove);
 
@@ -209,7 +209,7 @@ public static class PatternEndpoints
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var result = await contradictionService.GetContradictionsAsync(
-                tenant.TenantId, status, page ?? 1, pageSize ?? 20, httpContext.RequestAborted);
+                tenant.TenantId, status, page ?? PaginationDefaults.DefaultPage, pageSize ?? PaginationDefaults.DefaultPageSize, httpContext.RequestAborted);
             return Results.Ok(ApiResponse<ContradictionListResponse>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.PatternApprove);
 
@@ -250,7 +250,7 @@ public static class PatternEndpoints
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var result = await maintenanceService.GetMaintenanceTasksAsync(
-                tenant.TenantId, status, taskType, page ?? 1, pageSize ?? 20, httpContext.RequestAborted);
+                tenant.TenantId, status, taskType, page ?? PaginationDefaults.DefaultPage, pageSize ?? PaginationDefaults.DefaultPageSize, httpContext.RequestAborted);
             return Results.Ok(ApiResponse<MaintenanceTaskListResponse>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.PatternApprove);
 

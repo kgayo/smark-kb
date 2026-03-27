@@ -58,7 +58,7 @@ public static class CostEndpoints
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
-            var periodDays = days ?? 30;
+            var periodDays = days ?? PaginationDefaults.DefaultDaysPeriod;
             var periodEnd = DateTimeOffset.UtcNow;
             var periodStart = periodEnd.AddDays(-periodDays);
             var result = await tokenUsageService.GetSummaryAsync(tenant.TenantId, periodStart, periodEnd, ct);
@@ -73,7 +73,7 @@ public static class CostEndpoints
         {
             var tenant = tenantAccessor.GetRequiredTenant();
             var ct = httpContext.RequestAborted;
-            var periodDays = days ?? 30;
+            var periodDays = days ?? PaginationDefaults.DefaultDaysPeriod;
             var periodEnd = DateTimeOffset.UtcNow;
             var periodStart = periodEnd.AddDays(-periodDays);
             var result = await tokenUsageService.GetDailyBreakdownAsync(tenant.TenantId, periodStart, periodEnd, ct);

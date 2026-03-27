@@ -101,7 +101,7 @@ public static class DiagnosticsEndpoints
                     tenant.CorrelationId));
 
             var maxParam = httpContext.Request.Query["maxMessages"].FirstOrDefault();
-            var maxMessages = int.TryParse(maxParam, out var m) ? m : 20;
+            var maxMessages = int.TryParse(maxParam, out var m) ? m : PaginationDefaults.DefaultMaxMessages;
             var result = await dlService.PeekAsync(maxMessages, ct);
             return Results.Ok(ApiResponse<DeadLetterListResponse>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);

@@ -39,7 +39,7 @@ public static class ConnectorAdminEndpoints
                     string.Join("; ", validation.Errors), tenant.CorrelationId));
 
             if (response is null)
-                return Results.Problem("Unexpected null response from service.", statusCode: StatusCodes.Status500InternalServerError);
+                return Results.Problem(ResponseMessages.UnexpectedNullResponse, statusCode: StatusCodes.Status500InternalServerError);
 
             return Results.Created($"/api/admin/connectors/{response.Id}",
                 ApiResponse<ConnectorResponse>.Success(response, tenant.CorrelationId));
@@ -78,7 +78,7 @@ public static class ConnectorAdminEndpoints
                     string.Join("; ", validation.Errors), tenant.CorrelationId));
 
             if (response is null)
-                return Results.Problem("Unexpected null response from service.", statusCode: StatusCodes.Status500InternalServerError);
+                return Results.Problem(ResponseMessages.UnexpectedNullResponse, statusCode: StatusCodes.Status500InternalServerError);
 
             return Results.Ok(ApiResponse<ConnectorResponse>.Success(response, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
@@ -116,7 +116,7 @@ public static class ConnectorAdminEndpoints
                     string.Join("; ", validation.Errors), tenant.CorrelationId));
 
             if (response is null)
-                return Results.Problem("Unexpected null response from service.", statusCode: StatusCodes.Status500InternalServerError);
+                return Results.Problem(ResponseMessages.UnexpectedNullResponse, statusCode: StatusCodes.Status500InternalServerError);
 
             return Results.Ok(ApiResponse<ConnectorResponse>.Success(response, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
@@ -136,7 +136,7 @@ public static class ConnectorAdminEndpoints
                 return Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.ConnectorNotFound, tenant.CorrelationId));
 
             if (response is null)
-                return Results.Problem("Unexpected null response from service.", statusCode: StatusCodes.Status500InternalServerError);
+                return Results.Problem(ResponseMessages.UnexpectedNullResponse, statusCode: StatusCodes.Status500InternalServerError);
 
             return Results.Ok(ApiResponse<ConnectorResponse>.Success(response, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
@@ -284,7 +284,7 @@ public static class ConnectorAdminEndpoints
                 return Results.BadRequest(ApiResponse<object>.Failure(ResponseMessages.InvalidOrExpiredStateParameter, tenant.CorrelationId));
 
             if (response is null)
-                return Results.Problem("Unexpected null response from service.", statusCode: StatusCodes.Status500InternalServerError);
+                return Results.Problem(ResponseMessages.UnexpectedNullResponse, statusCode: StatusCodes.Status500InternalServerError);
 
             return Results.Ok(ApiResponse<OAuthCallbackResponse>.Success(response, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
