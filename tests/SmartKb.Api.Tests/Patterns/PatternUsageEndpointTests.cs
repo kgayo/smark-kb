@@ -35,6 +35,7 @@ public class PatternUsageEndpointTests : IAsyncLifetime
     {
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<SmartKbDbContext>();
+        var createdAt = DateTimeOffset.UtcNow.AddDays(-daysAgo);
         db.Set<AnswerTraceEntity>().Add(new AnswerTraceEntity
         {
             Id = Guid.NewGuid(),
@@ -49,7 +50,8 @@ public class PatternUsageEndpointTests : IAsyncLifetime
             RetrievedChunkIds = "[]",
             HasEvidence = true,
             SystemPromptVersion = "v1",
-            CreatedAt = DateTimeOffset.UtcNow.AddDays(-daysAgo),
+            CreatedAt = createdAt,
+            CreatedAtEpoch = createdAt.ToUnixTimeSeconds(),
         });
         await db.SaveChangesAsync();
     }

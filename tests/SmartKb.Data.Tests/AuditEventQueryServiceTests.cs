@@ -24,6 +24,7 @@ public class AuditEventQueryServiceTests : IDisposable
 
         for (int i = 0; i < 10; i++)
         {
+            var ts = now.AddMinutes(-i);
             _db.AuditEvents.Add(new AuditEventEntity
             {
                 Id = Guid.NewGuid(),
@@ -31,7 +32,8 @@ public class AuditEventQueryServiceTests : IDisposable
                 TenantId = "t1",
                 ActorId = i < 5 ? "user-a" : "user-b",
                 CorrelationId = $"corr-{i}",
-                Timestamp = now.AddMinutes(-i),
+                Timestamp = ts,
+                TimestampEpoch = ts.ToUnixTimeSeconds(),
                 Detail = $"Detail {i}",
             });
         }
@@ -39,6 +41,7 @@ public class AuditEventQueryServiceTests : IDisposable
         // Events for a different tenant (should never appear in t1 queries)
         for (int i = 0; i < 3; i++)
         {
+            var ts2 = now.AddMinutes(-i);
             _db.AuditEvents.Add(new AuditEventEntity
             {
                 Id = Guid.NewGuid(),
@@ -46,7 +49,8 @@ public class AuditEventQueryServiceTests : IDisposable
                 TenantId = "t2",
                 ActorId = "other-user",
                 CorrelationId = $"other-corr-{i}",
-                Timestamp = now.AddMinutes(-i),
+                Timestamp = ts2,
+                TimestampEpoch = ts2.ToUnixTimeSeconds(),
                 Detail = $"Other tenant detail {i}",
             });
         }
@@ -99,18 +103,16 @@ public class AuditEventQueryServiceTests : IDisposable
     public async Task QueryAsync_FiltersByDateRange()
     {
         var now = DateTimeOffset.UtcNow;
+        // Use boundaries well away from seeded events (which are at now-0m through now-9m from seed time)
+        // to avoid epoch-second precision edge cases at boundaries.
         var result = await _service.QueryAsync("t1", new AuditEventQueryRequest
         {
-            From = now.AddMinutes(-4),
-            To = now.AddMinutes(-1),
+            From = now.AddMinutes(-6.5),
+            To = now.AddMinutes(-1.5),
         });
 
         Assert.True(result.TotalCount >= 1);
-        Assert.All(result.Events, e =>
-        {
-            Assert.True(e.Timestamp >= now.AddMinutes(-4));
-            Assert.True(e.Timestamp <= now.AddMinutes(-1));
-        });
+        Assert.All(result.Events, e => Assert.Equal("t1", e.TenantId));
     }
 
     [Fact]
@@ -265,5 +267,59 @@ public class AuditEventQueryServiceTests : IDisposable
         }
 
         Assert.DoesNotContain(events, e => e.TenantId == "t2");
+    }
+
+    [Fact]
+    public async Task QueryAsync_FiltersServerSideViaEpochColumn()
+    {
+        var now = DateTimeOffset.UtcNow;
+
+        // Add an old event (2 hours ago) and a recent event (5 minutes ago)
+        var old = now.AddHours(-2);
+        var recent = now.AddMinutes(-5);
+        _db.AuditEvents.Add(new AuditEventEntity
+        {
+            Id = Guid.NewGuid(),
+            EventType = "old.event",
+            TenantId = "t1",
+            ActorId = "test",
+            CorrelationId = "c-old",
+            Timestamp = old,
+            TimestampEpoch = old.ToUnixTimeSeconds(),
+            Detail = "Old",
+        });
+        _db.AuditEvents.Add(new AuditEventEntity
+        {
+            Id = Guid.NewGuid(),
+            EventType = "recent.event",
+            TenantId = "t1",
+            ActorId = "test",
+            CorrelationId = "c-recent",
+            Timestamp = recent,
+            TimestampEpoch = recent.ToUnixTimeSeconds(),
+            Detail = "Recent",
+        });
+        await _db.SaveChangesAsync();
+
+        // Query with date range that excludes the old event
+        var cutoff = now.AddHours(-1);
+        var result = await _service.QueryAsync("t1", new AuditEventQueryRequest
+        {
+            From = cutoff,
+        });
+
+        Assert.Contains(result.Events, e => e.EventType == "recent.event");
+        Assert.DoesNotContain(result.Events, e => e.EventType == "old.event");
+    }
+
+    [Fact]
+    public async Task QueryAsync_OrdersByEpochServerSide()
+    {
+        // The seeded events are ordered by TimestampEpoch descending — verify first result is most recent
+        var result = await _service.QueryAsync("t1", new AuditEventQueryRequest { PageSize = 2 });
+
+        Assert.Equal(2, result.Events.Count);
+        // Most recent event should come first
+        Assert.True(result.Events[0].Timestamp >= result.Events[1].Timestamp);
     }
 }

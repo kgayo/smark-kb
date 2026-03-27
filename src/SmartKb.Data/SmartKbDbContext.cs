@@ -223,6 +223,7 @@ public class SmartKbDbContext : DbContext
             e.Property(o => o.EscalationTraceId).HasMaxLength(128);
             e.HasIndex(o => o.TenantId);
             e.HasIndex(o => o.SessionId);
+            e.HasIndex(o => new { o.TenantId, o.CreatedAtEpoch });
             e.HasOne(o => o.Session).WithMany(s => s.OutcomeEvents).HasForeignKey(o => o.SessionId).OnDelete(DeleteBehavior.Restrict);
         });
     }
@@ -694,6 +695,7 @@ public class SmartKbDbContext : DbContext
             e.Property(r => r.TriggeredBy).HasMaxLength(128).IsRequired();
             e.HasIndex(r => r.TenantId);
             e.HasIndex(r => new { r.TenantId, r.CreatedAt });
+            e.HasIndex(r => new { r.TenantId, r.CreatedAtEpoch });
             e.HasIndex(r => new { r.TenantId, r.RunType });
             e.HasOne(r => r.Tenant).WithMany().HasForeignKey(r => r.TenantId);
         });

@@ -15,5 +15,8 @@ public sealed class OutcomeEventEntity
     public string? EscalationTraceId { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 
+    /// <summary>Unix epoch seconds of <see cref="CreatedAt"/>. Enables server-side filtering in SQLite (which cannot compare DateTimeOffset).</summary>
+    public long CreatedAtEpoch { get; set; }
+
     public SessionEntity Session { get; set; } = null!;
 }

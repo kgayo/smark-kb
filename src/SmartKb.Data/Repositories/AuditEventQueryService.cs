@@ -32,25 +32,18 @@ public sealed class AuditEventQueryService : IAuditEventQueryService
             .Where(e => e.TenantId == tenantId);
 
         query = ApplyStringFilters(query, request.EventType, request.ActorId, request.CorrelationId);
+        query = ApplyEpochDateFilters(query, request.From, request.To);
 
-        var entities = await query.ToListAsync(cancellationToken);
+        var totalCount = await query.CountAsync(cancellationToken);
 
-        // Date range and ordering applied client-side (DateTimeOffset not sortable/comparable in SQLite)
-        IEnumerable<AuditEventEntity> filtered = entities;
-        filtered = ApplyDateFilters(filtered, request.From, request.To);
-
-        var sorted = filtered
-            .OrderByDescending(e => e.Timestamp)
+        var entities = await query
+            .OrderByDescending(e => e.TimestampEpoch)
             .ThenByDescending(e => e.Id)
-            .ToList();
-
-        var totalCount = sorted.Count;
-
-        var events = sorted
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(MapToResponse)
-            .ToList();
+            .ToListAsync(cancellationToken);
+
+        var events = entities.Select(MapToResponse).ToList();
 
         _logger.LogInformation(
             "Audit query: tenant={TenantId}, eventType={EventType}, page={Page}, returned={Count}/{Total}",
@@ -77,31 +70,30 @@ public sealed class AuditEventQueryService : IAuditEventQueryService
             .Where(e => e.TenantId == tenantId);
 
         query = ApplyStringFilters(query, cursor.EventType, cursor.ActorId, correlationId: null);
-
-        var entities = await query.ToListAsync(cancellationToken);
-
-        IEnumerable<AuditEventEntity> filtered = ApplyDateFilters(entities, cursor.From, cursor.To);
-
-        var sorted = filtered
-            .OrderByDescending(e => e.Timestamp)
-            .ThenByDescending(e => e.Id);
+        query = ApplyEpochDateFilters(query, cursor.From, cursor.To);
 
         // Cursor-based pagination: events after the cursor position
-        IEnumerable<AuditEventEntity> cursored = sorted;
         if (cursor.AfterTimestamp.HasValue && cursor.AfterId.HasValue)
         {
-            var afterTs = cursor.AfterTimestamp.Value;
+            var afterEpoch = cursor.AfterTimestamp.Value.ToUnixTimeSeconds();
             var afterId = cursor.AfterId.Value;
-            cursored = sorted.Where(e =>
-                e.Timestamp < afterTs ||
-                (e.Timestamp == afterTs && e.Id.CompareTo(afterId) < 0));
+            query = query.Where(e =>
+                e.TimestampEpoch < afterEpoch ||
+                (e.TimestampEpoch == afterEpoch && e.Id.CompareTo(afterId) < 0));
         }
         else if (cursor.AfterTimestamp.HasValue)
         {
-            cursored = sorted.Where(e => e.Timestamp < cursor.AfterTimestamp.Value);
+            var afterEpoch = cursor.AfterTimestamp.Value.ToUnixTimeSeconds();
+            query = query.Where(e => e.TimestampEpoch < afterEpoch);
         }
 
-        var results = cursored.Take(limit).Select(MapToResponse).ToList();
+        var entities = await query
+            .OrderByDescending(e => e.TimestampEpoch)
+            .ThenByDescending(e => e.Id)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+
+        var results = entities.Select(MapToResponse).ToList();
 
         _logger.LogInformation(
             "Audit export: tenant={TenantId}, cursor={AfterTimestamp}, returned={Count}",
@@ -142,17 +134,23 @@ public sealed class AuditEventQueryService : IAuditEventQueryService
         return query;
     }
 
-    private static IEnumerable<AuditEventEntity> ApplyDateFilters(
-        IEnumerable<AuditEventEntity> events,
+    private static IQueryable<AuditEventEntity> ApplyEpochDateFilters(
+        IQueryable<AuditEventEntity> query,
         DateTimeOffset? from,
         DateTimeOffset? to)
     {
         if (from.HasValue)
-            events = events.Where(e => e.Timestamp >= from.Value);
+        {
+            var fromEpoch = from.Value.ToUnixTimeSeconds();
+            query = query.Where(e => e.TimestampEpoch >= fromEpoch);
+        }
 
         if (to.HasValue)
-            events = events.Where(e => e.Timestamp <= to.Value);
+        {
+            var toEpoch = to.Value.ToUnixTimeSeconds();
+            query = query.Where(e => e.TimestampEpoch <= toEpoch);
+        }
 
-        return events;
+        return query;
     }
 }

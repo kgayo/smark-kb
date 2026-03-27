@@ -36,13 +36,15 @@ public class RoutingAnalyticsServiceTests : IDisposable
 
     private SessionEntity SeedSession(string tenantId = "t1", string userId = "u1")
     {
+        var now = DateTimeOffset.UtcNow;
         var session = new SessionEntity
         {
             Id = Guid.NewGuid(),
             TenantId = tenantId,
             UserId = userId,
-            CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow,
+            CreatedAt = now,
+            CreatedAtEpoch = now.ToUnixTimeSeconds(),
+            UpdatedAt = now,
         };
         _db.Sessions.Add(session);
         _db.SaveChanges();
@@ -66,6 +68,7 @@ public class RoutingAnalyticsServiceTests : IDisposable
             TimeToAssign = timeToAssign,
             TimeToResolve = timeToResolve,
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         });
         _db.SaveChanges();
     }
@@ -167,6 +170,7 @@ public class RoutingAnalyticsServiceTests : IDisposable
             TargetTeam = "Sales",
             Acceptance = true,
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         });
         _db.SaveChanges();
 
@@ -183,6 +187,7 @@ public class RoutingAnalyticsServiceTests : IDisposable
         var session = SeedSession();
 
         // Add an old outcome (60 days ago).
+        var oldDate = DateTimeOffset.UtcNow.AddDays(-60);
         _db.OutcomeEvents.Add(new OutcomeEventEntity
         {
             Id = Guid.NewGuid(),
@@ -190,7 +195,8 @@ public class RoutingAnalyticsServiceTests : IDisposable
             TenantId = "t1",
             ResolutionType = ResolutionType.Escalated,
             TargetTeam = "Old",
-            CreatedAt = DateTimeOffset.UtcNow.AddDays(-60),
+            CreatedAt = oldDate,
+            CreatedAtEpoch = oldDate.ToUnixTimeSeconds(),
         });
         SeedOutcome(session.Id, ResolutionType.Escalated, "New", true);
 
@@ -254,5 +260,46 @@ public class RoutingAnalyticsServiceTests : IDisposable
         Assert.Equal(1, area.ReroutedCount);
         Assert.Equal(0.5f, area.AcceptanceRate);
         Assert.Equal(0.5f, area.RerouteRate);
+    }
+
+    [Fact]
+    public async Task GetAnalytics_FiltersServerSideViaEpochColumn()
+    {
+        var session = SeedSession();
+        var now = DateTimeOffset.UtcNow;
+
+        // In-window outcome (5 days ago) — should be included
+        var recent = now.AddDays(-5);
+        _db.OutcomeEvents.Add(new OutcomeEventEntity
+        {
+            Id = Guid.NewGuid(),
+            SessionId = session.Id,
+            TenantId = "t1",
+            ResolutionType = ResolutionType.Escalated,
+            TargetTeam = "InWindow",
+            CreatedAt = recent,
+            CreatedAtEpoch = recent.ToUnixTimeSeconds(),
+        });
+
+        // Out-of-window outcome (45 days ago) — should be excluded by epoch filter
+        var old = now.AddDays(-45);
+        _db.OutcomeEvents.Add(new OutcomeEventEntity
+        {
+            Id = Guid.NewGuid(),
+            SessionId = session.Id,
+            TenantId = "t1",
+            ResolutionType = ResolutionType.Escalated,
+            TargetTeam = "OutOfWindow",
+            CreatedAt = old,
+            CreatedAtEpoch = old.ToUnixTimeSeconds(),
+        });
+
+        _db.SaveChanges();
+
+        var result = await _service.GetAnalyticsAsync("t1", windowDays: 30);
+
+        Assert.Equal(1, result.TotalOutcomes);
+        Assert.Single(result.TeamMetrics);
+        Assert.Equal("InWindow", result.TeamMetrics[0].TargetTeam);
     }
 }

@@ -48,6 +48,7 @@ public sealed class EvalReportService : IEvalReportService
             ViolationCount = request.ViolationCount,
             TriggeredBy = actorId,
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         };
 
         _db.EvalReports.Add(entity);
@@ -123,18 +124,17 @@ public sealed class EvalReportService : IEvalReportService
 
         var totalCount = await query.CountAsync(ct);
 
-        // Load all and sort in memory (DateTimeOffset ordering not translatable to SQLite).
-        var allReports = await query.ToListAsync(ct);
-        var reports = allReports
-            .OrderByDescending(r => r.CreatedAt)
+        var reports = await query
+            .OrderByDescending(r => r.CreatedAtEpoch)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(MapToSummary)
-            .ToList();
+            .ToListAsync(ct);
+
+        var mappedReports = reports.Select(MapToSummary).ToList();
 
         return new EvalReportListResponse
         {
-            Reports = reports,
+            Reports = mappedReports,
             TotalCount = totalCount,
             Page = page,
             PageSize = pageSize,

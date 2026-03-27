@@ -404,7 +404,7 @@ public sealed class ConnectorAdminService
             .Where(c => c.ConnectorId == connectorId && c.TenantId == tenantId)
             .Where(c => c.ChunkText.ToLower().Contains(queryLower)
                      || c.Title.ToLower().Contains(queryLower))
-            .OrderByDescending(c => c.UpdatedAt)
+            .OrderByDescending(c => c.CreatedAtEpoch)
             .Take(maxResults)
             .ToListAsync(ct);
 

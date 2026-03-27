@@ -32,17 +32,15 @@ public sealed class PatternUsageMetricsService : IPatternUsageMetricsService
     {
         var now = _time.GetUtcNow();
         var cutoff90 = now.AddDays(-90);
+        var cutoff90Epoch = cutoff90.ToUnixTimeSeconds();
 
-        // Load answer traces for this tenant, then filter by date in memory.
-        // In-memory filtering avoids SQLite DateTimeOffset translation issues
-        // and is required anyway for CitedChunkIds JSON column parsing.
-        var allTraces = await _db.Set<AnswerTraceEntity>()
+        // Filter by tenant + 90-day window server-side via epoch column (SQLite cannot compare DateTimeOffset).
+        // CitedChunkIds JSON column parsing still requires in-memory iteration.
+        var traces = await _db.Set<AnswerTraceEntity>()
             .AsNoTracking()
-            .Where(t => t.TenantId == tenantId)
+            .Where(t => t.TenantId == tenantId && t.CreatedAtEpoch >= cutoff90Epoch)
             .Select(t => new { t.CitedChunkIds, t.UserId, t.Confidence, t.CreatedAt })
             .ToListAsync(ct);
-
-        var traces = allTraces.Where(t => t.CreatedAt >= cutoff90).ToList();
 
         var cutoff7 = now.AddDays(-7);
         var cutoff30 = now.AddDays(-30);

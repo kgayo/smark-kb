@@ -57,6 +57,7 @@ public class PatternUsageMetricsServiceTests : IDisposable
             HasEvidence = true,
             SystemPromptVersion = "v1",
             CreatedAt = createdAt,
+            CreatedAtEpoch = createdAt.ToUnixTimeSeconds(),
         });
         _db.SaveChanges();
     }
@@ -234,6 +235,7 @@ public class PatternUsageMetricsServiceTests : IDisposable
             HasEvidence = true,
             SystemPromptVersion = "v1",
             CreatedAt = now.AddHours(-1),
+            CreatedAtEpoch = now.AddHours(-1).ToUnixTimeSeconds(),
         });
         _db.SaveChanges();
 
@@ -266,5 +268,41 @@ public class PatternUsageMetricsServiceTests : IDisposable
     public void ExtractPatternIds_MalformedJson_ReturnsEmpty()
     {
         Assert.Empty(_service.ExtractPatternIds("not json"));
+    }
+
+    [Fact]
+    public async Task GetUsageAsync_FiltersServerSideViaEpochColumn()
+    {
+        var now = _time.GetUtcNow();
+
+        // Add trace within 90-day window (10 days ago)
+        AddTrace(TenantId, PatternId, "user-1", 0.8f, now.AddDays(-10));
+
+        // Add trace outside 90-day window (100 days ago)
+        var old = now.AddDays(-100);
+        _db.Set<AnswerTraceEntity>().Add(new AnswerTraceEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = TenantId,
+            UserId = "user-2",
+            CorrelationId = Guid.NewGuid().ToString(),
+            Query = "test",
+            ResponseType = "answer",
+            Confidence = 0.7f,
+            ConfidenceLabel = "Medium",
+            CitedChunkIds = $"""["{PatternId}"]""",
+            RetrievedChunkIds = "[]",
+            HasEvidence = true,
+            SystemPromptVersion = "v1",
+            CreatedAt = old,
+            CreatedAtEpoch = old.ToUnixTimeSeconds(),
+        });
+        _db.SaveChanges();
+
+        var result = await _service.GetUsageAsync(TenantId, PatternId);
+
+        // Only the in-window trace should count
+        Assert.Equal(1, result.TotalCitations);
+        Assert.Equal(1, result.UniqueUsers);
     }
 }

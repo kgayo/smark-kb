@@ -48,6 +48,7 @@ public sealed class OutcomeService : IOutcomeService
             TimeToResolve = request.TimeToResolve,
             EscalationTraceId = request.EscalationTraceId,
             CreatedAt = now,
+            CreatedAtEpoch = now.ToUnixTimeSeconds(),
         };
 
         _db.OutcomeEvents.Add(outcome);

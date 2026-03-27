@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using SmartKb.Contracts;
 using SmartKb.Contracts.Models;
@@ -244,6 +245,34 @@ public class EvalReportServiceTests : IDisposable
     {
         var result = EvalReportService.DeserializeBaseline(null);
         Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task ListReports_OrdersServerSideViaEpochColumn()
+    {
+        // Persist 3 reports sequentially — ListReports should return newest first
+        await _service.PersistReportAsync("t1", MakeRequest("run-oldest"), "admin-1");
+        await _service.PersistReportAsync("t1", MakeRequest("run-middle"), "admin-1");
+        await _service.PersistReportAsync("t1", MakeRequest("run-newest"), "admin-1");
+
+        var result = await _service.ListReportsAsync("t1");
+
+        Assert.Equal(3, result.Reports.Count);
+        Assert.Equal("run-newest", result.Reports[0].RunId);
+        Assert.Equal("run-oldest", result.Reports[2].RunId);
+    }
+
+    [Fact]
+    public async Task PersistReport_SetsCreatedAtEpochConsistentWithCreatedAt()
+    {
+        await _service.PersistReportAsync("t1", MakeRequest(), "admin-1");
+
+        var entity = await _db.EvalReports.FirstAsync();
+
+        Assert.True(entity.CreatedAtEpoch > 0);
+        // Epoch should be within 2 seconds of CreatedAt conversion
+        var expectedEpoch = entity.CreatedAt.ToUnixTimeSeconds();
+        Assert.InRange(entity.CreatedAtEpoch, expectedEpoch - 2, expectedEpoch + 2);
     }
 
     private sealed class StubAuditWriter : IAuditEventWriter

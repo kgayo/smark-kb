@@ -32,10 +32,10 @@ public sealed class RoutingAnalyticsService : IRoutingAnalyticsService
         var now = DateTimeOffset.UtcNow;
         var windowStart = now.AddDays(-days);
 
-        var allOutcomes = await _db.OutcomeEvents
-            .Where(o => o.TenantId == tenantId)
+        var windowStartEpoch = windowStart.ToUnixTimeSeconds();
+        var outcomes = await _db.OutcomeEvents
+            .Where(o => o.TenantId == tenantId && o.CreatedAtEpoch >= windowStartEpoch)
             .ToListAsync(ct);
-        var outcomes = allOutcomes.Where(o => o.CreatedAt >= windowStart).ToList();
 
         var totalOutcomes = outcomes.Count;
         var escalated = outcomes.Where(o => o.ResolutionType == ResolutionType.Escalated).ToList();

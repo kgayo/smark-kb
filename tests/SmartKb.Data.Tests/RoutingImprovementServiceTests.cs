@@ -95,6 +95,7 @@ public class RoutingImprovementServiceTests : IDisposable
             Acceptance = acceptance,
             EscalationTraceId = draftId.ToString(),
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         });
         _db.SaveChanges();
         return draftId;
