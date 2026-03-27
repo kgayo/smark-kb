@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-27 (Asia/Manila) — iteration 230
-Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase 1: P0-001–P0-022; Phase 2: P1-001–P1-012, P2-001–P2-005; Phase 3: P3-001–P3-038 (all 38 items). Tests: T-001–T-008; ~3377 tests passing (2879 backend + 498 frontend). Spec clarification backlog: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. BUG-001–BUG-005 resolved. TECH-001–TECH-138 resolved. 293/293 checklist items complete, 0 remaining.
+Last updated: 2026-03-27 (Asia/Manila) — iteration 231
+Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase 1: P0-001–P0-022; Phase 2: P1-001–P1-012, P2-001–P2-005; Phase 3: P3-001–P3-038 (all 38 items). Tests: T-001–T-008; ~3378 tests passing (2880 backend + 498 frontend). Spec clarification backlog: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. BUG-001–BUG-005 resolved. TECH-001–TECH-139 resolved. 294/294 checklist items complete, 0 remaining.
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -626,6 +626,10 @@ Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase
 - [x] TECH-138: Extract 10 default page-size/limit magic numbers into `PaginationDefaults`, consolidate 12 duplicate "Unexpected null response" strings into `ResponseMessages.UnexpectedNullResponse`, extract `IndexMigrationEndpoints` service-null guard into helper method.
   - Root cause: 10 endpoint parameter defaults (`?? 20`, `?? 50`, `?? 1000`, `?? 30`, `?? 0`) were hardcoded magic numbers across `PatternEndpoints`, `EvalEndpoints`, `AuditEndpoints`, `CostEndpoints`, `PrivacyEndpoints`, `DiagnosticsEndpoints`. 12 instances of the string `"Unexpected null response from service."` duplicated across `SearchTokenEndpoints`, `ConnectorAdminEndpoints`, `ChatEndpoints`. 7 identical service-null guard blocks in `IndexMigrationEndpoints`.
   - Completed (iteration 230): Added `DefaultPageSize=20`, `AuditDefaultPageSize=50`, `ExportDefaultLimit=1000`, `DefaultDaysPeriod=30`, `DefaultMaxMessages=20`, `DefaultPage=1`, `DefaultSkip=0` to `PaginationDefaults`. Added `UnexpectedNullResponse` to `ResponseMessages`. Replaced all 10 magic-number sites across 6 endpoint files + all 12 hardcoded error strings across 3 endpoint files. Extracted `ServiceUnavailable()` helper in `IndexMigrationEndpoints`. 8 new constant assertions in `PaginationDefaultsTests` + 1 new `InlineData` in `ResponseMessagesTests`. All 2879 backend tests passing. Zero remaining default page-size magic numbers or inline "Unexpected null response" strings in endpoint files.
+
+- [x] TECH-139: Catch `ArgumentException` for invalid custom regex patterns in `PiiRedactionService`.
+  - Root cause: `PiiRedactionService.Redact` only caught `RegexMatchTimeoutException` when constructing `new Regex(custom.Pattern, ...)` for custom PII patterns. An invalid regex (e.g. `[invalid(regex`) would throw `ArgumentException`, crashing the entire redaction operation instead of gracefully skipping the invalid pattern.
+  - Completed (iteration 231): Added `catch (ArgumentException ex)` block with warning log alongside existing `RegexMatchTimeoutException` handler. 1 new test in `PolicyAwarePiiRedactionTests` verifies invalid-regex custom patterns are skipped while valid patterns and built-in types still apply.
 
 ### P0 Ingestion + Evidence Store MVP (continued)
 

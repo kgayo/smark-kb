@@ -295,4 +295,35 @@ public class PolicyAwareRedactPiiInChunksTests
         AllowedGroups = [],
         RrfScore = 0.5,
     };
+
+    [Fact]
+    public void Redact_WithInvalidRegexCustomPattern_SkipsAndContinues()
+    {
+        var policy = MakePolicy("redact", types: ["email"],
+            customPatterns:
+            [
+                new CustomPiiPattern
+                {
+                    Name = "bad_pattern",
+                    Pattern = @"[invalid(regex",
+                    Placeholder = "[REDACTED-BAD]",
+                },
+                new CustomPiiPattern
+                {
+                    Name = "order_id",
+                    Pattern = @"ORD-\d{8}",
+                    Placeholder = "[REDACTED-ORDER-ID]",
+                },
+            ]);
+        var text = "Order ORD-12345678 by user@test.com";
+
+        var result = _sut.Redact(text, policy);
+
+        // Invalid pattern skipped gracefully, valid patterns still applied.
+        Assert.Contains("[REDACTED-ORDER-ID]", result.RedactedText);
+        Assert.Contains("[REDACTED-EMAIL]", result.RedactedText);
+        Assert.DoesNotContain("ORD-12345678", result.RedactedText);
+        Assert.Equal(1, result.RedactionCounts["order_id"]);
+        Assert.False(result.RedactionCounts.ContainsKey("bad_pattern"));
+    }
 }

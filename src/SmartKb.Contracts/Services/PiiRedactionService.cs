@@ -103,6 +103,11 @@ public sealed partial class PiiRedactionService : IPiiRedactionService
                 // Skip patterns that time out — don't fail the entire redaction.
                 _logger?.LogWarning(ex, "PII custom regex pattern '{PatternName}' timed out and was skipped", custom.Name);
             }
+            catch (ArgumentException ex)
+            {
+                // Skip patterns with invalid regex syntax — don't fail the entire redaction.
+                _logger?.LogWarning(ex, "PII custom regex pattern '{PatternName}' has invalid syntax and was skipped", custom.Name);
+            }
         }
 
         return new PiiRedactionResult
