@@ -84,7 +84,10 @@ public static class SearchTokenEndpoints
                     return Results.UnprocessableEntity(ApiResponse<SynonymRuleValidationResult>.Failure(
                         string.Join("; ", validation.Errors), tenant.CorrelationId));
 
-                return Results.Ok(ApiResponse<SynonymRuleResponse>.Success(response!, tenant.CorrelationId));
+                if (response is null)
+                    return Results.Problem("Unexpected null response from service.", statusCode: StatusCodes.Status500InternalServerError);
+
+                return Results.Ok(ApiResponse<SynonymRuleResponse>.Success(response, tenant.CorrelationId));
             }
             catch (ConcurrencyConflictException ex)
             {
@@ -200,7 +203,10 @@ public static class SearchTokenEndpoints
                 if (validation is not null)
                     return Results.UnprocessableEntity(ApiResponse<object>.Failure(
                         string.Join("; ", validation.Errors), tenant.CorrelationId));
-                return Results.Ok(ApiResponse<StopWordResponse>.Success(response!, tenant.CorrelationId));
+                if (response is null)
+                    return Results.Problem("Unexpected null response from service.", statusCode: StatusCodes.Status500InternalServerError);
+
+                return Results.Ok(ApiResponse<StopWordResponse>.Success(response, tenant.CorrelationId));
             }
             catch (ConcurrencyConflictException ex)
             {
@@ -300,7 +306,10 @@ public static class SearchTokenEndpoints
                 if (validation is not null)
                     return Results.UnprocessableEntity(ApiResponse<object>.Failure(
                         string.Join("; ", validation.Errors), tenant.CorrelationId));
-                return Results.Ok(ApiResponse<SpecialTokenResponse>.Success(response!, tenant.CorrelationId));
+                if (response is null)
+                    return Results.Problem("Unexpected null response from service.", statusCode: StatusCodes.Status500InternalServerError);
+
+                return Results.Ok(ApiResponse<SpecialTokenResponse>.Success(response, tenant.CorrelationId));
             }
             catch (ConcurrencyConflictException ex)
             {

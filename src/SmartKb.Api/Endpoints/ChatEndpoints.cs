@@ -269,9 +269,12 @@ public static class ChatEndpoints
             var ct = httpContext.RequestAborted;
             var (response, notFound) = await escalationService.UpdateDraftAsync(
                 tenant.TenantId, tenant.UserId, draftId, request, ct);
-            return notFound
-                ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.EscalationDraftNotFound, tenant.CorrelationId))
-                : Results.Ok(ApiResponse<EscalationDraftResponse>.Success(response!, tenant.CorrelationId));
+            if (notFound)
+                return Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.EscalationDraftNotFound, tenant.CorrelationId));
+            if (response is null)
+                return Results.Problem("Unexpected null response from service.", statusCode: StatusCodes.Status500InternalServerError);
+
+            return Results.Ok(ApiResponse<EscalationDraftResponse>.Success(response, tenant.CorrelationId));
         }).RequirePermission(Permissions.ChatQuery);
 
         app.MapGet("/api/escalations/draft/{draftId:guid}/export", async (

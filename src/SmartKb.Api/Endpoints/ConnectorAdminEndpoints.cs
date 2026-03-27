@@ -77,7 +77,10 @@ public static class ConnectorAdminEndpoints
                 return Results.UnprocessableEntity(ApiResponse<ConnectorValidationResult>.Failure(
                     string.Join("; ", validation.Errors), tenant.CorrelationId));
 
-            return Results.Ok(ApiResponse<ConnectorResponse>.Success(response!, tenant.CorrelationId));
+            if (response is null)
+                return Results.Problem("Unexpected null response from service.", statusCode: StatusCodes.Status500InternalServerError);
+
+            return Results.Ok(ApiResponse<ConnectorResponse>.Success(response, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapDelete("/api/admin/connectors/{connectorId:guid}", async (
@@ -112,7 +115,10 @@ public static class ConnectorAdminEndpoints
                 return Results.UnprocessableEntity(ApiResponse<ConnectorValidationResult>.Failure(
                     string.Join("; ", validation.Errors), tenant.CorrelationId));
 
-            return Results.Ok(ApiResponse<ConnectorResponse>.Success(response!, tenant.CorrelationId));
+            if (response is null)
+                return Results.Problem("Unexpected null response from service.", statusCode: StatusCodes.Status500InternalServerError);
+
+            return Results.Ok(ApiResponse<ConnectorResponse>.Success(response, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPost("/api/admin/connectors/{connectorId:guid}/disable", async (
@@ -129,7 +135,10 @@ public static class ConnectorAdminEndpoints
             if (!found)
                 return Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.ConnectorNotFound, tenant.CorrelationId));
 
-            return Results.Ok(ApiResponse<ConnectorResponse>.Success(response!, tenant.CorrelationId));
+            if (response is null)
+                return Results.Problem("Unexpected null response from service.", statusCode: StatusCodes.Status500InternalServerError);
+
+            return Results.Ok(ApiResponse<ConnectorResponse>.Success(response, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPost("/api/admin/connectors/{connectorId:guid}/test", async (
@@ -274,7 +283,10 @@ public static class ConnectorAdminEndpoints
             if (invalidState)
                 return Results.BadRequest(ApiResponse<object>.Failure(ResponseMessages.InvalidOrExpiredStateParameter, tenant.CorrelationId));
 
-            return Results.Ok(ApiResponse<OAuthCallbackResponse>.Success(response!, tenant.CorrelationId));
+            if (response is null)
+                return Results.Problem("Unexpected null response from service.", statusCode: StatusCodes.Status500InternalServerError);
+
+            return Results.Ok(ApiResponse<OAuthCallbackResponse>.Success(response, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
         return app;
