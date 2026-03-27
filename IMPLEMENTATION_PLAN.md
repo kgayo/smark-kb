@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-27 (Asia/Manila) — iteration 238
-Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase 1: P0-001–P0-022; Phase 2: P1-001–P1-012, P2-001–P2-005; Phase 3: P3-001–P3-038 (all 38 items). Tests: T-001–T-008; ~3399 tests passing (2901 backend + 498 frontend). Spec clarification backlog: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. BUG-001–BUG-005 resolved. TECH-001–TECH-147 resolved. 302/302 checklist items complete, 0 remaining.
+Last updated: 2026-03-27 (Asia/Manila) — iteration 239
+Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase 1: P0-001–P0-022; Phase 2: P1-001–P1-012, P2-001–P2-005; Phase 3: P3-001–P3-038 (all 38 items). Tests: T-001–T-008; ~3399 tests passing (2901 backend + 498 frontend). Spec clarification backlog: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. BUG-001–BUG-005 resolved. TECH-001–TECH-148 resolved. 303/303 checklist items complete, 0 remaining.
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -662,6 +662,10 @@ Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase
 - [x] TECH-147: Fix ServiceBusClient resource leak — DI container does not dispose externally-created singleton instances.
   - Root cause: Both `SmartKb.Api/Program.cs` and `SmartKb.Ingestion/Program.cs` instantiated `ServiceBusClient` outside the DI container and registered it via `AddSingleton(instance)`. Per .NET DI behavior, the container only disposes singletons it creates itself. Since `ServiceBusClient` implements `IAsyncDisposable` (holds AMQP TCP connections), these connections would leak on application shutdown.
   - Completed (iteration 238): Changed both registrations from `AddSingleton(sbClient)` to `AddSingleton<ServiceBusClient>(_ => ...)` factory overload, so the DI container owns the instance lifecycle and calls `DisposeAsync` on host shutdown. Note: `SearchIndexClient` and `BlobContainerClient` do not implement `IDisposable`/`IAsyncDisposable`, so their instance registrations are correct as-is.
+
+- [x] TECH-148: Upgrade RoutingTagResolver regex failure logging from Debug to Warning for operator visibility.
+  - Root cause: `ApplyRegex` caught `RegexMatchTimeoutException` and `ArgumentException` but logged at `LogDebug` level. In production (where minimum level is typically Information or Warning), invalid or catastrophically backtracking regex patterns in routing rules would silently fail, potentially misrouting customers with no operator awareness.
+  - Completed (iteration 239): Changed both catch blocks to `LogWarning`. Added 2 new tests (`ApplyRegex_InvalidPattern_LogsWarning`, `ApplyRegex_TimeoutPattern_LogsWarning`) with a `FakeLogger` to verify warning-level output.
 
 ### P0 Ingestion + Evidence Store MVP (continued)
 

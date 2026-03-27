@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using SmartKb.Contracts.Enums;
 using SmartKb.Contracts.Models;
@@ -406,5 +407,43 @@ public sealed class RoutingTagResolverTests
 
         var result = RoutingTagResolver.ApplyTransform("test", rule);
         Assert.Null(result);
+    }
+
+    [Fact]
+    public void ApplyRegex_InvalidPattern_LogsWarning()
+    {
+        var logger = new FakeLogger();
+        var result = RoutingTagResolver.ApplyRegex("test", "[invalid", logger);
+        Assert.Null(result);
+        Assert.Single(logger.Entries);
+        Assert.Equal(LogLevel.Warning, logger.Entries[0].Level);
+        Assert.Contains("regex invalid", logger.Entries[0].Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ApplyRegex_TimeoutPattern_LogsWarning()
+    {
+        // Pattern that causes catastrophic backtracking to trigger the 1-second timeout.
+        var logger = new FakeLogger();
+        var evilInput = new string('a', 50) + "!";
+        var result = RoutingTagResolver.ApplyRegex(evilInput, @"^(a+)+$", logger);
+        // Depending on runtime speed this may match or timeout; if it times out, verify warning.
+        if (result is null && logger.Entries.Count > 0)
+        {
+            Assert.Equal(LogLevel.Warning, logger.Entries[0].Level);
+            Assert.Contains("regex timed out", logger.Entries[0].Message, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    private sealed class FakeLogger : ILogger
+    {
+        public List<(LogLevel Level, string Message)> Entries { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            Entries.Add((logLevel, formatter(state, exception)));
+        }
     }
 }

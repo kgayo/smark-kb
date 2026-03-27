@@ -156,8 +156,8 @@ public sealed class RoutingTagResolver : IRoutingTagResolver
             if (match.Success)
                 return match.Groups.Count > 1 ? match.Groups[1].Value : match.Value;
         }
-        catch (RegexMatchTimeoutException ex) { logger?.LogDebug(ex, "Routing tag regex timed out for expression: {Expression}", expression); }
-        catch (ArgumentException ex) { logger?.LogDebug(ex, "Routing tag regex invalid for expression: {Expression}", expression); }
+        catch (RegexMatchTimeoutException ex) { logger?.LogWarning(ex, "Routing tag regex timed out for expression: {Expression}", expression); }
+        catch (ArgumentException ex) { logger?.LogWarning(ex, "Routing tag regex invalid for expression: {Expression}", expression); }
 
         return null;
     }
