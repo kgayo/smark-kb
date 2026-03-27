@@ -1,11 +1,12 @@
 import type { ConnectorResponse } from '../api/types';
+import { ConnectorStatuses, SyncRunStatuses } from '../constants/enums';
 import { formatDateTimeLocale } from '../utils/dateFormat';
 import { syncStatusClass } from '../utils/cssClassHelpers';
 
 const formatDate = formatDateTimeLocale;
 
 function statusClass(status: string): string {
-  return status === 'Enabled' ? 'status-enabled' : 'status-disabled';
+  return status === ConnectorStatuses.Enabled ? 'status-enabled' : 'status-disabled';
 }
 
 interface ConnectorListProps {
@@ -62,9 +63,9 @@ export function ConnectorList({ connectors, onSelect, onCreate }: ConnectorListP
                   {c.lastSyncRun ? (
                     <span className={`sync-status ${syncStatusClass(c.lastSyncRun.status)}`}>
                       {c.lastSyncRun.status}
-                      {c.lastSyncRun.status === 'Completed' &&
+                      {c.lastSyncRun.status === SyncRunStatuses.Completed &&
                         ` (${c.lastSyncRun.recordsProcessed} records)`}
-                      {c.lastSyncRun.status === 'Failed' && c.lastSyncRun.errorDetail &&
+                      {c.lastSyncRun.status === SyncRunStatuses.Failed && c.lastSyncRun.errorDetail &&
                         ` - ${c.lastSyncRun.errorDetail.slice(0, 40)}...`}
                     </span>
                   ) : (

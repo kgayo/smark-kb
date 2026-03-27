@@ -11,6 +11,7 @@ import type {
   UpdateConnectorRequest,
 } from '../api/types';
 import * as api from '../api/client';
+import { ConnectorStatuses } from '../constants/enums';
 import { FieldMappingEditor } from './FieldMappingEditor';
 import { SourceConfigEditor } from './SourceConfigEditor';
 import { SyncRunHistory } from './SyncRunHistory';
@@ -119,7 +120,7 @@ export function ConnectorDetail({
     setActionError(null);
     try {
       const updated =
-        connector.status === 'Enabled'
+        connector.status === ConnectorStatuses.Enabled
           ? await api.disableConnector(connector.id)
           : await api.enableConnector(connector.id);
       onUpdated(updated);
@@ -205,7 +206,7 @@ export function ConnectorDetail({
           &larr; Back
         </button>
         <h2>{connector.name}</h2>
-        <span className={`connector-status ${connector.status === 'Enabled' ? 'status-enabled' : 'status-disabled'}`}>
+        <span className={`connector-status ${connector.status === ConnectorStatuses.Enabled ? 'status-enabled' : 'status-disabled'}`}>
           {connector.status}
         </span>
       </div>
@@ -231,18 +232,18 @@ export function ConnectorDetail({
           onClick={handleToggleStatus}
           disabled={togglingStatus}
           data-testid="toggle-status-btn"
-          aria-label={togglingStatus ? 'Updating connector status' : connector.status === 'Enabled' ? 'Disable connector' : 'Enable connector'}
+          aria-label={togglingStatus ? 'Updating connector status' : connector.status === ConnectorStatuses.Enabled ? 'Disable connector' : 'Enable connector'}
         >
           {togglingStatus
             ? 'Updating...'
-            : connector.status === 'Enabled'
+            : connector.status === ConnectorStatuses.Enabled
               ? 'Disable'
               : 'Enable'}
         </button>
         <button
           className="btn btn-primary"
           onClick={() => handleSyncNow(false)}
-          disabled={syncing || connector.status === 'Disabled'}
+          disabled={syncing || connector.status === ConnectorStatuses.Disabled}
           data-testid="sync-now-btn"
           aria-label={syncing ? 'Syncing connector' : 'Sync connector now'}
         >
@@ -251,7 +252,7 @@ export function ConnectorDetail({
         <button
           className="btn"
           onClick={() => handleSyncNow(true)}
-          disabled={syncing || connector.status === 'Disabled'}
+          disabled={syncing || connector.status === ConnectorStatuses.Disabled}
           data-testid="backfill-btn"
           aria-label="Backfill connector data"
         >

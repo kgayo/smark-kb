@@ -1,5 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { CreateConnectorForm } from './CreateConnectorForm';
+import { ConnectorTypes } from '../constants/enums';
 
 describe('CreateConnectorForm', () => {
   const defaultProps = {
@@ -68,7 +69,7 @@ describe('CreateConnectorForm', () => {
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'My ADO',
-        connectorType: 'AzureDevOps',
+        connectorType: ConnectorTypes.AzureDevOps,
         authType: 'Pat',
       }),
     );

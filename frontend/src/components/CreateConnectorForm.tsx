@@ -4,13 +4,14 @@ import type {
   CreateConnectorRequest,
   SecretAuthType,
 } from '../api/types';
+import { ConnectorTypes } from '../constants/enums';
 import { SourceConfigEditor } from './SourceConfigEditor';
 
 const CONNECTOR_TYPES: { value: ConnectorType; label: string }[] = [
-  { value: 'AzureDevOps', label: 'Azure DevOps' },
-  { value: 'SharePoint', label: 'SharePoint' },
-  { value: 'HubSpot', label: 'HubSpot' },
-  { value: 'ClickUp', label: 'ClickUp' },
+  { value: ConnectorTypes.AzureDevOps, label: 'Azure DevOps' },
+  { value: ConnectorTypes.SharePoint, label: 'SharePoint' },
+  { value: ConnectorTypes.HubSpot, label: 'HubSpot' },
+  { value: ConnectorTypes.ClickUp, label: 'ClickUp' },
 ];
 
 const AUTH_TYPES: { value: SecretAuthType; label: string }[] = [
@@ -37,7 +38,7 @@ export function CreateConnectorForm({
 }: CreateConnectorFormProps) {
   const [step, setStep] = useState<WizardStep>('type');
   const [name, setName] = useState('');
-  const [connectorType, setConnectorType] = useState<ConnectorType>('AzureDevOps');
+  const [connectorType, setConnectorType] = useState<ConnectorType>(ConnectorTypes.AzureDevOps);
   const [authType, setAuthType] = useState<SecretAuthType>('Pat');
   const [keyVaultSecretName, setKeyVaultSecretName] = useState('');
   const [sourceConfig, setSourceConfig] = useState('');

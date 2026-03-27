@@ -12,6 +12,7 @@ import type {
   WebhookSubscriptionStatus,
 } from '../api/types';
 import * as api from '../api/client';
+import { ConnectorStatuses, SyncRunStatuses } from '../constants/enums';
 import { useRoles, hasAdminRole } from '../auth/useRoles';
 
 type Tab = 'overview' | 'webhooks' | 'dead-letters';
@@ -429,9 +430,9 @@ function ServiceStatus({ label, ok }: { label: string; ok: boolean }) {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const cls = status === 'Enabled' || status === 'Completed' ? 'badge-success'
-    : status === 'Failed' ? 'badge-danger'
-    : status === 'Running' ? 'badge-info'
+  const cls = status === ConnectorStatuses.Enabled || status === SyncRunStatuses.Completed ? 'badge-success'
+    : status === SyncRunStatuses.Failed ? 'badge-danger'
+    : status === SyncRunStatuses.Running ? 'badge-info'
     : 'badge-muted';
   return <span className={`diag-badge-inline ${cls}`}>{status}</span>;
 }

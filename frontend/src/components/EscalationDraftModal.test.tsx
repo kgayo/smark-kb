@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { EscalationDraftModal } from './EscalationDraftModal';
 import type { CitationDto, EscalationSignal, EscalationDraftResponse } from '../api/types';
 import * as api from '../api/client';
+import { ConnectorTypes, ConnectorStatuses } from '../constants/enums';
 
 vi.mock('../api/client');
 
@@ -17,7 +18,7 @@ const mockCitation: CitationDto = {
   evidenceId: 'e1',
   title: 'Auth Guide',
   sourceUrl: 'https://example.com/auth',
-  sourceSystem: 'AzureDevOps',
+  sourceSystem: ConnectorTypes.AzureDevOps,
   snippet: 'Configure auth settings...',
   updatedAt: '2026-03-14T08:00:00Z',
   accessLabel: 'Internal',
@@ -306,7 +307,7 @@ describe('EscalationDraftModal', () => {
 
   it('renders create external button with aria-label when connectors available', async () => {
     vi.mocked(api.listConnectors).mockResolvedValue({
-      connectors: [{ id: 'c1', name: 'My ADO', connectorType: 'AzureDevOps', status: 'Enabled', authType: 'Pat', hasSecret: true, sourceConfig: '{}', fieldMapping: null, scheduleCron: null, createdAt: '', updatedAt: '', lastSyncRun: null }],
+      connectors: [{ id: 'c1', name: 'My ADO', connectorType: ConnectorTypes.AzureDevOps, status: ConnectorStatuses.Enabled, authType: 'Pat', hasSecret: true, sourceConfig: '{}', fieldMapping: null, scheduleCron: null, createdAt: '', updatedAt: '', lastSyncRun: null }],
       totalCount: 1,
     });
 
@@ -330,7 +331,7 @@ describe('EscalationDraftModal', () => {
   it('renders external creation success link with aria-label', async () => {
     vi.mocked(api.createEscalationDraft).mockResolvedValue(mockDraftResponse);
     vi.mocked(api.listConnectors).mockResolvedValue({
-      connectors: [{ id: 'c1', name: 'My ADO', connectorType: 'AzureDevOps', status: 'Enabled', authType: 'Pat', hasSecret: true, sourceConfig: '{}', fieldMapping: null, scheduleCron: null, createdAt: '', updatedAt: '', lastSyncRun: null }],
+      connectors: [{ id: 'c1', name: 'My ADO', connectorType: ConnectorTypes.AzureDevOps, status: ConnectorStatuses.Enabled, authType: 'Pat', hasSecret: true, sourceConfig: '{}', fieldMapping: null, scheduleCron: null, createdAt: '', updatedAt: '', lastSyncRun: null }],
       totalCount: 1,
     });
     vi.mocked(api.updateEscalationDraft).mockResolvedValue(mockDraftResponse);
@@ -341,7 +342,7 @@ describe('EscalationDraftModal', () => {
       externalUrl: 'https://dev.azure.com/org/project/_workitems/edit/42',
       errorDetail: null,
       approvedAt: '2026-03-15T12:00:00Z',
-      connectorType: 'AzureDevOps',
+      connectorType: ConnectorTypes.AzureDevOps,
     });
     vi.mocked(api.getEscalationDraft).mockResolvedValue({ ...mockDraftResponse, externalStatus: 'Created', externalId: 'WI-42', externalUrl: 'https://dev.azure.com/org/project/_workitems/edit/42' });
 
@@ -471,7 +472,7 @@ describe('EscalationDraftModal', () => {
 
   it('renders aria-label on ADO target project input when ADO connector selected', async () => {
     vi.mocked(api.listConnectors).mockResolvedValue({
-      connectors: [{ id: 'c1', name: 'My ADO', connectorType: 'AzureDevOps', status: 'Enabled', authType: 'Pat', hasSecret: true, sourceConfig: '{}', fieldMapping: null, scheduleCron: null, createdAt: '', updatedAt: '', lastSyncRun: null }],
+      connectors: [{ id: 'c1', name: 'My ADO', connectorType: ConnectorTypes.AzureDevOps, status: ConnectorStatuses.Enabled, authType: 'Pat', hasSecret: true, sourceConfig: '{}', fieldMapping: null, scheduleCron: null, createdAt: '', updatedAt: '', lastSyncRun: null }],
       totalCount: 1,
     });
 
@@ -502,7 +503,7 @@ describe('EscalationDraftModal', () => {
 
   it('renders aria-label on ClickUp target list ID input when ClickUp connector selected', async () => {
     vi.mocked(api.listConnectors).mockResolvedValue({
-      connectors: [{ id: 'c2', name: 'My ClickUp', connectorType: 'ClickUp', status: 'Enabled', authType: 'Pat', hasSecret: true, sourceConfig: '{}', fieldMapping: null, scheduleCron: null, createdAt: '', updatedAt: '', lastSyncRun: null }],
+      connectors: [{ id: 'c2', name: 'My ClickUp', connectorType: ConnectorTypes.ClickUp, status: ConnectorStatuses.Enabled, authType: 'Pat', hasSecret: true, sourceConfig: '{}', fieldMapping: null, scheduleCron: null, createdAt: '', updatedAt: '', lastSyncRun: null }],
       totalCount: 1,
     });
 

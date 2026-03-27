@@ -7,6 +7,7 @@ import type {
   HubSpotSourceConfig,
   ClickUpSourceConfig,
 } from '../api/types';
+import { ConnectorTypes } from '../constants/enums';
 
 export interface SourceConfigEditorProps {
   connectorType: ConnectorType;
@@ -595,28 +596,28 @@ export function SourceConfigEditor({
         </button>
       </div>
 
-      {connectorType === 'AzureDevOps' && (
+      {connectorType === ConnectorTypes.AzureDevOps && (
         <AdoForm
           config={parseJsonSafe<AzureDevOpsSourceConfig>(value, defaultAdoConfig())}
           onChange={emitChange}
           readOnly={readOnly}
         />
       )}
-      {connectorType === 'SharePoint' && (
+      {connectorType === ConnectorTypes.SharePoint && (
         <SharePointForm
           config={parseJsonSafe<SharePointSourceConfig>(value, defaultSharePointConfig())}
           onChange={emitChange}
           readOnly={readOnly}
         />
       )}
-      {connectorType === 'HubSpot' && (
+      {connectorType === ConnectorTypes.HubSpot && (
         <HubSpotForm
           config={parseJsonSafe<HubSpotSourceConfig>(value, defaultHubSpotConfig())}
           onChange={emitChange}
           readOnly={readOnly}
         />
       )}
-      {connectorType === 'ClickUp' && (
+      {connectorType === ConnectorTypes.ClickUp && (
         <ClickUpForm
           config={parseJsonSafe<ClickUpSourceConfig>(value, defaultClickUpConfig())}
           onChange={emitChange}

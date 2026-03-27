@@ -1,9 +1,10 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { SourceConfigEditor } from './SourceConfigEditor';
+import { ConnectorTypes } from '../constants/enums';
 
 describe('SourceConfigEditor', () => {
   const defaultProps = {
-    connectorType: 'AzureDevOps' as const,
+    connectorType: ConnectorTypes.AzureDevOps as const,
     value: '',
     onChange: vi.fn(),
   };
@@ -15,25 +16,25 @@ describe('SourceConfigEditor', () => {
   // ── Renders correct form per connector type ──
 
   it('renders ADO form for AzureDevOps type', () => {
-    render(<SourceConfigEditor {...defaultProps} connectorType="AzureDevOps" />);
+    render(<SourceConfigEditor {...defaultProps} connectorType={ConnectorTypes.AzureDevOps} />);
     expect(screen.getByTestId('ado-config-form')).toBeInTheDocument();
     expect(screen.getByTestId('ado-org-url')).toBeInTheDocument();
   });
 
   it('renders SharePoint form for SharePoint type', () => {
-    render(<SourceConfigEditor {...defaultProps} connectorType="SharePoint" />);
+    render(<SourceConfigEditor {...defaultProps} connectorType={ConnectorTypes.SharePoint} />);
     expect(screen.getByTestId('sharepoint-config-form')).toBeInTheDocument();
     expect(screen.getByTestId('sp-site-url')).toBeInTheDocument();
   });
 
   it('renders HubSpot form for HubSpot type', () => {
-    render(<SourceConfigEditor {...defaultProps} connectorType="HubSpot" />);
+    render(<SourceConfigEditor {...defaultProps} connectorType={ConnectorTypes.HubSpot} />);
     expect(screen.getByTestId('hubspot-config-form')).toBeInTheDocument();
     expect(screen.getByTestId('hs-portal-id')).toBeInTheDocument();
   });
 
   it('renders ClickUp form for ClickUp type', () => {
-    render(<SourceConfigEditor {...defaultProps} connectorType="ClickUp" />);
+    render(<SourceConfigEditor {...defaultProps} connectorType={ConnectorTypes.ClickUp} />);
     expect(screen.getByTestId('clickup-config-form')).toBeInTheDocument();
     expect(screen.getByTestId('cu-workspace-id')).toBeInTheDocument();
   });
@@ -68,7 +69,7 @@ describe('SourceConfigEditor', () => {
       excludeFolders: ['Archive'],
       batchSize: 100,
     });
-    render(<SourceConfigEditor {...defaultProps} connectorType="SharePoint" value={value} />);
+    render(<SourceConfigEditor {...defaultProps} connectorType={ConnectorTypes.SharePoint} value={value} />);
     expect(screen.getByTestId('sp-site-url')).toHaveValue('https://contoso.sharepoint.com/sites/kb');
     expect(screen.getByTestId('sp-tenant-id')).toHaveValue('tenant-123');
     expect(screen.getByTestId('sp-client-id')).toHaveValue('client-456');
@@ -99,7 +100,7 @@ describe('SourceConfigEditor', () => {
 
   it('emits JSON when HubSpot portal ID changes', () => {
     const onChange = vi.fn();
-    render(<SourceConfigEditor {...defaultProps} connectorType="HubSpot" onChange={onChange} />);
+    render(<SourceConfigEditor {...defaultProps} connectorType={ConnectorTypes.HubSpot} onChange={onChange} />);
     fireEvent.change(screen.getByTestId('hs-portal-id'), {
       target: { value: '99999' },
     });
@@ -110,7 +111,7 @@ describe('SourceConfigEditor', () => {
 
   it('emits JSON when ClickUp workspace ID changes', () => {
     const onChange = vi.fn();
-    render(<SourceConfigEditor {...defaultProps} connectorType="ClickUp" onChange={onChange} />);
+    render(<SourceConfigEditor {...defaultProps} connectorType={ConnectorTypes.ClickUp} onChange={onChange} />);
     fireEvent.change(screen.getByTestId('cu-workspace-id'), {
       target: { value: 'ws-abc' },
     });
@@ -175,12 +176,12 @@ describe('SourceConfigEditor', () => {
   // ── Default values ──
 
   it('HubSpot defaults include tickets in objectTypes', () => {
-    render(<SourceConfigEditor {...defaultProps} connectorType="HubSpot" />);
+    render(<SourceConfigEditor {...defaultProps} connectorType={ConnectorTypes.HubSpot} />);
     expect(screen.getByTestId('hs-object-types')).toHaveValue('tickets');
   });
 
   it('ClickUp defaults have both ingest checkboxes checked', () => {
-    render(<SourceConfigEditor {...defaultProps} connectorType="ClickUp" />);
+    render(<SourceConfigEditor {...defaultProps} connectorType={ConnectorTypes.ClickUp} />);
     expect(screen.getByTestId('cu-ingest-tasks')).toBeChecked();
     expect(screen.getByTestId('cu-ingest-docs')).toBeChecked();
   });
@@ -194,7 +195,7 @@ describe('SourceConfigEditor', () => {
   // ── Accessibility: aria-labels ──
 
   it('ADO form inputs have aria-labels', () => {
-    render(<SourceConfigEditor {...defaultProps} connectorType="AzureDevOps" />);
+    render(<SourceConfigEditor {...defaultProps} connectorType={ConnectorTypes.AzureDevOps} />);
     expect(screen.getByLabelText('Organization URL')).toBeInTheDocument();
     expect(screen.getByLabelText('Projects')).toBeInTheDocument();
     expect(screen.getByLabelText('Work Item Types')).toBeInTheDocument();
@@ -203,7 +204,7 @@ describe('SourceConfigEditor', () => {
   });
 
   it('SharePoint form inputs have aria-labels', () => {
-    render(<SourceConfigEditor {...defaultProps} connectorType="SharePoint" />);
+    render(<SourceConfigEditor {...defaultProps} connectorType={ConnectorTypes.SharePoint} />);
     expect(screen.getByLabelText('Site URL')).toBeInTheDocument();
     expect(screen.getByLabelText('Entra ID Tenant ID')).toBeInTheDocument();
     expect(screen.getByLabelText('Client ID')).toBeInTheDocument();
@@ -214,7 +215,7 @@ describe('SourceConfigEditor', () => {
   });
 
   it('HubSpot form inputs have aria-labels', () => {
-    render(<SourceConfigEditor {...defaultProps} connectorType="HubSpot" />);
+    render(<SourceConfigEditor {...defaultProps} connectorType={ConnectorTypes.HubSpot} />);
     expect(screen.getByLabelText('Portal ID')).toBeInTheDocument();
     expect(screen.getByLabelText('Object Types')).toBeInTheDocument();
     expect(screen.getByLabelText('Pipelines')).toBeInTheDocument();
@@ -223,7 +224,7 @@ describe('SourceConfigEditor', () => {
   });
 
   it('ClickUp form inputs have aria-labels', () => {
-    render(<SourceConfigEditor {...defaultProps} connectorType="ClickUp" />);
+    render(<SourceConfigEditor {...defaultProps} connectorType={ConnectorTypes.ClickUp} />);
     expect(screen.getByLabelText('Workspace ID')).toBeInTheDocument();
     expect(screen.getByLabelText('Space IDs')).toBeInTheDocument();
     expect(screen.getByLabelText('Folder IDs')).toBeInTheDocument();

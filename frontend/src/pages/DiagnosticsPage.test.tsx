@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { DiagnosticsPage } from './DiagnosticsPage';
 import { AppRoles } from '../auth/roles';
 import * as client from '../api/client';
+import { ConnectorTypes, ConnectorStatuses, SyncRunStatuses } from '../constants/enums';
 import type {
   DiagnosticsSummaryResponse,
   SloStatusResponse,
@@ -46,9 +47,9 @@ const mockSummary: DiagnosticsSummaryResponse = {
     {
       connectorId: 'c1',
       name: 'ADO Prod',
-      connectorType: 'AzureDevOps',
-      status: 'Enabled',
-      lastSyncStatus: 'Completed',
+      connectorType: ConnectorTypes.AzureDevOps,
+      status: ConnectorStatuses.Enabled,
+      lastSyncStatus: SyncRunStatuses.Completed,
       lastSyncAt: '2026-03-15T10:00:00Z',
       webhookCount: 2,
       webhooksInFallback: 1,
@@ -90,7 +91,7 @@ const mockWebhooks: WebhookStatusListResponse = {
       id: 'w1',
       connectorId: 'c1',
       connectorName: 'ADO Prod',
-      connectorType: 'AzureDevOps',
+      connectorType: ConnectorTypes.AzureDevOps,
       eventType: 'workitem.created',
       isActive: true,
       pollingFallbackActive: false,
@@ -105,7 +106,7 @@ const mockWebhooks: WebhookStatusListResponse = {
       id: 'w2',
       connectorId: 'c1',
       connectorName: 'ADO Prod',
-      connectorType: 'AzureDevOps',
+      connectorType: ConnectorTypes.AzureDevOps,
       eventType: 'workitem.updated',
       isActive: true,
       pollingFallbackActive: true,

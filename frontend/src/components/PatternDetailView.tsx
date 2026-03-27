@@ -3,6 +3,7 @@ import type { PatternDetail, PatternUsageMetrics, PatternVersionHistoryEntry } f
 import { getPatternUsage, getPatternHistory } from '../api/client';
 import { formatDateTimeOrDash } from '../utils/dateFormat';
 import { trustLevelBadgeClass } from '../utils/cssClassHelpers';
+import { TrustLevels } from '../constants/enums';
 import { logger } from '../utils/logger';
 
 interface PatternDetailViewProps {
@@ -49,9 +50,9 @@ export function PatternDetailView({
     return () => { cancelled = true; };
   }, [pattern.patternId]);
 
-  const canReview = pattern.trustLevel === 'Draft';
-  const canApprove = pattern.trustLevel === 'Draft' || pattern.trustLevel === 'Reviewed';
-  const canDeprecate = pattern.trustLevel !== 'Deprecated';
+  const canReview = pattern.trustLevel === TrustLevels.Draft;
+  const canApprove = pattern.trustLevel === TrustLevels.Draft || pattern.trustLevel === TrustLevels.Reviewed;
+  const canDeprecate = pattern.trustLevel !== TrustLevels.Deprecated;
 
   async function handleAction(action: () => Promise<void>) {
     setActionError(null);

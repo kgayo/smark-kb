@@ -1,12 +1,13 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ConnectorList } from './ConnectorList';
 import type { ConnectorResponse } from '../api/types';
+import { ConnectorTypes, ConnectorStatuses, SyncRunStatuses } from '../constants/enums';
 
 const mockConnector: ConnectorResponse = {
   id: 'conn-1',
   name: 'Production ADO',
-  connectorType: 'AzureDevOps',
-  status: 'Enabled',
+  connectorType: ConnectorTypes.AzureDevOps,
+  status: ConnectorStatuses.Enabled,
   authType: 'Pat',
   hasSecret: true,
   sourceConfig: '{"org":"myorg"}',
@@ -16,7 +17,7 @@ const mockConnector: ConnectorResponse = {
   updatedAt: '2026-03-15T12:00:00Z',
   lastSyncRun: {
     id: 'run-1',
-    status: 'Completed',
+    status: SyncRunStatuses.Completed,
     isBackfill: false,
     startedAt: '2026-03-15T11:00:00Z',
     completedAt: '2026-03-15T11:05:00Z',
@@ -30,8 +31,8 @@ const disabledConnector: ConnectorResponse = {
   ...mockConnector,
   id: 'conn-2',
   name: 'Staging SP',
-  connectorType: 'SharePoint',
-  status: 'Disabled',
+  connectorType: ConnectorTypes.SharePoint,
+  status: ConnectorStatuses.Disabled,
   lastSyncRun: null,
 };
 

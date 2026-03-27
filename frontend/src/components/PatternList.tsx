@@ -1,4 +1,5 @@
 import type { PatternSummary, TrustLevel } from '../api/types';
+import { TrustLevels } from '../constants/enums';
 import { trustLevelBadgeClass } from '../utils/cssClassHelpers';
 import { formatDateOnly } from '../utils/dateFormat';
 
@@ -43,10 +44,10 @@ export function PatternList({
           data-testid="trust-filter"
         >
           <option value="">All</option>
-          <option value="Draft">Draft</option>
-          <option value="Reviewed">Reviewed</option>
-          <option value="Approved">Approved</option>
-          <option value="Deprecated">Deprecated</option>
+          <option value={TrustLevels.Draft}>Draft</option>
+          <option value={TrustLevels.Reviewed}>Reviewed</option>
+          <option value={TrustLevels.Approved}>Approved</option>
+          <option value={TrustLevels.Deprecated}>Deprecated</option>
         </select>
       </div>
 

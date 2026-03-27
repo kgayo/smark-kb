@@ -12,6 +12,7 @@ import type {
   RetentionComplianceReport,
 } from '../api/types';
 import * as api from '../api/client';
+import { SyncRunStatuses } from '../constants/enums';
 import { useRoles, hasAdminRole } from '../auth/useRoles';
 
 type Tab = 'pii' | 'retention' | 'deletion' | 'compliance';
@@ -484,7 +485,7 @@ export function PrivacyAdminPage() {
                       <td className="text-mono">{req.requestId.substring(0, 8)}...</td>
                       <td>{req.subjectId}</td>
                       <td>
-                        <span className={`status-badge ${req.status === 'Completed' ? 'badge-success' : req.status === 'Failed' ? 'badge-danger' : 'badge-info'}`}>
+                        <span className={`status-badge ${req.status === SyncRunStatuses.Completed ? 'badge-success' : req.status === SyncRunStatuses.Failed ? 'badge-danger' : 'badge-info'}`}>
                           {req.status}
                         </span>
                       </td>

@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { AdminPage } from './AdminPage';
 import { AppRoles } from '../auth/roles';
 import * as client from '../api/client';
+import { ConnectorTypes, ConnectorStatuses } from '../constants/enums';
 
 vi.mock('../api/client', () => ({
   getMe: vi.fn(),
@@ -60,8 +61,8 @@ describe('AdminPage', () => {
         {
           id: 'c1',
           name: 'ADO Prod',
-          connectorType: 'AzureDevOps',
-          status: 'Enabled',
+          connectorType: ConnectorTypes.AzureDevOps,
+          status: ConnectorStatuses.Enabled,
           authType: 'Pat',
           hasSecret: true,
           sourceConfig: null,

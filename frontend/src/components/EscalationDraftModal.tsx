@@ -8,6 +8,7 @@ import type {
   ExternalEscalationResult,
 } from '../api/types';
 import * as api from '../api/client';
+import { ConnectorTypes, ConnectorStatuses } from '../constants/enums';
 
 interface EscalationDraftModalProps {
   open: boolean;
@@ -137,8 +138,8 @@ export function EscalationDraftModal({
         if (cancelled) return;
         const escalationConnectors = result.connectors.filter(
           (c) =>
-            (c.connectorType === 'AzureDevOps' || c.connectorType === 'ClickUp') &&
-            c.status === 'Enabled',
+            (c.connectorType === ConnectorTypes.AzureDevOps || c.connectorType === ConnectorTypes.ClickUp) &&
+            c.status === ConnectorStatuses.Enabled,
         );
         setConnectors(escalationConnectors);
       } catch (err) {
@@ -208,8 +209,8 @@ export function EscalationDraftModal({
       const selectedConnector = connectors.find((c) => c.id === selectedConnectorId);
       const result = await api.approveEscalationDraft(draft.draftId, {
         connectorId: selectedConnectorId,
-        targetProject: selectedConnector?.connectorType === 'AzureDevOps' ? targetProject || undefined : undefined,
-        targetListId: selectedConnector?.connectorType === 'ClickUp' ? targetListId || undefined : undefined,
+        targetProject: selectedConnector?.connectorType === ConnectorTypes.AzureDevOps ? targetProject || undefined : undefined,
+        targetListId: selectedConnector?.connectorType === ConnectorTypes.ClickUp ? targetListId || undefined : undefined,
       });
       setExternalResult(result);
 
@@ -367,8 +368,8 @@ export function EscalationDraftModal({
             {/* External creation result banner */}
             {externalResult?.externalStatus === 'Created' && externalResult.externalUrl && (
               <div className="external-creation-success" data-testid="external-creation-success">
-                External {externalResult.connectorType === 'AzureDevOps' ? 'work item' : 'task'} created: {' '}
-                <a href={externalResult.externalUrl} target="_blank" rel="noopener noreferrer" aria-label={`Open external ${externalResult.connectorType === 'AzureDevOps' ? 'work item' : 'task'} ${externalResult.externalId} (opens in new tab)`}>
+                External {externalResult.connectorType === ConnectorTypes.AzureDevOps ? 'work item' : 'task'} created: {' '}
+                <a href={externalResult.externalUrl} target="_blank" rel="noopener noreferrer" aria-label={`Open external ${externalResult.connectorType === ConnectorTypes.AzureDevOps ? 'work item' : 'task'} ${externalResult.externalId} (opens in new tab)`}>
                   {externalResult.externalId}
                 </a>
               </div>
@@ -400,7 +401,7 @@ export function EscalationDraftModal({
                   </select>
                 </label>
 
-                {selectedConnector?.connectorType === 'AzureDevOps' && (
+                {selectedConnector?.connectorType === ConnectorTypes.AzureDevOps && (
                   <label className="draft-field">
                     <span className="draft-field-label">Target Project (optional)</span>
                     <input
@@ -414,7 +415,7 @@ export function EscalationDraftModal({
                   </label>
                 )}
 
-                {selectedConnector?.connectorType === 'ClickUp' && (
+                {selectedConnector?.connectorType === ConnectorTypes.ClickUp && (
                   <label className="draft-field">
                     <span className="draft-field-label">Target List ID (optional)</span>
                     <input
@@ -460,9 +461,9 @@ export function EscalationDraftModal({
                     ? 'Creating...'
                     : alreadyCreated
                       ? 'Already created'
-                      : selectedConnector?.connectorType === 'ClickUp'
+                      : selectedConnector?.connectorType === ConnectorTypes.ClickUp
                         ? 'Create ClickUp task'
-                        : selectedConnector?.connectorType === 'AzureDevOps'
+                        : selectedConnector?.connectorType === ConnectorTypes.AzureDevOps
                           ? 'Create ADO work item'
                           : 'Create external item'}
                 </button>

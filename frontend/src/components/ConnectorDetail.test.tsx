@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ConnectorDetail } from './ConnectorDetail';
 import * as api from '../api/client';
 import type { ConnectorResponse } from '../api/types';
+import { ConnectorTypes, ConnectorStatuses, SyncRunStatuses } from '../constants/enums';
 
 vi.mock('../api/client', () => ({
   updateConnector: vi.fn(),
@@ -21,8 +22,8 @@ const mockedApi = vi.mocked(api);
 const baseConnector: ConnectorResponse = {
   id: 'c1',
   name: 'ADO Prod',
-  connectorType: 'AzureDevOps',
-  status: 'Enabled',
+  connectorType: ConnectorTypes.AzureDevOps,
+  status: ConnectorStatuses.Enabled,
   authType: 'Pat',
   hasSecret: true,
   sourceConfig: '{"org": "contoso"}',
@@ -145,7 +146,7 @@ describe('ConnectorDetail', () => {
   // ── Toggle Status ──
 
   it('calls disableConnector when enabled connector is toggled', async () => {
-    const disabled = { ...baseConnector, status: 'Disabled' as const };
+    const disabled = { ...baseConnector, status: ConnectorStatuses.Disabled as const };
     mockedApi.disableConnector.mockResolvedValue(disabled);
 
     const { onUpdated } = renderDetail();
@@ -158,8 +159,8 @@ describe('ConnectorDetail', () => {
   });
 
   it('calls enableConnector when disabled connector is toggled', async () => {
-    const disabledConnector = { ...baseConnector, status: 'Disabled' as const };
-    const enabled = { ...baseConnector, status: 'Enabled' as const };
+    const disabledConnector = { ...baseConnector, status: ConnectorStatuses.Disabled as const };
+    const enabled = { ...baseConnector, status: ConnectorStatuses.Enabled as const };
     mockedApi.enableConnector.mockResolvedValue(enabled);
 
     const { onUpdated } = renderDetail(disabledConnector);
@@ -177,7 +178,7 @@ describe('ConnectorDetail', () => {
   });
 
   it('shows Enable button text for disabled connector', () => {
-    renderDetail({ ...baseConnector, status: 'Disabled' });
+    renderDetail({ ...baseConnector, status: ConnectorStatuses.Disabled });
     expect(screen.getByTestId('toggle-status-btn')).toHaveTextContent('Enable');
   });
 
@@ -193,14 +194,14 @@ describe('ConnectorDetail', () => {
   });
 
   it('enable connector aria-label for disabled connector', () => {
-    renderDetail({ ...baseConnector, status: 'Disabled' });
+    renderDetail({ ...baseConnector, status: ConnectorStatuses.Disabled });
     expect(screen.getByTestId('toggle-status-btn')).toHaveAttribute('aria-label', 'Enable connector');
   });
 
   // ── Sync Now / Backfill ──
 
   it('triggers sync now with isBackfill=false', async () => {
-    mockedApi.syncNow.mockResolvedValue({ syncRunId: 'sr1', status: 'Pending' });
+    mockedApi.syncNow.mockResolvedValue({ syncRunId: 'sr1', status: SyncRunStatuses.Pending });
     mockedApi.listSyncRuns.mockResolvedValue({ syncRuns: [], totalCount: 0 });
     renderDetail();
     fireEvent.click(screen.getByTestId('sync-now-btn'));
@@ -211,7 +212,7 @@ describe('ConnectorDetail', () => {
   });
 
   it('triggers backfill with isBackfill=true', async () => {
-    mockedApi.syncNow.mockResolvedValue({ syncRunId: 'sr1', status: 'Pending' });
+    mockedApi.syncNow.mockResolvedValue({ syncRunId: 'sr1', status: SyncRunStatuses.Pending });
     mockedApi.listSyncRuns.mockResolvedValue({ syncRuns: [], totalCount: 0 });
     renderDetail();
     fireEvent.click(screen.getByTestId('backfill-btn'));
@@ -222,7 +223,7 @@ describe('ConnectorDetail', () => {
   });
 
   it('disables sync buttons when connector is disabled', () => {
-    renderDetail({ ...baseConnector, status: 'Disabled' });
+    renderDetail({ ...baseConnector, status: ConnectorStatuses.Disabled });
     expect(screen.getByTestId('sync-now-btn')).toBeDisabled();
     expect(screen.getByTestId('backfill-btn')).toBeDisabled();
   });
