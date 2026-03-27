@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-27 (Asia/Manila) — iteration 239
-Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase 1: P0-001–P0-022; Phase 2: P1-001–P1-012, P2-001–P2-005; Phase 3: P3-001–P3-038 (all 38 items). Tests: T-001–T-008; ~3399 tests passing (2901 backend + 498 frontend). Spec clarification backlog: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. BUG-001–BUG-005 resolved. TECH-001–TECH-148 resolved. 303/303 checklist items complete, 0 remaining.
+Last updated: 2026-03-27 (Asia/Manila) — iteration 240
+Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase 1: P0-001–P0-022; Phase 2: P1-001–P1-012, P2-001–P2-005; Phase 3: P3-001–P3-038 (all 38 items). Tests: T-001–T-008; ~3400 tests passing (2901 backend + 499 frontend). Spec clarification backlog: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. BUG-001–BUG-005 resolved. TECH-001–TECH-149 resolved. 303/303 checklist items complete, 0 remaining.
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -666,6 +666,10 @@ Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase
 - [x] TECH-148: Upgrade RoutingTagResolver regex failure logging from Debug to Warning for operator visibility.
   - Root cause: `ApplyRegex` caught `RegexMatchTimeoutException` and `ArgumentException` but logged at `LogDebug` level. In production (where minimum level is typically Information or Warning), invalid or catastrophically backtracking regex patterns in routing rules would silently fail, potentially misrouting customers with no operator awareness.
   - Completed (iteration 239): Changed both catch blocks to `LogWarning`. Added 2 new tests (`ApplyRegex_InvalidPattern_LogsWarning`, `ApplyRegex_TimeoutPattern_LogsWarning`) with a `FakeLogger` to verify warning-level output.
+
+- [x] TECH-149: Add logger.warn to 2 silent `.catch(() => '')` in frontend API client for observability when error response body read fails.
+  - Root cause: `rawFetch` and `apiFetch` in `frontend/src/api/client.ts` both called `res.text().catch(() => '')` to extract error response bodies, silently swallowing failures. If the response stream was already consumed or errored, operators had no visibility into the body-read failure.
+  - Completed (iteration 240): Replaced both silent catches with `.catch((e) => { logger.warn(...); return ''; })` that logs the function name and error message. Added 1 new test (`logs warning and falls back to statusText when error body read fails`) verifying warning output and correct `ApiError` with `statusText` fallback. All 499 frontend tests passing.
 
 ### P0 Ingestion + Evidence Store MVP (continued)
 

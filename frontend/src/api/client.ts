@@ -100,6 +100,7 @@ import type {
   CreateSpecialTokenRequest,
   UpdateSpecialTokenRequest,
 } from './types';
+import { logger } from '../utils/logger';
 
 let getAccessToken: (() => Promise<string | null>) | null = null;
 
@@ -120,7 +121,10 @@ async function rawFetch(path: string, init?: RequestInit): Promise<Response> {
   const headers = { ...(await authHeaders()), ...(init?.headers as Record<string, string>) };
   const res = await fetch(path, { ...init, headers });
   if (!res.ok) {
-    const body = await res.text().catch(() => '');
+    const body = await res.text().catch((e) => {
+      logger.warn('rawFetch: failed to read error response body', e instanceof Error ? e.message : e);
+      return '';
+    });
     throw new ApiError(res.status, body || res.statusText);
   }
   return res;
@@ -142,7 +146,10 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, { ...init, headers });
 
   if (!res.ok) {
-    const body = await res.text().catch(() => '');
+    const body = await res.text().catch((e) => {
+      logger.warn('apiFetch: failed to read error response body', e instanceof Error ? e.message : e);
+      return '';
+    });
     throw new ApiError(res.status, body || res.statusText);
   }
 

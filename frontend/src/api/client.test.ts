@@ -85,6 +85,26 @@ describe('apiFetch', () => {
     await expect(client.listSessions()).rejects.toThrow('API 500: Internal error');
   });
 
+  it('logs warning and falls back to statusText when error body read fails', async () => {
+    const loggerMod = await import('../utils/logger');
+    const warnSpy = vi.spyOn(loggerMod.logger, 'warn').mockImplementation(() => {});
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: false,
+      status: 502,
+      statusText: 'Bad Gateway',
+      text: () => Promise.reject(new Error('stream consumed')),
+    } as unknown as Response);
+
+    await expect(client.listSessions()).rejects.toThrow('API 502: Bad Gateway');
+    expect(warnSpy).toHaveBeenCalledWith(
+      'apiFetch: failed to read error response body',
+      'stream consumed',
+    );
+
+    warnSpy.mockRestore();
+  });
+
   it('throws ApiError when unwrap gets isSuccess=false', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,
