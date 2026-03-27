@@ -53,7 +53,7 @@ public sealed class AdoWebhookManager : IWebhookManager
             return [];
         }
 
-        using var client = CreateHttpClient(config.OrganizationUrl, context.SecretValue);
+        var client = CreateHttpClient(config.OrganizationUrl, context.SecretValue);
         var results = new List<WebhookRegistrationResult>();
 
         // Generate a shared secret for HMAC signature verification.
@@ -137,7 +137,7 @@ public sealed class AdoWebhookManager : IWebhookManager
             return;
         }
 
-        using var client = CreateHttpClient(config.OrganizationUrl, context.SecretValue);
+        var client = CreateHttpClient(config.OrganizationUrl, context.SecretValue);
 
         foreach (var subscriptionId in context.ExternalSubscriptionIds)
         {

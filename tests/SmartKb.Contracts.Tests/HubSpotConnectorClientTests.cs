@@ -281,6 +281,41 @@ public class HubSpotConnectorClientTests
     }
 
     [Fact]
+    public void MapObjectToCanonical_Company_MapsCorrectly()
+    {
+        var obj = new HubSpotObject
+        {
+            Id = "321",
+            Properties = new Dictionary<string, string?>
+            {
+                ["name"] = "Contoso Ltd",
+                ["description"] = "Enterprise customer",
+                ["createdate"] = "2026-01-15T00:00:00Z",
+                ["hs_lastmodifieddate"] = "2026-03-10T00:00:00Z",
+            },
+        };
+
+        var record = HubSpotConnectorClient.MapObjectToCanonical(obj, "companies", "99", "tenant-1");
+
+        Assert.NotNull(record);
+        Assert.Equal("hubspot-company-321", record.EvidenceId);
+        Assert.Equal(SourceType.Document, record.SourceType);
+        Assert.Equal("Contoso Ltd", record.Title);
+        Assert.Equal("Enterprise customer", record.TextContent);
+    }
+
+    [Theory]
+    [InlineData("tickets", "ticket")]
+    [InlineData("contacts", "contact")]
+    [InlineData("companies", "company")]
+    [InlineData("deals", "deal")]
+    [InlineData("widgets", "widget")]
+    public void SingularizeObjectType_ReturnsExpected(string input, string expected)
+    {
+        Assert.Equal(expected, HubSpotConnectorClient.SingularizeObjectType(input));
+    }
+
+    [Fact]
     public void MapObjectToCanonical_NullProperties_ReturnsNull()
     {
         var obj = new HubSpotObject { Id = "1", Properties = null };

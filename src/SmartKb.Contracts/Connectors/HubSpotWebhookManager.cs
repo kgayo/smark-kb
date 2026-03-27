@@ -63,7 +63,7 @@ public sealed class HubSpotWebhookManager : IWebhookManager
             return [];
         }
 
-        using var client = CreateHttpClient(config.BaseUrl, context.SecretValue);
+        var client = CreateHttpClient(config.BaseUrl, context.SecretValue);
         var results = new List<WebhookRegistrationResult>();
 
         // Generate a shared secret for HMAC-SHA256 signature verification.
@@ -148,7 +148,7 @@ public sealed class HubSpotWebhookManager : IWebhookManager
             return;
         }
 
-        using var client = CreateHttpClient(config.BaseUrl, context.SecretValue);
+        var client = CreateHttpClient(config.BaseUrl, context.SecretValue);
 
         foreach (var subscriptionId in context.ExternalSubscriptionIds)
         {

@@ -558,7 +558,7 @@ public class ClickUpConnectorClientTests
         };
         var handler = new MockHttpHandler(HttpStatusCode.OK, "{}");
         var client = CreateClient(handler);
-        using var httpClient = client.CreateHttpClient("https://api.clickup.com", "token");
+        var httpClient = client.CreateHttpClient("https://api.clickup.com", "token");
 
         var ids = await client.ResolveListIdsAsync(httpClient, config, CancellationToken.None);
 
@@ -582,7 +582,7 @@ public class ClickUpConnectorClientTests
         };
         var handler = new RoutingMockHandler(responses);
         var client = CreateClient(handler);
-        using var httpClient = client.CreateHttpClient("https://api.clickup.com", "token");
+        var httpClient = client.CreateHttpClient("https://api.clickup.com", "token");
 
         var ids = await client.ResolveListIdsAsync(httpClient, config, CancellationToken.None);
 
@@ -607,7 +607,7 @@ public class ClickUpConnectorClientTests
         };
         var handler = new RoutingMockHandler(responses);
         var client = CreateClient(handler);
-        using var httpClient = client.CreateHttpClient("https://api.clickup.com", "token");
+        var httpClient = client.CreateHttpClient("https://api.clickup.com", "token");
 
         var ids = await client.ResolveListIdsAsync(httpClient, config, CancellationToken.None);
 

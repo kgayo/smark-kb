@@ -59,7 +59,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
 
         try
         {
-            using var client = CreateHttpClient(config.BaseUrl, secretValue);
+            var client = CreateHttpClient(config.BaseUrl, secretValue);
             // Use the account info endpoint to validate credentials.
             using var response = await client.GetAsync("account-info/v3/details", cancellationToken);
 
@@ -103,7 +103,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
 
         try
         {
-            using var client = CreateHttpClient(config.BaseUrl, secretValue);
+            var client = CreateHttpClient(config.BaseUrl, secretValue);
             var records = new List<CanonicalRecord>();
 
             foreach (var objectType in ResolveObjectTypes(config))
@@ -139,7 +139,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
         if (string.IsNullOrEmpty(secretValue))
             return FetchResult.Error(ResponseMessages.NoCredentialsProvided);
 
-        using var client = CreateHttpClient(config.BaseUrl, secretValue);
+        var client = CreateHttpClient(config.BaseUrl, secretValue);
 
         var parsedCheckpoint = HubSpotCheckpoint.Parse(checkpoint);
         var objectTypes = ResolveObjectTypes(config);
@@ -387,7 +387,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
         return new CanonicalRecord
         {
             TenantId = tenantId,
-            EvidenceId = $"hubspot-{objectType.TrimEnd('s')}-{id}",
+            EvidenceId = $"hubspot-{SingularizeObjectType(objectType)}-{id}",
             SourceSystem = ConnectorType.HubSpot,
             SourceType = MapObjectTypeToSourceType(objectType),
             SourceLocator = new SourceLocator(id, deepLink, pipeline),
@@ -477,7 +477,7 @@ public sealed class HubSpotConnectorClient : IConnectorClient
         _ => SourceType.Document,
     };
 
-    private static string MapObjectTypeToUrlPath(string objectType) => objectType switch
+    internal static string SingularizeObjectType(string objectType) => objectType switch
     {
         "tickets" => "ticket",
         "contacts" => "contact",
@@ -485,6 +485,8 @@ public sealed class HubSpotConnectorClient : IConnectorClient
         "deals" => "deal",
         _ => objectType.TrimEnd('s'),
     };
+
+    private static string MapObjectTypeToUrlPath(string objectType) => SingularizeObjectType(objectType);
 
     private static EvidenceStatus MapStageToStatus(string? stage)
     {

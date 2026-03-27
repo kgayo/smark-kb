@@ -59,7 +59,7 @@ public sealed class ClickUpWebhookManager : IWebhookManager
             return [];
         }
 
-        using var client = CreateHttpClient(config.BaseUrl, context.SecretValue);
+        var client = CreateHttpClient(config.BaseUrl, context.SecretValue);
         var results = new List<WebhookRegistrationResult>();
 
         // Generate a shared secret for HMAC-SHA256 signature verification.
@@ -137,7 +137,7 @@ public sealed class ClickUpWebhookManager : IWebhookManager
             return;
         }
 
-        using var client = CreateHttpClient(config.BaseUrl, context.SecretValue);
+        var client = CreateHttpClient(config.BaseUrl, context.SecretValue);
 
         // Deduplicate subscription IDs (ClickUp uses one webhook ID for all events).
         var uniqueIds = context.ExternalSubscriptionIds.Distinct().ToList();

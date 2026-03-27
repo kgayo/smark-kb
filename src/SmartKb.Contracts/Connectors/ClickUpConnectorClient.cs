@@ -43,7 +43,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
 
         try
         {
-            using var client = CreateHttpClient(config.BaseUrl, secretValue);
+            var client = CreateHttpClient(config.BaseUrl, secretValue);
             using var response = await client.GetAsync("api/v2/user", cancellationToken);
 
             if (response.IsSuccessStatusCode)
@@ -86,7 +86,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
 
         try
         {
-            using var client = CreateHttpClient(config.BaseUrl, secretValue);
+            var client = CreateHttpClient(config.BaseUrl, secretValue);
             var records = new List<CanonicalRecord>();
 
             if (config.IngestTasks)
@@ -125,7 +125,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
         if (string.IsNullOrEmpty(secretValue))
             return FetchResult.Error(ResponseMessages.NoCredentialsProvided);
 
-        using var client = CreateHttpClient(config.BaseUrl, secretValue);
+        var client = CreateHttpClient(config.BaseUrl, secretValue);
 
         var parsedCheckpoint = ClickUpCheckpoint.Parse(checkpoint);
         var records = new List<CanonicalRecord>();
@@ -262,7 +262,7 @@ public sealed class ClickUpConnectorClient : IConnectorClient, IEscalationTarget
 
         try
         {
-            using var client = CreateHttpClient(config.BaseUrl, secretValue);
+            var client = CreateHttpClient(config.BaseUrl, secretValue);
 
             // Map severity to ClickUp priority: P1→1(Urgent), P2→2(High), P3→3(Normal), P4→4(Low).
             int? priority = request.Severity switch

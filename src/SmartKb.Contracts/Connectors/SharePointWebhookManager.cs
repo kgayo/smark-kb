@@ -202,7 +202,7 @@ public sealed class SharePointWebhookManager : IWebhookManager
     private async Task<string> AcquireTokenAsync(
         SharePointSourceConfig config, string clientSecret, CancellationToken ct)
     {
-        using var client = _httpClientFactory.CreateClient(HttpClientNames.SharePoint);
+        var client = _httpClientFactory.CreateClient(HttpClientNames.SharePoint);
         return await ConnectorHttpHelper.AcquireGraphTokenAsync(
             client, config.EntraIdTenantId, config.ClientId, clientSecret, ct, _logger);
     }

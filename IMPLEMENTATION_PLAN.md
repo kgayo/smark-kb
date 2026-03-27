@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-27 (Asia/Manila) — iteration 233
-Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase 1: P0-001–P0-022; Phase 2: P1-001–P1-012, P2-001–P2-005; Phase 3: P3-001–P3-038 (all 38 items). Tests: T-001–T-008; ~3385 tests passing (2887 backend + 498 frontend). Spec clarification backlog: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. BUG-001–BUG-005 resolved. TECH-001–TECH-141 resolved. 297/297 checklist items complete, 0 remaining.
+Last updated: 2026-03-27 (Asia/Manila) — iteration 234
+Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase 1: P0-001–P0-022; Phase 2: P1-001–P1-012, P2-001–P2-005; Phase 3: P3-001–P3-038 (all 38 items). Tests: T-001–T-008; ~3392 tests passing (2894 backend + 498 frontend). Spec clarification backlog: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. BUG-001–BUG-005 resolved. TECH-001–TECH-143 resolved. 299/299 checklist items complete, 0 remaining.
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -638,6 +638,14 @@ Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase
 - [x] TECH-141: Consolidate remaining 6 hardcoded `pageSize = 20` defaults to `PaginationDefaults.DefaultPageSize`; fix misplaced test in `PolicyAwarePiiRedactionTests`.
   - Root cause: TECH-137/TECH-138 extracted page-size magic numbers into `PaginationDefaults` but missed 6 method signatures: `IEvalReportService.ListReportsAsync`, `IGoldCaseService.ListAsync`, `IPatternGovernanceService.GetGovernanceQueueAsync`, and their 3 implementations in `EvalReportService`, `GoldCaseService`, `PatternGovernanceService`. Additionally, the `Redact_WithInvalidRegexCustomPattern_SkipsAndContinues` test added in TECH-139 was placed inside `PolicyAwareRedactPiiInChunksTests` which lacks the required `_sut` and `MakePolicy` members, causing 2 build errors.
   - Completed (iteration 233): Replaced all 6 `int pageSize = 20` defaults with `PaginationDefaults.DefaultPageSize`. Moved misplaced test into `PolicyAwarePiiRedactionTests` class. Build clean (0 warnings, 0 errors). All tests passing.
+
+- [x] TECH-142: Remove `using` disposal on IHttpClientFactory-created HttpClient instances across all connector clients.
+  - Root cause: 23 `using var client` declarations on HttpClient instances returned from `IHttpClientFactory.CreateClient()` or wrapper helpers in 10 connector/webhook/service files. Microsoft docs explicitly warn against disposing factory-managed clients — the handler lifecycle is managed by the factory, and `Dispose()` can interfere with connection pooling.
+  - Completed (iteration 234): Removed `using` from all 23 occurrences across AdoWebhookManager, HubSpotConnectorClient, HubSpotWebhookManager, AzureDevOpsConnectorClient, ClickUpConnectorClient, ClickUpWebhookManager, SharePointConnectorClient, SharePointWebhookManager, OAuthTokenService, and 3 test instances in ClickUpConnectorClientTests. Zero `using var client` on factory-managed HttpClients remaining.
+
+- [x] TECH-143: Fix HubSpot evidence ID singularization — `TrimEnd('s')` produced wrong IDs for "companies" → "companie".
+  - Root cause: `MapObjectToCanonical` at line 390 used `objectType.TrimEnd('s')` to build evidence IDs, while `MapObjectTypeToUrlPath` (lines 480-487) had an explicit mapping with correct singular forms. For "companies", `TrimEnd('s')` produces "companie" instead of "company", creating malformed evidence IDs and breaking lookups.
+  - Completed (iteration 234): Extracted `SingularizeObjectType` (internal, testable) with explicit cases for tickets/contacts/companies/deals and `TrimEnd('s')` fallback for unknown types. Evidence ID now calls `SingularizeObjectType`. `MapObjectTypeToUrlPath` delegates to same method. Added 7 new tests: `MapObjectToCanonical_Company_MapsCorrectly` verifies full company record mapping including `hubspot-company-321` evidence ID; `SingularizeObjectType_ReturnsExpected` Theory with 5 cases (tickets, contacts, companies, deals, widgets).
 
 ### P0 Ingestion + Evidence Store MVP (continued)
 

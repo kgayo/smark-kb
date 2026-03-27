@@ -44,7 +44,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
 
         try
         {
-            using var client = CreateHttpClient(config.OrganizationUrl, secretValue);
+            var client = CreateHttpClient(config.OrganizationUrl, secretValue);
             var url = $"_apis/projects?api-version={ConnectorConstants.AdoApiVersion}&$top=1";
             using var response = await client.GetAsync(url, cancellationToken);
 
@@ -88,7 +88,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
 
         try
         {
-            using var client = CreateHttpClient(config.OrganizationUrl, secretValue);
+            var client = CreateHttpClient(config.OrganizationUrl, secretValue);
             var projects = await ResolveProjectsAsync(client, config, cancellationToken);
             if (projects.Count == 0) return [];
 
@@ -136,7 +136,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
         if (string.IsNullOrEmpty(secretValue))
             return FetchResult.Error(ResponseMessages.NoCredentialsProvided);
 
-        using var client = CreateHttpClient(config.OrganizationUrl, secretValue);
+        var client = CreateHttpClient(config.OrganizationUrl, secretValue);
 
         var parsedCheckpoint = AdoCheckpoint.Parse(checkpoint);
         var projects = await ResolveProjectsAsync(client, config, cancellationToken);
@@ -267,7 +267,7 @@ public sealed class AzureDevOpsConnectorClient : IConnectorClient, IEscalationTa
 
         try
         {
-            using var client = CreateHttpClient(config.OrganizationUrl, secretValue);
+            var client = CreateHttpClient(config.OrganizationUrl, secretValue);
 
             var patchOps = new List<object>
             {

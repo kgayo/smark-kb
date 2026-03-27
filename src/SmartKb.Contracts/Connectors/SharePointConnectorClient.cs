@@ -67,7 +67,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
         try
         {
             var accessToken = await AcquireTokenAsync(config.EntraIdTenantId, config.ClientId, secretValue, cancellationToken);
-            using var client = CreateGraphClient(accessToken);
+            var client = CreateGraphClient(accessToken);
 
             var siteId = await ResolveSiteIdAsync(client, config.SiteUrl, cancellationToken);
             if (siteId is null)
@@ -107,7 +107,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
         try
         {
             var accessToken = await AcquireTokenAsync(config.EntraIdTenantId, config.ClientId, secretValue, cancellationToken);
-            using var client = CreateGraphClient(accessToken);
+            var client = CreateGraphClient(accessToken);
 
             var siteId = await ResolveSiteIdAsync(client, config.SiteUrl, cancellationToken);
             if (siteId is null) return [];
@@ -159,7 +159,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
             return FetchResult.Error($"Failed to acquire access token: {ex.Message}");
         }
 
-        using var client = CreateGraphClient(accessToken);
+        var client = CreateGraphClient(accessToken);
 
         var siteId = await ResolveSiteIdAsync(client, config.SiteUrl, cancellationToken);
         if (siteId is null)
@@ -481,7 +481,7 @@ public sealed class SharePointConnectorClient : IConnectorClient
         string entraIdTenantId, string clientId, string clientSecret,
         CancellationToken ct)
     {
-        using var client = _httpClientFactory.CreateClient(HttpClientNames.SharePoint);
+        var client = _httpClientFactory.CreateClient(HttpClientNames.SharePoint);
         return await ConnectorHttpHelper.AcquireGraphTokenAsync(
             client, entraIdTenantId, clientId, clientSecret, ct, _logger);
     }
