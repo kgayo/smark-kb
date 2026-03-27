@@ -40,12 +40,12 @@ public sealed class EmbeddingCacheService : IEmbeddingCacheService
     {
         var contentHash = ConnectorHttpHelper.ComputeHash(text);
         var now = DateTimeOffset.UtcNow;
+        var nowEpoch = now.ToUnixTimeSeconds();
 
-        // Try cache lookup (load by hash, then filter expiry in memory for SQLite compat).
-        var cached = (await _db.EmbeddingCache
-            .Where(c => c.ContentHash == contentHash)
-            .ToListAsync(ct))
-            .FirstOrDefault(c => c.ExpiresAt > now);
+        // Filter server-side using the long epoch column (SQLite-compatible).
+        var cached = await _db.EmbeddingCache
+            .Where(c => c.ContentHash == contentHash && c.ExpiresAtEpoch > nowEpoch)
+            .FirstOrDefaultAsync(ct);
 
         if (cached is not null)
         {
@@ -84,6 +84,7 @@ public sealed class EmbeddingCacheService : IEmbeddingCacheService
 
         // Store in cache.
         var ttlHours = _costSettings.EmbeddingCacheTtlHours;
+        var expiresAt = now.AddHours(ttlHours);
         var cacheEntry = new EmbeddingCacheEntity
         {
             Id = Guid.NewGuid(),
@@ -94,7 +95,8 @@ public sealed class EmbeddingCacheService : IEmbeddingCacheService
             Dimensions = freshEmbedding.Length,
             CreatedAt = now,
             LastAccessedAt = now,
-            ExpiresAt = now.AddHours(ttlHours),
+            ExpiresAt = expiresAt,
+            ExpiresAtEpoch = expiresAt.ToUnixTimeSeconds(),
         };
 
         _db.EmbeddingCache.Add(cacheEntry);
@@ -115,9 +117,12 @@ public sealed class EmbeddingCacheService : IEmbeddingCacheService
 
     public async Task<int> EvictExpiredAsync(CancellationToken ct = default)
     {
-        var now = DateTimeOffset.UtcNow;
-        var allEntries = await _db.EmbeddingCache.ToListAsync(ct);
-        var expired = allEntries.Where(c => c.ExpiresAt <= now).ToList();
+        var nowEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+        // Filter server-side using the long epoch column (SQLite-compatible).
+        var expired = await _db.EmbeddingCache
+            .Where(c => c.ExpiresAtEpoch <= nowEpoch)
+            .ToListAsync(ct);
 
         if (expired.Count == 0) return 0;
 

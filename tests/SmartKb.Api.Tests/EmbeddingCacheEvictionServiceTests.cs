@@ -161,6 +161,7 @@ public sealed class EmbeddingCacheEvictionServiceTests : IDisposable
             CreatedAt = now.AddHours(-24),
             LastAccessedAt = now.AddHours(-24),
             ExpiresAt = expiresAt,
+            ExpiresAtEpoch = expiresAt.ToUnixTimeSeconds(),
         };
     }
 

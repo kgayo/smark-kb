@@ -30,4 +30,7 @@ public sealed class EmbeddingCacheEntity
 
     /// <summary>Cache expiry time based on TTL setting.</summary>
     public DateTimeOffset ExpiresAt { get; set; }
+
+    /// <summary>Unix epoch seconds of <see cref="ExpiresAt"/>. Enables server-side filtering in SQLite (which cannot compare DateTimeOffset).</summary>
+    public long ExpiresAtEpoch { get; set; }
 }

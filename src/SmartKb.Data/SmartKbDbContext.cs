@@ -573,6 +573,7 @@ public class SmartKbDbContext : DbContext
             e.Property(c => c.ModelId).HasMaxLength(128).IsRequired();
             e.HasIndex(c => c.ContentHash);
             e.HasIndex(c => c.ExpiresAt);
+            e.HasIndex(c => c.ExpiresAtEpoch);
         });
     }
 
@@ -724,6 +725,7 @@ public class SmartKbDbContext : DbContext
                 .HasForeignKey(r => r.ConnectorId)
                 .OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(r => new { r.TenantId, r.OccurredAt });
+            e.HasIndex(r => new { r.TenantId, r.OccurredAtEpoch });
             e.HasIndex(r => r.ConnectorId);
         });
     }

@@ -68,6 +68,7 @@ public class EmbeddingCacheServiceTests : IDisposable
     {
         // Manually insert an expired cache entry.
         var hash = ConnectorHttpHelper.ComputeHash("expired query");
+        var expiresAt = DateTimeOffset.UtcNow.AddHours(-1);
         _db.EmbeddingCache.Add(new EmbeddingCacheEntity
         {
             Id = Guid.NewGuid(),
@@ -78,7 +79,8 @@ public class EmbeddingCacheServiceTests : IDisposable
             Dimensions = 3,
             CreatedAt = DateTimeOffset.UtcNow.AddHours(-48),
             LastAccessedAt = DateTimeOffset.UtcNow.AddHours(-48),
-            ExpiresAt = DateTimeOffset.UtcNow.AddHours(-1), // Expired.
+            ExpiresAt = expiresAt,
+            ExpiresAtEpoch = expiresAt.ToUnixTimeSeconds(),
         });
         await _db.SaveChangesAsync();
 
@@ -94,6 +96,8 @@ public class EmbeddingCacheServiceTests : IDisposable
         var now = DateTimeOffset.UtcNow;
 
         // Add one expired and one valid entry.
+        var expiredAt = now.AddHours(-1);
+        var validAt = now.AddHours(23);
         _db.EmbeddingCache.Add(new EmbeddingCacheEntity
         {
             Id = Guid.NewGuid(),
@@ -104,7 +108,8 @@ public class EmbeddingCacheServiceTests : IDisposable
             Dimensions = 1,
             CreatedAt = now.AddHours(-48),
             LastAccessedAt = now.AddHours(-48),
-            ExpiresAt = now.AddHours(-1),
+            ExpiresAt = expiredAt,
+            ExpiresAtEpoch = expiredAt.ToUnixTimeSeconds(),
         });
         _db.EmbeddingCache.Add(new EmbeddingCacheEntity
         {
@@ -116,7 +121,8 @@ public class EmbeddingCacheServiceTests : IDisposable
             Dimensions = 1,
             CreatedAt = now.AddHours(-1),
             LastAccessedAt = now.AddHours(-1),
-            ExpiresAt = now.AddHours(23),
+            ExpiresAt = validAt,
+            ExpiresAtEpoch = validAt.ToUnixTimeSeconds(),
         });
         await _db.SaveChangesAsync();
 
@@ -168,6 +174,7 @@ public class EmbeddingCacheServiceTests : IDisposable
     {
         // Insert a cache entry with corrupted JSON.
         var hash = ConnectorHttpHelper.ComputeHash("corrupt query");
+        var corruptExpiresAt = DateTimeOffset.UtcNow.AddHours(23);
         _db.EmbeddingCache.Add(new EmbeddingCacheEntity
         {
             Id = Guid.NewGuid(),
@@ -178,7 +185,8 @@ public class EmbeddingCacheServiceTests : IDisposable
             Dimensions = 3,
             CreatedAt = DateTimeOffset.UtcNow.AddHours(-1),
             LastAccessedAt = DateTimeOffset.UtcNow.AddHours(-1),
-            ExpiresAt = DateTimeOffset.UtcNow.AddHours(23),
+            ExpiresAt = corruptExpiresAt,
+            ExpiresAtEpoch = corruptExpiresAt.ToUnixTimeSeconds(),
         });
         await _db.SaveChangesAsync();
 
@@ -197,6 +205,8 @@ public class EmbeddingCacheServiceTests : IDisposable
         var now = DateTimeOffset.UtcNow;
 
         // Add 3 expired and 2 valid entries.
+        var expiredAt = now.AddHours(-1);
+        var validAt = now.AddHours(23);
         for (var i = 0; i < 3; i++)
         {
             _db.EmbeddingCache.Add(new EmbeddingCacheEntity
@@ -209,7 +219,8 @@ public class EmbeddingCacheServiceTests : IDisposable
                 Dimensions = 1,
                 CreatedAt = now.AddDays(-30),
                 LastAccessedAt = now.AddDays(-30),
-                ExpiresAt = now.AddHours(-1),
+                ExpiresAt = expiredAt,
+                ExpiresAtEpoch = expiredAt.ToUnixTimeSeconds(),
             });
         }
 
@@ -225,7 +236,8 @@ public class EmbeddingCacheServiceTests : IDisposable
                 Dimensions = 1,
                 CreatedAt = now.AddHours(-1),
                 LastAccessedAt = now.AddHours(-1),
-                ExpiresAt = now.AddHours(23),
+                ExpiresAt = validAt,
+                ExpiresAtEpoch = validAt.ToUnixTimeSeconds(),
             });
         }
 
@@ -236,6 +248,61 @@ public class EmbeddingCacheServiceTests : IDisposable
         Assert.Equal(3, evicted);
         Assert.Equal(2, _db.EmbeddingCache.Count());
         Assert.All(_db.EmbeddingCache, e => Assert.StartsWith("hash-valid", e.ContentHash));
+    }
+
+    [Fact]
+    public async Task EvictExpired_FiltersServerSideViaEpochColumn()
+    {
+        var now = DateTimeOffset.UtcNow;
+
+        // Entry with ExpiresAtEpoch=0 (simulates pre-migration row with unset epoch).
+        // Should be evicted because 0 < now.
+        _db.EmbeddingCache.Add(new EmbeddingCacheEntity
+        {
+            Id = Guid.NewGuid(),
+            ContentHash = "hash-premigration",
+            InputText = "premigration",
+            EmbeddingJson = "[0.1]",
+            ModelId = "model",
+            Dimensions = 1,
+            CreatedAt = now.AddDays(-1),
+            LastAccessedAt = now.AddDays(-1),
+            ExpiresAt = now.AddDays(-1),
+            ExpiresAtEpoch = 0,
+        });
+
+        // Entry with correct epoch in the future — should NOT be evicted.
+        var futureExpiry = now.AddHours(24);
+        _db.EmbeddingCache.Add(new EmbeddingCacheEntity
+        {
+            Id = Guid.NewGuid(),
+            ContentHash = "hash-future",
+            InputText = "future",
+            EmbeddingJson = "[0.2]",
+            ModelId = "model",
+            Dimensions = 1,
+            CreatedAt = now,
+            LastAccessedAt = now,
+            ExpiresAt = futureExpiry,
+            ExpiresAtEpoch = futureExpiry.ToUnixTimeSeconds(),
+        });
+        await _db.SaveChangesAsync();
+
+        var evicted = await _service.EvictExpiredAsync();
+
+        Assert.Equal(1, evicted);
+        var remaining = Assert.Single(_db.EmbeddingCache);
+        Assert.Equal("hash-future", remaining.ContentHash);
+    }
+
+    [Fact]
+    public async Task CacheMiss_SetsExpiresAtEpochConsistentWithExpiresAt()
+    {
+        await _service.GetOrGenerateAsync("epoch test");
+
+        var cached = Assert.Single(_db.EmbeddingCache);
+        Assert.Equal(cached.ExpiresAt.ToUnixTimeSeconds(), cached.ExpiresAtEpoch);
+        Assert.True(cached.ExpiresAtEpoch > 0);
     }
 
     [Fact]

@@ -190,6 +190,7 @@ public class RateLimitAlertServiceTests : IDisposable
 
         var evt = _db.RateLimitEvents.Single();
         Assert.Equal(_timeProvider.GetUtcNow(), evt.OccurredAt);
+        Assert.Equal(_timeProvider.GetUtcNow().ToUnixTimeSeconds(), evt.OccurredAtEpoch);
     }
 
     [Fact]
@@ -232,18 +233,56 @@ public class RateLimitAlertServiceTests : IDisposable
         Assert.Empty(result.Alerts);
     }
 
+    [Fact]
+    public async Task RecordEvent_SetsOccurredAtEpochConsistentWithOccurredAt()
+    {
+        await _service.RecordRateLimitEventAsync("t1", _connectorId, "AzureDevOps");
+
+        var evt = _db.RateLimitEvents.Single();
+        Assert.Equal(evt.OccurredAt.ToUnixTimeSeconds(), evt.OccurredAtEpoch);
+        Assert.True(evt.OccurredAtEpoch > 0);
+    }
+
+    [Fact]
+    public async Task GetAlerts_FiltersServerSideViaEpochColumn()
+    {
+        // Seed 3 events with epoch=0 (simulates pre-migration rows).
+        // These should be excluded because 0 < windowStartEpoch.
+        var oldTime = _timeProvider.GetUtcNow().AddMinutes(-30);
+        for (var i = 0; i < 3; i++)
+        {
+            _db.RateLimitEvents.Add(new RateLimitEventEntity
+            {
+                Id = Guid.NewGuid(),
+                TenantId = "t1",
+                ConnectorId = _connectorId,
+                ConnectorType = "AzureDevOps",
+                OccurredAt = oldTime,
+                OccurredAtEpoch = 0,
+            });
+        }
+        _db.SaveChanges();
+
+        var result = await _service.GetRateLimitAlertsAsync("t1");
+
+        Assert.Equal(0, result.TotalAlertingConnectors);
+        Assert.Empty(result.Alerts);
+    }
+
     private void SeedEvents(string tenantId, Guid connectorId, string connectorType, int count, int minutesAgo)
     {
         var baseTime = _timeProvider.GetUtcNow().AddMinutes(-minutesAgo);
         for (var i = 0; i < count; i++)
         {
+            var occurredAt = baseTime.AddSeconds(i);
             _db.RateLimitEvents.Add(new RateLimitEventEntity
             {
                 Id = Guid.NewGuid(),
                 TenantId = tenantId,
                 ConnectorId = connectorId,
                 ConnectorType = connectorType,
-                OccurredAt = baseTime.AddSeconds(i),
+                OccurredAt = occurredAt,
+                OccurredAtEpoch = occurredAt.ToUnixTimeSeconds(),
             });
         }
         _db.SaveChanges();

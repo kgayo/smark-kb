@@ -29,13 +29,15 @@ public sealed class RateLimitAlertService : IRateLimitAlertService
     public async Task RecordRateLimitEventAsync(
         string tenantId, Guid connectorId, string connectorType, CancellationToken ct = default)
     {
+        var occurredAt = _timeProvider.GetUtcNow();
         _db.RateLimitEvents.Add(new RateLimitEventEntity
         {
             Id = Guid.NewGuid(),
             TenantId = tenantId,
             ConnectorId = connectorId,
             ConnectorType = connectorType,
-            OccurredAt = _timeProvider.GetUtcNow(),
+            OccurredAt = occurredAt,
+            OccurredAtEpoch = occurredAt.ToUnixTimeSeconds(),
         });
         await _db.SaveChangesAsync(ct);
 
@@ -47,14 +49,14 @@ public sealed class RateLimitAlertService : IRateLimitAlertService
     public async Task<RateLimitAlertSummary> GetRateLimitAlertsAsync(
         string tenantId, CancellationToken ct = default)
     {
-        var windowStart = _timeProvider.GetUtcNow().AddMinutes(-_sloSettings.RateLimitAlertWindowMinutes);
+        var windowStartEpoch = _timeProvider.GetUtcNow()
+            .AddMinutes(-_sloSettings.RateLimitAlertWindowMinutes)
+            .ToUnixTimeSeconds();
 
-        var allTenantEvents = await _db.RateLimitEvents
-            .Where(e => e.TenantId == tenantId)
+        // Filter server-side using the long epoch column (SQLite-compatible).
+        var recentEvents = await _db.RateLimitEvents
+            .Where(e => e.TenantId == tenantId && e.OccurredAtEpoch >= windowStartEpoch)
             .ToListAsync(ct);
-        var recentEvents = allTenantEvents
-            .Where(e => e.OccurredAt >= windowStart)
-            .ToList();
 
         var grouped = recentEvents
             .GroupBy(e => new { e.ConnectorId, e.ConnectorType })
