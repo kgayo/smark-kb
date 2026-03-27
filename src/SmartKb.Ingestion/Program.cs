@@ -70,11 +70,9 @@ builder.Services.AddSingleton(serviceBusSettings);
 
 if (serviceBusSettings.IsConfigured)
 {
-    var sbClient = serviceBusSettings.UsesManagedIdentity
+    builder.Services.AddSingleton<ServiceBusClient>(_ => serviceBusSettings.UsesManagedIdentity
         ? new ServiceBusClient(serviceBusSettings.FullyQualifiedNamespace, new DefaultAzureCredential())
-        : new ServiceBusClient(serviceBusSettings.ConnectionString);
-
-    builder.Services.AddSingleton(sbClient);
+        : new ServiceBusClient(serviceBusSettings.ConnectionString));
     builder.Services.AddSingleton<ISyncJobPublisher, ServiceBusSyncJobPublisher>();
 }
 else
