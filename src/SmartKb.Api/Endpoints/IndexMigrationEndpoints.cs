@@ -120,7 +120,7 @@ public static class IndexMigrationEndpoints
             var deleted = await service.DeleteRetiredVersionAsync(versionId, tenant.UserId, ct);
             return deleted
                 ? Results.Ok(ApiResponse<object>.Success(new { deleted = true }, tenant.CorrelationId))
-                : Results.NotFound(ApiResponse<object>.Failure("Retired version not found or not eligible for deletion.", tenant.CorrelationId));
+                : Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.RetiredVersionNotFound, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
         return app;

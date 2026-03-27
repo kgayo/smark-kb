@@ -47,7 +47,7 @@ public static class CostEndpoints
             var deleted = await costSettingsService.ResetSettingsAsync(tenant.TenantId, ct);
             return deleted
                 ? Results.Ok(ApiResponse<object>.Success(new { reset = true }, tenant.CorrelationId))
-                : Results.NotFound(ApiResponse<object>.Failure("No tenant cost overrides found.", tenant.CorrelationId));
+                : Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.NoTenantCostOverrides, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapGet("/api/admin/token-usage/summary", async (

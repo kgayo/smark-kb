@@ -1,7 +1,7 @@
 # IMPLEMENTATION_PLAN
 
-Last updated: 2026-03-27 (Asia/Manila) — iteration 225
-Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase 1: P0-001–P0-022; Phase 2: P1-001–P1-012, P2-001–P2-005; Phase 3: P3-001–P3-038 (all 38 items). Tests: T-001–T-008; ~3331 tests passing (2833 backend + 498 frontend). Spec clarification backlog: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. BUG-001–BUG-005 resolved. TECH-001–TECH-131 resolved. 289/289 checklist items complete, 0 remaining.
+Last updated: 2026-03-27 (Asia/Manila) — iteration 226
+Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase 1: P0-001–P0-022; Phase 2: P1-001–P1-012, P2-001–P2-005; Phase 3: P3-001–P3-038 (all 38 items). Tests: T-001–T-008; ~3331 tests passing (2833 backend + 498 frontend). Spec clarification backlog: SPEC-001–SPEC-017 all patched. All 55 acceptance criteria across 11 specs marked complete. BUG-001–BUG-005 resolved. TECH-001–TECH-134 resolved. 289/289 checklist items complete, 0 remaining.
 
 ## Execution Rules
 - Always implement highest-priority uncompleted item first.
@@ -545,6 +545,18 @@ Status: **PROJECT COMPLETE.** All phases and spec clarifications complete. Phase
 - [x] TECH-129: Extract 7 duplicate `SyncJobMessage` constructions into shared `ConnectorEntity.ToSyncJobMessage` extension method.
   - Root cause: 7 identical 12-line `new SyncJobMessage { ... }` blocks across 4 webhook handlers (AdoWebhookHandler, ClickUpWebhookHandler, HubSpotWebhookHandler, SharePointWebhookHandler), WebhookPollingFallbackService, ScheduledSyncService, and ConnectorAdminService. All copy the same 11 fields from `ConnectorEntity` — only `Checkpoint`, `IsBackfill`, and `EnqueuedAt` vary. A field added to `SyncJobMessage` would require 7 synchronized edits.
   - Completed (iteration 223): Created `SmartKb.Data/Entities/ConnectorEntityExtensions.cs` with `ToSyncJobMessage(syncRunId, checkpoint, correlationId, isBackfill, enqueuedAt)` extension method. Replaced all 7 call sites: 4 webhook handlers, polling fallback, scheduled sync, and admin sync trigger. 6 new unit tests (field mapping, defaults, null propagation, backfill flag, custom enqueuedAt). 2824 backend tests passing; build clean. Zero remaining inline `SyncJobMessage` constructions.
+
+- [x] TECH-134: Move ~10 remaining inline error-message string literals in endpoint files into `ResponseMessages` constants class to complete consolidation started in TECH-130.
+  - Root cause: 10 hardcoded error strings in 7 endpoint files (`ChatEndpoints`, `PlaybookEndpoints`, `ConnectorAdminEndpoints` ×2, `CostEndpoints`, `IndexMigrationEndpoints`, `PatternEndpoints`, `PrivacyEndpoints`, `RoutingEndpoints` ×2) used inline string literals instead of `ResponseMessages` constants — inconsistent with the pattern established in TECH-080/TECH-130.
+  - Completed (iteration 226): Added 9 new constants to `ResponseMessages` (`SessionNotFoundOrExpired`, `PlaybookNotFoundForTeam`, `OAuthNotConfigured`, `InvalidOrExpiredStateParameter`, `NoTenantCostOverrides`, `RetiredVersionNotFound`, `NoTenantOverrides`, `NoCustomPiiPolicy`, `RecommendationNotPending`). Replaced all 10 inline string literals across 7 endpoint files. 498 frontend tests passing; TypeScript clean. Zero remaining hardcoded error-message string literals in endpoint files (excluding dynamic/interpolated strings).
+
+- [x] TECH-133: Normalize 14 bare `Results.NotFound()` calls (no response body) into `Results.NotFound(ApiResponse<object>.Failure(...))` for consistent API response shape.
+  - Root cause: 14 `Results.NotFound()` calls in `SearchTokenEndpoints` (6) and `PatternEndpoints` (8) returned HTTP 404 with an empty body, while all other endpoints returned `ApiResponse<object>.Failure(message, correlationId)` — inconsistent for frontend consumers that expect a uniform error shape.
+  - Completed (iteration 226): Added 5 new constants to `ResponseMessages` (`StopWordNotFound`, `SpecialTokenNotFound`, `PatternNotFound`, `ContradictionNotFound`, `MaintenanceTaskNotFound`). Replaced all 14 bare `Results.NotFound()` with `Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.XxxNotFound, tenant.CorrelationId))`. Zero bare `Results.NotFound()` remaining in codebase.
+
+- [x] TECH-132: Fix 4 `TS1355` TypeScript build errors — remove invalid `as const` assertions on property-access expressions in test files.
+  - Root cause: `ConnectorStatuses.Disabled as const` and `ConnectorTypes.AzureDevOps as const` in `ConnectorDetail.test.tsx` (3) and `SourceConfigEditor.test.tsx` (1) — `as const` can only be applied to literal values, not property accesses. Vitest transpiler accepted these but `tsc` rejected them, breaking the official TypeScript build.
+  - Completed (iteration 226): Removed all 4 spurious `as const` assertions. TypeScript build clean; 498 frontend tests passing.
 
 - [x] TECH-131: Extract 15 hardcoded string-truncation magic numbers into `TruncationLimits` constants + `StringTruncationExtensions.Truncate()` extension method + replace 11 magic HTTP status codes with `StatusCodes` constants.
   - Root cause: 15 truncation patterns (`body.Length > 500 ? body[..500] : body`, etc.) duplicated across 4 connector clients, 4 webhook managers, ChatOrchestrator, ConnectorAdminService, SessionService, PatternGovernanceService, SyncJobProcessor, and OpenAiQueryClassificationService — each using bare magic numbers (100, 200, 500, 4000). Also 11 `statusCode: 500`/`503` literals in endpoint files instead of `StatusCodes.Status500InternalServerError`/`Status503ServiceUnavailable`.

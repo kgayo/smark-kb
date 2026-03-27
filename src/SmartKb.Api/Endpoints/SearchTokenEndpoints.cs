@@ -158,7 +158,7 @@ public static class SearchTokenEndpoints
             var ct = httpContext.RequestAborted;
             var result = await service.GetStopWordAsync(tenant.TenantId, id, ct);
             return result is null
-                ? Results.NotFound()
+                ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.StopWordNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<StopWordResponse>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
@@ -196,7 +196,7 @@ public static class SearchTokenEndpoints
             {
                 var (response, validation, notFound) = await service.UpdateStopWordAsync(
                     tenant.TenantId, tenant.UserId, tenant.CorrelationId, id, request, ct);
-                if (notFound) return Results.NotFound();
+                if (notFound) return Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.StopWordNotFound, tenant.CorrelationId));
                 if (validation is not null)
                     return Results.UnprocessableEntity(ApiResponse<object>.Failure(
                         string.Join("; ", validation.Errors), tenant.CorrelationId));
@@ -218,7 +218,7 @@ public static class SearchTokenEndpoints
             var ct = httpContext.RequestAborted;
             var deleted = await service.DeleteStopWordAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, id, ct);
-            return deleted ? Results.NoContent() : Results.NotFound();
+            return deleted ? Results.NoContent() : Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.StopWordNotFound, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPost("/api/admin/stop-words/seed", async (
@@ -258,7 +258,7 @@ public static class SearchTokenEndpoints
             var ct = httpContext.RequestAborted;
             var result = await service.GetSpecialTokenAsync(tenant.TenantId, id, ct);
             return result is null
-                ? Results.NotFound()
+                ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.SpecialTokenNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<SpecialTokenResponse>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
@@ -296,7 +296,7 @@ public static class SearchTokenEndpoints
             {
                 var (response, validation, notFound) = await service.UpdateSpecialTokenAsync(
                     tenant.TenantId, tenant.UserId, tenant.CorrelationId, id, request, ct);
-                if (notFound) return Results.NotFound();
+                if (notFound) return Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.SpecialTokenNotFound, tenant.CorrelationId));
                 if (validation is not null)
                     return Results.UnprocessableEntity(ApiResponse<object>.Failure(
                         string.Join("; ", validation.Errors), tenant.CorrelationId));
@@ -318,7 +318,7 @@ public static class SearchTokenEndpoints
             var ct = httpContext.RequestAborted;
             var deleted = await service.DeleteSpecialTokenAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, id, ct);
-            return deleted ? Results.NoContent() : Results.NotFound();
+            return deleted ? Results.NoContent() : Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.SpecialTokenNotFound, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapPost("/api/admin/special-tokens/seed", async (

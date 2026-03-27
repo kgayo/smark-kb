@@ -4,7 +4,7 @@ import { ConnectorTypes } from '../constants/enums';
 
 describe('SourceConfigEditor', () => {
   const defaultProps = {
-    connectorType: ConnectorTypes.AzureDevOps as const,
+    connectorType: ConnectorTypes.AzureDevOps,
     value: '',
     onChange: vi.fn(),
   };

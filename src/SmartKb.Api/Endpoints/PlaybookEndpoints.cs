@@ -47,7 +47,7 @@ public static class PlaybookEndpoints
             var ct = httpContext.RequestAborted;
             var result = await playbookService.GetPlaybookByTeamAsync(tenant.TenantId, teamName, ct);
             return result is null
-                ? Results.NotFound(ApiResponse<TeamPlaybookDto>.Failure("Playbook not found for team.", tenant.CorrelationId))
+                ? Results.NotFound(ApiResponse<TeamPlaybookDto>.Failure(ResponseMessages.PlaybookNotFoundForTeam, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<TeamPlaybookDto>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 

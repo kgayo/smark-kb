@@ -251,7 +251,7 @@ public static class ConnectorAdminEndpoints
             var result = await service.GetOAuthAuthorizeUrlAsync(tenant.TenantId, connectorId, ct);
             if (result is null)
                 return Results.NotFound(ApiResponse<object>.Failure(
-                    "Connector not found, not configured for OAuth, or OAuth is not enabled.", tenant.CorrelationId));
+                    ResponseMessages.OAuthNotConfigured, tenant.CorrelationId));
 
             return Results.Ok(ApiResponse<OAuthAuthorizeUrlResponse>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
@@ -272,7 +272,7 @@ public static class ConnectorAdminEndpoints
             if (notFound)
                 return Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.ConnectorNotFound, tenant.CorrelationId));
             if (invalidState)
-                return Results.BadRequest(ApiResponse<object>.Failure("Invalid or expired state parameter.", tenant.CorrelationId));
+                return Results.BadRequest(ApiResponse<object>.Failure(ResponseMessages.InvalidOrExpiredStateParameter, tenant.CorrelationId));
 
             return Results.Ok(ApiResponse<OAuthCallbackResponse>.Success(response!, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);

@@ -98,7 +98,7 @@ public static class ChatEndpoints
             var response = await sessionService.SendMessageAsync(
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, sessionId, effectiveRequest, ct);
             return response is null
-                ? Results.NotFound(ApiResponse<object>.Failure("Session not found or expired.", tenant.CorrelationId))
+                ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.SessionNotFoundOrExpired, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<SessionChatResponse>.Success(response, tenant.CorrelationId));
         }).RequirePermission(Permissions.ChatQuery);
 

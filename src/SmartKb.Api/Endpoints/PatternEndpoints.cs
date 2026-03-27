@@ -47,7 +47,7 @@ public static class PatternEndpoints
             var deleted = await settingsService.ResetSettingsAsync(tenant.TenantId, ct);
             return deleted
                 ? Results.Ok(ApiResponse<object>.Success(new { reset = true }, tenant.CorrelationId))
-                : Results.NotFound(ApiResponse<object>.Failure("No tenant overrides found.", tenant.CorrelationId));
+                : Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.NoTenantOverrides, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
         // --- Pattern Distillation Endpoints (P1-005) ---
@@ -103,7 +103,7 @@ public static class PatternEndpoints
             var ct = httpContext.RequestAborted;
             var result = await governanceService.GetPatternDetailAsync(tenant.TenantId, patternId, ct);
             return result is null
-                ? Results.NotFound()
+                ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.PatternNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<PatternDetail>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.PatternApprove);
 
@@ -119,7 +119,7 @@ public static class PatternEndpoints
             var result = await governanceService.ReviewPatternAsync(
                 tenant.TenantId, patternId, tenant.UserId, tenant.CorrelationId, request, ct);
             return result is null
-                ? Results.NotFound()
+                ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.PatternNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<PatternGovernanceResult>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.PatternApprove);
 
@@ -135,7 +135,7 @@ public static class PatternEndpoints
             var result = await governanceService.ApprovePatternAsync(
                 tenant.TenantId, patternId, tenant.UserId, tenant.CorrelationId, request, ct);
             return result is null
-                ? Results.NotFound()
+                ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.PatternNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<PatternGovernanceResult>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.PatternApprove);
 
@@ -151,7 +151,7 @@ public static class PatternEndpoints
             var result = await governanceService.DeprecatePatternAsync(
                 tenant.TenantId, patternId, tenant.UserId, tenant.CorrelationId, request, ct);
             return result is null
-                ? Results.NotFound()
+                ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.PatternNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<PatternGovernanceResult>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.PatternDeprecate);
 
@@ -168,7 +168,7 @@ public static class PatternEndpoints
             var result = await governanceService.GetPatternHistoryAsync(
                 tenant.TenantId, patternId, ct);
             return result is null
-                ? Results.NotFound()
+                ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.PatternNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<PatternVersionHistoryResponse>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.PatternApprove);
 
@@ -224,7 +224,7 @@ public static class PatternEndpoints
             var result = await contradictionService.ResolveContradictionAsync(
                 id, tenant.TenantId, tenant.UserId, tenant.CorrelationId, request, httpContext.RequestAborted);
             return result is null
-                ? Results.NotFound()
+                ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.ContradictionNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<ContradictionSummary>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.PatternApprove);
 
@@ -265,7 +265,7 @@ public static class PatternEndpoints
             var result = await maintenanceService.ResolveTaskAsync(
                 id, tenant.TenantId, tenant.UserId, tenant.CorrelationId, request, httpContext.RequestAborted);
             return result is null
-                ? Results.NotFound()
+                ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.MaintenanceTaskNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<MaintenanceTaskSummary>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.PatternApprove);
 
@@ -280,7 +280,7 @@ public static class PatternEndpoints
             var result = await maintenanceService.DismissTaskAsync(
                 id, tenant.TenantId, tenant.UserId, tenant.CorrelationId, request, httpContext.RequestAborted);
             return result is null
-                ? Results.NotFound()
+                ? Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.MaintenanceTaskNotFound, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<MaintenanceTaskSummary>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.PatternApprove);
 

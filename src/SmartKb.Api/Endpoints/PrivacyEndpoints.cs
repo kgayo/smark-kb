@@ -58,7 +58,7 @@ public static class PrivacyEndpoints
             var deleted = await piiPolicyService.DeletePolicyAsync(tenant.TenantId, tenant.UserId, ct);
             return deleted
                 ? Results.Ok(ApiResponse<object>.Success(new { reset = true }, tenant.CorrelationId))
-                : Results.NotFound(ApiResponse<object>.Failure("No custom PII policy found.", tenant.CorrelationId));
+                : Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.NoCustomPiiPolicy, tenant.CorrelationId));
         }).RequirePermission(Permissions.PrivacyManage);
 
         app.MapGet("/api/admin/privacy/retention", async (

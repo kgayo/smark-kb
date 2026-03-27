@@ -137,7 +137,7 @@ public static class RoutingEndpoints
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId,
                 recommendationId, request, ct);
             return result is null
-                ? Results.NotFound(ApiResponse<RoutingRecommendationDto>.Failure("Recommendation not found or not pending.", tenant.CorrelationId))
+                ? Results.NotFound(ApiResponse<RoutingRecommendationDto>.Failure(ResponseMessages.RecommendationNotPending, tenant.CorrelationId))
                 : Results.Ok(ApiResponse<RoutingRecommendationDto>.Success(result, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
@@ -153,7 +153,7 @@ public static class RoutingEndpoints
                 tenant.TenantId, tenant.UserId, tenant.CorrelationId, recommendationId, ct);
             return dismissed
                 ? Results.Ok(ApiResponse<object>.Success(new { dismissed = true }, tenant.CorrelationId))
-                : Results.NotFound(ApiResponse<object>.Failure("Recommendation not found or not pending.", tenant.CorrelationId));
+                : Results.NotFound(ApiResponse<object>.Failure(ResponseMessages.RecommendationNotPending, tenant.CorrelationId));
         }).RequirePermission(Permissions.ConnectorManage);
 
         app.MapGet("/api/admin/eval/reports/{reportId:guid}/recommendations", async (

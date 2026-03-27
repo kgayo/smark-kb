@@ -30,6 +30,20 @@ public static class ResponseMessages
     public const string DeletionRequestNotFound = "Deletion request not found.";
     public const string SyncRunNotFound = "Sync run not found.";
     public const string FeedbackNotFound = "Feedback not found.";
+    public const string StopWordNotFound = "Stop word not found.";
+    public const string SpecialTokenNotFound = "Special token not found.";
+    public const string PatternNotFound = "Pattern not found.";
+    public const string ContradictionNotFound = "Contradiction not found.";
+    public const string MaintenanceTaskNotFound = "Maintenance task not found.";
+    public const string SessionNotFoundOrExpired = "Session not found or expired.";
+    public const string PlaybookNotFoundForTeam = "Playbook not found for team.";
+    public const string OAuthNotConfigured = "Connector not found, not configured for OAuth, or OAuth is not enabled.";
+    public const string InvalidOrExpiredStateParameter = "Invalid or expired state parameter.";
+    public const string NoTenantCostOverrides = "No tenant cost overrides found.";
+    public const string RetiredVersionNotFound = "Retired version not found or not eligible for deletion.";
+    public const string NoTenantOverrides = "No tenant overrides found.";
+    public const string NoCustomPiiPolicy = "No custom PII policy found.";
+    public const string RecommendationNotPending = "Recommendation not found or not pending.";
 
     /// <summary>
     /// Actor ID used for system-initiated audit events (webhooks, background services).

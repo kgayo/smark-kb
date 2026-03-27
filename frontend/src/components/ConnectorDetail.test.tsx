@@ -146,7 +146,7 @@ describe('ConnectorDetail', () => {
   // ── Toggle Status ──
 
   it('calls disableConnector when enabled connector is toggled', async () => {
-    const disabled = { ...baseConnector, status: ConnectorStatuses.Disabled as const };
+    const disabled = { ...baseConnector, status: ConnectorStatuses.Disabled };
     mockedApi.disableConnector.mockResolvedValue(disabled);
 
     const { onUpdated } = renderDetail();
@@ -159,8 +159,8 @@ describe('ConnectorDetail', () => {
   });
 
   it('calls enableConnector when disabled connector is toggled', async () => {
-    const disabledConnector = { ...baseConnector, status: ConnectorStatuses.Disabled as const };
-    const enabled = { ...baseConnector, status: ConnectorStatuses.Enabled as const };
+    const disabledConnector = { ...baseConnector, status: ConnectorStatuses.Disabled };
+    const enabled = { ...baseConnector, status: ConnectorStatuses.Enabled };
     mockedApi.enableConnector.mockResolvedValue(enabled);
 
     const { onUpdated } = renderDetail(disabledConnector);
