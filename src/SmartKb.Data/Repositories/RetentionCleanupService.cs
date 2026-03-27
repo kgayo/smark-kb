@@ -184,6 +184,7 @@ public sealed class RetentionCleanupService : IRetentionCleanupService
                 DeletedCount = deleted,
                 CutoffDate = cutoff,
                 ExecutedAt = now,
+                ExecutedAtEpoch = now.ToUnixTimeSeconds(),
                 DurationMs = sw.ElapsedMilliseconds,
                 ActorId = ResponseMessages.SystemActorId,
             });
@@ -232,12 +233,10 @@ public sealed class RetentionCleanupService : IRetentionCleanupService
         if (!string.IsNullOrEmpty(entityType))
             query = query.Where(l => l.EntityType == entityType);
 
-        // Client-side ordering to avoid DateTimeOffset translation issues across database providers.
-        var allLogs = await query.ToListAsync(ct);
-        var totalCount = allLogs.Count;
+        var totalCount = await query.CountAsync(ct);
 
-        var entries = allLogs
-            .OrderByDescending(l => l.ExecutedAt)
+        var entries = await query
+            .OrderByDescending(l => l.ExecutedAtEpoch)
             .Skip(skip)
             .Take(take)
             .Select(l => new RetentionExecutionLogEntry
@@ -251,7 +250,7 @@ public sealed class RetentionCleanupService : IRetentionCleanupService
                 DurationMs = l.DurationMs,
                 ActorId = l.ActorId,
             })
-            .ToList();
+            .ToListAsync(ct);
 
         return new RetentionExecutionHistoryResponse
         {

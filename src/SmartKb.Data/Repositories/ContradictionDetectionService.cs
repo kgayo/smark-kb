@@ -91,6 +91,7 @@ public sealed class ContradictionDetectionService : IContradictionDetectionServi
                     ConflictingFieldsJson = JsonSerializer.Serialize(analysis.Value.ConflictingFields, SharedJsonOptions.CamelCaseWrite),
                     Status = WorkflowStatus.Pending,
                     CreatedAt = now,
+                    CreatedAtEpoch = now.ToUnixTimeSeconds(),
                 };
 
                 _db.PatternContradictions.Add(entity);
@@ -139,13 +140,11 @@ public sealed class ContradictionDetectionService : IContradictionDetectionServi
 
         var totalCount = await query.CountAsync(ct);
 
-        // Materialize then sort/page client-side (SQLite compatibility for tests).
-        var allEntities = await query.ToListAsync(ct);
-        var entities = allEntities
-            .OrderByDescending(c => c.CreatedAt)
+        var entities = await query
+            .OrderByDescending(c => c.CreatedAtEpoch)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .ToList();
+            .ToListAsync(ct);
 
         // Resolve pattern titles for display.
         var patternIds = entities.SelectMany(c => new[] { c.PatternIdA, c.PatternIdB }).Distinct().ToList();

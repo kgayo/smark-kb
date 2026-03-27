@@ -33,4 +33,7 @@ public sealed class TokenUsageEntity
     public decimal EstimatedCostUsd { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
+
+    /// <summary>Unix epoch seconds for <see cref="CreatedAt"/>. Enables server-side filtering in SQLite.</summary>
+    public long CreatedAtEpoch { get; set; }
 }

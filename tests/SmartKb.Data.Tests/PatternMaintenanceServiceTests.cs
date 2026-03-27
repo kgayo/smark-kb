@@ -75,6 +75,7 @@ public class PatternMaintenanceServiceTests : IDisposable
             ExclusionsJson = "[]",
             QualityScore = qualityScore,
             CreatedAt = DateTimeOffset.UtcNow.AddDays(-daysOld),
+            CreatedAtEpoch = DateTimeOffset.UtcNow.AddDays(-daysOld).ToUnixTimeSeconds(),
             UpdatedAt = DateTimeOffset.UtcNow.AddDays(-daysOld),
         };
         _db.CasePatterns.Add(entity);
@@ -99,6 +100,7 @@ public class PatternMaintenanceServiceTests : IDisposable
             SystemPromptVersion = "v1",
             DurationMs = 100,
             CreatedAt = DateTimeOffset.UtcNow.AddDays(-daysOld),
+            CreatedAtEpoch = DateTimeOffset.UtcNow.AddDays(-daysOld).ToUnixTimeSeconds(),
         });
         _db.SaveChanges();
     }
@@ -281,6 +283,7 @@ public class PatternMaintenanceServiceTests : IDisposable
                 MetricsJson = "{}",
                 Status = "Pending",
                 CreatedAt = DateTimeOffset.UtcNow.AddMinutes(-i),
+                CreatedAtEpoch = DateTimeOffset.UtcNow.AddMinutes(-i).ToUnixTimeSeconds(),
             });
         }
         _db.SaveChanges();
@@ -301,6 +304,7 @@ public class PatternMaintenanceServiceTests : IDisposable
             Description = "Stale", RecommendedAction = "Review",
             MetricsJson = "{}", Status = "Pending",
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         });
         _db.PatternMaintenanceTasks.Add(new PatternMaintenanceTaskEntity
         {
@@ -309,6 +313,7 @@ public class PatternMaintenanceServiceTests : IDisposable
             Description = "Low", RecommendedAction = "Improve",
             MetricsJson = "{}", Status = "Resolved",
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         });
         _db.SaveChanges();
 
@@ -329,6 +334,7 @@ public class PatternMaintenanceServiceTests : IDisposable
             Description = "Stale", RecommendedAction = "Review",
             MetricsJson = "{}", Status = "Pending",
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         });
         _db.PatternMaintenanceTasks.Add(new PatternMaintenanceTaskEntity
         {
@@ -337,6 +343,7 @@ public class PatternMaintenanceServiceTests : IDisposable
             Description = "Low", RecommendedAction = "Improve",
             MetricsJson = "{}", Status = "Pending",
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         });
         _db.SaveChanges();
 
@@ -357,6 +364,7 @@ public class PatternMaintenanceServiceTests : IDisposable
             Description = "Stale", RecommendedAction = "Review",
             MetricsJson = "{}", Status = "Pending",
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         };
         _db.PatternMaintenanceTasks.Add(entity);
         _db.SaveChanges();
@@ -380,6 +388,7 @@ public class PatternMaintenanceServiceTests : IDisposable
             Description = "Not used", RecommendedAction = "Review",
             MetricsJson = "{}", Status = "Pending",
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         };
         _db.PatternMaintenanceTasks.Add(entity);
         _db.SaveChanges();
@@ -402,6 +411,7 @@ public class PatternMaintenanceServiceTests : IDisposable
             Description = "Stale", RecommendedAction = "Review",
             MetricsJson = "{}", Status = "Resolved",
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         };
         _db.PatternMaintenanceTasks.Add(entity);
         _db.SaveChanges();
@@ -423,6 +433,7 @@ public class PatternMaintenanceServiceTests : IDisposable
             Description = "Stale", RecommendedAction = "Review",
             MetricsJson = "{}", Status = "Pending",
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         };
         _db.PatternMaintenanceTasks.Add(entity);
         _db.SaveChanges();
@@ -444,6 +455,7 @@ public class PatternMaintenanceServiceTests : IDisposable
             Description = "Stale", RecommendedAction = "Review",
             MetricsJson = "{}", Status = "Pending",
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         };
         _db.PatternMaintenanceTasks.Add(entity);
         _db.SaveChanges();
@@ -466,6 +478,7 @@ public class PatternMaintenanceServiceTests : IDisposable
             Description = "Not used", RecommendedAction = "Review",
             MetricsJson = "{}", Status = "Pending",
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         };
         _db.PatternMaintenanceTasks.Add(entity);
         _db.SaveChanges();

@@ -75,6 +75,7 @@ public sealed class RoutingImprovementService : IRoutingImprovementService
                     SupportingOutcomeCount = area.TotalEscalations,
                     Status = WorkflowStatus.Pending,
                     CreatedAt = now,
+                    CreatedAtEpoch = now.ToUnixTimeSeconds(),
                     SourceEvalReportId = sourceEvalReportId,
                 };
                 _db.RoutingRecommendations.Add(recommendation);
@@ -111,6 +112,7 @@ public sealed class RoutingImprovementService : IRoutingImprovementService
                     SupportingOutcomeCount = area.TotalEscalations,
                     Status = WorkflowStatus.Pending,
                     CreatedAt = now,
+                    CreatedAtEpoch = now.ToUnixTimeSeconds(),
                     SourceEvalReportId = sourceEvalReportId,
                 };
                 _db.RoutingRecommendations.Add(recommendation);
@@ -155,7 +157,7 @@ public sealed class RoutingImprovementService : IRoutingImprovementService
         if (!string.IsNullOrEmpty(status))
             query = query.Where(r => r.Status == status);
 
-        var results = (await query.ToListAsync(ct)).OrderByDescending(r => r.CreatedAt).ToList();
+        var results = await query.OrderByDescending(r => r.CreatedAtEpoch).ToListAsync(ct);
 
         return new RoutingRecommendationListResponse
         {

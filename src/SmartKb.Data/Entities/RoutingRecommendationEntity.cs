@@ -33,6 +33,8 @@ public sealed class RoutingRecommendationEntity
     public string Status { get; set; } = WorkflowStatus.Pending;
 
     public DateTimeOffset CreatedAt { get; set; }
+    /// <summary>Unix epoch seconds for <see cref="CreatedAt"/>. Enables server-side ordering in SQLite.</summary>
+    public long CreatedAtEpoch { get; set; }
     public DateTimeOffset? AppliedAt { get; set; }
     public string? AppliedBy { get; set; }
     public DateTimeOffset? DismissedAt { get; set; }

@@ -135,6 +135,7 @@ public class TokenUsageServiceTests : IDisposable
             EvidenceChunksUsed = 3,
             EstimatedCostUsd = 0.01m,
             CreatedAt = day1.AddHours(2),
+            CreatedAtEpoch = day1.AddHours(2).ToUnixTimeSeconds(),
         });
         _db.TokenUsages.Add(new TokenUsageEntity
         {
@@ -150,6 +151,7 @@ public class TokenUsageServiceTests : IDisposable
             EvidenceChunksUsed = 5,
             EstimatedCostUsd = 0.02m,
             CreatedAt = day1.AddHours(5),
+            CreatedAtEpoch = day1.AddHours(5).ToUnixTimeSeconds(),
         });
         _db.TokenUsages.Add(new TokenUsageEntity
         {
@@ -165,6 +167,7 @@ public class TokenUsageServiceTests : IDisposable
             EvidenceChunksUsed = 7,
             EstimatedCostUsd = 0.04m,
             CreatedAt = day2.AddHours(10),
+            CreatedAtEpoch = day2.AddHours(10).ToUnixTimeSeconds(),
         });
         await _db.SaveChangesAsync();
 
@@ -214,6 +217,7 @@ public class TokenUsageServiceTests : IDisposable
         await _db.SaveChangesAsync();
 
         // Record usage exceeding the budget (today).
+        var now = DateTimeOffset.UtcNow;
         _db.TokenUsages.Add(new TokenUsageEntity
         {
             Id = Guid.NewGuid(),
@@ -227,7 +231,8 @@ public class TokenUsageServiceTests : IDisposable
             EmbeddingCacheHit = false,
             EvidenceChunksUsed = 5,
             EstimatedCostUsd = 0.05m,
-            CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAt = now,
+            CreatedAtEpoch = now.ToUnixTimeSeconds(),
         });
         await _db.SaveChangesAsync();
 
@@ -266,6 +271,7 @@ public class TokenUsageServiceTests : IDisposable
             EvidenceChunksUsed = 5,
             EstimatedCostUsd = 0.03m,
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         });
         await _db.SaveChangesAsync();
 
@@ -305,6 +311,7 @@ public class TokenUsageServiceTests : IDisposable
             EvidenceChunksUsed = 3,
             EstimatedCostUsd = 0.02m,
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         });
         await _db.SaveChangesAsync();
 
@@ -345,6 +352,7 @@ public class TokenUsageServiceTests : IDisposable
             EvidenceChunksUsed = 2,
             EstimatedCostUsd = 0.001m,
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         });
         await _db.SaveChangesAsync();
 
@@ -446,6 +454,7 @@ public class TokenUsageServiceTests : IDisposable
             EvidenceChunksUsed = 0,
             EstimatedCostUsd = 5.00m,
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         });
         await _db.SaveChangesAsync();
 
@@ -486,6 +495,7 @@ public class TokenUsageServiceTests : IDisposable
             EvidenceChunksUsed = 5,
             EstimatedCostUsd = 0.05m,
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         });
         await _db.SaveChangesAsync();
 
@@ -550,6 +560,7 @@ public class TokenUsageServiceTests : IDisposable
             EvidenceChunksUsed = 3,
             EstimatedCostUsd = 0.02m,
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         });
         await _db.SaveChangesAsync();
 
@@ -589,6 +600,7 @@ public class TokenUsageServiceTests : IDisposable
             EvidenceChunksUsed = 5,
             EstimatedCostUsd = 0.03m,
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         });
         await _db.SaveChangesAsync();
 
@@ -632,6 +644,7 @@ public class TokenUsageServiceTests : IDisposable
             EvidenceChunksUsed = 3,
             EstimatedCostUsd = 0.02m,
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         });
         await _db.SaveChangesAsync();
 
@@ -674,5 +687,153 @@ public class TokenUsageServiceTests : IDisposable
         Assert.Equal(3, summary.TotalRequests);
         Assert.Equal(2, summary.EmbeddingCacheHits);
         Assert.Equal(1, summary.EmbeddingCacheMisses);
+    }
+
+    // --- Epoch column tests ---
+
+    [Fact]
+    public async Task RecordUsage_SetsCreatedAtEpochConsistentWithCreatedAt()
+    {
+        await _service.RecordUsageAsync("tenant-1", "u1", "c1", MakeUsage());
+
+        var entity = Assert.Single(_db.TokenUsages);
+        var expectedEpoch = entity.CreatedAt.ToUnixTimeSeconds();
+        Assert.Equal(expectedEpoch, entity.CreatedAtEpoch);
+    }
+
+    [Fact]
+    public async Task GetSummary_FiltersServerSideViaEpochColumn()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var inRange = now.AddMinutes(-10);
+        var outOfRange = now.AddDays(-30);
+
+        _db.TokenUsages.Add(new TokenUsageEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = "tenant-1",
+            UserId = "u1",
+            CorrelationId = "c1",
+            PromptTokens = 100,
+            CompletionTokens = 50,
+            TotalTokens = 150,
+            EmbeddingTokens = 20,
+            EmbeddingCacheHit = false,
+            EvidenceChunksUsed = 2,
+            EstimatedCostUsd = 0.01m,
+            CreatedAt = inRange,
+            CreatedAtEpoch = inRange.ToUnixTimeSeconds(),
+        });
+        _db.TokenUsages.Add(new TokenUsageEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = "tenant-1",
+            UserId = "u1",
+            CorrelationId = "c2",
+            PromptTokens = 9000,
+            CompletionTokens = 9000,
+            TotalTokens = 18000,
+            EmbeddingTokens = 500,
+            EmbeddingCacheHit = false,
+            EvidenceChunksUsed = 10,
+            EstimatedCostUsd = 1.00m,
+            CreatedAt = outOfRange,
+            CreatedAtEpoch = outOfRange.ToUnixTimeSeconds(),
+        });
+        await _db.SaveChangesAsync();
+
+        var summary = await _service.GetSummaryAsync(
+            "tenant-1", now.AddHours(-1), now.AddHours(1));
+
+        Assert.Equal(1, summary.TotalRequests);
+        Assert.Equal(150, summary.TotalTokens);
+    }
+
+    [Fact]
+    public async Task GetDailyBreakdown_FiltersServerSideViaEpochColumn()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var inRange = now.AddMinutes(-10);
+        var outOfRange = now.AddDays(-30);
+
+        _db.TokenUsages.Add(new TokenUsageEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = "tenant-1",
+            UserId = "u1",
+            CorrelationId = "c1",
+            PromptTokens = 200,
+            CompletionTokens = 100,
+            TotalTokens = 300,
+            EmbeddingTokens = 40,
+            EmbeddingCacheHit = false,
+            EvidenceChunksUsed = 3,
+            EstimatedCostUsd = 0.02m,
+            CreatedAt = inRange,
+            CreatedAtEpoch = inRange.ToUnixTimeSeconds(),
+        });
+        _db.TokenUsages.Add(new TokenUsageEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = "tenant-1",
+            UserId = "u1",
+            CorrelationId = "c2",
+            PromptTokens = 5000,
+            CompletionTokens = 5000,
+            TotalTokens = 10000,
+            EmbeddingTokens = 200,
+            EmbeddingCacheHit = false,
+            EvidenceChunksUsed = 8,
+            EstimatedCostUsd = 0.50m,
+            CreatedAt = outOfRange,
+            CreatedAtEpoch = outOfRange.ToUnixTimeSeconds(),
+        });
+        await _db.SaveChangesAsync();
+
+        var breakdown = await _service.GetDailyBreakdownAsync(
+            "tenant-1", now.AddHours(-1), now.AddHours(1));
+
+        Assert.Single(breakdown);
+        Assert.Equal(300, breakdown[0].TotalTokens);
+    }
+
+    [Fact]
+    public async Task CheckBudget_FiltersServerSideViaEpochColumn()
+    {
+        _db.TenantCostSettings.Add(new TenantCostSettingsEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = "tenant-1",
+            DailyTokenBudget = 1000,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        // Old usage (30 days ago) — should NOT count toward daily budget.
+        var old = DateTimeOffset.UtcNow.AddDays(-30);
+        _db.TokenUsages.Add(new TokenUsageEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = "tenant-1",
+            UserId = "u1",
+            CorrelationId = "c1",
+            PromptTokens = 800,
+            CompletionTokens = 400,
+            TotalTokens = 1200,
+            EmbeddingTokens = 50,
+            EmbeddingCacheHit = false,
+            EvidenceChunksUsed = 5,
+            EstimatedCostUsd = 0.05m,
+            CreatedAt = old,
+            CreatedAtEpoch = old.ToUnixTimeSeconds(),
+        });
+        await _db.SaveChangesAsync();
+
+        var result = await _service.CheckBudgetAsync("tenant-1");
+
+        // Old usage should not trigger daily budget denial.
+        Assert.True(result.Allowed);
+        Assert.Equal(0f, result.DailyUtilizationPercent);
     }
 }

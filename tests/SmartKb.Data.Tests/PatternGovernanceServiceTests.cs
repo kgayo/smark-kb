@@ -71,6 +71,7 @@ public class PatternGovernanceServiceTests : IDisposable
             ApplicabilityConstraintsJson = "[]",
             ExclusionsJson = "[]",
             CreatedAt = DateTimeOffset.UtcNow.AddDays(-3),
+            CreatedAtEpoch = DateTimeOffset.UtcNow.AddDays(-3).ToUnixTimeSeconds(),
             UpdatedAt = DateTimeOffset.UtcNow.AddDays(-3),
         };
         _db.CasePatterns.Add(entity);

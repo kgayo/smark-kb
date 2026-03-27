@@ -77,6 +77,7 @@ public class ContradictionDetectionServiceTests : IDisposable
             ApplicabilityConstraintsJson = "[]",
             ExclusionsJson = "[]",
             CreatedAt = DateTimeOffset.UtcNow.AddDays(-5),
+            CreatedAtEpoch = DateTimeOffset.UtcNow.AddDays(-5).ToUnixTimeSeconds(),
             UpdatedAt = DateTimeOffset.UtcNow.AddDays(-5),
         };
         _db.CasePatterns.Add(entity);
@@ -296,6 +297,7 @@ public class ContradictionDetectionServiceTests : IDisposable
                 ConflictingFieldsJson = "[\"ResolutionSteps\"]",
                 Status = "Pending",
                 CreatedAt = DateTimeOffset.UtcNow.AddMinutes(-i),
+                CreatedAtEpoch = DateTimeOffset.UtcNow.AddMinutes(-i).ToUnixTimeSeconds(),
             });
         }
         _db.SaveChanges();
@@ -321,6 +323,7 @@ public class ContradictionDetectionServiceTests : IDisposable
             SimilarityScore = 0.8f, Description = "dup",
             ConflictingFieldsJson = "[]", Status = "Pending",
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         });
         _db.PatternContradictions.Add(new PatternContradictionEntity
         {
@@ -330,6 +333,7 @@ public class ContradictionDetectionServiceTests : IDisposable
             SimilarityScore = 0.6f, Description = "conflict",
             ConflictingFieldsJson = "[]", Status = "Resolved",
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         });
         _db.SaveChanges();
 
@@ -402,6 +406,7 @@ public class ContradictionDetectionServiceTests : IDisposable
             ConflictingFieldsJson = "[]", Status = "Resolved",
             Resolution = "Kept",
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         };
         _db.PatternContradictions.Add(entity);
         _db.SaveChanges();
@@ -517,6 +522,7 @@ public class ContradictionDetectionServiceTests : IDisposable
             ApplicabilityConstraintsJson = "[]",
             ExclusionsJson = "[]",
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
             UpdatedAt = DateTimeOffset.UtcNow,
         };
     }

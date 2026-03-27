@@ -8,6 +8,8 @@ public sealed class RetentionExecutionLogEntity
     public int DeletedCount { get; set; }
     public DateTimeOffset CutoffDate { get; set; }
     public DateTimeOffset ExecutedAt { get; set; }
+    /// <summary>Unix epoch seconds for <see cref="ExecutedAt"/>. Enables server-side ordering in SQLite.</summary>
+    public long ExecutedAtEpoch { get; set; }
     public long DurationMs { get; set; }
     public string ActorId { get; set; } = string.Empty;
 

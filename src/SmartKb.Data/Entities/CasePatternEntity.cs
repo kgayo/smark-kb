@@ -36,6 +36,8 @@ public sealed class CasePatternEntity
     public string AccessLabel { get; set; } = VisibilityLevel.Internal;
     public string SourceUrl { get; set; } = string.Empty;
     public DateTimeOffset CreatedAt { get; set; }
+    /// <summary>Unix epoch seconds for <see cref="CreatedAt"/>. Enables server-side ordering in SQLite.</summary>
+    public long CreatedAtEpoch { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }
 

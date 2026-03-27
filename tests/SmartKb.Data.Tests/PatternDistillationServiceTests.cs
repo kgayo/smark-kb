@@ -284,6 +284,7 @@ public class PatternDistillationServiceTests : IDisposable
             ProblemStatement = "Test",
             SourceUrl = $"session://{sessionId}",
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
             UpdatedAt = DateTimeOffset.UtcNow,
         });
         _db.SaveChanges();
@@ -362,6 +363,7 @@ public class PatternDistillationServiceTests : IDisposable
             ProblemStatement = "Test",
             SourceUrl = $"session://{sessionId}",
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
             UpdatedAt = DateTimeOffset.UtcNow,
         });
         _db.SaveChanges();

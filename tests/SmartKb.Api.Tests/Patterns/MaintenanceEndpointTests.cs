@@ -68,6 +68,7 @@ public class MaintenanceEndpointTests : IAsyncLifetime
             ExclusionsJson = "[]",
             QualityScore = qualityScore,
             CreatedAt = DateTimeOffset.UtcNow.AddDays(-daysOld),
+            CreatedAtEpoch = DateTimeOffset.UtcNow.AddDays(-daysOld).ToUnixTimeSeconds(),
             UpdatedAt = DateTimeOffset.UtcNow.AddDays(-daysOld),
         });
         await db.SaveChangesAsync();
@@ -92,6 +93,7 @@ public class MaintenanceEndpointTests : IAsyncLifetime
             ConflictingFieldsJson = "[\"ResolutionSteps\"]",
             Status = status,
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         });
         await db.SaveChangesAsync();
         return id;
@@ -115,6 +117,7 @@ public class MaintenanceEndpointTests : IAsyncLifetime
             MetricsJson = "{}",
             Status = status,
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
         });
         await db.SaveChangesAsync();
         return id;

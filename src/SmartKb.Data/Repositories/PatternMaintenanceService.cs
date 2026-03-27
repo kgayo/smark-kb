@@ -49,13 +49,12 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
             .Select(t => $"{t.PatternId}|{t.TaskType}")
             .ToHashSet();
 
-        // Load recent answer traces to determine pattern usage.
-        var usageCutoff = now.AddDays(-_settings.UnusedDaysThreshold);
+        // Load recent answer traces to determine pattern usage (server-side via epoch).
+        var usageCutoffEpoch = now.AddDays(-_settings.UnusedDaysThreshold).ToUnixTimeSeconds();
         var recentTraces = await _db.Set<AnswerTraceEntity>()
-            .Where(a => a.TenantId == tenantId)
+            .Where(a => a.TenantId == tenantId && a.CreatedAtEpoch >= usageCutoffEpoch)
             .ToListAsync(ct);
         var recentUsedPatternIds = recentTraces
-            .Where(a => a.CreatedAt >= usageCutoff)
             .SelectMany(a => ExtractPatternIds(a.CitedChunkIds))
             .ToHashSet();
 
@@ -91,6 +90,7 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
                         }, SharedJsonOptions.CamelCaseWrite),
                         Status = WorkflowStatus.Pending,
                         CreatedAt = now,
+                        CreatedAtEpoch = now.ToUnixTimeSeconds(),
                     });
                     existingTasks.Add(key);
                     staleDetected++;
@@ -120,6 +120,7 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
                         }, SharedJsonOptions.CamelCaseWrite),
                         Status = WorkflowStatus.Pending,
                         CreatedAt = now,
+                        CreatedAtEpoch = now.ToUnixTimeSeconds(),
                     });
                     existingTasks.Add(key);
                     lowQualityDetected++;
@@ -149,6 +150,7 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
                         }, SharedJsonOptions.CamelCaseWrite),
                         Status = WorkflowStatus.Pending,
                         CreatedAt = now,
+                        CreatedAtEpoch = now.ToUnixTimeSeconds(),
                     });
                     existingTasks.Add(key);
                     unusedDetected++;
@@ -199,12 +201,11 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
 
         var totalCount = await query.CountAsync(ct);
 
-        var allEntities = await query.ToListAsync(ct);
-        var entities = allEntities
-            .OrderByDescending(t => t.CreatedAt)
+        var entities = await query
+            .OrderByDescending(t => t.CreatedAtEpoch)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .ToList();
+            .ToListAsync(ct);
 
         // Resolve pattern titles.
         var patternIds = entities.Select(t => t.PatternId).Distinct().ToList();

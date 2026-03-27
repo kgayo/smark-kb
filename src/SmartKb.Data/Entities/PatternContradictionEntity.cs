@@ -41,6 +41,8 @@ public sealed class PatternContradictionEntity
     public string? ResolutionNotes { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
+    /// <summary>Unix epoch seconds for <see cref="CreatedAt"/>. Enables server-side ordering in SQLite.</summary>
+    public long CreatedAtEpoch { get; set; }
 
     public TenantEntity Tenant { get; set; } = null!;
 }

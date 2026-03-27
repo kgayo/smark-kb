@@ -59,6 +59,7 @@ public class PatternVersionHistoryEndpointTests : IAsyncLifetime
             AccessLabel = "Internal",
             SourceUrl = "session://test",
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
             UpdatedAt = DateTimeOffset.UtcNow,
         };
         db.CasePatterns.Add(entity);

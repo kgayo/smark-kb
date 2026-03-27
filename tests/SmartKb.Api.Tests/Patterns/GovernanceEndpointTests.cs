@@ -62,6 +62,7 @@ public class GovernanceEndpointTests : IAsyncLifetime
             ApplicabilityConstraintsJson = "[]",
             ExclusionsJson = "[]",
             CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAtEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
             UpdatedAt = DateTimeOffset.UtcNow,
         });
         await db.SaveChangesAsync();

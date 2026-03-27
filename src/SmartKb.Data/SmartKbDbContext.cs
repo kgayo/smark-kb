@@ -430,6 +430,7 @@ public class SmartKbDbContext : DbContext
             e.HasIndex(p => new { p.TenantId, p.TrustLevel });
             e.HasIndex(p => new { p.TenantId, p.ProductArea });
             e.HasIndex(p => new { p.TenantId, p.UpdatedAt });
+            e.HasIndex(p => new { p.TenantId, p.CreatedAtEpoch });
             // Governance tracking (P1-006).
             e.Property(p => p.ReviewedBy).HasMaxLength(128);
             e.Property(p => p.ReviewNotes).HasMaxLength(1024);
@@ -476,6 +477,7 @@ public class SmartKbDbContext : DbContext
             e.HasIndex(r => r.TenantId);
             e.HasIndex(r => new { r.TenantId, r.Status });
             e.HasIndex(r => new { r.TenantId, r.ProductArea });
+            e.HasIndex(r => new { r.TenantId, r.CreatedAtEpoch });
             e.HasOne(r => r.Tenant).WithMany().HasForeignKey(r => r.TenantId);
             e.HasOne(r => r.SourceEvalReport).WithMany().HasForeignKey(r => r.SourceEvalReportId).IsRequired(false);
         });
@@ -551,6 +553,7 @@ public class SmartKbDbContext : DbContext
             e.HasIndex(t => t.TenantId);
             e.HasIndex(t => t.CorrelationId);
             e.HasIndex(t => new { t.TenantId, t.CreatedAt });
+            e.HasIndex(t => new { t.TenantId, t.CreatedAtEpoch });
         });
     }
 
@@ -603,6 +606,7 @@ public class SmartKbDbContext : DbContext
             e.HasIndex(c => new { c.TenantId, c.Status });
             e.HasIndex(c => new { c.TenantId, c.PatternIdA });
             e.HasIndex(c => new { c.TenantId, c.PatternIdB });
+            e.HasIndex(c => new { c.TenantId, c.CreatedAtEpoch });
             e.HasOne(c => c.Tenant).WithMany().HasForeignKey(c => c.TenantId);
         });
     }
@@ -626,6 +630,7 @@ public class SmartKbDbContext : DbContext
             e.HasIndex(t => t.TenantId);
             e.HasIndex(t => new { t.TenantId, t.Status });
             e.HasIndex(t => new { t.TenantId, t.PatternId });
+            e.HasIndex(t => new { t.TenantId, t.CreatedAtEpoch });
             e.HasOne(t => t.Tenant).WithMany().HasForeignKey(t => t.TenantId);
         });
     }
@@ -642,6 +647,7 @@ public class SmartKbDbContext : DbContext
             e.HasIndex(l => l.TenantId);
             e.HasIndex(l => new { l.TenantId, l.ExecutedAt });
             e.HasIndex(l => new { l.TenantId, l.EntityType });
+            e.HasIndex(l => new { l.TenantId, l.ExecutedAtEpoch });
             e.HasOne(l => l.Tenant).WithMany().HasForeignKey(l => l.TenantId);
         });
     }

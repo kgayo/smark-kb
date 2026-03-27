@@ -30,6 +30,7 @@ public sealed class TokenUsageService : ITokenUsageService
         TokenUsageRecord usage,
         CancellationToken ct = default)
     {
+        var now = DateTimeOffset.UtcNow;
         var entity = new TokenUsageEntity
         {
             Id = Guid.NewGuid(),
@@ -43,7 +44,8 @@ public sealed class TokenUsageService : ITokenUsageService
             EmbeddingCacheHit = usage.EmbeddingCacheHit,
             EvidenceChunksUsed = usage.EvidenceChunksUsed,
             EstimatedCostUsd = usage.EstimatedCostUsd,
-            CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAt = now,
+            CreatedAtEpoch = now.ToUnixTimeSeconds(),
         };
 
         _db.TokenUsages.Add(entity);
@@ -60,14 +62,14 @@ public sealed class TokenUsageService : ITokenUsageService
         DateTimeOffset periodEnd,
         CancellationToken ct = default)
     {
-        // Load all tenant usages and filter in-memory (DateTimeOffset comparison not translatable to SQLite).
-        var allTenantUsages = await _db.TokenUsages
-            .Where(u => u.TenantId == tenantId)
-            .ToListAsync(ct);
+        var periodStartEpoch = periodStart.ToUnixTimeSeconds();
+        var periodEndEpoch = periodEnd.ToUnixTimeSeconds();
 
-        var usages = allTenantUsages
-            .Where(u => u.CreatedAt >= periodStart && u.CreatedAt < periodEnd)
-            .ToList();
+        var usages = await _db.TokenUsages
+            .Where(u => u.TenantId == tenantId
+                        && u.CreatedAtEpoch >= periodStartEpoch
+                        && u.CreatedAtEpoch < periodEndEpoch)
+            .ToListAsync(ct);
 
         var costSettings = await _db.TenantCostSettings
             .FirstOrDefaultAsync(s => s.TenantId == tenantId, ct);
@@ -83,16 +85,16 @@ public sealed class TokenUsageService : ITokenUsageService
         var dailyBudget = costSettings?.DailyTokenBudget;
         var monthlyBudget = costSettings?.MonthlyTokenBudget;
 
-        var todayStart = new DateTimeOffset(DateTimeOffset.UtcNow.Date, TimeSpan.Zero);
-        var monthStart = new DateTimeOffset(DateTimeOffset.UtcNow.Year, DateTimeOffset.UtcNow.Month, 1, 0, 0, 0, TimeSpan.Zero);
+        var todayStartEpoch = new DateTimeOffset(DateTimeOffset.UtcNow.Date, TimeSpan.Zero).ToUnixTimeSeconds();
+        var monthStartEpoch = new DateTimeOffset(DateTimeOffset.UtcNow.Year, DateTimeOffset.UtcNow.Month, 1, 0, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds();
 
-        var dailyTokens = allTenantUsages
-            .Where(u => u.CreatedAt >= todayStart)
-            .Sum(u => (long)u.TotalTokens);
+        var dailyTokens = await _db.TokenUsages
+            .Where(u => u.TenantId == tenantId && u.CreatedAtEpoch >= todayStartEpoch)
+            .SumAsync(u => (long)u.TotalTokens, ct);
 
-        var monthlyTokens = allTenantUsages
-            .Where(u => u.CreatedAt >= monthStart)
-            .Sum(u => (long)u.TotalTokens);
+        var monthlyTokens = await _db.TokenUsages
+            .Where(u => u.TenantId == tenantId && u.CreatedAtEpoch >= monthStartEpoch)
+            .SumAsync(u => (long)u.TotalTokens, ct);
 
         return new TokenUsageSummary
         {
@@ -124,12 +126,16 @@ public sealed class TokenUsageService : ITokenUsageService
         DateTimeOffset periodEnd,
         CancellationToken ct = default)
     {
+        var periodStartEpoch = periodStart.ToUnixTimeSeconds();
+        var periodEndEpoch = periodEnd.ToUnixTimeSeconds();
+
         var usages = await _db.TokenUsages
-            .Where(u => u.TenantId == tenantId)
+            .Where(u => u.TenantId == tenantId
+                        && u.CreatedAtEpoch >= periodStartEpoch
+                        && u.CreatedAtEpoch < periodEndEpoch)
             .ToListAsync(ct);
 
         return usages
-            .Where(u => u.CreatedAt >= periodStart && u.CreatedAt < periodEnd)
             .GroupBy(u => DateOnly.FromDateTime(u.CreatedAt.UtcDateTime.Date))
             .Select(g => new DailyUsageBreakdown
             {
@@ -170,22 +176,17 @@ public sealed class TokenUsageService : ITokenUsageService
             };
         }
 
-        var todayStart = new DateTimeOffset(DateTimeOffset.UtcNow.Date, TimeSpan.Zero);
-        var monthStart = new DateTimeOffset(DateTimeOffset.UtcNow.Year, DateTimeOffset.UtcNow.Month, 1, 0, 0, 0, TimeSpan.Zero);
-
-        // Load tenant usages for date filtering in memory (SQLite DateTimeOffset compat).
-        var allTenantUsages = await _db.TokenUsages
-            .Where(u => u.TenantId == tenantId)
-            .ToListAsync(ct);
+        var todayStartEpoch = new DateTimeOffset(DateTimeOffset.UtcNow.Date, TimeSpan.Zero).ToUnixTimeSeconds();
+        var monthStartEpoch = new DateTimeOffset(DateTimeOffset.UtcNow.Year, DateTimeOffset.UtcNow.Month, 1, 0, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds();
 
         float dailyUtil = 0f;
         float monthlyUtil = 0f;
 
         if (dailyBudget.HasValue && dailyBudget.Value > 0)
         {
-            var dailyTokens = allTenantUsages
-                .Where(u => u.CreatedAt >= todayStart)
-                .Sum(u => (long)u.TotalTokens);
+            var dailyTokens = await _db.TokenUsages
+                .Where(u => u.TenantId == tenantId && u.CreatedAtEpoch >= todayStartEpoch)
+                .SumAsync(u => (long)u.TotalTokens, ct);
             dailyUtil = (float)dailyTokens / dailyBudget.Value * 100f;
 
             if (dailyTokens >= dailyBudget.Value)
@@ -208,9 +209,9 @@ public sealed class TokenUsageService : ITokenUsageService
 
         if (monthlyBudget.HasValue && monthlyBudget.Value > 0)
         {
-            var monthlyTokens = allTenantUsages
-                .Where(u => u.CreatedAt >= monthStart)
-                .Sum(u => (long)u.TotalTokens);
+            var monthlyTokens = await _db.TokenUsages
+                .Where(u => u.TenantId == tenantId && u.CreatedAtEpoch >= monthStartEpoch)
+                .SumAsync(u => (long)u.TotalTokens, ct);
             monthlyUtil = (float)monthlyTokens / monthlyBudget.Value * 100f;
 
             if (monthlyTokens >= monthlyBudget.Value)

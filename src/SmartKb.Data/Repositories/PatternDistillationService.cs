@@ -357,6 +357,7 @@ public sealed class PatternDistillationService : IPatternDistillationService
             AccessLabel = visibility == VisibilityLevel.Restricted ? VisibilityLevel.Restricted : VisibilityLevel.Internal,
             SourceUrl = $"session://{candidate.SessionId}",
             CreatedAt = now,
+            CreatedAtEpoch = now.ToUnixTimeSeconds(),
             UpdatedAt = now,
         };
 

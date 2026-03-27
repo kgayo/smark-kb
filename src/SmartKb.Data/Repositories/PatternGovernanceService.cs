@@ -59,13 +59,11 @@ public sealed class PatternGovernanceService : IPatternGovernanceService
 
         var totalCount = await query.CountAsync(ct);
 
-        // Materialize then order/page client-side (SQLite doesn't support DateTimeOffset in ORDER BY).
-        var allEntities = await query.ToListAsync(ct);
-        var entities = allEntities
-            .OrderByDescending(p => p.CreatedAt)
+        var entities = await query
+            .OrderByDescending(p => p.CreatedAtEpoch)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .ToList();
+            .ToListAsync(ct);
 
         var patterns = entities.Select(p => new PatternSummary
         {
