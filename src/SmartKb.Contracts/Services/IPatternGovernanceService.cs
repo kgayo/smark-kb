@@ -16,7 +16,7 @@ public interface IPatternGovernanceService
         string? trustLevel = null,
         string? productArea = null,
         int page = 1,
-        int pageSize = 20,
+        int pageSize = PaginationDefaults.DefaultPageSize,
         CancellationToken ct = default);
 
     /// <summary>Gets full detail for a single pattern by its string PatternId.</summary>

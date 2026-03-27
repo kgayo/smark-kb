@@ -67,7 +67,7 @@ public sealed class GoldCaseService : IGoldCaseService
         return entity is not null ? MapToDetail(entity) : null;
     }
 
-    public async Task<GoldCaseListResponse> ListAsync(string tenantId, string? tag = null, int page = 1, int pageSize = 20, CancellationToken ct = default)
+    public async Task<GoldCaseListResponse> ListAsync(string tenantId, string? tag = null, int page = 1, int pageSize = PaginationDefaults.DefaultPageSize, CancellationToken ct = default)
     {
         pageSize = PaginationDefaults.ClampPageSize(pageSize);
         page = Math.Max(1, page);

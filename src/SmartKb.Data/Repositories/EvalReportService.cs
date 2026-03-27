@@ -110,7 +110,7 @@ public sealed class EvalReportService : IEvalReportService
         string tenantId,
         string? runType = null,
         int page = 1,
-        int pageSize = 20,
+        int pageSize = PaginationDefaults.DefaultPageSize,
         CancellationToken ct = default)
     {
         page = Math.Max(1, page);

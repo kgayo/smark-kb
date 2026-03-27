@@ -43,7 +43,7 @@ public sealed class PatternGovernanceService : IPatternGovernanceService
 
     public async Task<PatternGovernanceQueueResponse> GetGovernanceQueueAsync(
         string tenantId, string? trustLevel = null, string? productArea = null,
-        int page = 1, int pageSize = 20, CancellationToken ct = default)
+        int page = 1, int pageSize = PaginationDefaults.DefaultPageSize, CancellationToken ct = default)
     {
         page = Math.Max(1, page);
         pageSize = PaginationDefaults.ClampPageSize(pageSize);
