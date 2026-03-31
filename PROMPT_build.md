@@ -1,6 +1,7 @@
-0a. Study `specs/*` and @IMPLEMENTATION_PLAN.md.
+0a. Study @IMPLEMENTATION_PLAN.md. Only implement items marked `- [ ]` (uncompleted). Do NOT create new TECH-*, BUG-*, or backlog items.
 0b. Pick the highest-priority incomplete item and verify current behavior in code before editing.
 0c. Keep implementation aligned to two-store architecture (Evidence + Case-Pattern) and phase targets.
+0d. Once all `- [ ]` items are marked `- [x]`, update Status to PROJECT COMPLETE and STOP. Do not scan for new work, do not invent refactoring or cleanup tasks.
 
 1. Implement the selected requirement completely.
 2. Add or update unit tests and integration tests for changed behavior.
