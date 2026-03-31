@@ -712,6 +712,167 @@ public class HubSpotConnectorClientTests
         Assert.Empty(config.Pipelines);
     }
 
+    // --- Pipeline filtering tests (BUG-006) ---
+
+    [Fact]
+    public async Task FetchAsync_EmptyPipelines_ReturnsAllRecords()
+    {
+        var responses = new Dictionary<string, (HttpStatusCode, string)>
+        {
+            ["GET:crm/v3/objects/tickets"] = (HttpStatusCode.OK, """
+                {
+                    "results": [
+                        {"id": "1", "properties": {"subject": "T1", "content": "", "hs_pipeline": "support", "createdate": "2026-01-01T00:00:00Z", "hs_lastmodifieddate": "2026-01-01T00:00:00Z"}},
+                        {"id": "2", "properties": {"subject": "T2", "content": "", "hs_pipeline": "sales", "createdate": "2026-01-01T00:00:00Z", "hs_lastmodifieddate": "2026-01-01T00:00:00Z"}}
+                    ],
+                    "paging": null
+                }
+            """),
+        };
+
+        var config = CreateSourceConfigJson(pipelines: []);
+        var handler = new RoutingMockHandler(responses);
+        var client = CreateClient(handler);
+
+        var result = await client.FetchAsync("t1", config, null, "token", null, true);
+
+        Assert.Equal(2, result.Records.Count);
+    }
+
+    [Fact]
+    public async Task FetchAsync_SpecificPipeline_FiltersTickets()
+    {
+        var responses = new Dictionary<string, (HttpStatusCode, string)>
+        {
+            ["GET:crm/v3/objects/tickets"] = (HttpStatusCode.OK, """
+                {
+                    "results": [
+                        {"id": "1", "properties": {"subject": "T1", "content": "", "hs_pipeline": "support", "createdate": "2026-01-01T00:00:00Z", "hs_lastmodifieddate": "2026-01-01T00:00:00Z"}},
+                        {"id": "2", "properties": {"subject": "T2", "content": "", "hs_pipeline": "sales", "createdate": "2026-01-01T00:00:00Z", "hs_lastmodifieddate": "2026-01-01T00:00:00Z"}},
+                        {"id": "3", "properties": {"subject": "T3", "content": "", "hs_pipeline": "support", "createdate": "2026-01-01T00:00:00Z", "hs_lastmodifieddate": "2026-01-01T00:00:00Z"}}
+                    ],
+                    "paging": null
+                }
+            """),
+        };
+
+        var config = CreateSourceConfigJson(pipelines: ["support"]);
+        var handler = new RoutingMockHandler(responses);
+        var client = CreateClient(handler);
+
+        var result = await client.FetchAsync("t1", config, null, "token", null, true);
+
+        Assert.Equal(2, result.Records.Count);
+        Assert.All(result.Records, r => Assert.Equal("support", r.SourceLocator.PipelineId));
+    }
+
+    [Fact]
+    public async Task FetchAsync_PipelineFilter_DoesNotApplyToContactsOrCompanies()
+    {
+        var responses = new Dictionary<string, (HttpStatusCode, string)>
+        {
+            ["GET:crm/v3/objects/contacts"] = (HttpStatusCode.OK, """
+                {
+                    "results": [
+                        {"id": "1", "properties": {"firstname": "Jane", "lastname": "Doe", "email": "j@example.com", "createdate": "2026-01-01T00:00:00Z", "lastmodifieddate": "2026-01-01T00:00:00Z"}},
+                        {"id": "2", "properties": {"firstname": "John", "lastname": "Smith", "email": "js@example.com", "createdate": "2026-01-01T00:00:00Z", "lastmodifieddate": "2026-01-01T00:00:00Z"}}
+                    ],
+                    "paging": null
+                }
+            """),
+            ["GET:crm/v3/objects/companies"] = (HttpStatusCode.OK, """
+                {
+                    "results": [
+                        {"id": "3", "properties": {"name": "Acme", "createdate": "2026-01-01T00:00:00Z", "hs_lastmodifieddate": "2026-01-01T00:00:00Z"}}
+                    ],
+                    "paging": null
+                }
+            """),
+        };
+
+        var config = CreateSourceConfigJson(objectTypes: ["contacts", "companies"], pipelines: ["support"]);
+        var handler = new RoutingMockHandler(responses);
+        var client = CreateClient(handler);
+
+        var result = await client.FetchAsync("t1", config, null, "token", null, true);
+
+        // Pipeline filter should NOT exclude contacts or companies.
+        Assert.Equal(3, result.Records.Count);
+    }
+
+    [Fact]
+    public async Task FetchAsync_IncrementalSync_IncludesPipelineFilterInSearchRequest()
+    {
+        var capturedBodies = new List<string>();
+        var responses = new Dictionary<string, (HttpStatusCode, string)>
+        {
+            ["POST:crm/v3/objects/tickets/search"] = (HttpStatusCode.OK, """
+                {
+                    "results": [
+                        {"id": "1", "properties": {"subject": "T1", "content": "", "hs_pipeline": "support", "createdate": "2026-01-01T00:00:00Z", "hs_lastmodifieddate": "2026-03-15T00:00:00Z"}}
+                    ],
+                    "paging": null
+                }
+            """),
+        };
+
+        var config = CreateSourceConfigJson(pipelines: ["support", "escalation"]);
+        var handler = new CapturingRoutingMockHandler(responses, capturedBodies);
+        var client = CreateClient(handler);
+
+        var checkpoint = new HubSpotCheckpoint(0, null, new DateTimeOffset(2026, 3, 10, 0, 0, 0, TimeSpan.Zero));
+        var result = await client.FetchAsync("t1", config, null, "token", checkpoint.Serialize(), false);
+
+        Assert.Single(result.Records);
+
+        // Verify the search request body includes pipeline filter.
+        Assert.Single(capturedBodies);
+        var body = capturedBodies[0];
+        Assert.Contains("hs_pipeline", body);
+        Assert.Contains("IN", body);
+        Assert.Contains("support", body);
+        Assert.Contains("escalation", body);
+    }
+
+    [Fact]
+    public async Task FetchAsync_SpecificPipeline_FiltersDealsByPipelineProperty()
+    {
+        var responses = new Dictionary<string, (HttpStatusCode, string)>
+        {
+            ["GET:crm/v3/objects/deals"] = (HttpStatusCode.OK, """
+                {
+                    "results": [
+                        {"id": "1", "properties": {"dealname": "D1", "description": "", "pipeline": "default", "createdate": "2026-01-01T00:00:00Z", "hs_lastmodifieddate": "2026-01-01T00:00:00Z"}},
+                        {"id": "2", "properties": {"dealname": "D2", "description": "", "pipeline": "enterprise", "createdate": "2026-01-01T00:00:00Z", "hs_lastmodifieddate": "2026-01-01T00:00:00Z"}}
+                    ],
+                    "paging": null
+                }
+            """),
+        };
+
+        var config = CreateSourceConfigJson(objectTypes: ["deals"], pipelines: ["enterprise"]);
+        var handler = new RoutingMockHandler(responses);
+        var client = CreateClient(handler);
+
+        var result = await client.FetchAsync("t1", config, null, "token", null, true);
+
+        Assert.Single(result.Records);
+        Assert.Equal("hubspot-deal-2", result.Records[0].EvidenceId);
+        Assert.Equal("enterprise", result.Records[0].SourceLocator.PipelineId);
+    }
+
+    // --- GetPipelinePropertyName tests ---
+
+    [Theory]
+    [InlineData("tickets", "hs_pipeline")]
+    [InlineData("deals", "pipeline")]
+    [InlineData("contacts", null)]
+    [InlineData("companies", null)]
+    public void GetPipelinePropertyName_ReturnsExpected(string objectType, string? expected)
+    {
+        Assert.Equal(expected, HubSpotConnectorClient.GetPipelinePropertyName(objectType));
+    }
+
     // --- Helpers ---
 
     private static HubSpotConnectorClient CreateClient(HttpMessageHandler? handler = null)
@@ -723,12 +884,14 @@ public class HubSpotConnectorClientTests
 
     private static string CreateSourceConfigJson(
         string portalId = "12345",
-        IReadOnlyList<string>? objectTypes = null)
+        IReadOnlyList<string>? objectTypes = null,
+        IReadOnlyList<string>? pipelines = null)
     {
         return JsonSerializer.Serialize(new HubSpotSourceConfig
         {
             PortalId = portalId,
             ObjectTypes = objectTypes ?? ["tickets"],
+            Pipelines = pipelines ?? [],
         }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
     }
 
@@ -777,5 +940,58 @@ public class HubSpotConnectorClientTests
                 ["hs_lastmodifieddate"] = "2026-01-01T00:00:00Z",
             },
         };
+    }
+
+    /// <summary>
+    /// RoutingMockHandler variant that captures POST request bodies for assertion.
+    /// </summary>
+    private sealed class CapturingRoutingMockHandler : HttpMessageHandler
+    {
+        private readonly Dictionary<string, (HttpStatusCode Status, string Body)> _routes;
+        private readonly List<string> _capturedBodies;
+
+        public CapturingRoutingMockHandler(
+            Dictionary<string, (HttpStatusCode, string)> routes,
+            List<string> capturedBodies)
+        {
+            _routes = routes;
+            _capturedBodies = capturedBodies;
+        }
+
+        protected override async Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            if (request.Content is not null)
+            {
+                var body = await request.Content.ReadAsStringAsync(cancellationToken);
+                _capturedBodies.Add(body);
+            }
+
+            var url = request.RequestUri?.PathAndQuery ?? "";
+            var method = request.Method.Method;
+
+            (HttpStatusCode Status, string Body)? bestMatch = null;
+            int bestLength = -1;
+
+            foreach (var (key, value) in _routes)
+            {
+                var parts = key.Split(':', 2);
+                if (parts.Length != 2) continue;
+
+                if (method == parts[0] && url.Contains(parts[1]) && parts[1].Length > bestLength)
+                {
+                    bestMatch = value;
+                    bestLength = parts[1].Length;
+                }
+            }
+
+            if (bestMatch is null)
+                return new HttpResponseMessage(HttpStatusCode.NotFound);
+
+            return new HttpResponseMessage(bestMatch.Value.Status)
+            {
+                Content = new StringContent(bestMatch.Value.Body, Encoding.UTF8, "application/json"),
+            };
+        }
     }
 }

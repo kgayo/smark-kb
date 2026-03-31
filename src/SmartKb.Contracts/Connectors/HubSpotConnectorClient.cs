@@ -260,10 +260,21 @@ public sealed class HubSpotConnectorClient : IConnectorClient
         var errors = new List<string>();
         var failedCount = 0;
 
+        // Apply client-side pipeline filtering for list API (no server-side filter support).
+        var pipelineProp = GetPipelinePropertyName(objectType);
+        var filterByPipeline = pipelineProp is not null && config.Pipelines.Count > 0;
+
         foreach (var obj in result.Results)
         {
             try
             {
+                if (filterByPipeline && obj.Properties is not null)
+                {
+                    var objPipeline = obj.Properties.GetValueOrDefault(pipelineProp!);
+                    if (objPipeline is null || !config.Pipelines.Contains(objPipeline))
+                        continue;
+                }
+
                 var record = MapObjectToCanonical(obj, objectType, config.PortalId, tenantId);
                 if (record is not null)
                     records.Add(record);
@@ -291,21 +302,35 @@ public sealed class HubSpotConnectorClient : IConnectorClient
             _ => "hs_lastmodifieddate",
         };
 
+        var filters = new List<HubSpotFilter>
+        {
+            new()
+            {
+                PropertyName = lastModifiedField,
+                Operator = "GTE",
+                Value = lastModified.ToUnixTimeMilliseconds().ToString(),
+            },
+        };
+
+        // Add server-side pipeline filter when configured (tickets/deals only).
+        var pipelineProp = GetPipelinePropertyName(objectType);
+        if (pipelineProp is not null && config.Pipelines.Count > 0)
+        {
+            filters.Add(new HubSpotFilter
+            {
+                PropertyName = pipelineProp,
+                Operator = "IN",
+                Values = config.Pipelines.ToList(),
+            });
+        }
+
         var searchRequest = new HubSpotSearchRequest
         {
             FilterGroups =
             [
                 new HubSpotFilterGroup
                 {
-                    Filters =
-                    [
-                        new HubSpotFilter
-                        {
-                            PropertyName = lastModifiedField,
-                            Operator = "GTE",
-                            Value = lastModified.ToUnixTimeMilliseconds().ToString(),
-                        },
-                    ],
+                    Filters = filters,
                 },
             ],
             Sorts =
@@ -427,6 +452,17 @@ public sealed class HubSpotConnectorClient : IConnectorClient
             .Where(t => SupportedObjectTypes.Contains(t))
             .ToList();
     }
+
+    /// <summary>
+    /// Returns the pipeline property name for the given object type, or null if pipelines don't apply.
+    /// Tickets use "hs_pipeline"; deals use "pipeline"; contacts/companies have no pipeline concept.
+    /// </summary>
+    internal static string? GetPipelinePropertyName(string objectType) => objectType switch
+    {
+        "tickets" => "hs_pipeline",
+        "deals" => "pipeline",
+        _ => null,
+    };
 
     internal static IReadOnlyList<string> ResolveProperties(HubSpotSourceConfig config, string objectType)
     {
@@ -584,7 +620,10 @@ public sealed class HubSpotConnectorClient : IConnectorClient
         public required string Operator { get; set; }
 
         [JsonPropertyName("value")]
-        public required string Value { get; set; }
+        public string? Value { get; set; }
+
+        [JsonPropertyName("values")]
+        public List<string>? Values { get; set; }
     }
 
     internal sealed class HubSpotSort
