@@ -40,14 +40,18 @@ public sealed class ContradictionDetectionService : IContradictionDetectionServi
     {
         var now = DateTimeOffset.UtcNow;
 
-        // Load all active (non-deprecated) patterns for the tenant.
+        // Load active (non-deprecated) patterns, prioritizing newest. Capped to avoid unbounded memory.
         var patterns = await _db.CasePatterns
             .Where(p => p.TenantId == tenantId && p.TrustLevel != TrustLevelName.Deprecated)
+            .OrderByDescending(p => p.CreatedAtEpoch)
+            .Take(2000)
             .ToListAsync(ct);
 
-        // Load existing pending contradictions to avoid duplicates.
+        // Load existing pending contradictions to avoid duplicates, capped for safety.
         var existingPairs = (await _db.PatternContradictions
             .Where(c => c.TenantId == tenantId && c.Status == WorkflowStatus.Pending)
+            .OrderByDescending(c => c.CreatedAtEpoch)
+            .Take(10000)
             .ToListAsync(ct))
             .Select(c => NormalizePair(c.PatternIdA, c.PatternIdB))
             .ToHashSet();

@@ -36,6 +36,7 @@ public sealed class DataSubjectDeletionService : IDataSubjectDeletionService
             RequestedBy = requestedBy,
             Status = WorkflowStatus.Processing,
             RequestedAt = now,
+            RequestedAtEpoch = now.ToUnixTimeSeconds(),
         };
         _db.DataSubjectDeletionRequests.Add(requestEntity);
         await _db.SaveChangesAsync(ct);
@@ -111,16 +112,20 @@ public sealed class DataSubjectDeletionService : IDataSubjectDeletionService
     public async Task<DataSubjectDeletionListResponse> ListDeletionRequestsAsync(
         string tenantId, CancellationToken ct = default)
     {
-        var entities = (await _db.DataSubjectDeletionRequests
+        var totalCount = await _db.DataSubjectDeletionRequests
             .Where(d => d.TenantId == tenantId)
-            .ToListAsync(ct))
-            .OrderByDescending(d => d.RequestedAt)
-            .ToList();
+            .CountAsync(ct);
+
+        var entities = await _db.DataSubjectDeletionRequests
+            .Where(d => d.TenantId == tenantId)
+            .OrderByDescending(d => d.RequestedAtEpoch)
+            .Take(500)
+            .ToListAsync(ct);
 
         return new DataSubjectDeletionListResponse
         {
             Requests = entities.Select(ToResponse).ToList(),
-            TotalCount = entities.Count,
+            TotalCount = totalCount,
         };
     }
 

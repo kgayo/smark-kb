@@ -268,14 +268,18 @@ public sealed class RetentionCleanupService : IRetentionCleanupService
             .OrderBy(r => r.EntityType)
             .ToListAsync(ct);
 
-        // Get latest execution per entity type using client-side grouping for SQLite compat.
-        var logs = await _db.RetentionExecutionLogs
-            .Where(l => l.TenantId == tenantId)
-            .ToListAsync(ct);
-
-        var latestByType = logs
-            .GroupBy(l => l.EntityType)
-            .ToDictionary(g => g.Key, g => g.OrderByDescending(l => l.ExecutedAt).First());
+        // Get latest execution per entity type using per-type queries (bounded by config count).
+        var entityTypes = configs.Select(c => c.EntityType).Distinct().ToList();
+        var latestByType = new Dictionary<string, RetentionExecutionLogEntity>();
+        foreach (var entityType in entityTypes)
+        {
+            var latest = await _db.RetentionExecutionLogs
+                .Where(l => l.TenantId == tenantId && l.EntityType == entityType)
+                .OrderByDescending(l => l.ExecutedAtEpoch)
+                .FirstOrDefaultAsync(ct);
+            if (latest is not null)
+                latestByType[entityType] = latest;
+        }
 
         var entries = new List<RetentionComplianceEntry>();
         var overdueCount = 0;

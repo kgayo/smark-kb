@@ -636,6 +636,51 @@ public class RetentionCleanupServiceTests : IDisposable
         Assert.Equal(1, _db.EvidenceChunks.Count());
     }
 
+    [Fact]
+    public async Task ComplianceReport_UsesPerEntityTypeQuery_NotBulkLoad()
+    {
+        // Seed policy + many logs for multiple entity types.
+        _db.RetentionConfigs.Add(new RetentionConfigEntity
+        {
+            Id = Guid.NewGuid(), TenantId = "t1", EntityType = "AppSession",
+            RetentionDays = 30, CreatedAt = DateTimeOffset.UtcNow,
+        });
+        _db.RetentionConfigs.Add(new RetentionConfigEntity
+        {
+            Id = Guid.NewGuid(), TenantId = "t1", EntityType = "AuditEvent",
+            RetentionDays = 90, CreatedAt = DateTimeOffset.UtcNow,
+        });
+
+        var now = DateTimeOffset.UtcNow;
+        // Add multiple logs per type — only latest should be used.
+        for (int i = 0; i < 5; i++)
+        {
+            var ts = now.AddDays(-i);
+            _db.RetentionExecutionLogs.Add(new RetentionExecutionLogEntity
+            {
+                Id = Guid.NewGuid(), TenantId = "t1", EntityType = "AppSession",
+                DeletedCount = i + 1, CutoffDate = ts, ExecutedAt = ts,
+                ExecutedAtEpoch = ts.ToUnixTimeSeconds(), DurationMs = 10, ActorId = "admin",
+            });
+        }
+        _db.RetentionExecutionLogs.Add(new RetentionExecutionLogEntity
+        {
+            Id = Guid.NewGuid(), TenantId = "t1", EntityType = "AuditEvent",
+            DeletedCount = 99, CutoffDate = now, ExecutedAt = now,
+            ExecutedAtEpoch = now.ToUnixTimeSeconds(), DurationMs = 10, ActorId = "admin",
+        });
+        await _db.SaveChangesAsync();
+
+        var report = await _service.GetComplianceReportAsync("t1");
+
+        Assert.Equal(2, report.Entries.Count);
+        // Verify latest log is selected (DeletedCount=1 for AppSession which is the most recent).
+        var sessionEntry = report.Entries.First(e => e.EntityType == "AppSession");
+        Assert.Equal(1, sessionEntry.LastDeletedCount);
+        var auditEntry = report.Entries.First(e => e.EntityType == "AuditEvent");
+        Assert.Equal(99, auditEntry.LastDeletedCount);
+    }
+
     private sealed class StubAuditWriter : IAuditEventWriter
     {
         public List<AuditEvent> Events { get; } = [];

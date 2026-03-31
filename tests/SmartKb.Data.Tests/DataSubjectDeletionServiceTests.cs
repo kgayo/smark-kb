@@ -207,6 +207,36 @@ public class DataSubjectDeletionServiceTests : IDisposable
         Assert.Equal(1, _db.Sessions.Count(s => s.TenantId == "t2"));
     }
 
+    [Fact]
+    public async Task ListDeletionRequests_ServerSideOrdering_ReturnsNewestFirst()
+    {
+        // Create requests at different times.
+        var now = DateTimeOffset.UtcNow;
+        for (int i = 0; i < 3; i++)
+        {
+            await _service.RequestDeletionAsync("t1", $"user-{i}", "admin-1");
+        }
+
+        var result = await _service.ListDeletionRequestsAsync("t1");
+
+        Assert.Equal(3, result.TotalCount);
+        Assert.Equal(3, result.Requests.Count);
+        // Requests should be ordered newest first (descending by RequestedAtEpoch).
+        for (int i = 0; i < result.Requests.Count - 1; i++)
+        {
+            Assert.True(result.Requests[i].RequestedAt >= result.Requests[i + 1].RequestedAt);
+        }
+    }
+
+    [Fact]
+    public async Task ListDeletionRequests_SetsRequestedAtEpoch()
+    {
+        await _service.RequestDeletionAsync("t1", "user-epoch", "admin-1");
+
+        var entity = _db.DataSubjectDeletionRequests.First();
+        Assert.True(entity.RequestedAtEpoch > 0, "RequestedAtEpoch should be set on creation");
+    }
+
     private sealed class StubAuditWriter : IAuditEventWriter
     {
         public List<AuditEvent> Events { get; } = [];

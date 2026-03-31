@@ -157,12 +157,17 @@ public sealed class RoutingImprovementService : IRoutingImprovementService
         if (!string.IsNullOrEmpty(status))
             query = query.Where(r => r.Status == status);
 
-        var results = await query.OrderByDescending(r => r.CreatedAtEpoch).ToListAsync(ct);
+        var totalCount = await query.CountAsync(ct);
+
+        var results = await query
+            .OrderByDescending(r => r.CreatedAtEpoch)
+            .Take(500)
+            .ToListAsync(ct);
 
         return new RoutingRecommendationListResponse
         {
             Recommendations = results.Select(MapRecommendation).ToList(),
-            TotalCount = results.Count,
+            TotalCount = totalCount,
         };
     }
 
@@ -299,10 +304,12 @@ public sealed class RoutingImprovementService : IRoutingImprovementService
     private async Task<string?> FindBetterTeamAsync(
         string tenantId, ProductAreaRoutingMetrics area, CancellationToken ct)
     {
-        // Look at rerouted outcomes to see which teams they were rerouted TO.
+        // Look at rerouted outcomes within the analytics window to see which teams they were rerouted TO.
         // The most common reroute target is a likely better team.
+        var windowStartEpoch = DateTimeOffset.UtcNow.AddDays(-_settings.DefaultWindowDays).ToUnixTimeSeconds();
         var reroutedOutcomes = await _db.OutcomeEvents
             .Where(o => o.TenantId == tenantId
+                        && o.CreatedAtEpoch >= windowStartEpoch
                         && o.ResolutionType == ResolutionType.Rerouted
                         && o.TargetTeam != null
                         && o.TargetTeam != area.CurrentTargetTeam)

@@ -37,14 +37,18 @@ public sealed class PatternMaintenanceService : IPatternMaintenanceService
     {
         var now = DateTimeOffset.UtcNow;
 
-        // Load active patterns.
+        // Load active patterns, prioritizing newest. Capped to avoid unbounded memory.
         var patterns = await _db.CasePatterns
             .Where(p => p.TenantId == tenantId && p.TrustLevel != TrustLevelName.Deprecated)
+            .OrderByDescending(p => p.CreatedAtEpoch)
+            .Take(2000)
             .ToListAsync(ct);
 
-        // Load existing pending tasks to avoid duplicates.
+        // Load existing pending tasks to avoid duplicates, capped for safety.
         var existingTasks = (await _db.PatternMaintenanceTasks
             .Where(t => t.TenantId == tenantId && t.Status == WorkflowStatus.Pending)
+            .OrderByDescending(t => t.CreatedAtEpoch)
+            .Take(10000)
             .ToListAsync(ct))
             .Select(t => $"{t.PatternId}|{t.TaskType}")
             .ToHashSet();

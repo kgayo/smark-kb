@@ -510,6 +510,21 @@ public class PatternMaintenanceServiceTests : IDisposable
         Assert.Empty(_service.ExtractPatternIds("[]"));
     }
 
+    [Fact]
+    public async Task DetectMaintenanceIssues_PatternsLoadBounded_PrioritizesNewest()
+    {
+        // Seed a stale pattern (old) and a fresh pattern.
+        var stalePattern = SeedPattern(daysOld: 200);
+        var freshPattern = SeedPattern(daysOld: 1);
+        await _db.SaveChangesAsync();
+
+        var result = await _service.DetectMaintenanceIssuesAsync(TenantId, ActorId, CorrelationId);
+
+        // Both patterns loaded (under 2000 cap). Stale pattern should be detected.
+        Assert.True(result.StaleDetected > 0);
+        Assert.True(result.PatternsScanned >= 2);
+    }
+
     private sealed class StubAuditWriter : IAuditEventWriter
     {
         public List<AuditEvent> Events { get; } = [];

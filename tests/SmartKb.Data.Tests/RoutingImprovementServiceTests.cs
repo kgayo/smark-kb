@@ -599,6 +599,37 @@ public class RoutingImprovementServiceTests : IDisposable
         Assert.Empty(result.Recommendations);
     }
 
+    [Fact]
+    public async Task GetRecommendations_ReturnsTotalCountAndBoundedResults()
+    {
+        var now = DateTimeOffset.UtcNow;
+        // Seed recommendations directly.
+        for (int i = 0; i < 5; i++)
+        {
+            _db.RoutingRecommendations.Add(new RoutingRecommendationEntity
+            {
+                Id = Guid.NewGuid(), TenantId = "t1",
+                RecommendationType = "TeamChange", ProductArea = $"Area-{i}",
+                CurrentTargetTeam = "TeamA", SuggestedTargetTeam = "TeamB",
+                Reason = "Testing", Confidence = 0.8f, SupportingOutcomeCount = 10,
+                Status = WorkflowStatus.Pending,
+                CreatedAt = now.AddMinutes(-i),
+                CreatedAtEpoch = now.AddMinutes(-i).ToUnixTimeSeconds(),
+            });
+        }
+        await _db.SaveChangesAsync();
+
+        var result = await _service.GetRecommendationsAsync("t1");
+
+        Assert.Equal(5, result.TotalCount);
+        Assert.Equal(5, result.Recommendations.Count);
+        // Verify server-side ordering (newest first).
+        for (int i = 0; i < result.Recommendations.Count - 1; i++)
+        {
+            Assert.True(result.Recommendations[i].CreatedAt >= result.Recommendations[i + 1].CreatedAt);
+        }
+    }
+
     private sealed class StubAuditWriter : IAuditEventWriter
     {
         public List<AuditEvent> Events { get; } = [];

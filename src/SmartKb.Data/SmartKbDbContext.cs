@@ -514,6 +514,7 @@ public class SmartKbDbContext : DbContext
             e.HasIndex(d => d.TenantId);
             e.HasIndex(d => new { d.TenantId, d.SubjectId });
             e.HasIndex(d => new { d.TenantId, d.Status });
+            e.HasIndex(d => new { d.TenantId, d.RequestedAtEpoch });
             e.HasOne(d => d.Tenant).WithMany().HasForeignKey(d => d.TenantId);
         });
     }

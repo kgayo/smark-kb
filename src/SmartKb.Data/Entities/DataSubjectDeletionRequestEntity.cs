@@ -27,6 +27,8 @@ public sealed class DataSubjectDeletionRequestEntity
     public string? ErrorDetail { get; set; }
 
     public DateTimeOffset RequestedAt { get; set; }
+    /// <summary>Unix epoch seconds for <see cref="RequestedAt"/>. Enables server-side ordering in SQLite.</summary>
+    public long RequestedAtEpoch { get; set; }
     public DateTimeOffset? CompletedAt { get; set; }
 
     public TenantEntity Tenant { get; set; } = null!;

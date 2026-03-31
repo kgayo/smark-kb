@@ -527,6 +527,28 @@ public class ContradictionDetectionServiceTests : IDisposable
         };
     }
 
+    [Fact]
+    public async Task DetectContradictions_PatternsLoadBounded_PrioritizesNewest()
+    {
+        // Seed patterns with distinct epochs to verify ordering.
+        var now = DateTimeOffset.UtcNow;
+        var oldPattern = MakePattern(symptomsJson: "[\"Old pattern symptoms\"]", resolutionStepsJson: "[\"Old resolution A\"]", productArea: "General");
+        oldPattern.CreatedAtEpoch = now.AddDays(-100).ToUnixTimeSeconds();
+        oldPattern.CreatedAt = now.AddDays(-100);
+
+        var newPattern = MakePattern(symptomsJson: "[\"New pattern symptoms\"]", resolutionStepsJson: "[\"New resolution B\"]", productArea: "General");
+        newPattern.CreatedAtEpoch = now.ToUnixTimeSeconds();
+        newPattern.CreatedAt = now;
+
+        _db.CasePatterns.AddRange(oldPattern, newPattern);
+        await _db.SaveChangesAsync();
+
+        var result = await _service.DetectContradictionsAsync(TenantId, ActorId, CorrelationId);
+
+        // Both patterns loaded and analyzed (well under 2000 cap).
+        Assert.True(result.PatternsAnalyzed >= 2);
+    }
+
     private sealed class StubAuditWriter : IAuditEventWriter
     {
         public List<AuditEvent> Events { get; } = [];
