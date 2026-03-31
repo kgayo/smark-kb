@@ -103,4 +103,18 @@ while true; do
   fi
 
   ITERATION=$((ITERATION + 1))
+
+  # Auto-stop: exit when no uncompleted items remain in the plan
+  if [[ -f "IMPLEMENTATION_PLAN.md" ]]; then
+    REMAINING=$(grep -c '^\- \[ \]' IMPLEMENTATION_PLAN.md 2>/dev/null || true)
+    if [[ "$REMAINING" -eq 0 ]]; then
+      echo ""
+      echo "========================================"
+      echo "All items complete. Loop finished after $ITERATION iteration(s)."
+      echo "========================================"
+      break
+    else
+      echo ">> $REMAINING uncompleted item(s) remaining."
+    fi
+  fi
 done
