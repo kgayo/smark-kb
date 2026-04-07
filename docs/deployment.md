@@ -116,7 +116,7 @@ Manual trigger (`workflow_dispatch`) with inputs:
 | Variable | Example |
 |----------|---------|
 | `API_BASE_URL` | `https://app-smartkb-api-dev.azurewebsites.net` |
-| `ENTRA_CLIENT_ID` | Your Entra ID app registration client ID |
+| `ENTRA_CLIENT_ID` | Your Entra ID app registration client ID (see [Entra ID Setup](getting-started.md#entra-id-azure-ad-setup)) |
 | `ENTRA_AUTHORITY` | `https://login.microsoftonline.com/{tenant-id}` |
 
 ## Manual Deployment
