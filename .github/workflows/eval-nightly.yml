@@ -37,6 +37,9 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
+      - name: Restore eval CLI
+        run: dotnet restore src/SmartKb.Eval.Cli/SmartKb.Eval.Cli.csproj
+
       - name: Build eval CLI
         run: dotnet build src/SmartKb.Eval.Cli/SmartKb.Eval.Cli.csproj --configuration Release --no-restore
 
